@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "969117356955",
+    "firebase_url": "https://benin-marketplace-3eb04-default-rtdb.firebaseio.com",
+    "project_id": "benin-marketplace-3eb04",
+    "storage_bucket": "benin-marketplace-3eb04.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:969117356955:android:9f40cb74b985c0a191473e",
+        "android_client_info": {
+          "package_name": "com.stanislas20.cheznous"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "969117356955-57lqq08ll9d4n2ep7p2m08vhbilbbfvs.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.stanislas20.cheznous",
+            "certificate_hash": "dbc77fca712b8df6880c3841909eacee8a5a5161"
+          }
+        },
+        {
+          "client_id": "969117356955-927vvt4rb4pjmrq8e6q8a7jk6iedh7l2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDspP7QhrPjLQg2YZGc9yIWO9hXnFVCsss"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "969117356955-927vvt4rb4pjmrq8e6q8a7jk6iedh7l2.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "969117356955-2o11vmghe1k1eg3v38ag7ho6ubiog9jr.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "Benin-Marketplace"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

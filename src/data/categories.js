@@ -1,0 +1,15 @@
+export const categories = [
+  { key: 'pharmacyOnDuty', icon: 'medkit-outline', labelEn: 'Pharmacy On Duty', labelFr: 'Pharmacie de Garde' },
+  { key: 'vehicles', icon: 'car-sport-outline', labelEn: 'Vehicles', labelFr: 'Véhicules' },
+  { key: 'realEstate', icon: 'home-outline', labelEn: 'Real Estate & Rentals', labelFr: 'Immobilier & Locations' },
+  { key: 'electronics', icon: 'phone-portrait-outline', labelEn: 'Electronics', labelFr: 'Électronique' },
+  { key: 'fashion', icon: 'shirt-outline', labelEn: 'Fashion & Apparel', labelFr: 'Mode & Vêtements' },
+  { key: 'homeGarden', icon: 'flower-outline', labelEn: 'Home & Garden', labelFr: 'Maison & Jardin' },
+  { key: 'furniture', icon: 'bed-outline', labelEn: 'Furniture', labelFr: 'Meubles' },
+  { key: 'babyKids', icon: 'balloon-outline', labelEn: 'Baby & Kids', labelFr: 'Bébé & Enfants' },
+  { key: 'sports', icon: 'football-outline', labelEn: 'Sports & Outdoors', labelFr: 'Sport & Plein air' },
+  { key: 'agriculture', icon: 'leaf-outline', labelEn: 'Agriculture', labelFr: 'Agriculture' },
+  { key: 'services', icon: 'construct-outline', labelEn: 'Services', labelFr: 'Services' },
+  { key: 'community', icon: 'people-outline', labelEn: 'Community', labelFr: 'Communauté' },
+  { key: 'jobs', icon: 'briefcase-outline', labelEn: 'Jobs', labelFr: 'Emplois' },
+];

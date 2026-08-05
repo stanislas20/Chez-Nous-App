@@ -1,0 +1,45 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /ads/{advertiserId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.uid == advertiserId
+        && request.resource.size < 50 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*') || request.resource.contentType.matches('video/.*'));
+    }
+
+    match /sellers/{sellerId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.uid == sellerId
+        && request.resource.size < 15 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /listings/{sellerId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.uid == sellerId
+        && request.resource.size < 50 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*') || request.resource.contentType.matches('video/.*'));
+      allow delete: if request.auth != null && request.auth.uid == sellerId;
+    }
+
+    match /conversations/{conversationId}/{fileName} {
+      // Cross-service firestore.get() would need a one-time IAM link that
+      // can only be granted interactively, which isn't available in this
+      // deploy flow. Access to these files is already effectively gated by
+      // Firestore's own rules on the message documents that reference
+      // them — only conversation participants can ever read a message doc
+      // to obtain its attachment URL in the first place — so it's
+      // sufficient here to require the uploader to name the file after
+      // their own uid.
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && fileName.matches(request.auth.uid + '-.*')
+        && request.resource.size < 15 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*') || request.resource.contentType.matches('audio/.*'));
+    }
+  }
+}

@@ -1,24 +1,77 @@
 {
   "expo": {
-    "name": "chez-nous",
+    "name": "Chez-Nous",
     "slug": "chez-nous",
+    "scheme": "cheznous",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.stanislas20.cheznous",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "appleTeamId": "MY9Y7Y46Q7",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.stanislas20.cheznous",
+      "softwareKeyboardLayoutMode": "pan",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDFtLrWLImqkIS3JzqGRas-qLtrVv5ZaMk"
+        }
       }
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-font",
+      "@react-native-firebase/app",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static",
+            "forceStaticLinking": ["RNFBApp", "RNFBMessaging"]
+          }
+        }
+      ],
+      "./plugins/withHermesAlwaysOutOfDate",
+      "./plugins/withExpoConstantsSpaceInPathFix",
+      "./plugins/withRNFirebaseAsStaticFramework",
+      "./plugins/withRNFBAlwaysOutOfDate",
+      "expo-video",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Chez-Nous to access your photos to upload an ad."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Chez-Nous to access your microphone to record voice messages."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Chez-Nous to use your location to suggest the nearest pharmacy on duty."
+        }
+      ],
+      "@react-native-firebase/auth",
+      "@react-native-firebase/messaging"
+    ]
   }
 }

@@ -11,6 +11,7 @@ import { ProductDetailScreen } from '../screens/ProductDetailScreen';
 import { ChatScreen } from '../screens/ChatScreen';
 import { MoreScreen } from '../screens/MoreScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
+import { SavedListingsScreen } from '../screens/SavedListingsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -40,6 +41,18 @@ export function RootNavigator() {
             options={{
               headerShown: true,
               title: t('tabMore'),
+              headerTintColor: colors.primary,
+              headerStyle: { backgroundColor: colors.surface },
+              headerTitleStyle: { fontFamily: fontFamily.semiBold, color: colors.text },
+              headerShadowVisible: false,
+            }}
+          />
+          <Stack.Screen
+            name="Saved"
+            component={SavedListingsScreen}
+            options={{
+              headerShown: true,
+              title: t('savedScreenTitle'),
               headerTintColor: colors.primary,
               headerStyle: { backgroundColor: colors.surface },
               headerTitleStyle: { fontFamily: fontFamily.semiBold, color: colors.text },

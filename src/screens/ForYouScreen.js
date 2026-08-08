@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   Easing,
   FlatList,
@@ -27,6 +28,7 @@ import { businessCategories } from "../data/businessCategories";
 import { useApprovedAds } from "../hooks/useApprovedAds";
 import { useApprovedListings } from "../hooks/useApprovedListings";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
+import { useFavorites } from "../hooks/useFavorites";
 import { useAuth } from "../auth/AuthContext";
 import { useI18n } from "../i18n/I18nContext";
 
@@ -511,13 +513,17 @@ export function ForYouScreen({ navigation }) {
   const { coords: userCoords } = useCurrentLocation();
   const [query, setQuery] = useState("");
   const [selectedChipKey, setSelectedChipKey] = useState("market");
-  const [favorites, setFavorites] = useState({});
   const [manualNearCity, setManualNearCity] = useState(null);
   const [cityPickerVisible, setCityPickerVisible] = useState(false);
   const [citySearch, setCitySearch] = useState("");
+  const { favoriteIds, toggleFavorite: toggleFavoriteRemote } = useFavorites(user?.uid);
 
   const toggleFavorite = (id) => {
-    setFavorites((current) => ({ ...current, [id]: !current[id] }));
+    if (!user) {
+      Alert.alert(t("favoritesSignInTitle"), t("favoritesSignInMessage"));
+      return;
+    }
+    toggleFavoriteRemote(id);
   };
 
   const trendingCardWidth = windowWidth - spacing.md * 2;
@@ -699,7 +705,7 @@ export function ForYouScreen({ navigation }) {
                   <RecommendedCard
                     listing={item}
                     navigation={navigation}
-                    isFavorite={!!favorites[item.id]}
+                    isFavorite={favoriteIds.has(item.id)}
                     onToggleFavorite={() => toggleFavorite(item.id)}
                     userCoords={userCoords}
                   />

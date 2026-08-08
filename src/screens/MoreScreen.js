@@ -32,6 +32,14 @@ export function MoreScreen({ navigation }) {
         contentContainerStyle={listContentStyle}
         ListHeaderComponent={
           <>
+            <AdvertiseTile onPress={() => navigation.navigate('Saved')}>
+              <AdvertiseIconWrap>
+                <Ionicons name="heart-outline" size={22} color={colors.primary} />
+              </AdvertiseIconWrap>
+              <AdvertiseLabel>{t('moreSavedTileLabel')}</AdvertiseLabel>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </AdvertiseTile>
+
             <AdvertiseTile onPress={() => navigation.navigate('Advertise')}>
               <AdvertiseIconWrap>
                 <Ionicons name="megaphone-outline" size={22} color={colors.primary} />

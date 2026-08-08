@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -9,71 +9,124 @@ import {
   ScrollView,
   Share,
   useWindowDimensions,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import styled from 'styled-components/native';
-import { radius, shadow, spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { fontFamily, type } from '../theme/typography';
-import { SearchBar } from '../components/SearchBar';
-import { ListingCard } from '../components/ListingCard';
-import { AdCard } from '../components/AdCard';
-import { mockListings } from '../data/mockListings';
-import { mockAds } from '../data/mockAds';
-import { cities } from '../data/cities';
-import { businessCategories } from '../data/businessCategories';
-import { useApprovedAds } from '../hooks/useApprovedAds';
-import { useApprovedListings } from '../hooks/useApprovedListings';
-import { useCurrentLocation } from '../hooks/useCurrentLocation';
-import { useAuth } from '../auth/AuthContext';
-import { useI18n } from '../i18n/I18nContext';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import styled from "styled-components/native";
+import { radius, shadow, spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { fontFamily, type } from "../theme/typography";
+import { SearchBar } from "../components/SearchBar";
+import { ListingCard } from "../components/ListingCard";
+import { AdCard } from "../components/AdCard";
+import { mockListings } from "../data/mockListings";
+import { mockAds } from "../data/mockAds";
+import { cities } from "../data/cities";
+import { businessCategories } from "../data/businessCategories";
+import { useApprovedAds } from "../hooks/useApprovedAds";
+import { useApprovedListings } from "../hooks/useApprovedListings";
+import { useCurrentLocation } from "../hooks/useCurrentLocation";
+import { useAuth } from "../auth/AuthContext";
+import { useI18n } from "../i18n/I18nContext";
 
 // Fixed brand accents from the design mockup (not theme-reactive, like the
 // onboarding screen's Benin flag colors) — used for small decorative surfaces
 // (avatar, badges, notification dot) meant to look the same in both themes.
-const EMERALD = '#0B6E4F';
-const GOLD = '#D9A441';
-const GOLD_BADGE_BG = 'rgba(217,164,65,0.87)';
-const BADGE_TEXT = '#7A4E00';
-const TERRACOTTA = '#C1512D';
+const EMERALD = "#0B6E4F";
+const GOLD = "#D9A441";
+const GOLD_BADGE_BG = "rgba(217,164,65,0.87)";
+const BADGE_TEXT = "#7A4E00";
+const TERRACOTTA = "#C1512D";
 
-const priceFormatter = new Intl.NumberFormat('fr-FR');
+const priceFormatter = new Intl.NumberFormat("fr-FR");
 
 // Content-vertical chips shown on the home feed — distinct from the app's
 // listing categoryKey taxonomy (src/data/categories.js). "Marketplace" clears
 // the filter (shows everything); the rest map to a real categoryKey where one
 // exists, otherwise they simply show an empty state (no fake data invented).
 const HOME_CATEGORIES = [
-  { key: 'market', icon: 'storefront-outline', categoryKey: null, fixedLabel: 'Marketplace' },
-  { key: 'jobs', icon: 'briefcase-outline', categoryKey: 'jobs', labelKey: 'categoryJobs' },
-  { key: 'food', icon: 'restaurant-outline', categoryKey: 'restaurants', labelKey: 'categoryRestaurants' },
-  { key: 'house', icon: 'home-outline', categoryKey: 'realEstate', labelKey: 'categoryRealEstateShort' },
-  { key: 'car', icon: 'car-sport-outline', categoryKey: 'vehicles', labelKey: 'categoryVehiclesShort' },
-  { key: 'event', icon: 'calendar-outline', categoryKey: 'events', labelKey: 'categoryEvents' },
-  { key: 'service', icon: 'construct-outline', categoryKey: 'services', labelKey: 'categoryServicesShort' },
-  { key: 'hotel', icon: 'bed-outline', categoryKey: 'hotels', labelKey: 'categoryHotels' },
+  {
+    key: "market",
+    icon: "storefront-outline",
+    categoryKey: null,
+    fixedLabel: "Marketplace",
+  },
+  {
+    key: "jobs",
+    icon: "briefcase-outline",
+    categoryKey: "jobs",
+    labelKey: "categoryJobs",
+  },
+  {
+    key: "food",
+    icon: "restaurant-outline",
+    categoryKey: "restaurants",
+    labelKey: "categoryRestaurants",
+  },
+  {
+    key: "house",
+    icon: "home-outline",
+    categoryKey: "realEstate",
+    labelKey: "categoryRealEstateShort",
+  },
+  {
+    key: "car",
+    icon: "car-sport-outline",
+    categoryKey: "vehicles",
+    labelKey: "categoryVehiclesShort",
+  },
+  {
+    key: "event",
+    icon: "calendar-outline",
+    categoryKey: "events",
+    labelKey: "categoryEvents",
+  },
+  {
+    key: "service",
+    icon: "construct-outline",
+    categoryKey: "services",
+    labelKey: "categoryServicesShort",
+  },
+  {
+    key: "hotel",
+    icon: "bed-outline",
+    categoryKey: "hotels",
+    labelKey: "categoryHotels",
+  },
 ];
 
-const listContentStyle = { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.md };
-const rowStyle = { justifyContent: 'space-between' };
+const listContentStyle = {
+  paddingHorizontal: spacing.md,
+  paddingTop: spacing.md,
+  paddingBottom: spacing.md,
+};
+const rowStyle = { justifyContent: "space-between" };
 const chipListContentStyle = { paddingRight: spacing.md };
 const hScrollContentStyle = { paddingRight: spacing.md, paddingVertical: 8 };
-const scrollContentStyle = { paddingHorizontal: 20, paddingTop: 18, paddingBottom: spacing.md };
+const scrollContentStyle = {
+  paddingHorizontal: 20,
+  paddingTop: 18,
+  paddingBottom: spacing.md,
+};
 const chipsListStyle = { flexGrow: 0, marginTop: 14 };
 
 const AD_INTERVAL = 5;
 
 function withInlineAds(listings, ads) {
-  if (ads.length === 0) return listings.map((listing) => ({ type: 'listing', listing }));
+  if (ads.length === 0)
+    return listings.map((listing) => ({ type: "listing", listing }));
 
   const items = [];
   let adCount = 0;
   listings.forEach((listing, index) => {
-    items.push({ type: 'listing', listing });
+    items.push({ type: "listing", listing });
     if ((index + 1) % AD_INTERVAL === 0) {
-      items.push({ type: 'ad', ad: ads[adCount % ads.length], key: `ad-${index}` });
+      items.push({
+        type: "ad",
+        ad: ads[adCount % ads.length],
+        key: `ad-${index}`,
+      });
       adCount += 1;
     }
   });
@@ -81,23 +134,28 @@ function withInlineAds(listings, ads) {
 }
 
 function formatTimeAgo(createdAt, t) {
-  const date = createdAt?.toDate?.() ?? (createdAt?.seconds ? new Date(createdAt.seconds * 1000) : null);
+  const date =
+    createdAt?.toDate?.() ??
+    (createdAt?.seconds ? new Date(createdAt.seconds * 1000) : null);
   if (!date) return null;
   const hours = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60));
-  if (hours < 1) return t('timeAgoJustNow');
-  if (hours < 24) return t('timeAgoHours', { hours });
-  return t('timeAgoDays', { days: Math.floor(hours / 24) });
+  if (hours < 1) return t("timeAgoJustNow");
+  if (hours < 24) return t("timeAgoHours", { hours });
+  return t("timeAgoDays", { days: Math.floor(hours / 24) });
 }
 
 function distanceKm(from, listing) {
-  if (!from || listing.latitude == null || listing.longitude == null) return null;
+  if (!from || listing.latitude == null || listing.longitude == null)
+    return null;
   const toRad = (deg) => (deg * Math.PI) / 180;
   const R = 6371;
   const dLat = toRad(listing.latitude - from.latitude);
   const dLon = toRad(listing.longitude - from.longitude);
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(from.latitude)) * Math.cos(toRad(listing.latitude)) * Math.sin(dLon / 2) ** 2;
+    Math.cos(toRad(from.latitude)) *
+      Math.cos(toRad(listing.latitude)) *
+      Math.sin(dLon / 2) ** 2;
   const km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return km < 10 ? Math.round(km * 10) / 10 : Math.round(km);
 }
@@ -109,34 +167,44 @@ function mostFrequentCity(listings) {
     counts[listing.city] = (counts[listing.city] ?? 0) + 1;
   });
   const entries = Object.entries(counts);
-  if (entries.length === 0) return 'Cotonou';
+  if (entries.length === 0) return "Cotonou";
   return entries.sort((a, b) => b[1] - a[1])[0][0];
 }
 
 function TrendingCard({ listing, navigation, cardWidth }) {
   const { language, t } = useI18n();
-  const title = language === 'en' ? listing.titleEn : listing.titleFr;
+  const title = language === "en" ? listing.titleEn : listing.titleFr;
   const coverUri = listing.mediaUrl ?? listing.image;
 
   return (
     <TrendingPressable
       style={{ width: cardWidth }}
-      onPress={() => navigation.navigate('ProductDetail', { listing: { ...listing, createdAt: null } })}
+      onPress={() =>
+        navigation.navigate("ProductDetail", {
+          listing: { ...listing, createdAt: null },
+        })
+      }
     >
       <TrendingImage source={{ uri: coverUri }} resizeMode="cover" />
       <TrendingGradient
-        colors={['rgba(11,31,22,0.25)', 'rgba(10,28,20,0.55)', 'rgba(7,20,14,0.94)']}
+        colors={[
+          "rgba(11,31,22,0.25)",
+          "rgba(10,28,20,0.55)",
+          "rgba(7,20,14,0.94)",
+        ]}
         locations={[0, 0.45, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
       />
       <TrendingBadge>
-        <TrendingBadgeLabel>🔥 {t('popularBadgeLabel')}</TrendingBadgeLabel>
+        <TrendingBadgeLabel>🔥 {t("popularBadgeLabel")}</TrendingBadgeLabel>
       </TrendingBadge>
       <TrendingContent>
         <TrendingTitle numberOfLines={1}>{title}</TrendingTitle>
         <TrendingMetaRow>
-          <TrendingPrice>{priceFormatter.format(listing.price)} FCFA</TrendingPrice>
+          <TrendingPrice>
+            {priceFormatter.format(listing.price)} FCFA
+          </TrendingPrice>
           <TrendingCity numberOfLines={1}>{listing.city}</TrendingCity>
         </TrendingMetaRow>
       </TrendingContent>
@@ -148,14 +216,22 @@ const REC_CARD_WIDTH = 168;
 const REC_IMAGE_HEIGHT = 118;
 const BUSINESS_ITEM_WIDTH = 156 + 14;
 
-function RecommendedCard({ listing, navigation, isFavorite, onToggleFavorite, userCoords }) {
+function RecommendedCard({
+  listing,
+  navigation,
+  isFavorite,
+  onToggleFavorite,
+  userCoords,
+}) {
   const { language, t } = useI18n();
-  const title = language === 'en' ? listing.titleEn : listing.titleFr;
+  const title = language === "en" ? listing.titleEn : listing.titleFr;
   const coverUri = listing.mediaUrl ?? listing.image;
   const timeAgo = formatTimeAgo(listing.createdAt, t);
   // No "verified seller" concept exists in the data model, so the doc's
   // verified checkmark is intentionally left out rather than faked.
-  const sellerInitial = listing.sellerName ? listing.sellerName.trim().charAt(0).toUpperCase() : null;
+  const sellerInitial = listing.sellerName
+    ? listing.sellerName.trim().charAt(0).toUpperCase()
+    : null;
   const km = distanceKm(userCoords, listing);
   const metaText = km != null ? `${listing.city} · ${km} km` : listing.city;
   const [activePhoto, setActivePhoto] = useState(0);
@@ -163,13 +239,16 @@ function RecommendedCard({ listing, navigation, isFavorite, onToggleFavorite, us
   // Real photos from CreateListingScreen's upload flow (up to 6 per listing,
   // stored as listing.media) — video thumbnails aren't renderable as a still
   // image, so the swipeable carousel only includes actual photos.
-  const photos = (listing.media ?? []).filter((item) => item.mediaType !== 'video');
-  const carouselPhotos = photos.length > 0 ? photos : coverUri ? [{ mediaUrl: coverUri }] : [];
+  const photos = (listing.media ?? []).filter(
+    (item) => item.mediaType !== "video",
+  );
+  const carouselPhotos =
+    photos.length > 0 ? photos : coverUri ? [{ mediaUrl: coverUri }] : [];
 
   const handleShare = async () => {
     try {
       await Share.share({
-        message: t('shareListingMessage', {
+        message: t("shareListingMessage", {
           title,
           price: `${priceFormatter.format(listing.price)} FCFA`,
         }),
@@ -181,68 +260,76 @@ function RecommendedCard({ listing, navigation, isFavorite, onToggleFavorite, us
 
   return (
     <RecCard
-      onPress={() => navigation.navigate('ProductDetail', { listing: { ...listing, createdAt: null } })}
+      onPress={() =>
+        navigation.navigate("ProductDetail", {
+          listing: { ...listing, createdAt: null },
+        })
+      }
     >
       <RecCardInner>
-      <RecImageWrap>
-        {carouselPhotos.length > 0 ? (
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            scrollEnabled={carouselPhotos.length > 1}
-            onMomentumScrollEnd={(e) => {
-              setActivePhoto(Math.round(e.nativeEvent.contentOffset.x / REC_CARD_WIDTH));
-            }}
-          >
-            {carouselPhotos.map((photo, index) => (
-              <RecImage
-                key={photo.mediaPath ?? index}
-                source={{ uri: photo.mediaUrl }}
-                resizeMode="cover"
-                style={{ width: REC_CARD_WIDTH, height: REC_IMAGE_HEIGHT }}
-              />
-            ))}
-          </ScrollView>
-        ) : null}
-        {listing.isPromoted ? (
-          <RecPromotedBadge>
-            <RecPromotedLabel>{t('sponsoredLabel')}</RecPromotedLabel>
-          </RecPromotedBadge>
-        ) : null}
-        <RecFavButton onPress={onToggleFavorite} hitSlop={8}>
-          <Ionicons
-            name={isFavorite ? 'heart' : 'heart-outline'}
-            size={15}
-            color={isFavorite ? TERRACOTTA : '#ffffff'}
-          />
-        </RecFavButton>
-        {carouselPhotos.length > 1 ? (
-          <RecDotsWrap>
-            {carouselPhotos.map((_, index) => (
-              <RecDot key={index} active={index === activePhoto} />
-            ))}
-          </RecDotsWrap>
-        ) : null}
-      </RecImageWrap>
-      <RecBody>
-        <RecPriceRow>
-          <RecPrice numberOfLines={1}>{priceFormatter.format(listing.price)} FCFA</RecPrice>
-          <Pressable onPress={handleShare} hitSlop={8}>
-            <Ionicons name="share-social-outline" size={14} color="#9CA3AF" />
-          </Pressable>
-        </RecPriceRow>
-        <RecTitle numberOfLines={1}>{title}</RecTitle>
-        <RecSellerRow>
-          {sellerInitial ? (
-            <RecSellerAvatar>
-              <RecSellerAvatarLabel>{sellerInitial}</RecSellerAvatarLabel>
-            </RecSellerAvatar>
+        <RecImageWrap>
+          {carouselPhotos.length > 0 ? (
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              scrollEnabled={carouselPhotos.length > 1}
+              onMomentumScrollEnd={(e) => {
+                setActivePhoto(
+                  Math.round(e.nativeEvent.contentOffset.x / REC_CARD_WIDTH),
+                );
+              }}
+            >
+              {carouselPhotos.map((photo, index) => (
+                <RecImage
+                  key={photo.mediaPath ?? index}
+                  source={{ uri: photo.mediaUrl }}
+                  resizeMode="cover"
+                  style={{ width: REC_CARD_WIDTH, height: REC_IMAGE_HEIGHT }}
+                />
+              ))}
+            </ScrollView>
           ) : null}
-          <RecMeta numberOfLines={1}>{metaText}</RecMeta>
-        </RecSellerRow>
-        {timeAgo ? <RecTime>{timeAgo}</RecTime> : null}
-      </RecBody>
+          {listing.isPromoted ? (
+            <RecPromotedBadge>
+              <RecPromotedLabel>{t("sponsoredLabel")}</RecPromotedLabel>
+            </RecPromotedBadge>
+          ) : null}
+          <RecFavButton onPress={onToggleFavorite} hitSlop={8}>
+            <Ionicons
+              name={isFavorite ? "heart" : "heart-outline"}
+              size={15}
+              color={isFavorite ? TERRACOTTA : "#ffffff"}
+            />
+          </RecFavButton>
+          {carouselPhotos.length > 1 ? (
+            <RecDotsWrap>
+              {carouselPhotos.map((_, index) => (
+                <RecDot key={index} active={index === activePhoto} />
+              ))}
+            </RecDotsWrap>
+          ) : null}
+        </RecImageWrap>
+        <RecBody>
+          <RecPriceRow>
+            <RecPrice numberOfLines={1}>
+              {priceFormatter.format(listing.price)} FCFA
+            </RecPrice>
+            <Pressable onPress={handleShare} hitSlop={8}>
+              <Ionicons name="share-social-outline" size={14} color="#9CA3AF" />
+            </Pressable>
+          </RecPriceRow>
+          <RecTitle numberOfLines={1}>{title}</RecTitle>
+          <RecSellerRow>
+            {sellerInitial ? (
+              <RecSellerAvatar>
+                <RecSellerAvatarLabel>{sellerInitial}</RecSellerAvatarLabel>
+              </RecSellerAvatar>
+            ) : null}
+            <RecMeta numberOfLines={1}>{metaText}</RecMeta>
+          </RecSellerRow>
+          {timeAgo ? <RecTime>{timeAgo}</RecTime> : null}
+        </RecBody>
       </RecCardInner>
     </RecCard>
   );
@@ -250,19 +337,27 @@ function RecommendedCard({ listing, navigation, isFavorite, onToggleFavorite, us
 
 function NearCard({ listing, navigation }) {
   const { language } = useI18n();
-  const title = language === 'en' ? listing.titleEn : listing.titleFr;
+  const title = language === "en" ? listing.titleEn : listing.titleFr;
   const coverUri = listing.mediaUrl ?? listing.image;
 
   return (
     <NearPressable
-      onPress={() => navigation.navigate('ProductDetail', { listing: { ...listing, createdAt: null } })}
+      onPress={() =>
+        navigation.navigate("ProductDetail", {
+          listing: { ...listing, createdAt: null },
+        })
+      }
     >
       <NearCardInner>
         <NearImageWrap>
-          {coverUri ? <NearImage source={{ uri: coverUri }} resizeMode="cover" /> : null}
+          {coverUri ? (
+            <NearImage source={{ uri: coverUri }} resizeMode="cover" />
+          ) : null}
         </NearImageWrap>
         <NearBody>
-          <NearPrice numberOfLines={1}>{priceFormatter.format(listing.price)} FCFA</NearPrice>
+          <NearPrice numberOfLines={1}>
+            {priceFormatter.format(listing.price)} FCFA
+          </NearPrice>
           <NearTitle numberOfLines={1}>{title}</NearTitle>
           <NearMeta numberOfLines={1}>{listing.city}</NearMeta>
         </NearBody>
@@ -273,21 +368,31 @@ function NearCard({ listing, navigation }) {
 
 function DealCard({ listing, navigation }) {
   const { language } = useI18n();
-  const title = language === 'en' ? listing.titleEn : listing.titleFr;
+  const title = language === "en" ? listing.titleEn : listing.titleFr;
   const coverUri = listing.mediaUrl ?? listing.image;
 
   return (
     <NearPressable
-      onPress={() => navigation.navigate('ProductDetail', { listing: { ...listing, createdAt: null } })}
+      onPress={() =>
+        navigation.navigate("ProductDetail", {
+          listing: { ...listing, createdAt: null },
+        })
+      }
     >
       <NearCardInner>
         <NearImageWrap>
-          {coverUri ? <NearImage source={{ uri: coverUri }} resizeMode="cover" /> : null}
+          {coverUri ? (
+            <NearImage source={{ uri: coverUri }} resizeMode="cover" />
+          ) : null}
         </NearImageWrap>
         <NearBody>
           <DealPriceRow>
-            <NearPrice numberOfLines={1}>{priceFormatter.format(listing.price)} FCFA</NearPrice>
-            <DealOldPrice numberOfLines={1}>{priceFormatter.format(listing.previousPrice)}</DealOldPrice>
+            <NearPrice numberOfLines={1}>
+              {priceFormatter.format(listing.price)} FCFA
+            </NearPrice>
+            <DealOldPrice numberOfLines={1}>
+              {priceFormatter.format(listing.previousPrice)}
+            </DealOldPrice>
           </DealPriceRow>
           <NearTitle numberOfLines={1}>{title}</NearTitle>
           <NearMeta numberOfLines={1}>{listing.city}</NearMeta>
@@ -301,29 +406,59 @@ const MARQUEE_SPEED_PX_PER_SEC = 40;
 
 function BusinessMarquee({ ads }) {
   const translateX = useRef(new Animated.Value(0)).current;
+  const animationRef = useRef(null);
+  const currentValueRef = useRef(0);
   const setWidth = ads.length * BUSINESS_ITEM_WIDTH;
 
+  const runMarquee = () => {
+    const remaining = setWidth + currentValueRef.current;
+    animationRef.current = Animated.timing(translateX, {
+      toValue: -setWidth,
+      duration: (remaining / MARQUEE_SPEED_PX_PER_SEC) * 1000,
+      easing: Easing.linear,
+      useNativeDriver: true,
+    });
+    animationRef.current.start(({ finished }) => {
+      if (!finished) return;
+      translateX.setValue(0);
+      currentValueRef.current = 0;
+      runMarquee();
+    });
+  };
+
   useEffect(() => {
+    const listenerId = translateX.addListener(({ value }) => {
+      currentValueRef.current = value;
+    });
     translateX.setValue(0);
-    const animation = Animated.loop(
-      Animated.timing(translateX, {
-        toValue: -setWidth,
-        duration: (setWidth / MARQUEE_SPEED_PX_PER_SEC) * 1000,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }),
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [ads, setWidth, translateX]);
+    currentValueRef.current = 0;
+    runMarquee();
+    return () => {
+      translateX.removeListener(listenerId);
+      animationRef.current?.stop();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ads, setWidth]);
 
   if (ads.length === 0) return null;
+
+  // Pause the slide for the duration of any touch on the row — on Android,
+  // a native-driven transform that keeps animating *during* a press can
+  // desync RN's touch/press detection on the nested card buttons, making
+  // taps silently fail. Freezing position while a touch is active avoids
+  // that entirely; iOS doesn't need this but it's harmless there too.
+  const pause = () => animationRef.current?.stop();
+  const resume = () => runMarquee();
 
   // Render the list twice back-to-back so the loop point is invisible — as
   // the first copy slides fully offscreen, the second copy is already lined
   // up to continue, giving a seamless, gapless slide instead of a jump-cut.
   return (
-    <MarqueeClip>
+    <MarqueeClip
+      onTouchStart={pause}
+      onTouchEnd={resume}
+      onTouchCancel={resume}
+    >
       <MarqueeRow style={{ transform: [{ translateX }] }}>
         {ads.concat(ads).map((ad, index) => (
           <BusinessCard key={`${ad.id}-${index}`} ad={ad} />
@@ -335,10 +470,14 @@ function BusinessMarquee({ ads }) {
 
 function BusinessCard({ ad }) {
   const { language } = useI18n();
-  const name = ad.sponsorName ?? '';
+  const name = ad.sponsorName ?? "";
   const initials = name.trim().slice(0, 2).toUpperCase();
   const category = businessCategories.find((c) => c.key === ad.category);
-  const categoryLabel = category ? (language === 'en' ? category.labelEn : category.labelFr) : null;
+  const categoryLabel = category
+    ? language === "en"
+      ? category.labelEn
+      : category.labelFr
+    : null;
 
   return (
     <BusinessPressable
@@ -346,14 +485,20 @@ function BusinessCard({ ad }) {
         if (ad.linkUrl) Linking.openURL(ad.linkUrl);
       }}
     >
-      <BusinessLogo colors={[EMERALD, GOLD]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+      <BusinessLogo
+        colors={[EMERALD, GOLD]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
         <BusinessLogoLabel>{initials}</BusinessLogoLabel>
       </BusinessLogo>
       <BusinessNameRow>
         <BusinessName numberOfLines={1}>{name}</BusinessName>
         <Ionicons name="checkmark-circle" size={15} color={EMERALD} />
       </BusinessNameRow>
-      {categoryLabel ? <BusinessCategory numberOfLines={1}>{categoryLabel}</BusinessCategory> : null}
+      {categoryLabel ? (
+        <BusinessCategory numberOfLines={1}>{categoryLabel}</BusinessCategory>
+      ) : null}
     </BusinessPressable>
   );
 }
@@ -364,12 +509,12 @@ export function ForYouScreen({ navigation }) {
   const { user, sellerProfile, advertiserProfile } = useAuth();
   const { width: windowWidth } = useWindowDimensions();
   const { coords: userCoords } = useCurrentLocation();
-  const [query, setQuery] = useState('');
-  const [selectedChipKey, setSelectedChipKey] = useState('market');
+  const [query, setQuery] = useState("");
+  const [selectedChipKey, setSelectedChipKey] = useState("market");
   const [favorites, setFavorites] = useState({});
   const [manualNearCity, setManualNearCity] = useState(null);
   const [cityPickerVisible, setCityPickerVisible] = useState(false);
-  const [citySearch, setCitySearch] = useState('');
+  const [citySearch, setCitySearch] = useState("");
 
   const toggleFavorite = (id) => {
     setFavorites((current) => ({ ...current, [id]: !current[id] }));
@@ -383,23 +528,26 @@ export function ForYouScreen({ navigation }) {
   // Pharmacie de Garde has its own dedicated category screen and shouldn't
   // be mixed into the general marketplace feed.
   const listings = (liveListings ?? mockListings).filter(
-    (listing) => listing.categoryKey !== 'pharmacyOnDuty',
+    (listing) => listing.categoryKey !== "pharmacyOnDuty",
   );
   // Fall back to real recent listings when nothing is explicitly flagged
   // popular yet, so Trending is never empty — same real data, just a
   // different (honest) ranking signal when there's no popularity data.
   const explicitlyPopular = listings.filter((listing) => listing.popular);
-  const trendingListings = explicitlyPopular.length > 0 ? explicitlyPopular : listings.slice(0, 5);
+  const trendingListings =
+    explicitlyPopular.length > 0 ? explicitlyPopular : listings.slice(0, 5);
   // A real price drop, not a fabricated discount — set by EditListingScreen
   // whenever a seller lowers the price on an existing listing.
   const dealListings = listings.filter(
-    (listing) => listing.previousPrice != null && listing.previousPrice > listing.price,
+    (listing) =>
+      listing.previousPrice != null && listing.previousPrice > listing.price,
   );
 
   const filteredListings = listings.filter((listing) => {
-    const title = language === 'en' ? listing.titleEn : listing.titleFr;
+    const title = language === "en" ? listing.titleEn : listing.titleFr;
     const matchesQuery = title.toLowerCase().includes(query.toLowerCase());
-    const matchesCategory = !selectedCategoryKey || listing.categoryKey === selectedCategoryKey;
+    const matchesCategory =
+      !selectedCategoryKey || listing.categoryKey === selectedCategoryKey;
     return matchesQuery && matchesCategory;
   });
 
@@ -412,24 +560,33 @@ export function ForYouScreen({ navigation }) {
   // specific category switches to a plain results grid, since a handful of
   // curated horizontal rows isn't a usable way to page through search/filter
   // results — the mockup doesn't depict that state, so this is our own call.
-  const isDefaultBrowse = isBrowsing && selectedChipKey === 'market';
+  const isDefaultBrowse = isBrowsing && selectedChipKey === "market";
   const gridItems = withInlineAds(filteredListings, isBrowsing ? ads : []);
 
-  const name = user?.displayName || sellerProfile?.fullName || advertiserProfile?.businessName;
+  const name =
+    user?.displayName ||
+    sellerProfile?.fullName ||
+    advertiserProfile?.businessName;
   const initial = name ? name.trim().charAt(0).toUpperCase() : null;
 
   const autoNearCity = useMemo(() => mostFrequentCity(listings), [listings]);
   const nearYouCity = manualNearCity ?? autoNearCity;
-  const nearYouListings = listings.filter((listing) => listing.city === nearYouCity);
+  const nearYouListings = listings.filter(
+    (listing) => listing.city === nearYouCity,
+  );
   const filteredCities = cities.filter((city) =>
     city.toLowerCase().includes(citySearch.trim().toLowerCase()),
   );
 
   return (
-    <Container edges={['top', 'left', 'right', 'bottom']}>
+    <Container edges={["top", "left", "right", "bottom"]}>
       <HeaderCard>
         <HeaderRow>
-          <Avatar colors={[EMERALD, GOLD]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <Avatar
+            colors={[EMERALD, GOLD]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
             {initial ? (
               <AvatarLabel>{initial}</AvatarLabel>
             ) : (
@@ -438,19 +595,28 @@ export function ForYouScreen({ navigation }) {
           </Avatar>
           <GreetingBlock>
             <GreetingText numberOfLines={1}>
-              {name ? t('homeGreeting', { name }) : t('homeGreetingGuest')}
+              {name ? t("homeGreeting", { name }) : t("homeGreetingGuest")}
             </GreetingText>
-            <SubtitleText numberOfLines={1}>{t('homeSubtitle')}</SubtitleText>
+            <SubtitleText numberOfLines={1}>{t("homeSubtitle")}</SubtitleText>
           </GreetingBlock>
           <HeaderActions>
-            <IconButton onPress={() => navigation.navigate('Notifications')} hitSlop={8}>
-              <Ionicons name="notifications-outline" size={19} color={colors.text} />
+            <IconButton
+              onPress={() => navigation.navigate("Notifications")}
+              hitSlop={8}
+            >
+              <Ionicons
+                name="notifications-outline"
+                size={19}
+                color={colors.text}
+              />
             </IconButton>
-            <IconButton onPress={() => navigation.navigate('More')} hitSlop={8}>
+            <IconButton onPress={() => navigation.navigate("More")} hitSlop={8}>
               <Ionicons name="menu-outline" size={19} color={colors.text} />
             </IconButton>
-            <LangPill onPress={() => setLanguage(language === 'en' ? 'fr' : 'en')}>
-              <LangPillLabel>{language === 'en' ? 'FR' : 'EN'}</LangPillLabel>
+            <LangPill
+              onPress={() => setLanguage(language === "en" ? "fr" : "en")}
+            >
+              <LangPillLabel>{language === "en" ? "FR" : "EN"}</LangPillLabel>
             </LangPill>
           </HeaderActions>
         </HeaderRow>
@@ -459,6 +625,7 @@ export function ForYouScreen({ navigation }) {
 
         <FlatList
           data={HOME_CATEGORIES}
+          showsVerticalScrollIndicator={false}
           keyExtractor={(item) => item.key}
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -468,7 +635,10 @@ export function ForYouScreen({ navigation }) {
             const isSelected = selectedChipKey === item.key;
             const label = item.fixedLabel ?? t(item.labelKey);
             return (
-              <CategoryChip selected={isSelected} onPress={() => setSelectedChipKey(item.key)}>
+              <CategoryChip
+                selected={isSelected}
+                onPress={() => setSelectedChipKey(item.key)}
+              >
                 <Ionicons
                   name={item.icon}
                   size={14}
@@ -485,8 +655,9 @@ export function ForYouScreen({ navigation }) {
         <ScrollView contentContainerStyle={scrollContentStyle}>
           {trendingListings.length > 0 ? (
             <Section>
-              <SectionTitle>🔥 {t('trendingSectionTitle')}</SectionTitle>
+              <SectionTitle>🔥 {t("trendingSectionTitle")}</SectionTitle>
               <FlatList
+                showsVerticalScrollIndicator={false}
                 data={trendingListings}
                 keyExtractor={(item) => item.id}
                 horizontal
@@ -495,7 +666,11 @@ export function ForYouScreen({ navigation }) {
                 decelerationRate="fast"
                 contentContainerStyle={hScrollContentStyle}
                 renderItem={({ item }) => (
-                  <TrendingCard listing={item} navigation={navigation} cardWidth={trendingCardWidth} />
+                  <TrendingCard
+                    listing={item}
+                    navigation={navigation}
+                    cardWidth={trendingCardWidth}
+                  />
                 )}
               />
             </Section>
@@ -503,16 +678,19 @@ export function ForYouScreen({ navigation }) {
 
           {ads.length > 0 ? (
             <Section>
-              <SectionTitle>🏆 {t('verifiedBusinessesSectionTitle')}</SectionTitle>
+              <SectionTitle>
+                🏆 {t("verifiedBusinessesSectionTitle")}
+              </SectionTitle>
               <BusinessMarquee ads={ads} />
             </Section>
           ) : null}
 
           {filteredListings.length > 0 ? (
             <Section>
-              <SectionTitle>⭐ {t('recommendedSectionTitle')}</SectionTitle>
+              <SectionTitle>⭐ {t("recommendedSectionTitle")}</SectionTitle>
               <FlatList
                 data={filteredListings}
+                showsVerticalScrollIndicator={false}
                 keyExtractor={(item) => item.id}
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -532,8 +710,14 @@ export function ForYouScreen({ navigation }) {
 
           <Section>
             <NearSectionHeader onPress={() => setCityPickerVisible(true)}>
-              <SectionTitle>📍 {t('nearYouSectionTitle', { city: nearYouCity })}</SectionTitle>
-              <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
+              <SectionTitle>
+                📍 {t("nearYouSectionTitle", { city: nearYouCity })}
+              </SectionTitle>
+              <Ionicons
+                name="chevron-down"
+                size={16}
+                color={colors.textMuted}
+              />
             </NearSectionHeader>
             {nearYouListings.length > 0 ? (
               <FlatList
@@ -542,23 +726,29 @@ export function ForYouScreen({ navigation }) {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={hScrollContentStyle}
-                renderItem={({ item }) => <NearCard listing={item} navigation={navigation} />}
+                renderItem={({ item }) => (
+                  <NearCard listing={item} navigation={navigation} />
+                )}
               />
             ) : (
-              <EmptyCityText>{t('nearYouEmpty', { city: nearYouCity })}</EmptyCityText>
+              <EmptyCityText>
+                {t("nearYouEmpty", { city: nearYouCity })}
+              </EmptyCityText>
             )}
           </Section>
 
           {dealListings.length > 0 ? (
             <Section>
-              <SectionTitle>🎯 {t('dealsSectionTitle')}</SectionTitle>
+              <SectionTitle>🎯 {t("dealsSectionTitle")}</SectionTitle>
               <FlatList
                 data={dealListings}
                 keyExtractor={(item) => item.id}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={hScrollContentStyle}
-                renderItem={({ item }) => <DealCard listing={item} navigation={navigation} />}
+                renderItem={({ item }) => (
+                  <DealCard listing={item} navigation={navigation} />
+                )}
               />
             </Section>
           ) : null}
@@ -566,12 +756,19 @@ export function ForYouScreen({ navigation }) {
       ) : (
         <FlatList
           data={gridItems}
-          keyExtractor={(item) => (item.type === 'ad' ? item.key : item.listing.id)}
+          showsVerticalScrollIndicator={false}
+          keyExtractor={(item) =>
+            item.type === "ad" ? item.key : item.listing.id
+          }
           numColumns={2}
           columnWrapperStyle={rowStyle}
           contentContainerStyle={listContentStyle}
           renderItem={({ item }) =>
-            item.type === 'ad' ? <AdCard ad={item.ad} /> : <ListingCard listing={item.listing} />
+            item.type === "ad" ? (
+              <AdCard ad={item.ad} />
+            ) : (
+              <ListingCard listing={item.listing} />
+            )
           }
         />
       )}
@@ -585,12 +782,19 @@ export function ForYouScreen({ navigation }) {
         <ModalBackdrop onPress={() => setCityPickerVisible(false)}>
           <ModalSheet onStartShouldSetResponder={() => true}>
             <ModalHeaderRow>
-              <ModalTitle>{t('chooseCityTitle')}</ModalTitle>
-              <Pressable onPress={() => setCityPickerVisible(false)} hitSlop={8}>
+              <ModalTitle>{t("chooseCityTitle")}</ModalTitle>
+              <Pressable
+                onPress={() => setCityPickerVisible(false)}
+                hitSlop={8}
+              >
                 <Ionicons name="close" size={22} color={colors.text} />
               </Pressable>
             </ModalHeaderRow>
-            <SearchBar value={citySearch} onChangeText={setCitySearch} placeholder={t('searchCityPlaceholder')} />
+            <SearchBar
+              value={citySearch}
+              onChangeText={setCitySearch}
+              placeholder={t("searchCityPlaceholder")}
+            />
             {manualNearCity ? (
               <ResetCityRow
                 onPress={() => {
@@ -598,24 +802,35 @@ export function ForYouScreen({ navigation }) {
                   setCityPickerVisible(false);
                 }}
               >
-                <Ionicons name="locate-outline" size={16} color={colors.primary} />
-                <ResetCityLabel>{t('useMyLocationCity')}</ResetCityLabel>
+                <Ionicons
+                  name="locate-outline"
+                  size={16}
+                  color={colors.primary}
+                />
+                <ResetCityLabel>{t("useMyLocationCity")}</ResetCityLabel>
               </ResetCityRow>
             ) : null}
             <FlatList
               data={filteredCities}
+              showsVerticalScrollIndicator={false}
               keyExtractor={(city) => city}
               renderItem={({ item: city }) => (
                 <CityRow
                   onPress={() => {
                     setManualNearCity(city);
                     setCityPickerVisible(false);
-                    setCitySearch('');
+                    setCitySearch("");
                   }}
                 >
-                  <CityRowLabel selected={city === nearYouCity}>{city}</CityRowLabel>
+                  <CityRowLabel selected={city === nearYouCity}>
+                    {city}
+                  </CityRowLabel>
                   {city === nearYouCity ? (
-                    <Ionicons name="checkmark" size={18} color={colors.primary} />
+                    <Ionicons
+                      name="checkmark"
+                      size={18}
+                      color={colors.primary}
+                    />
                   ) : null}
                 </CityRow>
               )}
@@ -713,12 +928,14 @@ const CategoryChip = styled(Pressable)`
   padding-horizontal: 14px;
   padding-vertical: 9px;
   border-radius: ${radius.pill}px;
-  background-color: ${(props) => (props.selected ? props.theme.primary : props.theme.primaryLight)};
+  background-color: ${(props) =>
+    props.selected ? props.theme.primary : props.theme.primaryLight};
 `;
 
 const ChipLabel = styled.Text`
   ${type.captionMedium}
-  color: ${(props) => (props.selected ? props.theme.textInverse : props.theme.text)};
+  color: ${(props) =>
+    props.selected ? props.theme.textInverse : props.theme.text};
 `;
 
 const Section = styled.View`
@@ -834,7 +1051,8 @@ const RecDot = styled.View`
   width: 4px;
   height: 4px;
   border-radius: 2px;
-  background-color: ${(props) => (props.active ? '#ffffff' : 'rgba(255,255,255,0.5)')};
+  background-color: ${(props) =>
+    props.active ? "#ffffff" : "rgba(255,255,255,0.5)"};
 `;
 
 const RecPromotedBadge = styled.View`
@@ -975,6 +1193,8 @@ const DealOldPrice = styled.Text`
 
 const MarqueeClip = styled.View`
   overflow: hidden;
+  padding-vertical: 8px;
+  margin-vertical: -8px;
 `;
 
 const MarqueeRow = styled(Animated.View)`
@@ -1084,5 +1304,6 @@ const CityRow = styled(Pressable)`
 
 const CityRowLabel = styled.Text`
   ${(props) => (props.selected ? type.bodyMedium : type.body)}
-  color: ${(props) => (props.selected ? props.theme.primary : props.theme.text)};
+  color: ${(props) =>
+    props.selected ? props.theme.primary : props.theme.text};
 `;

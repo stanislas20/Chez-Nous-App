@@ -43,6 +43,16 @@ service cloud.firestore {
         && request.auth.uid == resource.data.sellerId;
     }
 
+    match /favorites/{favoriteId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && favoriteId == request.auth.uid + '_' + request.resource.data.listingId;
+
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
     match /conversations/{conversationId} {
       allow read: if request.auth != null
         && (resource == null || request.auth.uid in resource.data.participantIds);

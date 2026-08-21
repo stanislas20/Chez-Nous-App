@@ -1,20 +1,21 @@
-import { useState } from 'react';
-import { Alert, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
-import { useVideoPlayer, VideoView } from 'expo-video';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import styled from 'styled-components/native';
-import { Ionicons } from '@expo/vector-icons';
-import { radius, spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { type } from '../theme/typography';
-import { useI18n } from '../i18n/I18nContext';
-import { useAuth } from '../auth/AuthContext';
-import { storage, firestore } from '../config/firebase';
-import { normalizeUrl, isValidUrl } from '../utils/links';
-import { businessCategories } from '../data/businessCategories';
+import { useState } from "react";
+import { Alert, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
+import { useVideoPlayer, VideoView } from "expo-video";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import styled from "styled-components/native";
+import { Ionicons } from "@expo/vector-icons";
+import { radius, spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { type } from "../theme/typography";
+import { useI18n } from "../i18n/I18nContext";
+import { useAuth } from "../auth/AuthContext";
+import { storage, firestore } from "../config/firebase";
+import { guessContentType } from "../utils/uploadContentType";
+import { normalizeUrl, isValidUrl } from "../utils/links";
+import { businessCategories } from "../data/businessCategories";
 
 function VideoPreview({ uri }) {
   const { colors } = useTheme();
@@ -30,21 +31,16 @@ export function AdSubmitScreen() {
   const { colors } = useTheme();
   const { t, language } = useI18n();
   const { user, advertiserProfile } = useAuth();
-  const [title, setTitle] = useState('');
-  const [linkUrl, setLinkUrl] = useState('');
+  const [title, setTitle] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
   const [asset, setAsset] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [progress, setProgress] = useState(0);
 
   const pickMedia = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(t('adSubmitFormTitle'), t('errorGeneric'));
-      return;
-    }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images', 'videos'],
+      mediaTypes: ["images", "videos"],
       quality: 0.8,
     });
     if (!result.canceled && result.assets?.[0]) {
@@ -53,8 +49,8 @@ export function AdSubmitScreen() {
   };
 
   const resetForm = () => {
-    setTitle('');
-    setLinkUrl('');
+    setTitle("");
+    setLinkUrl("");
     setAsset(null);
     setSelectedCategory(null);
     setProgress(0);
@@ -62,34 +58,37 @@ export function AdSubmitScreen() {
 
   const handleSubmit = async () => {
     if (!title.trim() || !asset) {
-      Alert.alert(t('adSubmitFormTitle'), t('errorMediaRequired'));
+      Alert.alert(t("adSubmitFormTitle"), t("errorMediaRequired"));
       return;
     }
     if (!isValidUrl(linkUrl)) {
-      Alert.alert(t('adSubmitFormTitle'), t('errorInvalidLink'));
+      Alert.alert(t("adSubmitFormTitle"), t("errorInvalidLink"));
       return;
     }
     if (!selectedCategory) {
-      Alert.alert(t('adSubmitFormTitle'), t('errorCategoryRequired'));
+      Alert.alert(t("adSubmitFormTitle"), t("errorCategoryRequired"));
       return;
     }
 
     setIsSubmitting(true);
     setProgress(0);
     try {
-      const mediaType = asset.type === 'video' ? 'video' : 'image';
-      const extension = asset.uri.split('.').pop().split('?')[0];
+      const mediaType = asset.type === "video" ? "video" : "image";
+      const extension = asset.uri.split(".").pop().split("?")[0];
       const fileName = `${Date.now()}.${extension}`;
       const mediaPath = `ads/${user.uid}/${fileName}`;
 
       const response = await fetch(asset.uri);
       const blob = await response.blob();
       const storageRef = ref(storage, mediaPath);
-      const uploadTask = uploadBytesResumable(storageRef, blob);
+      // storage.rules gates on contentType; an RN blob has none.
+      const uploadTask = uploadBytesResumable(storageRef, blob, {
+        contentType: guessContentType(asset.uri, asset.type === "video" ? "video" : "image"),
+      });
 
       await new Promise((resolve, reject) => {
         uploadTask.on(
-          'state_changed',
+          "state_changed",
           (snapshot) => setProgress(snapshot.bytesTransferred / snapshot.totalBytes),
           reject,
           resolve,
@@ -98,7 +97,7 @@ export function AdSubmitScreen() {
 
       const mediaUrl = await getDownloadURL(storageRef);
 
-      await addDoc(collection(firestore, 'ads'), {
+      await addDoc(collection(firestore, "ads"), {
         advertiserId: user.uid,
         sponsorName: advertiserProfile.businessName,
         titleEn: title.trim(),
@@ -108,65 +107,65 @@ export function AdSubmitScreen() {
         mediaPath,
         linkUrl: normalizeUrl(linkUrl),
         category: selectedCategory,
-        status: 'pending',
+        status: "pending",
         createdAt: serverTimestamp(),
       });
 
-      Alert.alert(t('adSubmitSuccessTitle'), t('adSubmitSuccessMessage'));
+      Alert.alert(t("adSubmitSuccessTitle"), t("adSubmitSuccessMessage"));
       resetForm();
     } catch (error) {
-      Alert.alert(t('adSubmitFormTitle'), t('errorUploadFailed'));
+      Alert.alert(t("adSubmitFormTitle"), t("errorUploadFailed"));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Container edges={['left', 'right']}>
+    <Container edges={["left", "right"]}>
       <Content>
         <AdvertiserBanner>
-          <AdvertiserBannerLabel>{t('advertisingAs')}</AdvertiserBannerLabel>
+          <AdvertiserBannerLabel>{t("advertisingAs")}</AdvertiserBannerLabel>
           <AdvertiserBannerName>{advertiserProfile?.businessName}</AdvertiserBannerName>
         </AdvertiserBanner>
 
-        <SectionTitle>{t('adSubmitFormTitle')}</SectionTitle>
+        <SectionTitle>{t("adSubmitFormTitle")}</SectionTitle>
 
-        <Label>{t('adFieldMediaLabel')}</Label>
+        <Label>{t("adFieldMediaLabel")}</Label>
         <MediaPicker onPress={pickMedia}>
           {asset ? (
-            asset.type === 'video' ? (
+            asset.type === "video" ? (
               <VideoPreview uri={asset.uri} />
             ) : (
-              <PreviewImage source={{ uri: asset.uri }} resizeMode="cover" />
+              <PreviewImage source={{ uri: asset.uri }} resizeMode="contain" />
             )
           ) : (
             <MediaPickerPlaceholder>
               <Ionicons name="cloud-upload-outline" size={28} color={colors.primary} />
-              <MediaPickerLabel>{t('adPickImageButton')}</MediaPickerLabel>
+              <MediaPickerLabel>{t("adPickImageButton")}</MediaPickerLabel>
             </MediaPickerPlaceholder>
           )}
         </MediaPicker>
 
-        <Label>{t('adFieldTitle')}</Label>
+        <Label>{t("adFieldTitle")}</Label>
         <Input
           value={title}
           onChangeText={setTitle}
-          placeholder={t('adFieldTitlePlaceholder')}
+          placeholder={t("adFieldTitlePlaceholder")}
           placeholderTextColor={colors.textMuted}
         />
 
-        <Label>{t('adFieldLink')}</Label>
+        <Label>{t("adFieldLink")}</Label>
         <Input
           value={linkUrl}
           onChangeText={setLinkUrl}
-          placeholder={t('adFieldLinkPlaceholder')}
+          placeholder={t("adFieldLinkPlaceholder")}
           placeholderTextColor={colors.textMuted}
           keyboardType="url"
           autoCapitalize="none"
           autoCorrect={false}
         />
 
-        <Label>{t('adFieldCategory')}</Label>
+        <Label>{t("adFieldCategory")}</Label>
         <CategoryChipRow horizontal showsHorizontalScrollIndicator={false}>
           {businessCategories.map((category) => {
             const isSelected = selectedCategory === category.key;
@@ -182,7 +181,7 @@ export function AdSubmitScreen() {
                   color={isSelected ? colors.textInverse : colors.text}
                 />
                 <CategoryChipLabel selected={isSelected}>
-                  {language === 'en' ? category.labelEn : category.labelFr}
+                  {language === "en" ? category.labelEn : category.labelFr}
                 </CategoryChipLabel>
               </CategoryChip>
             );
@@ -191,7 +190,9 @@ export function AdSubmitScreen() {
 
         <SubmitButton onPress={handleSubmit} disabled={isSubmitting}>
           <SubmitLabel>
-            {isSubmitting ? `${t('adUploadingLabel')} ${Math.round(progress * 100)}%` : t('adSubmitButton')}
+            {isSubmitting
+              ? `${t("adUploadingLabel")} ${Math.round(progress * 100)}%`
+              : t("adSubmitButton")}
           </SubmitLabel>
         </SubmitButton>
       </Content>
@@ -206,6 +207,7 @@ const Container = styled(SafeAreaView)`
 
 const Content = styled.ScrollView.attrs(() => ({
   contentContainerStyle: { padding: spacing.md },
+  showsVerticalScrollIndicator: false,
 }))``;
 
 const AdvertiserBanner = styled.View`
@@ -278,6 +280,7 @@ const MediaPickerLabel = styled.Text`
 const PreviewImage = styled.Image`
   width: 100%;
   height: 100%;
+  background-color: ${(props) => props.theme.surfaceAlt};
 `;
 
 const PreviewVideo = styled(VideoView)`

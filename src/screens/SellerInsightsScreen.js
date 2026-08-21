@@ -9,6 +9,7 @@ import { type } from '../theme/typography';
 import { useI18n } from '../i18n/I18nContext';
 import { useAuth } from '../auth/AuthContext';
 import { useMyListings } from '../hooks/useMyListings';
+import { openListing } from '../utils/openListing';
 
 const WEEKS_TO_SHOW = 8;
 const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
@@ -177,7 +178,7 @@ export function SellerInsightsScreen({ navigation }) {
   });
 
   const goToListing = (item) => {
-    navigation.navigate('ProductDetail', { listing: { ...item, createdAt: null } });
+    openListing(navigation, item, t, language);
   };
 
   return (
@@ -318,6 +319,7 @@ const Container = styled(SafeAreaView)`
 
 const Content = styled.ScrollView.attrs(() => ({
   contentContainerStyle: { padding: spacing.md },
+  showsVerticalScrollIndicator: false,
 }))``;
 
 const Card = styled.View`

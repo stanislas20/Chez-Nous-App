@@ -17,6 +17,19 @@ service firebase.storage {
         && request.resource.contentType.matches('image/.*');
     }
 
+    match /sellerVerificationDocs/{sellerId}/{fileName} {
+      // RCCM/IFU extracts and the representative's ID — unlike a profile
+      // photo, these are never meant to be public. Read is restricted to
+      // the account that uploaded them; the actual manual review happens
+      // via the Admin SDK, which bypasses these rules entirely.
+      allow read: if request.auth != null && request.auth.uid == sellerId;
+      allow write: if request.auth != null
+        && request.auth.uid == sellerId
+        && request.resource.size < 10 * 1024 * 1024
+        && (request.resource.contentType == 'application/pdf'
+          || request.resource.contentType.matches('image/.*'));
+    }
+
     match /listings/{sellerId}/{fileName} {
       allow read: if true;
       allow write: if request.auth != null
@@ -24,6 +37,21 @@ service firebase.storage {
         && request.resource.size < 50 * 1024 * 1024
         && (request.resource.contentType.matches('image/.*') || request.resource.contentType.matches('video/.*'));
       allow delete: if request.auth != null && request.auth.uid == sellerId;
+    }
+
+    match /jobApplicationCvs/{applicantId}/{fileName} {
+      // The applicant's own uploaded CV, attached to a jobApplications doc.
+      // Read is gated to signed-in users generally (not `if true`, unlike
+      // listing photos) since a CV carries more personal info than a
+      // product photo — the employer reaches this URL only via the
+      // applicantUid/employerUid-gated jobApplications doc itself.
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid == applicantId
+        && request.resource.size < 10 * 1024 * 1024
+        && (request.resource.contentType == 'application/pdf'
+          || request.resource.contentType == 'application/msword'
+          || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     }
 
     match /conversations/{conversationId}/{fileName} {

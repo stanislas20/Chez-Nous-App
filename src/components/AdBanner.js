@@ -15,6 +15,13 @@ function VideoBanner({ ad, isActive }) {
   const player = useVideoPlayer(ad.mediaUrl, (p) => {
     p.loop = true;
     p.muted = true;
+    // Muted decorative preview — it must never claim the iOS audio session.
+    // The default ('auto') still activates one in playback mode, and a held
+    // playback session is why voice search failed with `audio-capture` /
+    // "Session activation failed": the recogniser could not activate a
+    // recording session while these were on screen. A silent thumbnail has
+    // no audio to protect, so it mixes.
+    p.audioMixingMode = 'mixWithOthers';
   });
 
   useEffect(() => {
@@ -38,7 +45,7 @@ export function AdBanner({ ad, isActive, style }) {
       {ad.mediaType === 'video' ? (
         <VideoBanner ad={ad} isActive={isActive} />
       ) : (
-        <BannerImage source={{ uri: ad.mediaUrl }} resizeMode="cover" />
+        <BannerImage source={{ uri: ad.mediaUrl }} resizeMode="contain" />
       )}
       <SponsoredTag>
         <SponsoredLabel>{t('sponsoredLabel')}</SponsoredLabel>
@@ -63,6 +70,7 @@ const Card = styled(Pressable)`
 const BannerImage = styled.Image`
   width: 100%;
   height: 100%;
+  background-color: ${(props) => props.theme.surfaceAlt};
 `;
 
 const BannerVideo = styled(VideoView)`

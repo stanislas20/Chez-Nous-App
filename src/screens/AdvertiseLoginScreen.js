@@ -42,7 +42,11 @@ export function AdvertiseLoginScreen({ navigation }) {
   return (
     <Flex behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Container edges={['left', 'right', 'bottom']}>
-        <Content contentContainerStyle={contentContainerStyle} keyboardShouldPersistTaps="handled">
+        <Content
+          contentContainerStyle={contentContainerStyle}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <Title>{t('advertiserLoginTitle')}</Title>
           <Subtitle>{t('advertiserLoginSubtitle')}</Subtitle>
 
@@ -77,7 +81,7 @@ export function AdvertiseLoginScreen({ navigation }) {
 
           <FooterRow>
             <FooterText>{t('noAccountYet')} </FooterText>
-            <Pressable onPress={() => navigation.replace('AdvertiseSignUp')}>
+            <Pressable onPress={() => navigation.navigate('AdvertiseSignUp')}>
               <FooterLink>{t('goToSignUp')}</FooterLink>
             </Pressable>
           </FooterRow>

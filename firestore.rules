@@ -2,7 +2,71 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /sellers/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // A company account can submit its own RCCM/IFU/documents, but can
+      // never write itself straight to 'verified' — this is the one and
+      // only place that field is ever set, and it can only start at
+      // 'pending' here (or be entirely absent, for individual accounts).
+      //
+      // `verifiedAt` may be present as long as it is null. `in` tests for
+      // the key, not for a meaningful value, so requiring the key to be
+      // absent rejected the client's own `verifiedAt: null` — which is how
+      // signUpCompanySeller declares the field's initial state. That
+      // mismatch denied every single company signup while leaving the auth
+      // user created. Permitting an explicit null gives up nothing: a real
+      // timestamp is still rejected, so the badge still can't be self-
+      // granted.
+      allow create: if request.auth != null && request.auth.uid == userId
+        && (!('verificationStatus' in request.resource.data) || request.resource.data.verificationStatus == 'pending')
+        && (!('verifiedAt' in request.resource.data) || request.resource.data.verifiedAt == null);
+
+      // Everything else about a seller's own profile stays freely
+      // editable, but verificationStatus/verifiedAt are frozen from the
+      // client's point of view after creation — those two only ever
+      // change via the Admin SDK, i.e. an actual manual review, never
+      // through the app itself.
+      //
+      // Once verified, the identity the review actually checked is frozen
+      // too. Without this a company could clear manual review and then edit
+      // its RCCM, IFU or trading name while keeping the badge — leaving a
+      // Verified mark attesting to details nobody ever saw. Before
+      // approval these stay editable, so a typo can still be corrected.
+      // The status may also go from absent to 'pending' — that is a company
+      // submitting its file for the first time onto a document some other
+      // write created first (a push token, a seen-cursor). Without this the
+      // company signup failed outright: the profile write became an update,
+      // the status moved null -> 'pending', and the rule refused it. Only
+      // that one transition is permitted; 'verified' remains impossible from
+      // the client, which is the property this rule exists to protect.
+      allow update: if request.auth != null && request.auth.uid == userId
+        && (
+          request.resource.data.get('verificationStatus', null) == resource.data.get('verificationStatus', null)
+          || (resource.data.get('verificationStatus', null) == null
+            && request.resource.data.get('verificationStatus', null) == 'pending')
+        )
+        && request.resource.data.get('verifiedAt', null) == resource.data.get('verifiedAt', null)
+        && (
+          resource.data.get('verificationStatus', '') != 'verified'
+          || (
+            request.resource.data.get('companyName', '') == resource.data.get('companyName', '')
+            && request.resource.data.get('rccm', '') == resource.data.get('rccm', '')
+            && request.resource.data.get('ifu', '') == resource.data.get('ifu', '')
+          )
+        );
+    }
+
+    // Public projection of a verified company — name, sector, city, logo,
+    // and nothing else. Deliberately world-readable (the home feed shows it
+    // to signed-out browsers too) precisely so that `sellers`, which holds
+    // the phone number, RCCM, IFU and the representative's ID document, can
+    // stay locked to its owner. Written only by the Admin SDK via
+    // notifyCompanyVerificationDecision: no client write of any kind, so a
+    // company cannot list itself here any more than it can grant itself the
+    // badge.
+    match /verifiedCompanies/{userId} {
+      allow read: if true;
+      allow write: if false;
     }
 
     match /advertisers/{userId} {
@@ -39,8 +103,162 @@ service cloud.firestore {
         && request.auth.uid == resource.data.sellerId
         && request.resource.data.status == resource.data.status;
 
+      // Lets anyone who can already read an approved listing (including
+      // signed-out browsers, per the read rule above) bump its view
+      // counter — but ONLY that one field, and only by exactly 1 at a
+      // time, so this can't be used to touch price/status/etc. or to
+      // jump the count by an arbitrary amount in one write.
+      allow update: if resource.data.status == 'approved'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
+        && request.resource.data.viewCount == resource.data.get('viewCount', 0) + 1;
+
+      // Sharing is the one other thing a reader can do that the seller
+      // wants counted. Same shape as the view rule: this single field, +1
+      // exactly, and only on a listing that is already public — so it can
+      // neither touch the price nor be pumped in one write.
+      allow update: if resource.data.status == 'approved'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['shareCount'])
+        && request.resource.data.shareCount == resource.data.get('shareCount', 0) + 1;
+
+      // Same idea, for a viewer that's also reporting today's daily view
+      // bucket (viewCountToday/viewCountDate) alongside the lifetime
+      // counter — still exactly +1 on viewCount, and viewCountToday can
+      // only ever go up by exactly 1 (same day) or reset to exactly 1
+      // (new day), never jump or combine with any other field.
+      allow update: if resource.data.status == 'approved'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'viewCountToday', 'viewCountDate'])
+        && request.resource.data.viewCount == resource.data.get('viewCount', 0) + 1
+        && request.resource.data.viewCountDate is string
+        && (
+          (request.resource.data.viewCountDate == resource.data.get('viewCountDate', '')
+            && request.resource.data.viewCountToday == resource.data.get('viewCountToday', 0) + 1)
+          || (request.resource.data.viewCountDate != resource.data.get('viewCountDate', '')
+            && request.resource.data.viewCountToday == 1)
+        );
+
       allow delete: if request.auth != null
         && request.auth.uid == resource.data.sellerId;
+    }
+
+    // Follows are public in effect — a follower count is a public number —
+    // but each document is writable only by the person doing the following,
+    // and only under the composite id, so one account cannot manufacture
+    // followers for itself or on anyone else's behalf.
+    // Minted by a Cloud Function the first time two people open a
+    // conversation. Its only job is to be a path the rating rule can test
+    // for — rules cannot run queries, and a conversation id
+    // (`listingId_buyerUid`) cannot be derived from two user ids.
+    match /contacts/{pairId} {
+      allow read: if request.auth != null && request.auth.uid in resource.data.participantIds;
+      allow write: if false;
+    }
+
+    // A rating is public, written once per pair, and only by someone who
+    // has actually spoken to the person being rated.
+    match /ratings/{ratingId} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+        && request.resource.data.raterId == request.auth.uid
+        // One rating per pair, and the id makes a second one impossible.
+        && ratingId == request.auth.uid + '_' + request.resource.data.ratedId
+        // Rating yourself would be free reputation.
+        && request.resource.data.ratedId != request.auth.uid
+        && request.resource.data.stars is int
+        && request.resource.data.stars >= 1
+        && request.resource.data.stars <= 5
+        && request.resource.data.get('comment', '') is string
+        && request.resource.data.get('comment', '').size() <= 500
+        // The gate: written proof the two have met in the app. Checked
+        // both ways round because the marker is stored under the sorted
+        // pair and rules have no sort.
+        && (
+          exists(/databases/$(database)/documents/contacts/$(request.auth.uid + '_' + request.resource.data.ratedId))
+          || exists(/databases/$(database)/documents/contacts/$(request.resource.data.ratedId + '_' + request.auth.uid))
+        );
+
+      // Editable — someone should be able to revise after a bad start is
+      // put right — but never re-pointed at a different person.
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.raterId
+        && request.resource.data.raterId == resource.data.raterId
+        && request.resource.data.ratedId == resource.data.ratedId
+        && request.resource.data.stars is int
+        && request.resource.data.stars >= 1
+        && request.resource.data.stars <= 5
+        && request.resource.data.get('comment', '') is string
+        && request.resource.data.get('comment', '').size() <= 500;
+
+      allow delete: if request.auth != null && request.auth.uid == resource.data.raterId;
+    }
+
+    match /follows/{followId} {
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null
+        && request.resource.data.followerId == request.auth.uid
+        && followId == request.auth.uid + '_' + request.resource.data.sellerId
+        // Following yourself would inflate both of your own counters at once.
+        && request.resource.data.sellerId != request.auth.uid;
+
+      allow delete: if request.auth != null && request.auth.uid == resource.data.followerId;
+    }
+
+    // Counters shown on every profile: readable by anyone, writable by no
+    // client. Only the Cloud Function triggers on follows/favorites write
+    // here, which is what makes the numbers mean anything.
+    // Directories of businesses that exist whether or not anyone here has
+    // signed up: the brand distributors and the vehicle sales parks. Public
+    // to read because a signed-out browser must see them, and writable by
+    // nobody — these are curated by hand from the Firebase console, which
+    // is what keeps a competitor from listing themselves as a Toyota
+    // distributor straight from a phone.
+    match /dealerships/{dealershipId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Parks, unlike dealerships, accept submissions from the app. A park is
+    // a place — saying one exists is a much weaker claim than "official
+    // Toyota distributor", and the useful moment to add one is standing in
+    // it with GPS and a phone.
+    //
+    // A submitter can only ever create a *pending* row: publishing is still
+    // a flip of `status` from the console, exactly like listing moderation.
+    // So the trust boundary is unchanged — nothing reaches the public
+    // directory without a human approving it — while the typing moves to
+    // where the park is.
+    match /carParks/{parkId} {
+      allow read: if resource.data.status == 'approved'
+        || (request.auth != null && request.auth.uid == resource.data.submittedBy);
+
+      allow create: if request.auth != null
+        && request.resource.data.submittedBy == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 1
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.commune is string
+        && request.resource.data.commune.size() <= 80
+        // Coordinates are optional — a submitter away from the park has
+        // none — but if present they must be numbers inside Bénin's box,
+        // not a pin dropped on another continent.
+        && (!('latitude' in request.resource.data)
+          || (request.resource.data.latitude is number
+            && request.resource.data.latitude >= 6.0
+            && request.resource.data.latitude <= 12.5))
+        && (!('longitude' in request.resource.data)
+          || (request.resource.data.longitude is number
+            && request.resource.data.longitude >= 0.7
+            && request.resource.data.longitude <= 3.9));
+
+      // Approval and edits are console-only, same as dealerships.
+      allow update, delete: if false;
+    }
+
+    match /sellerStats/{sellerId} {
+      allow read: if true;
+      allow write: if false;
     }
 
     match /favorites/{favoriteId} {
@@ -51,6 +269,41 @@ service cloud.firestore {
         && favoriteId == request.auth.uid + '_' + request.resource.data.listingId;
 
       allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    match /jobFavorites/{favoriteId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && favoriteId == request.auth.uid + '_' + request.resource.data.jobId;
+
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // A candidate's application to a real (Firestore-backed) job listing —
+    // never created for the static mockJobs.js sample postings, which have
+    // no real employerUid to deliver to. `employerUid` is trusted from the
+    // client at write time but pinned to match the listing's own sellerId,
+    // so an applicant can't forge who receives it.
+    match /jobApplications/{applicationId} {
+      allow read: if request.auth != null
+        && (request.auth.uid == resource.data.applicantUid || request.auth.uid == resource.data.employerUid);
+
+      allow create: if request.auth != null
+        && request.resource.data.applicantUid == request.auth.uid
+        && request.resource.data.employerUid ==
+          get(/databases/$(database)/documents/listings/$(request.resource.data.jobId)).data.sellerId
+        && get(/databases/$(database)/documents/listings/$(request.resource.data.jobId)).data.status == 'approved'
+        && request.resource.data.status == 'new';
+
+      // The employer can mark an application reviewed — nothing else about
+      // it (who applied, what they said) is theirs to change.
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.employerUid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.employerUid == resource.data.employerUid
+        && request.resource.data.applicantUid == resource.data.applicantUid;
     }
 
     match /conversations/{conversationId} {
@@ -73,6 +326,27 @@ service cloud.firestore {
 
         allow delete: if request.auth != null && request.auth.uid == resource.data.senderId;
       }
+    }
+
+    // Write-only from the client — a report is only useful to a moderator,
+    // and there's no in-app moderation UI yet, so nobody but the reporter
+    // (write) needs access; reviewing reports happens out-of-band via the
+    // admin SDK, same as pharmacy roster management.
+    // Reports are write-only from the app: a reporter cannot read back
+    // what anyone (including themselves) filed, and the reported party can
+    // never see who reported them. Review happens through the Admin SDK.
+    match /reports/{reportId} {
+      allow create: if request.auth != null
+        && request.resource.data.reporterId == request.auth.uid
+        // One report per person per listing — the id makes a second
+        // impossible, which is what keeps reportCount honest.
+        && reportId == request.resource.data.listingId + '_' + request.auth.uid;
+
+      // Amending your own report is fine; it changes no count.
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.reporterId
+        && request.resource.data.reporterId == resource.data.reporterId
+        && request.resource.data.listingId == resource.data.listingId;
     }
   }
 }

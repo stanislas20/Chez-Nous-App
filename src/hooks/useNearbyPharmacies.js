@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import { distanceInKm } from '../utils/geo';
+import { extractPlacePhoto } from '../utils/placePhoto';
 
 const PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
 const SEARCH_RADIUS_METERS = 5000;
-const FIELD_MASK = 'places.id,places.displayName,places.location,places.formattedAddress';
+const FIELD_MASK =
+  'places.id,places.displayName,places.location,places.formattedAddress,' +
+  'places.internationalPhoneNumber,places.currentOpeningHours.openNow,places.rating,' +
+  'places.photos';
 
 // Real, live nearby pharmacies from Google Places (New) — distinct from the
 // ONPB on-duty roster, this covers ordinary pharmacies that keep normal
@@ -56,6 +60,12 @@ export function useNearbyPharmacies(coords) {
             address: place.formattedAddress,
             latitude: place.location.latitude,
             longitude: place.location.longitude,
+            phone: place.internationalPhoneNumber ?? null,
+            isOpenNow: place.currentOpeningHours?.openNow ?? null,
+            // Exact match by construction: this photo belongs to this
+            // place record, not to a name we guessed at.
+            ...extractPlacePhoto(place),
+            rating: place.rating ?? null,
             distance: distanceInKm(coords, {
               latitude: place.location.latitude,
               longitude: place.location.longitude,

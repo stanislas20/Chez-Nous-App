@@ -20,6 +20,7 @@ export function EditListingScreen({ route, navigation }) {
 
   const category = categories.find((c) => c.key === listing.categoryKey) ?? null;
   const isPharmacy = listing.categoryKey === 'pharmacyOnDuty';
+  const isJobs = listing.categoryKey === 'jobs';
 
   const [title, setTitle] = useState(listing.titleEn ?? '');
   const [price, setPrice] = useState(String(listing.price ?? ''));
@@ -103,7 +104,7 @@ export function EditListingScreen({ route, navigation }) {
           <Input
             value={title}
             onChangeText={setTitle}
-            placeholder={t('sellFieldTitlePlaceholder')}
+            placeholder={t(isJobs ? 'sellFieldTitlePlaceholderJobs' : 'sellFieldTitlePlaceholder')}
             placeholderTextColor={colors.textMuted}
           />
         </InputRow>
@@ -199,6 +200,7 @@ const Container = styled(SafeAreaView)`
 
 const Content = styled.ScrollView.attrs(() => ({
   contentContainerStyle: { padding: spacing.md },
+  showsVerticalScrollIndicator: false,
 }))``;
 
 const Label = styled.Text`

@@ -36,7 +36,11 @@ export function AdvertiserOnboardingScreen() {
   return (
     <Flex behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Container edges={['left', 'right', 'bottom']}>
-        <Content contentContainerStyle={contentContainerStyle} keyboardShouldPersistTaps="handled">
+        <Content
+          contentContainerStyle={contentContainerStyle}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <Title>{t('advertiserSignUpTitle')}</Title>
           <Subtitle>{t('advertiserSignUpSubtitle')}</Subtitle>
 

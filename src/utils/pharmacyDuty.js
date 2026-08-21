@@ -1,9 +1,3 @@
-export const dutyTimeFormatter = new Intl.DateTimeFormat('fr-FR', {
-  hour: '2-digit',
-  minute: '2-digit',
-  timeZone: 'Africa/Porto-Novo',
-});
-
 const dutyDateFormatter = new Intl.DateTimeFormat('fr-FR', {
   day: 'numeric',
   month: 'long',
@@ -19,7 +13,7 @@ const dutyDateFormatter = new Intl.DateTimeFormat('fr-FR', {
 // published a newer weekly roster yet, so callers can de-emphasize the
 // label (muted color) instead of showing it with the same urgency as a
 // live, still-valid duty countdown.
-export function getDutyLabel(listing, language, t, formatter = dutyTimeFormatter) {
+export function getDutyLabel(listing, language, t) {
   if (listing.isPermanentDuty) {
     const note = language === 'en' ? listing.dutyNoteEn : listing.dutyNoteFr;
     return { text: note || t('pharmacyAlwaysOpen'), isStale: false };
@@ -36,5 +30,10 @@ export function getDutyLabel(listing, language, t, formatter = dutyTimeFormatter
       isStale: true,
     };
   }
-  return { text: t('pharmacyOpenUntil', { time: formatter.format(dutyUntilDate) }), isStale: false };
+  // dutyUntil marks the end of the whole weekly rotation (always 23:59:59
+  // on its last day, per the ONPB sync), not a same-day closing time — a
+  // "de garde" pharmacy stays open overnight every night through that date.
+  // Showing the clock time here read as "closes tonight at 23:59", which
+  // is exactly backwards, so this shows the date instead.
+  return { text: t('pharmacyOpenUntil', { date: dutyDateFormatter.format(dutyUntilDate) }), isStale: false };
 }

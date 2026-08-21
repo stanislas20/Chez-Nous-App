@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, FlatList, Modal, Pressable, Share } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { deleteObject, ref } from 'firebase/storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +14,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useMyListings } from '../hooks/useMyListings';
 import { firestore, storage } from '../config/firebase';
 import { getDutyLabel } from '../utils/pharmacyDuty';
+import { openListing } from '../utils/openListing';
 
 const priceFormatter = new Intl.NumberFormat('fr-FR');
 const listContentStyle = { padding: spacing.md };
@@ -33,16 +34,37 @@ const saleStatusLabelKeys = {
   sold: 'saleStatusSold',
 };
 
+const FILTERS = [
+  { key: 'all', labelKey: 'dashboardStatTotal' },
+  { key: 'active', labelKey: 'dashboardStatActive' },
+  { key: 'sold', labelKey: 'dashboardStatSold' },
+  { key: 'pending', labelKey: 'listingStatusPending' },
+];
+
+function matchesFilter(item, filter) {
+  if (filter === 'active') return item.status === 'approved' && item.saleStatus !== 'sold';
+  if (filter === 'sold') return item.saleStatus === 'sold';
+  if (filter === 'pending') return item.status === 'pending';
+  return true;
+}
+
 export function MyListingsScreen() {
   const { colors } = useTheme();
   const saleStatuses = getSaleStatuses(colors);
   const { language, t } = useI18n();
   const { user } = useAuth();
   const navigation = useNavigation();
+  const route = useRoute();
   const insets = useSafeAreaInsets();
   const listings = useMyListings(user?.uid);
+  const [filter, setFilter] = useState(route.params?.filter ?? 'all');
   const [menuItem, setMenuItem] = useState(null);
   const [statusMenuItem, setStatusMenuItem] = useState(null);
+
+  const filteredListings = useMemo(
+    () => (listings ?? []).filter((item) => matchesFilter(item, filter)),
+    [listings, filter],
+  );
 
   const closeMenu = () => setMenuItem(null);
   const closeStatusMenu = () => setStatusMenuItem(null);
@@ -99,12 +121,28 @@ export function MyListingsScreen() {
 
   return (
     <Container edges={['left', 'right', 'bottom']}>
+      <FilterRow>
+        {FILTERS.map((option) => (
+          <FilterChip
+            key={option.key}
+            selected={filter === option.key}
+            onPress={() => setFilter(option.key)}
+          >
+            <FilterChipLabel selected={filter === option.key}>{t(option.labelKey)}</FilterChipLabel>
+          </FilterChip>
+        ))}
+      </FilterRow>
       <FlatList
-        data={listings ?? []}
+        data={filteredListings}
         keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={listContentStyle}
         ListEmptyComponent={
-          listings !== null ? <EmptyMessage>{t('myListingsEmptyMessage')}</EmptyMessage> : null
+          listings !== null ? (
+            <EmptyMessage>
+              {listings.length > 0 ? t('categoryListingsNoResults') : t('myListingsEmptyMessage')}
+            </EmptyMessage>
+          ) : null
         }
         ListHeaderComponent={
           listings?.length ? <HintText>{t('myListingsLongPressHint')}</HintText> : null
@@ -113,14 +151,17 @@ export function MyListingsScreen() {
           const title = language === 'en' ? item.titleEn : item.titleFr;
           const coverUri = item.mediaUrl ?? item.image;
           const isApproved = item.status === 'approved';
+          // Without its own branch a rejected listing renders as "pending",
+          // so the seller waits forever on a decision that already came
+          // back. The reason moderation recorded is shown with it — being
+          // told no without being told why is unactionable.
+          const isRejected = item.status === 'rejected';
           const isPharmacy = item.categoryKey === 'pharmacyOnDuty';
           const dutyLabel = isPharmacy ? getDutyLabel(item, language, t).text || item.phone : '';
 
           return (
             <Row
-              onPress={() =>
-                navigation.navigate('ProductDetail', { listing: { ...item, createdAt: null } })
-              }
+              onPress={() => openListing(navigation, item, t, language)}
               onLongPress={() => setMenuItem(item)}
             >
               <Thumbnail source={{ uri: coverUri }} resizeMode="cover" />
@@ -130,9 +171,13 @@ export function MyListingsScreen() {
                   {isPharmacy ? dutyLabel : `${priceFormatter.format(item.price)} FCFA`}
                 </RowPrice>
                 <PillRow>
-                  <StatusPill approved={isApproved}>
-                    <StatusPillLabel approved={isApproved}>
-                      {isApproved ? t('listingStatusApproved') : t('listingStatusPending')}
+                  <StatusPill approved={isApproved} rejected={isRejected}>
+                    <StatusPillLabel approved={isApproved} rejected={isRejected}>
+                      {isApproved
+                        ? t('listingStatusApproved')
+                        : isRejected
+                          ? t('listingStatusRejected')
+                          : t('listingStatusPending')}
                     </StatusPillLabel>
                   </StatusPill>
                   {!isPharmacy && item.saleStatus && item.saleStatus !== 'available' ? (
@@ -142,7 +187,18 @@ export function MyListingsScreen() {
                       </SaleStatusPillLabel>
                     </SaleStatusPill>
                   ) : null}
+                  {isApproved ? (
+                    <ViewCountPill>
+                      <Ionicons name="eye-outline" size={11} color={colors.textMuted} />
+                      <ViewCountLabel>{item.viewCount ?? 0}</ViewCountLabel>
+                    </ViewCountPill>
+                  ) : null}
                 </PillRow>
+                {isRejected ? (
+                  <RejectionNote numberOfLines={3}>
+                    {item.moderationNote || t('listingRejectedNoReason')}
+                  </RejectionNote>
+                ) : null}
               </RowBody>
             </Row>
           );
@@ -268,6 +324,27 @@ const Container = styled(SafeAreaView)`
   background-color: ${(props) => props.theme.background};
 `;
 
+const FilterRow = styled.View`
+  flex-direction: row;
+  gap: ${spacing.sm}px;
+  padding-horizontal: ${spacing.md}px;
+  padding-top: ${spacing.md}px;
+`;
+
+const FilterChip = styled(Pressable)`
+  background-color: ${(props) => (props.selected ? props.theme.primary : props.theme.surface)};
+  border-width: 1px;
+  border-color: ${(props) => (props.selected ? props.theme.primary : props.theme.border)};
+  border-radius: ${radius.pill}px;
+  padding-horizontal: ${spacing.md}px;
+  padding-vertical: ${spacing.xs}px;
+`;
+
+const FilterChipLabel = styled.Text`
+  ${(props) => (props.selected ? type.captionMedium : type.caption)}
+  color: ${(props) => (props.selected ? props.theme.textInverse : props.theme.text)};
+`;
+
 const Row = styled(Pressable)`
   flex-direction: row;
   align-items: center;
@@ -310,7 +387,12 @@ const PillRow = styled.View`
 
 const StatusPill = styled.View`
   align-self: flex-start;
-  background-color: ${(props) => (props.approved ? props.theme.primaryLight : props.theme.accentLight)};
+  background-color: ${(props) =>
+    props.rejected
+      ? props.theme.errorLight
+      : props.approved
+        ? props.theme.primaryLight
+        : props.theme.accentLight};
   border-radius: ${radius.pill}px;
   padding-horizontal: ${spacing.sm}px;
   padding-vertical: 2px;
@@ -318,8 +400,17 @@ const StatusPill = styled.View`
 
 const StatusPillLabel = styled.Text`
   ${type.captionMedium}
-  color: ${(props) => (props.approved ? props.theme.primaryDark : props.theme.accentDark)};
+  color: ${(props) =>
+    props.rejected ? props.theme.error : props.approved ? props.theme.primaryDark : props.theme.accentDark};
   font-size: 11px;
+`;
+
+const RejectionNote = styled.Text`
+  ${type.caption}
+  color: ${(props) => props.theme.textMuted};
+  font-size: 11.5px;
+  line-height: 16px;
+  margin-top: ${spacing.xs}px;
 `;
 
 const saleStatusTint = (theme) => ({
@@ -345,6 +436,21 @@ const SaleStatusPill = styled.View`
 const SaleStatusPillLabel = styled.Text`
   ${type.captionMedium}
   color: ${(props) => saleStatusTextColor(props.theme)[props.saleStatus]};
+  font-size: 11px;
+`;
+
+const ViewCountPill = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 3px;
+  align-self: flex-start;
+  padding-horizontal: ${spacing.sm}px;
+  padding-vertical: 2px;
+`;
+
+const ViewCountLabel = styled.Text`
+  ${type.captionMedium}
+  color: ${(props) => props.theme.textMuted};
   font-size: 11px;
 `;
 

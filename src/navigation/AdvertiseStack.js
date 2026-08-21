@@ -17,13 +17,22 @@ const Stack = createNativeStackNavigator();
 
 function LogoutButton() {
   const { colors } = useTheme();
-  const { t } = useI18n();
+  const { t, resetLanguage } = useI18n();
   const { logOut } = useAuth();
+
+  // Resetting the language sends the user back to LanguageSelectScreen —
+  // RootNavigator swaps its whole tree to it whenever no language is set,
+  // so logout lands on the app's actual first landing screen instead of
+  // leaving them on a gated/empty version of the current tab.
+  const handleLogout = () => {
+    logOut();
+    resetLanguage();
+  };
 
   const handlePress = () => {
     Alert.alert(t('logoutConfirmTitle'), t('logoutConfirmMessage'), [
       { text: t('cancel'), style: 'cancel' },
-      { text: t('logoutButton'), style: 'destructive', onPress: logOut },
+      { text: t('logoutButton'), style: 'destructive', onPress: handleLogout },
     ]);
   };
 

@@ -1,44 +1,33 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Pressable, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
+import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamily } from '../theme/typography';
 import { useI18n } from '../i18n/I18nContext';
 import { useAuth } from '../auth/AuthContext';
-import { useConversations } from '../hooks/useConversations';
+import { useNotificationCenter } from '../hooks/useNotificationCenter';
 import { LanguageSwitch } from '../components/LanguageSwitch';
+import { FloatingTabBar } from './FloatingTabBar';
 import { SellStack } from './SellStack';
 import { ForYouScreen } from '../screens/ForYouScreen';
 import { LocalScreen } from '../screens/LocalScreen';
-import { JobsScreen } from '../screens/JobsScreen';
+import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { ChatListScreen } from '../screens/ChatListScreen';
 
 const Tab = createBottomTabNavigator();
-
-const TAB_ICONS = {
-  Sell: 'pricetag-outline',
-  ForYou: 'home-outline',
-  Local: 'location-outline',
-  Jobs: 'briefcase-outline',
-  Messages: 'chatbubbles-outline',
-};
 
 export function MainTabs() {
   const { colors } = useTheme();
   const { t } = useI18n();
   const { user } = useAuth();
-  const insets = useSafeAreaInsets();
-  const conversations = useConversations(user?.uid);
-  const unreadCount = (conversations ?? []).reduce(
-    (sum, conversation) => sum + (conversation.unreadCount?.[user?.uid] ?? 0),
-    0,
-  );
+  const { unreadMessageCount, badgeCount } = useNotificationCenter(user?.uid);
 
   return (
     <Tab.Navigator
       initialRouteName="ForYou"
-      screenOptions={({ route, navigation }) => ({
+      tabBar={(props) => <FloatingTabBar {...props} />}
+      screenOptions={({ navigation }) => ({
         headerRight: () => (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <Pressable onPress={() => navigation.navigate('More')} hitSlop={8}>
@@ -50,62 +39,47 @@ export function MainTabs() {
         headerTitleStyle: { fontFamily: fontFamily.semiBold, color: colors.text },
         headerStyle: { backgroundColor: colors.surface },
         headerShadowVisible: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          height: 56 + insets.bottom,
-          paddingBottom: insets.bottom,
-          paddingTop: 6,
-        },
-        tabBarIcon: ({ focused, color, size }) => (
-          <View
-            style={{
-              width: size + 24,
-              height: size + 14,
-              borderRadius: (size + 14) / 2,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: focused ? colors.primaryLight : 'transparent',
-            }}
-          >
-            <Ionicons name={TAB_ICONS[route.name]} color={color} size={size} />
-          </View>
-        ),
-        tabBarLabel: ({ focused, color, children }) => (
-          <Text
-            style={{
-              color,
-              fontSize: 11,
-              marginTop: 2,
-              fontFamily: focused ? fontFamily.semiBold : fontFamily.medium,
-            }}
-          >
-            {children}
-          </Text>
-        ),
       })}
     >
       <Tab.Screen
         name="Sell"
         component={SellStack}
-        options={{ title: t('tabSell'), headerShown: false }}
+        options={({ route }) => ({
+          title: t('tabSell'),
+          headerShown: false,
+          // Password recovery is a task you finish or abandon, not a tab you
+          // browse from — and the code keypad needs the full height the bar
+          // would otherwise take.
+          tabBarStyle:
+            getFocusedRouteNameFromRoute(route) === 'ForgotPassword'
+              ? { display: 'none' }
+              : undefined,
+        })}
       />
       <Tab.Screen
         name="ForYou"
         component={ForYouScreen}
         options={{ title: t('tabForYou'), headerShown: false }}
       />
-      <Tab.Screen name="Local" component={LocalScreen} options={{ title: t('tabLocal') }} />
-      <Tab.Screen name="Jobs" component={JobsScreen} options={{ title: t('tabJobs') }} />
+      <Tab.Screen
+        name="Local"
+        component={LocalScreen}
+        options={{ title: t('tabLocal'), headerShown: false }}
+      />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{
+          title: t('notificationsTitle'),
+          tabBarBadge: badgeCount > 0 ? badgeCount : undefined,
+        }}
+      />
       <Tab.Screen
         name="Messages"
         component={ChatListScreen}
         options={{
           title: t('tabChat'),
-          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-          tabBarBadgeStyle: { backgroundColor: colors.error },
+          tabBarBadge: unreadMessageCount > 0 ? unreadMessageCount : undefined,
         }}
       />
     </Tab.Navigator>

@@ -6,6 +6,19 @@ export async function resetSellerPassword({ idToken, newPassword }) {
   await callable({ idToken, newPassword });
 }
 
+// Best-effort: recovery does not depend on this, so a failure (offline, rate
+// limited, function not deployed) leaves the card off the screen rather than
+// blocking the flow.
+export async function lookupSellerForRecovery({ phone }) {
+  try {
+    const callable = httpsCallable(cloudFunctions, 'lookupSellerForRecovery');
+    const result = await callable({ phone });
+    return result?.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function mapResetPasswordErrorToKey(error) {
   switch (error?.code) {
     case 'functions/not-found':

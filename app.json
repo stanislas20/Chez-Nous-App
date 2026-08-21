@@ -4,7 +4,7 @@
     "slug": "chez-nous",
     "scheme": "cheznous",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -13,7 +13,8 @@
       "googleServicesFile": "./GoogleService-Info.plist",
       "appleTeamId": "MY9Y7Y46Q7",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": ["remote-notification"],
+        "UIRequiresFullScreen": true
       }
     },
     "android": {
@@ -43,7 +44,8 @@
         {
           "ios": {
             "useFrameworks": "static",
-            "forceStaticLinking": ["RNFBApp", "RNFBMessaging"]
+            "forceStaticLinking": ["RNFBApp", "RNFBMessaging"],
+            "deploymentTarget": "16.4"
           }
         }
       ],
@@ -55,19 +57,28 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Chez-Nous to access your photos to upload an ad."
+          "photosPermission": "Allow Chez-Nous to access your photos to upload an ad or attach a scanned document.",
+          "cameraPermission": "Allow Chez-Nous to use your camera to take a photo of an ad item or scan a document."
         }
       ],
       [
         "expo-audio",
         {
-          "microphonePermission": "Allow Chez-Nous to access your microphone to record voice messages."
+          "microphonePermission": "Allow Chez-Nous to access your microphone to record voice messages and search by voice."
         }
       ],
       [
         "expo-location",
         {
           "locationWhenInUsePermission": "Allow Chez-Nous to use your location to suggest the nearest pharmacy on duty."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow Chez-Nous to access your microphone to record voice messages and search by voice.",
+          "speechRecognitionPermission": "Allow Chez-Nous to use speech recognition for voice search.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
         }
       ],
       "@react-native-firebase/auth",

@@ -21,6 +21,7 @@ import { ListingCard } from "../components/ListingCard";
 import { mockListings } from "../data/mockListings";
 import { cities } from "../data/cities";
 import { cityCoordinates } from "../data/cityCoordinates";
+import { nearestKnownCity } from "../utils/nearestCity";
 import { categories } from "../data/categories";
 import { LinearGradient } from "expo-linear-gradient";
 import { useApprovedListingsState } from "../hooks/useApprovedListings";
@@ -80,26 +81,26 @@ export function LocalScreen({ navigation }) {
     requestLocation,
   } = useCurrentLocation({ enabled: false });
 
+  // Somebody's fix landing outside every city we know. Unlike the posting
+  // form, this screen's location is opt-in — they pressed a button — so the
+  // failure has to be said rather than passed over in silence.
+  const [locationOutOfRange, setLocationOutOfRange] = useState(false);
+
   // Once a GPS fix comes back, snap the location filter to whichever known
-  // city is closest — same "nearest known city" approach CreateListingScreen
-  // uses for its own current-location button.
+  // city is closest — same helper the posting form uses, including its
+  // refusal to answer when the nearest is implausibly far.
   useEffect(() => {
     if (!userCoords) return;
-    let nearestCity = null;
-    let nearestDistance = Infinity;
-    for (const city of cities) {
-      const cityCoord = cityCoordinates[city];
-      if (!cityCoord) continue;
-      const distance = distanceInKm(userCoords, cityCoord);
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearestCity = city;
-      }
+    const nearest = nearestKnownCity(userCoords);
+    if (!nearest) {
+      // A default simulator fix in California is 12 000 km from the closest
+      // Bénin city. Filtering the screen to it would be worse than useless.
+      setLocationOutOfRange(true);
+      return;
     }
-    if (nearestCity) {
-      setSelectedCity(nearestCity);
-      setLocationSheetOpen(false);
-    }
+    setLocationOutOfRange(false);
+    setSelectedCity(nearest.city);
+    setLocationSheetOpen(false);
     if (distanceKm == null) {
       setDistanceKm(DISTANCE_STEPS_KM[0]);
     }
@@ -384,11 +385,15 @@ export function LocalScreen({ navigation }) {
           ) : null}
         </ChipRow>
 
-        {locationStatus === "denied" || locationStatus === "error" ? (
+        {locationStatus === "denied" ||
+        locationStatus === "error" ||
+        locationOutOfRange ? (
           <LocationHintText>
             {locationStatus === "denied"
               ? t("nearestPharmacyPermissionDenied")
-              : t("nearestPharmacyUnavailable")}
+              : locationOutOfRange
+                ? t("locationOutOfRange")
+                : t("nearestPharmacyUnavailable")}
           </LocationHintText>
         ) : null}
       </Header>

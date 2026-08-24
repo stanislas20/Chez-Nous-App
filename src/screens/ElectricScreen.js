@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Linking, Pressable } from "react-native";
 import {
   SafeAreaView,
@@ -47,6 +47,13 @@ export function ElectricScreen({ navigation }) {
   // to two that could disagree about what the list below is showing.
   const [service, setService] = useState(null);
   const [problemKey, setProblemKey] = useState(null);
+
+  // Same anchors as Carrosserie, for the same reason: a symptom tile at the
+  // top of a ten-tile grid changes a card and a list that are both off
+  // screen, so without this the tap looks inert.
+  const scrollRef = useRef(null);
+  const listY = useRef(0);
+  const urgentY = useRef(0);
 
   const providers = useElectricProviders(coords);
   const ratings = useSellerRatings(providers.map((item) => item.sellerId));
@@ -200,6 +207,14 @@ export function ElectricScreen({ navigation }) {
     const next = problemKey === item.key ? null : item.key;
     setProblemKey(next);
     setService(next ? item.service : null);
+    if (!next) return;
+    const target = item.roadside ? urgentY : listY;
+    requestAnimationFrame(() =>
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, target.current - spacing.md),
+        animated: true,
+      }),
+    );
   };
 
   const selectService = (key) => {
@@ -286,6 +301,7 @@ export function ElectricScreen({ navigation }) {
       </Hero>
 
       <Scroll
+        ref={scrollRef}
         contentContainerStyle={{
           padding: spacing.md,
           paddingBottom: insets.bottom + spacing.xl,
@@ -331,6 +347,11 @@ export function ElectricScreen({ navigation }) {
           <OtherLabel>{t("electricOtherProblem")}</OtherLabel>
         </OtherButton>
 
+        <UrgentAnchor
+          onLayout={(event) => {
+            urgentY.current = event.nativeEvent.layout.y;
+          }}
+        />
         {/* Only for the faults that actually immobilise a vehicle. */}
         {problem?.roadside ? (
           <UrgentCard onPress={goToBreakdown}>
@@ -464,6 +485,11 @@ export function ElectricScreen({ navigation }) {
           </ChipWrap>
         </PanelCard>
 
+        <ListAnchor
+          onLayout={(event) => {
+            listY.current = event.nativeEvent.layout.y;
+          }}
+        />
         <SectionLabel>{t("electricProsLabel")}</SectionLabel>
 
         {/* What the list below is showing, and one tap to stop showing it. */}
@@ -825,6 +851,16 @@ const OtherLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 13px;
   color: ${(props) => props.theme.textMuted};
+`;
+
+// Zero-height markers reporting where a section starts, so a tap can move
+// the screen to the thing it changed.
+const UrgentAnchor = styled.View`
+  height: 0px;
+`;
+
+const ListAnchor = styled.View`
+  height: 0px;
 `;
 
 const UrgentCard = styled(Pressable)`

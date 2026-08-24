@@ -48,6 +48,7 @@ export function BodyworkScreen({ navigation }) {
   // something: a photo needs a recipient, and the recipients are below.
   const scrollRef = useRef(null);
   const listY = useRef(0);
+  const urgentY = useRef(0);
 
   const problem = bodyworkProblems.find((item) => item.key === problemKey);
   const primary = bodyworkProblems.filter((item) => item.primary);
@@ -170,9 +171,30 @@ export function BodyworkScreen({ navigation }) {
   };
 
   const selectProblem = (item) => {
+    // A collision does not get a second tap. Everything else on this screen
+    // is a repair to arrange; this one is somebody standing next to a car
+    // that has just been hit, so it opens Dépannage outright.
+    if (item.primary) {
+      navigation.navigate("Breakdown", { problem: item.roadside });
+      return;
+    }
+
     const next = problemKey === item.key ? null : item.key;
     setProblemKey(next);
     setService(next ? item.service : null);
+    if (!next) return;
+
+    // Both of the things a tap changes live below the fold: the roadside
+    // card sits under eight more tiles, and the filtered list under the
+    // whole screen. Selecting one and leaving the view where it was read as
+    // a button that did nothing at all.
+    const target = item.roadside ? urgentY : listY;
+    requestAnimationFrame(() =>
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, target.current - spacing.md),
+        animated: true,
+      }),
+    );
   };
 
   const selectService = (key) => {
@@ -267,6 +289,11 @@ export function BodyworkScreen({ navigation }) {
           {rest.map((item) => renderProblemTile(item, false))}
         </ProblemGrid>
 
+        <UrgentAnchor
+          onLayout={(event) => {
+            urgentY.current = event.nativeEvent.layout.y;
+          }}
+        />
         {problem?.roadside ? (
           <UrgentCard onPress={goToBreakdown}>
             <UrgentIcon>
@@ -697,6 +724,12 @@ const ProblemHint = styled.Text`
   margin-top: 3px;
   color: ${(props) =>
     props.active ? "rgba(255,255,255,0.75)" : props.theme.textMuted};
+`;
+
+// Zero-height markers whose only job is to report where a section starts,
+// so a tap can move the screen to what it changed.
+const UrgentAnchor = styled.View`
+  height: 0px;
 `;
 
 const UrgentCard = styled(Pressable)`

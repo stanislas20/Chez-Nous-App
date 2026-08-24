@@ -42,6 +42,19 @@ const GARAGES = [
   ["Diagnostic électronique valise OBD pour véhicule", ["diag"]],
   ["Plaquettes de frein et disques pour voiture", ["frein"]],
   ["Serrurier auto — clé perdue, télécommande de voiture", ["keys"]],
+
+  // The way providers actually write, which is by the damage or the symptom
+  // rather than by the trade. Every one of these published successfully and
+  // appeared on no car screen at all before the terms were widened.
+  ["Je répare les voitures accidentées", ["carro"]],
+  ["Redressage et peinture de véhicules", ["carro"]],
+  ["Rayures, capot et portière de voiture", ["carro"]],
+  ["Tôlier auto, cabine de peinture", ["carro"]],
+  ["Remplacement pare-brise et vitres de voiture", ["carro"]],
+  ["Réparation klaxon et clignotants", ["elec"]],
+  ["Fusibles et court-circuit sur voiture", ["elec"]],
+  ["Phares, centralisation et vitres électriques auto", ["elec"]],
+  ["Stator, régulateur et allumage moto", ["elec"]],
 ];
 
 // Ordinary Services listings that share a word with a car trade and must
@@ -56,6 +69,17 @@ const NOT_GARAGES = [
   "Traiteur : plateau repas et service en salle",
   "Nettoyage de bureaux et entretien de locaux",
   "Serrurerie bâtiment : serrure de porte et clé de maison",
+
+  // The lookalikes the widened terms could have dragged in. The last is the
+  // reason "cdi" is deliberately not an ignition term: in French it is a
+  // permanent employment contract long before it is a car part, and it
+  // would have pulled job ads onto a repair screen.
+  "Peintre en bâtiment, façade et rayures sur mur",
+  "Vitrerie bâtiment : pose de vitres et vitrage maison",
+  "Électricien bâtiment : fusible, tableau, court-circuit maison",
+  "Offre d’emploi CDI : comptable à Cotonou",
+  "Couturier — retouches, ourlets et tissus",
+  "Terrain accidenté à vendre, viabilisé",
 ];
 
 let failures = 0;

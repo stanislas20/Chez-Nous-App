@@ -34,8 +34,35 @@ export const garageSpecialties = [
     icon: "flash-outline",
     labelEn: "Auto electrics",
     labelFr: "Électricité",
-    terms: ["alternateur", "démarreur", "faisceau"],
-    weakTerms: ["électricité", "capteur", "bobine"],
+    terms: [
+      "alternateur",
+      "démarreur",
+      "faisceau",
+      // Unmistakably a car, whatever else the listing says.
+      "klaxon",
+      "électricien auto",
+      "auto électricité",
+    ],
+    weakTerms: [
+      "électricité",
+      "capteur",
+      "bobine",
+      // The symptoms people write instead of the trade name. All weak: a
+      // fusible and a court-circuit are as often a house, and a phare is a
+      // lighthouse — they only count once the listing says it is about a
+      // vehicle.
+      "fusible",
+      "court circuit",
+      "clignotant",
+      "phare",
+      "centralisation",
+      "stator",
+      "régulateur",
+      "allumage",
+      // Deliberately NOT "cdi": in French that is a permanent employment
+      // contract long before it is an ignition module, and it would drag
+      // every job ad that mentions one onto a car-repair screen.
+    ],
   },
   {
     key: "clim",
@@ -84,8 +111,26 @@ export const garageSpecialties = [
       // terms, because none of these three words is ever about a building.
       "pare-brise",
       "carrossier",
+      "tôlier",
+      "peinture auto",
+      "cabine de peinture",
     ],
-    weakTerms: ["peinture", "vitrage", "vitre", "lustrage", "covering"],
+    weakTerms: [
+      "peinture",
+      "vitrage",
+      "vitre",
+      "lustrage",
+      "covering",
+      // What a carrossier actually writes when they do not write
+      // "carrosserie": the damage, not the trade. "accidenté" reaches
+      // "accidentées" through the inflection slack above.
+      "accidenté",
+      "redressage",
+      "rayure",
+      "mastic",
+      "capot",
+      "portière",
+    ],
   },
   {
     key: "vidange",

@@ -1,10 +1,33 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { firebaseAuth, firestore, isFirebaseConfigured } from '../config/firebase';
-import { signUpSeller, signUpCompanySeller, loginSeller, logoutSeller } from './phoneAuth';
-import { signUpAdvertiser, loginAdvertiser, createAdvertiserProfile } from './advertiserAuth';
-import { registerForegroundMessageHandler, registerPushToken } from '../notifications/pushToken';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import {
+  firebaseAuth,
+  firestore,
+  isFirebaseConfigured,
+} from "../config/firebase";
+import {
+  signUpSeller,
+  signUpCompanySeller,
+  loginSeller,
+  logoutSeller,
+} from "./phoneAuth";
+import {
+  signUpAdvertiser,
+  loginAdvertiser,
+  createAdvertiserProfile,
+} from "./advertiserAuth";
+import {
+  registerForegroundMessageHandler,
+  registerNotificationTapHandlers,
+  registerPushToken,
+} from "../notifications/pushToken";
 
 const AuthContext = createContext(null);
 
@@ -21,6 +44,7 @@ export function AuthProvider({ children }) {
 
     let unsubscribeTokenRefresh;
     let unsubscribeForegroundMessages;
+    let unsubscribeNotificationTaps;
     let unsubscribeSellerProfile;
     // Guards against re-registering on every snapshot — the profile doc
     // changes for plenty of unrelated reasons (a photo, a seen-cursor bump).
@@ -42,7 +66,7 @@ export function AuthProvider({ children }) {
         // has told them they were approved.
         const sellerProfileReady = new Promise((resolve) => {
           unsubscribeSellerProfile = onSnapshot(
-            doc(firestore, 'sellers', nextUser.uid),
+            doc(firestore, "sellers", nextUser.uid),
             (snapshot) => {
               setSellerProfile(snapshot.exists() ? snapshot.data() : null);
               // Registered here, not on sign-in, because savePushToken
@@ -74,9 +98,11 @@ export function AuthProvider({ children }) {
         // only clears once the profile is actually populated.
         const [, advertiserSnapshot] = await Promise.all([
           sellerProfileReady,
-          getDoc(doc(firestore, 'advertisers', nextUser.uid)),
+          getDoc(doc(firestore, "advertisers", nextUser.uid)),
         ]);
-        setAdvertiserProfile(advertiserSnapshot.exists() ? advertiserSnapshot.data() : null);
+        setAdvertiserProfile(
+          advertiserSnapshot.exists() ? advertiserSnapshot.data() : null,
+        );
         // onAuthStateChanged can fire more than once for the same signed-in
         // session (e.g. a profile update re-emitting the same user) — tear
         // down any listener from a previous firing first, or a single push
@@ -84,6 +110,10 @@ export function AuthProvider({ children }) {
         // the next.
         unsubscribeForegroundMessages?.();
         unsubscribeForegroundMessages = registerForegroundMessageHandler();
+        // Same teardown rule: a second firing would otherwise leave two tap
+        // listeners and navigate twice for one tap.
+        unsubscribeNotificationTaps?.();
+        unsubscribeNotificationTaps = registerNotificationTapHandlers();
       } else {
         setSellerProfile(null);
         setAdvertiserProfile(null);
@@ -91,6 +121,8 @@ export function AuthProvider({ children }) {
         unsubscribeTokenRefresh = undefined;
         unsubscribeForegroundMessages?.();
         unsubscribeForegroundMessages = undefined;
+        unsubscribeNotificationTaps?.();
+        unsubscribeNotificationTaps = undefined;
       }
       setIsLoading(false);
     });
@@ -104,11 +136,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   const completeAdvertiserOnboarding = async ({ businessName }) => {
-    const phone = user.email ? `+${user.email.split('@')[0]}` : '';
+    const phone = user.email ? `+${user.email.split("@")[0]}` : "";
     await createAdvertiserProfile({ uid: user.uid, businessName, phone });
     setAdvertiserProfile({ businessName, phone });
   };
-
 
   const value = useMemo(
     () => ({
@@ -134,7 +165,7 @@ export function AuthProvider({ children }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

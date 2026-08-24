@@ -121,7 +121,11 @@ export function VehicleListScreen({ navigation, route }) {
   const ofBrand = useMemo(
     () =>
       (listings ?? [])
-        .filter((item) => item.categoryKey === "vehicles")
+        .filter(
+          (item) =>
+            item.categoryKey === "vehicles" &&
+            !["tyre", "battery"].includes(item.partType),
+        )
         .filter((item) => (fixedBrand ? item.brand === fixedBrand : true))
         // A listing published before vehicleDeal existed counts as a used car
         // for sale — the same fallback the browse screen uses, so a legacy
@@ -1793,16 +1797,6 @@ const Monogram = styled.Text`
   color: rgba(255, 255, 255, 0.9);
 `;
 
-const Empty = styled.View`
-  align-items: center;
-  padding: ${spacing.xl}px ${spacing.lg}px;
-`;
-
-const EmptyGlyph = styled.Text`
-  font-size: 34px;
-  margin-bottom: ${spacing.sm}px;
-`;
-
 const EmptyTitle = styled.Text`
   font-family: ${fontFamily.bold};
   font-size: 16px;
@@ -1817,19 +1811,6 @@ const EmptyCopy = styled.Text`
   text-align: center;
   margin-top: 6px;
   color: ${(props) => props.theme.textMuted};
-`;
-
-const EmptyCta = styled(Pressable)`
-  margin-top: ${spacing.md}px;
-  padding: 11px 20px;
-  border-radius: 14px;
-  background-color: ${EMERALD};
-`;
-
-const EmptyCtaLabel = styled.Text`
-  font-family: ${fontFamily.semiBold};
-  font-size: 13px;
-  color: #ffffff;
 `;
 
 const SafetyNote = styled.View`

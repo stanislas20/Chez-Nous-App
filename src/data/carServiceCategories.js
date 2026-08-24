@@ -23,12 +23,41 @@
 // This is a shortcut to people who can help, NOT a dispatch service — we
 // send nobody. The sheet says so, and the one option that can genuinely
 // summon help is the one that dials 112, the national emergency number.
+//
+// The five that are not 112 now open the Garages screen filtered to the
+// trade they name, rather than a text search. Same providers either way —
+// a garage listing is still an ordinary Services listing — but the screen
+// can say whether each one is open right now and what they charge, which a
+// raw search result cannot.
 export const carHelpOptions = [
-  { key: "helpBreakdown", icon: "warning-outline", query: "dépannage" },
-  { key: "helpBattery", icon: "flash-outline", query: "batterie" },
-  { key: "helpPuncture", icon: "disc-outline", query: "pneu crevaison" },
-  { key: "helpTowing", icon: "car-outline", query: "remorquage" },
-  { key: "helpMechanic", icon: "construct-outline", query: "mécanicien" },
+  {
+    key: "helpBreakdown",
+    icon: "warning-outline",
+    route: "Breakdown",
+  },
+  {
+    key: "helpBattery",
+    icon: "flash-outline",
+    route: "Breakdown",
+    problem: "battery",
+  },
+  {
+    key: "helpPuncture",
+    icon: "disc-outline",
+    route: "Breakdown",
+    problem: "puncture",
+  },
+  {
+    key: "helpTowing",
+    icon: "car-outline",
+    route: "Breakdown",
+  },
+  {
+    key: "helpMechanic",
+    icon: "construct-outline",
+    route: "Garages",
+    specialty: "meca",
+  },
   // Not a search. An accident is the one case where the right action is a
   // phone call to the state, not a marketplace listing.
   { key: "helpAccident", icon: "call-outline", tel: "112", urgent: true },
@@ -44,13 +73,27 @@ export const carHelpOptions = [
 // Their three slots went to the trades that were sitting just below the
 // fold in the tail — panel beating, auto-electrics and batteries are among
 // the most-needed of the lot, not part of a long tail.
+// The six repair trades route into the Garages screen at their own
+// specialty; the rest stay as searches because no screen covers them yet.
 export const carServicesPrimary = [
-  { key: "garage", icon: "construct-outline", query: "garage" },
-  { key: "towing", icon: "warning-outline", query: "dépannage" },
-  { key: "tyres", icon: "disc-outline", query: "pneu" },
-  { key: "battery", icon: "battery-charging-outline", query: "batterie" },
-  { key: "electrics", icon: "flash-outline", query: "électricité auto" },
-  { key: "bodywork", icon: "color-fill-outline", query: "carrosserie" },
+  { key: "garage", icon: "construct-outline", route: "Garages" },
+  { key: "towing", icon: "warning-outline", route: "Breakdown" },
+  // Its own screen rather than the Garages list filtered to "pneu": a tyre
+  // is bought by a size, and no list of garages can answer "which of these
+  // has 195/65 R15".
+  { key: "tyres", icon: "disc-outline", route: "Tyres" },
+  // Its own screen rather than the garage list filtered to "batt": a
+  // battery is bought by a capacity, and no list of garages can answer
+  // "which of these has a 60 Ah that fits my Corolla".
+  { key: "battery", icon: "battery-charging-outline", route: "Battery" },
+  // Its own screen rather than the garage list filtered to "elec": an
+  // electrical fault is described by symptom, and no list of garages can
+  // answer "who fixes a window that stopped halfway".
+  { key: "electrics", icon: "flash-outline", route: "Electric" },
+  // Its own screen rather than the garage list filtered to "carro": a body
+  // repair is priced from photographs, and no list of garages can carry the
+  // photographs.
+  { key: "bodywork", icon: "color-fill-outline", route: "Bodywork" },
   { key: "driver", icon: "person-outline", query: "chauffeur" },
   { key: "parts", icon: "cog-outline", query: "pièce auto" },
   { key: "wash", icon: "water-outline", query: "lavage auto" },
@@ -68,7 +111,7 @@ export const carServicesPrimary = [
 ];
 
 export const carServicesMore = [
-  { key: "aircon", icon: "snow-outline", query: "climatisation auto" },
+  { key: "aircon", icon: "snow-outline", route: "Garages", specialty: "clim" },
   { key: "keys", icon: "key-outline", query: "clé voiture" },
   { key: "gps", icon: "navigate-circle-outline", query: "gps traceur" },
   { key: "fleet", icon: "business-outline", query: "gestion de flotte" },

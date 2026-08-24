@@ -353,39 +353,50 @@ export function CarsScreen({ navigation, route }) {
     const selectedBand = bands.find((item) => item.key === band);
     const intentDeals = new Set(deals.map((item) => item.key));
 
-    return (listings ?? [])
-      .filter((item) => item.categoryKey === "vehicles")
-      .filter((item) => {
-        // Vehicles published before vehicleDeal existed — and any that got
-        // through while the form's validation was unreachable — carry no
-        // deal at all. Matched literally they belong to no intent, so they
-        // are invisible under Acheter AND Louer while still being counted
-        // as online. Treating a missing deal as a used car for sale puts
-        // them where a buyer would look for them.
-        const itemDeal = item.vehicleDeal ?? "used";
-        return deal ? itemDeal === deal : intentDeals.has(itemDeal);
-      })
-      .filter((item) => (brand ? item.brand === brand : true))
-      .filter((item) => (city ? item.city === city : true))
-      .filter((item) => {
-        if (!selectedBand) return true;
-        const price = Number(item.price) || 0;
-        if (selectedBand.min != null && price < selectedBand.min) return false;
-        if (selectedBand.max != null && price >= selectedBand.max) return false;
-        return true;
-      })
-      .filter((item) =>
-        search.trim()
-          ? queryMatches(
-              search,
-              item.brand,
-              item.model,
-              item.title,
-              item.city,
-              item.quartier,
-            )
-          : true,
-      );
+    return (
+      (listings ?? [])
+        // A tyre is filed under Vehicles — the category is "cars, motorbikes,
+        // parts" — but it is not a car, and showing one here as a vehicle with
+        // no year and no mileage is how a list stops being trustworthy.
+        .filter(
+          (item) =>
+            item.categoryKey === "vehicles" &&
+            !["tyre", "battery"].includes(item.partType),
+        )
+        .filter((item) => {
+          // Vehicles published before vehicleDeal existed — and any that got
+          // through while the form's validation was unreachable — carry no
+          // deal at all. Matched literally they belong to no intent, so they
+          // are invisible under Acheter AND Louer while still being counted
+          // as online. Treating a missing deal as a used car for sale puts
+          // them where a buyer would look for them.
+          const itemDeal = item.vehicleDeal ?? "used";
+          return deal ? itemDeal === deal : intentDeals.has(itemDeal);
+        })
+        .filter((item) => (brand ? item.brand === brand : true))
+        .filter((item) => (city ? item.city === city : true))
+        .filter((item) => {
+          if (!selectedBand) return true;
+          const price = Number(item.price) || 0;
+          if (selectedBand.min != null && price < selectedBand.min)
+            return false;
+          if (selectedBand.max != null && price >= selectedBand.max)
+            return false;
+          return true;
+        })
+        .filter((item) =>
+          search.trim()
+            ? queryMatches(
+                search,
+                item.brand,
+                item.model,
+                item.title,
+                item.city,
+                item.quartier,
+              )
+            : true,
+        )
+    );
   }, [listings, intent, deal, brand, band, bands, deals, search, city]);
 
   const views = useMemo(
@@ -405,7 +416,11 @@ export function CarsScreen({ navigation, route }) {
   // actually published. The design's "1 240 véhicules" would be a lie today.
   const vehicleTotal = useMemo(
     () =>
-      (listings ?? []).filter((item) => item.categoryKey === "vehicles").length,
+      (listings ?? []).filter(
+        (item) =>
+          item.categoryKey === "vehicles" &&
+          !["tyre", "battery"].includes(item.partType),
+      ).length,
     [listings],
   );
 
@@ -516,7 +531,20 @@ export function CarsScreen({ navigation, route }) {
       return;
     }
     if (entry.route) {
-      navigation.navigate(entry.route);
+      // The specialty travels with the route so a tile lands on the trade it
+      // names — tapping "Pneus" opens the garages already filtered to tyre
+      // fitters, rather than the full list with the work left to the user.
+      // Whatever the tile already knows travels with it, so the next screen
+      // opens on the thing the tile named rather than at its own front door:
+      // a specialty for Garages, a problem for Dépannage.
+      const params = {
+        ...(entry.specialty ? { specialty: entry.specialty } : {}),
+        ...(entry.problem ? { problem: entry.problem } : {}),
+      };
+      navigation.navigate(
+        entry.route,
+        Object.keys(params).length ? params : undefined,
+      );
       return;
     }
     openService(entry);
@@ -528,7 +556,13 @@ export function CarsScreen({ navigation, route }) {
   const featuredVehicles = useMemo(
     () =>
       (listings ?? [])
-        .filter((item) => item.categoryKey === "vehicles" && item.isPromoted)
+        .filter(
+          (item) =>
+            item.categoryKey === "vehicles" &&
+            !["tyre", "battery"].includes(item.partType) &&
+            !["tyre", "battery"].includes(item.partType) &&
+            item.isPromoted,
+        )
         .slice(0, 4),
     [listings],
   );
@@ -2590,13 +2624,6 @@ const ServiceName = styled.Text`
   line-height: 15px;
   text-align: center;
   color: ${(props) => props.theme.text};
-`;
-
-const ServiceSub = styled.Text`
-  font-family: ${fontFamily.regular};
-  font-size: 11px;
-  margin-top: 2px;
-  color: ${(props) => props.theme.textMuted};
 `;
 
 const BundleCard = styled.View`

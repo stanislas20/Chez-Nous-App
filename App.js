@@ -1,5 +1,9 @@
 import { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
+import {
+  navigationRef,
+  onNavigationReady,
+} from "./src/navigation/navigationRef";
 import * as SplashScreen from "expo-splash-screen";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -57,7 +61,13 @@ function AppNavigationContainer() {
   };
 
   return (
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer
+      theme={navigationTheme}
+      ref={navigationRef}
+      // A notification tapped from a cold start arrives before the navigator
+      // exists, so its destination is held and replayed here.
+      onReady={onNavigationReady}
+    >
       <RootNavigator />
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
     </NavigationContainer>

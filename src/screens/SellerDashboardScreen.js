@@ -22,6 +22,7 @@ import { gridItemWidth } from "../utils/gridWidth";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
+import { saleStatusLabelKey } from "../data/saleStatuses";
 import { useSellerStats } from "../hooks/useSellerStats";
 import { formatCount, statLabelKey } from "../utils/formatCount";
 import { guessContentType } from "../utils/uploadContentType";
@@ -350,7 +351,7 @@ export function SellerDashboardScreen({ navigation }) {
         icon: "refresh-outline",
         text: t("insightsTipStaleListing", { title }),
         onPress: () =>
-          navigation.navigate("EditListing", { listing: staleListing }),
+          navigation.navigate("CreateListing", { listing: staleListing }),
       });
     }
 
@@ -367,7 +368,7 @@ export function SellerDashboardScreen({ navigation }) {
         icon: "camera-outline",
         text: t("insightsTipMorePhotos", { title }),
         onPress: () =>
-          navigation.navigate("EditListing", { listing: lowPhotoListing }),
+          navigation.navigate("CreateListing", { listing: lowPhotoListing }),
       });
     }
 
@@ -729,8 +730,11 @@ export function SellerDashboardScreen({ navigation }) {
               const title = language === "en" ? item.titleEn : item.titleFr;
               const coverUri = item.mediaUrl ?? item.image;
               const isSold = item.saleStatus === "sold";
+              // "Vendu" on a service the seller has stopped offering is the
+              // app describing their own listing wrongly — saleStatusLabelKey
+              // picks the vocabulary the category actually uses.
               const statusLabel = isSold
-                ? t("saleStatusSold")
+                ? t(saleStatusLabelKey(item.categoryKey, "sold"))
                 : item.status === "approved"
                   ? t("listingStatusApproved")
                   : t("listingStatusPending");

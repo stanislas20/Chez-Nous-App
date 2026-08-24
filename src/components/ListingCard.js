@@ -1,31 +1,27 @@
-import { useRef } from 'react';
-import { Animated, Pressable, Share } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import { useVideoPlayer, VideoView } from 'expo-video';
-import styled from 'styled-components/native';
-import { radius, spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { fontFamily, type } from '../theme/typography';
-import { useI18n } from '../i18n/I18nContext';
-import { useAuth } from '../auth/AuthContext';
-import { categories } from '../data/categories';
-import { realEstatePriceSuffixKey } from '../data/realEstate';
-import { openChat } from '../utils/openChat';
-import { openListing } from '../utils/openListing';
-import { getDutyLabel } from '../utils/pharmacyDuty';
-import { CategoryPlaceholder } from './CategoryPlaceholder';
+import { useRef } from "react";
+import { Animated, Pressable, Share } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
+import { useVideoPlayer, VideoView } from "expo-video";
+import styled from "styled-components/native";
+import { radius, spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { fontFamily, type } from "../theme/typography";
+import { useI18n } from "../i18n/I18nContext";
+import { saleStatusLabelKey } from "../data/saleStatuses";
+import { useAuth } from "../auth/AuthContext";
+import { categories } from "../data/categories";
+import { realEstatePriceSuffixKey } from "../data/realEstate";
+import { openChat } from "../utils/openChat";
+import { openListing } from "../utils/openListing";
+import { getDutyLabel } from "../utils/pharmacyDuty";
+import { CategoryPlaceholder } from "./CategoryPlaceholder";
 
-const priceFormatter = new Intl.NumberFormat('fr-FR');
+const priceFormatter = new Intl.NumberFormat("fr-FR");
 const categoryIconByKey = categories.reduce((map, category) => {
   map[category.key] = category.icon;
   return map;
 }, {});
-const saleStatusLabelKeys = {
-  pending: 'saleStatusPending',
-  negotiating: 'saleStatusNegotiating',
-  sold: 'saleStatusSold',
-};
 const saleStatusTint = (theme) => ({
   pending: theme.accent,
   negotiating: theme.skyBlue,
@@ -42,9 +38,11 @@ function VideoThumbnail({ uri }) {
     // "Session activation failed": the recogniser could not activate a
     // recording session while these were on screen. A silent thumbnail has
     // no audio to protect, so it mixes.
-    p.audioMixingMode = 'mixWithOthers';
+    p.audioMixingMode = "mixWithOthers";
   });
-  return <ThumbnailVideo player={player} contentFit="cover" nativeControls={false} />;
+  return (
+    <ThumbnailVideo player={player} contentFit="cover" nativeControls={false} />
+  );
 }
 
 export function ListingCard({ listing, style, isFavorite, onToggleFavorite }) {
@@ -52,12 +50,13 @@ export function ListingCard({ listing, style, isFavorite, onToggleFavorite }) {
   const { language, t } = useI18n();
   const navigation = useNavigation();
   const { user } = useAuth();
-  const title = language === 'en' ? listing.titleEn : listing.titleFr;
-  const categoryIcon = categoryIconByKey[listing.categoryKey] ?? 'pricetag-outline';
+  const title = language === "en" ? listing.titleEn : listing.titleFr;
+  const categoryIcon =
+    categoryIconByKey[listing.categoryKey] ?? "pricetag-outline";
   const coverUri = listing.mediaUrl ?? listing.image;
   const isOwner = !!user && user.uid === listing.sellerId;
-  const isPharmacy = listing.categoryKey === 'pharmacyOnDuty';
-  const isJobs = listing.categoryKey === 'jobs';
+  const isPharmacy = listing.categoryKey === "pharmacyOnDuty";
+  const isJobs = listing.categoryKey === "jobs";
   const duty = isPharmacy ? getDutyLabel(listing, language, t) : null;
   const scale = useRef(new Animated.Value(1)).current;
 
@@ -71,22 +70,27 @@ export function ListingCard({ listing, style, isFavorite, onToggleFavorite }) {
   };
 
   const pressOut = () => {
-    Animated.spring(scale, { toValue: 1, speed: 40, bounciness: 6, useNativeDriver: true }).start();
+    Animated.spring(scale, {
+      toValue: 1,
+      speed: 40,
+      bounciness: 6,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handleShare = async () => {
     try {
       await Share.share({
         message: isPharmacy
-          ? t('shareDutyPharmacyMessage', { title, phone: listing.phone ?? '' })
+          ? t("shareDutyPharmacyMessage", { title, phone: listing.phone ?? "" })
           : isJobs
-            ? t('shareJobMessage', { title, company: listing.company ?? '' })
-            : t('shareListingMessage', {
+            ? t("shareJobMessage", { title, company: listing.company ?? "" })
+            : t("shareListingMessage", {
                 title,
                 price: `${priceFormatter.format(listing.price)} ${
-                  listing.categoryKey === 'realEstate' && listing.realEstateDeal
+                  listing.categoryKey === "realEstate" && listing.realEstateDeal
                     ? t(realEstatePriceSuffixKey(listing.realEstateDeal))
-                    : 'FCFA'
+                    : "FCFA"
                 }`,
               }),
       });
@@ -110,19 +114,19 @@ export function ListingCard({ listing, style, isFavorite, onToggleFavorite }) {
         <Thumbnail>
           {!coverUri ? (
             <CategoryPlaceholder icon={categoryIcon} size="card" />
-          ) : listing.mediaType === 'video' ? (
+          ) : listing.mediaType === "video" ? (
             <VideoThumbnail uri={coverUri} />
           ) : (
             <ThumbnailImage source={{ uri: coverUri }} resizeMode="cover" />
           )}
-          {listing.mediaType === 'video' ? (
+          {listing.mediaType === "video" ? (
             <PlayBadge>
               <Ionicons name="play" size={14} color={colors.textInverse} />
             </PlayBadge>
           ) : null}
           {listing.isPromoted ? (
             <PromotedBadge>
-              <PromotedBadgeLabel>{t('sponsoredLabel')}</PromotedBadgeLabel>
+              <PromotedBadgeLabel>{t("sponsoredLabel")}</PromotedBadgeLabel>
             </PromotedBadge>
           ) : listing.popular ? (
             <PopularBadge>
@@ -132,19 +136,23 @@ export function ListingCard({ listing, style, isFavorite, onToggleFavorite }) {
           {onToggleFavorite ? (
             <FavButton onPress={onToggleFavorite} hitSlop={10}>
               <Ionicons
-                name={isFavorite ? 'heart' : 'heart-outline'}
+                name={isFavorite ? "heart" : "heart-outline"}
                 size={15}
                 color={isFavorite ? colors.error : colors.textInverse}
               />
             </FavButton>
           ) : null}
           <CategoryBadge>
-            <Ionicons name={categoryIcon} size={13} color={colors.textInverse} />
+            <Ionicons
+              name={categoryIcon}
+              size={13}
+              color={colors.textInverse}
+            />
           </CategoryBadge>
-          {listing.saleStatus && listing.saleStatus !== 'available' ? (
+          {listing.saleStatus && listing.saleStatus !== "available" ? (
             <SaleStatusBadge saleStatus={listing.saleStatus}>
               <SaleStatusBadgeLabel>
-                {t(saleStatusLabelKeys[listing.saleStatus])}
+                {t(saleStatusLabelKey(listing.categoryKey, listing.saleStatus))}
               </SaleStatusBadgeLabel>
             </SaleStatusBadge>
           ) : null}
@@ -164,36 +172,55 @@ export function ListingCard({ listing, style, isFavorite, onToggleFavorite }) {
               </DutyBadge>
             ) : isJobs ? (
               <DutyBadge>
-                <Ionicons name="business-outline" size={13} color={colors.textMuted} />
+                <Ionicons
+                  name="business-outline"
+                  size={13}
+                  color={colors.textMuted}
+                />
                 <CompanyLabel numberOfLines={1}>{listing.company}</CompanyLabel>
               </DutyBadge>
             ) : (
               <PriceGroup>
-                <PriceAmount>{priceFormatter.format(listing.price)}</PriceAmount>
+                <PriceAmount>
+                  {priceFormatter.format(listing.price)}
+                </PriceAmount>
                 {/* A rental in the grid read as an outright price. The
                     suffix is what separates 150 000 a month from 150 000
                     for the house. */}
                 <PriceCurrency>
-                  {listing.categoryKey === 'realEstate' && listing.realEstateDeal
+                  {listing.categoryKey === "realEstate" &&
+                  listing.realEstateDeal
                     ? ` ${t(realEstatePriceSuffixKey(listing.realEstateDeal))}`
-                    : ' FCFA'}
+                    : " FCFA"}
                 </PriceCurrency>
               </PriceGroup>
             )}
             <IconButtonRow>
               {isOwner ? null : (
                 <ChatIconButton onPress={handleChat} hitSlop={8}>
-                  <Ionicons name="chatbubble-ellipses" size={14} color={colors.textInverse} />
+                  <Ionicons
+                    name="chatbubble-ellipses"
+                    size={14}
+                    color={colors.textInverse}
+                  />
                 </ChatIconButton>
               )}
               <ShareIconButton onPress={handleShare} hitSlop={8}>
-                <Ionicons name="share-social-outline" size={16} color={colors.textMuted} />
+                <Ionicons
+                  name="share-social-outline"
+                  size={16}
+                  color={colors.textMuted}
+                />
               </ShareIconButton>
             </IconButtonRow>
           </PriceRow>
           <Title numberOfLines={2}>{title}</Title>
           <CityRow>
-            <Ionicons name="location-outline" size={13} color={colors.textMuted} />
+            <Ionicons
+              name="location-outline"
+              size={13}
+              color={colors.textMuted}
+            />
             <City>{listing.city}</City>
           </CityRow>
         </Details>

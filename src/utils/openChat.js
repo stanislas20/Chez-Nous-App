@@ -3,7 +3,18 @@ import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { firestore } from "../config/firebase";
 import { openAccountGate } from "./openAccountGate";
 
-export async function openChat({ listing, listingTitle, user, navigation, t }) {
+// `attachOnOpen` is for the roadside case: someone who has just tapped
+// "Envoyer une photo" means the photo, not the thread, so the chat opens
+// straight into the picker instead of making them find the paperclip while
+// standing next to a broken-down car.
+export async function openChat({
+  listing,
+  listingTitle,
+  user,
+  navigation,
+  t,
+  attachOnOpen = false,
+}) {
   if (!user) {
     Alert.alert(t("chatSignUpRequiredTitle"), t("chatSignUpRequiredMessage"), [
       { text: t("cancel"), style: "cancel" },
@@ -44,7 +55,7 @@ export async function openChat({ listing, listingTitle, user, navigation, t }) {
         createdAt: serverTimestamp(),
       });
     }
-    navigation.navigate("Chat", { conversationId, listingTitle });
+    navigation.navigate("Chat", { conversationId, listingTitle, attachOnOpen });
   } catch (error) {
     Alert.alert(t("errorChatFailedTitle"), t("errorChatFailed"));
   }

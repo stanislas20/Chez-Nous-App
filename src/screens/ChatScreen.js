@@ -172,7 +172,7 @@ function VoiceMessageBubble({ uri, mine, knownDuration }) {
 
 export function ChatScreen({ route, navigation }) {
   const { colors } = useTheme();
-  const { conversationId, listingTitle } = route.params;
+  const { conversationId, listingTitle, attachOnOpen } = route.params;
   const { t } = useI18n();
   const { user } = useAuth();
   const [conversation, setConversation] = useState(null);
@@ -407,6 +407,17 @@ export function ChatScreen({ route, navigation }) {
     if (result.canceled || !result.assets?.length) return;
     await uploadAndSendImage(result.assets[0]);
   };
+
+  // Opened straight into the picker when the caller asked for it, and only
+  // once — a ref rather than state so a re-render cannot reopen the sheet
+  // over itself, and so dismissing the picker does not immediately bring it
+  // back.
+  const attachRequested = useRef(false);
+  useEffect(() => {
+    if (!attachOnOpen || attachRequested.current) return;
+    attachRequested.current = true;
+    handleAttachImage();
+  }, [attachOnOpen]);
 
   const handleAttachImage = () => {
     if (!user || !conversation || isBlocked || isUploading) return;

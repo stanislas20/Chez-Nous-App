@@ -1100,7 +1100,7 @@ export function ForYouScreen({ navigation, route }) {
   const explicitlyPopular = listings.filter((listing) => listing.popular);
   const trendingListings =
     explicitlyPopular.length > 0 ? explicitlyPopular : listings.slice(0, 5);
-  // A real price drop, not a fabricated discount — set by EditListingScreen
+  // A real price drop, not a fabricated discount — set when a seller lowers the price on their own listing
   // whenever a seller lowers the price on an existing listing.
   const dealListings = listings.filter(
     (listing) =>

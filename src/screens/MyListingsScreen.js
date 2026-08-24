@@ -1,50 +1,73 @@
-import { useMemo, useState } from 'react';
-import { Alert, FlatList, Modal, Pressable, Share } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { deleteObject, ref } from 'firebase/storage';
-import { Ionicons } from '@expo/vector-icons';
-import styled from 'styled-components/native';
-import { radius, shadow, spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { type } from '../theme/typography';
-import { useI18n } from '../i18n/I18nContext';
-import { useAuth } from '../auth/AuthContext';
-import { useMyListings } from '../hooks/useMyListings';
-import { firestore, storage } from '../config/firebase';
-import { getDutyLabel } from '../utils/pharmacyDuty';
-import { openListing } from '../utils/openListing';
+import { useMemo, useState } from "react";
+import { Alert, FlatList, Modal, Pressable, Share } from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { deleteObject, ref } from "firebase/storage";
+import { Ionicons } from "@expo/vector-icons";
+import styled from "styled-components/native";
+import { radius, shadow, spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { fontFamily, type } from "../theme/typography";
+import {
+  getAvailabilityLabel,
+  roadsideAvailabilityStates,
+} from "../data/roadside";
+import { useI18n } from "../i18n/I18nContext";
+import { saleStatusLabelKey } from "../data/saleStatuses";
+import { useAuth } from "../auth/AuthContext";
+import { useMyListings } from "../hooks/useMyListings";
+import { firestore, storage } from "../config/firebase";
+import { getDutyLabel } from "../utils/pharmacyDuty";
+import { openListing } from "../utils/openListing";
 
-const priceFormatter = new Intl.NumberFormat('fr-FR');
+const priceFormatter = new Intl.NumberFormat("fr-FR");
 const listContentStyle = { padding: spacing.md };
 
 function getSaleStatuses(colors) {
   return [
-    { key: 'available', icon: 'pricetag-outline', tint: colors.primaryLight, iconColor: colors.primary },
-    { key: 'pending', icon: 'time-outline', tint: colors.accentLight, iconColor: colors.accentDark },
-    { key: 'negotiating', icon: 'chatbubbles-outline', tint: 'rgba(91, 192, 235, 0.18)', iconColor: colors.skyBlue },
-    { key: 'sold', icon: 'checkmark-done-outline', tint: colors.errorLight, iconColor: colors.error },
+    {
+      key: "available",
+      icon: "pricetag-outline",
+      tint: colors.primaryLight,
+      iconColor: colors.primary,
+    },
+    {
+      key: "pending",
+      icon: "time-outline",
+      tint: colors.accentLight,
+      iconColor: colors.accentDark,
+    },
+    {
+      key: "negotiating",
+      icon: "chatbubbles-outline",
+      tint: "rgba(91, 192, 235, 0.18)",
+      iconColor: colors.skyBlue,
+    },
+    {
+      key: "sold",
+      icon: "checkmark-done-outline",
+      tint: colors.errorLight,
+      iconColor: colors.error,
+    },
   ];
 }
-const saleStatusLabelKeys = {
-  available: 'saleStatusAvailable',
-  pending: 'saleStatusPending',
-  negotiating: 'saleStatusNegotiating',
-  sold: 'saleStatusSold',
-};
 
 const FILTERS = [
-  { key: 'all', labelKey: 'dashboardStatTotal' },
-  { key: 'active', labelKey: 'dashboardStatActive' },
-  { key: 'sold', labelKey: 'dashboardStatSold' },
-  { key: 'pending', labelKey: 'listingStatusPending' },
+  { key: "all", labelKey: "dashboardStatTotal" },
+  { key: "active", labelKey: "dashboardStatActive" },
+  { key: "sold", labelKey: "dashboardStatSold" },
+  { key: "pending", labelKey: "listingStatusPending" },
 ];
 
 function matchesFilter(item, filter) {
-  if (filter === 'active') return item.status === 'approved' && item.saleStatus !== 'sold';
-  if (filter === 'sold') return item.saleStatus === 'sold';
-  if (filter === 'pending') return item.status === 'pending';
+  if (filter === "active")
+    return item.status === "approved" && item.saleStatus !== "sold";
+  if (filter === "sold") return item.saleStatus === "sold";
+  if (filter === "pending") return item.status === "pending";
   return true;
 }
 
@@ -57,8 +80,9 @@ export function MyListingsScreen() {
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const listings = useMyListings(user?.uid);
-  const [filter, setFilter] = useState(route.params?.filter ?? 'all');
+  const [filter, setFilter] = useState(route.params?.filter ?? "all");
   const [menuItem, setMenuItem] = useState(null);
+  const [availabilityItem, setAvailabilityItem] = useState(null);
   const [statusMenuItem, setStatusMenuItem] = useState(null);
 
   const filteredListings = useMemo(
@@ -68,17 +92,21 @@ export function MyListingsScreen() {
 
   const closeMenu = () => setMenuItem(null);
   const closeStatusMenu = () => setStatusMenuItem(null);
-  const menuTitle = menuItem ? (language === 'en' ? menuItem.titleEn : menuItem.titleFr) : '';
+  const menuTitle = menuItem
+    ? language === "en"
+      ? menuItem.titleEn
+      : menuItem.titleFr
+    : "";
   const statusMenuTitle = statusMenuItem
-    ? language === 'en'
+    ? language === "en"
       ? statusMenuItem.titleEn
       : statusMenuItem.titleFr
-    : '';
+    : "";
 
   const handleShare = async (item, title) => {
     try {
       await Share.share({
-        message: t('shareListingMessage', {
+        message: t("shareListingMessage", {
           title,
           price: `${priceFormatter.format(item.price)} FCFA`,
         }),
@@ -90,37 +118,67 @@ export function MyListingsScreen() {
 
   const handleDelete = async (item) => {
     try {
-      const paths = [item.mediaPath, ...(item.media ?? []).map((m) => m.mediaPath)].filter(Boolean);
+      const paths = [
+        item.mediaPath,
+        ...(item.media ?? []).map((m) => m.mediaPath),
+      ].filter(Boolean);
       await Promise.all(
-        [...new Set(paths)].map((path) => deleteObject(ref(storage, path)).catch(() => {})),
+        [...new Set(paths)].map((path) =>
+          deleteObject(ref(storage, path)).catch(() => {}),
+        ),
       );
-      await deleteDoc(doc(firestore, 'listings', item.id));
+      await deleteDoc(doc(firestore, "listings", item.id));
     } catch {
-      Alert.alert(t('myListingsTitle'), t('errorDeleteFailed'));
+      Alert.alert(t("myListingsTitle"), t("errorDeleteFailed"));
     }
   };
 
   const handleSetSaleStatus = async (item, saleStatus) => {
     closeStatusMenu();
     try {
-      await updateDoc(doc(firestore, 'listings', item.id), {
+      await updateDoc(doc(firestore, "listings", item.id), {
         saleStatus,
-        soldAt: saleStatus === 'sold' ? serverTimestamp() : null,
+        soldAt: saleStatus === "sold" ? serverTimestamp() : null,
       });
     } catch {
-      Alert.alert(t('myListingsTitle'), t('errorSaleStatusFailed'));
+      Alert.alert(t("myListingsTitle"), t("errorSaleStatusFailed"));
+    }
+  };
+
+  // The one field that has to be set in seconds, from wherever the provider
+  // is standing — so it lives on their own listing rather than buried in the
+  // posting form. Stamped with the moment it was set, because a declaration
+  // from three weeks ago tells a stranded caller nothing: readAvailability
+  // expires it on its own after four hours.
+  const handleSetAvailability = async (item, key) => {
+    setAvailabilityItem(null);
+    try {
+      await updateDoc(doc(firestore, "listings", item.id), {
+        roadsideAvailability: key,
+        roadsideAvailabilityAt: serverTimestamp(),
+      });
+    } catch {
+      Alert.alert(t("myListingsTitle"), t("errorSaleStatusFailed"));
     }
   };
 
   const confirmDelete = (item) => {
-    Alert.alert(t('deleteListingConfirmTitle'), t('deleteListingConfirmMessage'), [
-      { text: t('cancel'), style: 'cancel' },
-      { text: t('deleteButton'), style: 'destructive', onPress: () => handleDelete(item) },
-    ]);
+    Alert.alert(
+      t("deleteListingConfirmTitle"),
+      t("deleteListingConfirmMessage"),
+      [
+        { text: t("cancel"), style: "cancel" },
+        {
+          text: t("deleteButton"),
+          style: "destructive",
+          onPress: () => handleDelete(item),
+        },
+      ],
+    );
   };
 
   return (
-    <Container edges={['left', 'right', 'bottom']}>
+    <Container edges={["left", "right", "bottom"]}>
       <FilterRow>
         {FILTERS.map((option) => (
           <FilterChip
@@ -128,7 +186,9 @@ export function MyListingsScreen() {
             selected={filter === option.key}
             onPress={() => setFilter(option.key)}
           >
-            <FilterChipLabel selected={filter === option.key}>{t(option.labelKey)}</FilterChipLabel>
+            <FilterChipLabel selected={filter === option.key}>
+              {t(option.labelKey)}
+            </FilterChipLabel>
           </FilterChip>
         ))}
       </FilterRow>
@@ -140,24 +200,30 @@ export function MyListingsScreen() {
         ListEmptyComponent={
           listings !== null ? (
             <EmptyMessage>
-              {listings.length > 0 ? t('categoryListingsNoResults') : t('myListingsEmptyMessage')}
+              {listings.length > 0
+                ? t("categoryListingsNoResults")
+                : t("myListingsEmptyMessage")}
             </EmptyMessage>
           ) : null
         }
         ListHeaderComponent={
-          listings?.length ? <HintText>{t('myListingsLongPressHint')}</HintText> : null
+          listings?.length ? (
+            <HintText>{t("myListingsLongPressHint")}</HintText>
+          ) : null
         }
         renderItem={({ item }) => {
-          const title = language === 'en' ? item.titleEn : item.titleFr;
+          const title = language === "en" ? item.titleEn : item.titleFr;
           const coverUri = item.mediaUrl ?? item.image;
-          const isApproved = item.status === 'approved';
+          const isApproved = item.status === "approved";
           // Without its own branch a rejected listing renders as "pending",
           // so the seller waits forever on a decision that already came
           // back. The reason moderation recorded is shown with it — being
           // told no without being told why is unactionable.
-          const isRejected = item.status === 'rejected';
-          const isPharmacy = item.categoryKey === 'pharmacyOnDuty';
-          const dutyLabel = isPharmacy ? getDutyLabel(item, language, t).text || item.phone : '';
+          const isRejected = item.status === "rejected";
+          const isPharmacy = item.categoryKey === "pharmacyOnDuty";
+          const dutyLabel = isPharmacy
+            ? getDutyLabel(item, language, t).text || item.phone
+            : "";
 
           return (
             <Row
@@ -168,35 +234,48 @@ export function MyListingsScreen() {
               <RowBody>
                 <RowTitle numberOfLines={1}>{title}</RowTitle>
                 <RowPrice>
-                  {isPharmacy ? dutyLabel : `${priceFormatter.format(item.price)} FCFA`}
+                  {isPharmacy
+                    ? dutyLabel
+                    : `${priceFormatter.format(item.price)} FCFA`}
                 </RowPrice>
                 <PillRow>
                   <StatusPill approved={isApproved} rejected={isRejected}>
-                    <StatusPillLabel approved={isApproved} rejected={isRejected}>
+                    <StatusPillLabel
+                      approved={isApproved}
+                      rejected={isRejected}
+                    >
                       {isApproved
-                        ? t('listingStatusApproved')
+                        ? t("listingStatusApproved")
                         : isRejected
-                          ? t('listingStatusRejected')
-                          : t('listingStatusPending')}
+                          ? t("listingStatusRejected")
+                          : t("listingStatusPending")}
                     </StatusPillLabel>
                   </StatusPill>
-                  {!isPharmacy && item.saleStatus && item.saleStatus !== 'available' ? (
+                  {!isPharmacy &&
+                  item.saleStatus &&
+                  item.saleStatus !== "available" ? (
                     <SaleStatusPill saleStatus={item.saleStatus}>
                       <SaleStatusPillLabel saleStatus={item.saleStatus}>
-                        {t(saleStatusLabelKeys[item.saleStatus])}
+                        {t(
+                          saleStatusLabelKey(item.categoryKey, item.saleStatus),
+                        )}
                       </SaleStatusPillLabel>
                     </SaleStatusPill>
                   ) : null}
                   {isApproved ? (
                     <ViewCountPill>
-                      <Ionicons name="eye-outline" size={11} color={colors.textMuted} />
+                      <Ionicons
+                        name="eye-outline"
+                        size={11}
+                        color={colors.textMuted}
+                      />
                       <ViewCountLabel>{item.viewCount ?? 0}</ViewCountLabel>
                     </ViewCountPill>
                   ) : null}
                 </PillRow>
                 {isRejected ? (
                   <RejectionNote numberOfLines={3}>
-                    {item.moderationNote || t('listingRejectedNoReason')}
+                    {item.moderationNote || t("listingRejectedNoReason")}
                   </RejectionNote>
                 ) : null}
               </RowBody>
@@ -205,7 +284,12 @@ export function MyListingsScreen() {
         }}
       />
 
-      <Modal visible={!!menuItem} transparent animationType="fade" onRequestClose={closeMenu}>
+      <Modal
+        visible={!!menuItem}
+        transparent
+        animationType="fade"
+        onRequestClose={closeMenu}
+      >
         <Backdrop onPress={closeMenu}>
           <Pressable onPress={() => {}}>
             <Sheet style={{ paddingBottom: spacing.md + insets.bottom }}>
@@ -215,17 +299,49 @@ export function MyListingsScreen() {
               <SheetRow
                 onPress={() => {
                   closeMenu();
-                  navigation.navigate('EditListing', { listing: menuItem });
+                  navigation.navigate("CreateListing", { listing: menuItem });
                 }}
               >
                 <SheetIconCircle tint={colors.primaryLight}>
-                  <Ionicons name="create-outline" size={20} color={colors.primary} />
+                  <Ionicons
+                    name="create-outline"
+                    size={20}
+                    color={colors.primary}
+                  />
                 </SheetIconCircle>
-                <SheetRowLabel>{t('editButton')}</SheetRowLabel>
-                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                <SheetRowLabel>{t("editButton")}</SheetRowLabel>
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={colors.textMuted}
+                />
               </SheetRow>
 
-              {menuItem?.categoryKey === 'pharmacyOnDuty' ? null : (
+              {menuItem?.categoryKey === "services" ? (
+                <SheetRow
+                  onPress={() => {
+                    const item = menuItem;
+                    setAvailabilityItem(item);
+                    closeMenu();
+                  }}
+                >
+                  <SheetIconCircle tint="rgba(11, 110, 79, 0.12)">
+                    <Ionicons
+                      name="flash-outline"
+                      size={20}
+                      color={colors.primary}
+                    />
+                  </SheetIconCircle>
+                  <SheetRowLabel>{t("availabilityButton")}</SheetRowLabel>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={colors.textMuted}
+                  />
+                </SheetRow>
+              ) : null}
+
+              {menuItem?.categoryKey === "pharmacyOnDuty" ? null : (
                 <SheetRow
                   onPress={() => {
                     const item = menuItem;
@@ -234,10 +350,18 @@ export function MyListingsScreen() {
                   }}
                 >
                   <SheetIconCircle tint="rgba(91, 192, 235, 0.18)">
-                    <Ionicons name="flag-outline" size={20} color={colors.skyBlue} />
+                    <Ionicons
+                      name="flag-outline"
+                      size={20}
+                      color={colors.skyBlue}
+                    />
                   </SheetIconCircle>
-                  <SheetRowLabel>{t('saleStatusButton')}</SheetRowLabel>
-                  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                  <SheetRowLabel>{t("saleStatusButton")}</SheetRowLabel>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={colors.textMuted}
+                  />
                 </SheetRow>
               )}
 
@@ -250,10 +374,18 @@ export function MyListingsScreen() {
                 }}
               >
                 <SheetIconCircle tint={colors.accentLight}>
-                  <Ionicons name="share-social-outline" size={20} color={colors.accentDark} />
+                  <Ionicons
+                    name="share-social-outline"
+                    size={20}
+                    color={colors.accentDark}
+                  />
                 </SheetIconCircle>
-                <SheetRowLabel>{t('shareButton')}</SheetRowLabel>
-                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                <SheetRowLabel>{t("shareButton")}</SheetRowLabel>
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={colors.textMuted}
+                />
               </SheetRow>
 
               <SheetRow
@@ -265,14 +397,77 @@ export function MyListingsScreen() {
                 }}
               >
                 <SheetIconCircle tint={colors.errorLight}>
-                  <Ionicons name="trash-outline" size={20} color={colors.error} />
+                  <Ionicons
+                    name="trash-outline"
+                    size={20}
+                    color={colors.error}
+                  />
                 </SheetIconCircle>
-                <SheetRowLabel destructive>{t('deleteButton')}</SheetRowLabel>
+                <SheetRowLabel destructive>{t("deleteButton")}</SheetRowLabel>
               </SheetRow>
 
               <CancelButton onPress={closeMenu}>
-                <CancelLabel>{t('cancel')}</CancelLabel>
+                <CancelLabel>{t("cancel")}</CancelLabel>
               </CancelButton>
+            </Sheet>
+          </Pressable>
+        </Backdrop>
+      </Modal>
+
+      <Modal
+        visible={!!availabilityItem}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAvailabilityItem(null)}
+      >
+        <Backdrop onPress={() => setAvailabilityItem(null)}>
+          <Pressable onPress={() => {}}>
+            <Sheet style={{ paddingBottom: spacing.md + insets.bottom }}>
+              <SheetHandle />
+              <SheetTitle numberOfLines={1}>
+                {t("availabilityPickerTitle")}
+              </SheetTitle>
+              {/* Said on the sheet where the promise is made: this is what a
+                  stranded caller will read, and it stops counting after four
+                  hours rather than standing until it is corrected. */}
+              <SheetNote>{t("availabilityPickerNote")}</SheetNote>
+
+              {roadsideAvailabilityStates.map((option, index) => (
+                <SheetRow
+                  key={option.key}
+                  last={index === roadsideAvailabilityStates.length - 1}
+                  onPress={() =>
+                    handleSetAvailability(availabilityItem, option.key)
+                  }
+                >
+                  <SheetIconCircle
+                    tint={
+                      option.key === "now"
+                        ? "rgba(11, 110, 79, 0.12)"
+                        : option.key === "hour"
+                          ? "rgba(217, 164, 65, 0.18)"
+                          : "rgba(0, 0, 0, 0.06)"
+                    }
+                  >
+                    <Ionicons
+                      name={
+                        option.key === "off" ? "moon-outline" : "flash-outline"
+                      }
+                      size={20}
+                      color={
+                        option.key === "now"
+                          ? colors.primary
+                          : option.key === "hour"
+                            ? colors.accentDark
+                            : colors.textMuted
+                      }
+                    />
+                  </SheetIconCircle>
+                  <SheetRowLabel>
+                    {getAvailabilityLabel(option.key, language)}
+                  </SheetRowLabel>
+                </SheetRow>
+              ))}
             </Sheet>
           </Pressable>
         </Backdrop>
@@ -289,27 +484,45 @@ export function MyListingsScreen() {
             <Sheet style={{ paddingBottom: spacing.md + insets.bottom }}>
               <SheetHandle />
               <SheetTitle numberOfLines={1}>
-                {t('saleStatusPickerTitle')} — {statusMenuTitle}
+                {t("saleStatusPickerTitle")} — {statusMenuTitle}
               </SheetTitle>
 
               {saleStatuses.map((option, index) => (
                 <SheetRow
                   key={option.key}
                   last={index === saleStatuses.length - 1}
-                  onPress={() => handleSetSaleStatus(statusMenuItem, option.key)}
+                  onPress={() =>
+                    handleSetSaleStatus(statusMenuItem, option.key)
+                  }
                 >
                   <SheetIconCircle tint={option.tint}>
-                    <Ionicons name={option.icon} size={20} color={option.iconColor} />
+                    <Ionicons
+                      name={option.icon}
+                      size={20}
+                      color={option.iconColor}
+                    />
                   </SheetIconCircle>
-                  <SheetRowLabel>{t(saleStatusLabelKeys[option.key])}</SheetRowLabel>
-                  {(statusMenuItem?.saleStatus ?? 'available') === option.key ? (
-                    <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                  <SheetRowLabel>
+                    {t(
+                      saleStatusLabelKey(
+                        statusMenuItem?.categoryKey,
+                        option.key,
+                      ),
+                    )}
+                  </SheetRowLabel>
+                  {(statusMenuItem?.saleStatus ?? "available") ===
+                  option.key ? (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={20}
+                      color={colors.primary}
+                    />
                   ) : null}
                 </SheetRow>
               ))}
 
               <CancelButton onPress={closeStatusMenu}>
-                <CancelLabel>{t('cancel')}</CancelLabel>
+                <CancelLabel>{t("cancel")}</CancelLabel>
               </CancelButton>
             </Sheet>
           </Pressable>
@@ -401,7 +614,11 @@ const StatusPill = styled.View`
 const StatusPillLabel = styled.Text`
   ${type.captionMedium}
   color: ${(props) =>
-    props.rejected ? props.theme.error : props.approved ? props.theme.primaryDark : props.theme.accentDark};
+    props.rejected
+      ? props.theme.error
+      : props.approved
+        ? props.theme.primaryDark
+        : props.theme.accentDark};
   font-size: 11px;
 `;
 
@@ -415,7 +632,7 @@ const RejectionNote = styled.Text`
 
 const saleStatusTint = (theme) => ({
   pending: theme.accentLight,
-  negotiating: 'rgba(91, 192, 235, 0.18)',
+  negotiating: "rgba(91, 192, 235, 0.18)",
   sold: theme.errorLight,
 });
 
@@ -486,6 +703,14 @@ const Sheet = styled.View`
   elevation: 8;
 `;
 
+const SheetNote = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 11.5px;
+  line-height: 16px;
+  color: ${(props) => props.theme.textMuted};
+  padding: 0px ${spacing.md}px ${spacing.sm}px;
+`;
+
 const SheetHandle = styled.View`
   align-self: center;
   width: 36px;
@@ -507,7 +732,7 @@ const SheetRow = styled(Pressable)`
   align-items: center;
   gap: ${spacing.md}px;
   padding-vertical: ${spacing.sm}px;
-  border-bottom-width: ${(props) => (props.last ? '0px' : '1px')};
+  border-bottom-width: ${(props) => (props.last ? "0px" : "1px")};
   border-bottom-color: ${(props) => props.theme.border};
 `;
 

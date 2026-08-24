@@ -103,6 +103,15 @@ export const translations = {
     sellTitleHint_sports: "e.g. 26-inch mountain bike",
     sellTitleHint_agriculture: "e.g. 50 kg bag of maize",
     sellTitleHint_services: "e.g. Plumber — repairs and installation",
+    sellTitleHint_electric:
+      "e.g. Auto Élec Cotonou — alternator, starter, diagnostics",
+    sellTitleNote_electric:
+      "Name the electrical work you do — alternateur, démarreur, faisceau, diagnostic, éclairage. Drivers browse by symptom, and these words are what list you under the right one.",
+    sellDescHint_electric:
+      "The electrical work you do, whether you have an OBD reader, and whether you come out to the vehicle.",
+    sellTitleHint_garage: "e.g. Garage Kuabo — mechanic, oil change, brakes",
+    sellTitleNote_garage:
+      "Name the trades you do — vidange, freins, carrosserie, pneus, batterie. Drivers browse by trade, and these words are what list you under the right one.",
     sellTitleHint_community: "e.g. Dog lost in Akpakpa",
     sellTitleHint_pharmacyOnDuty: "e.g. Pharmacie Sainte-Rita",
     sellDescHint_services:
@@ -325,7 +334,6 @@ export const translations = {
     editButton: "Edit",
     shareButton: "Share",
     deleteButton: "Delete",
-    editListingTitle: "Edit listing",
     deleteListingConfirmTitle: "Delete listing?",
     deleteListingConfirmMessage:
       "This cannot be undone. The listing and its photos will be permanently removed.",
@@ -341,13 +349,15 @@ export const translations = {
     callButtonLabel: "Call",
     confirmCallTitle: "Call {phone}?",
     confirmCallMessage: "You are about to place a phone call.",
-    editListingSubmitButton: "Save changes",
-    editListingSuccessMessage: "Your changes have been saved.",
     myListingsLongPressHint:
       "Long-press a listing to edit, share, or delete it.",
     saleStatusButton: "Mark as...",
     saleStatusPickerTitle: "Mark as",
     saleStatusAvailable: "For sale",
+    offerStatusAvailable: "Available",
+    offerStatusPending: "Reserved",
+    offerStatusNegotiating: "In discussion",
+    offerStatusEnded: "No longer offered",
     saleStatusPending: "Sale pending",
     saleStatusNegotiating: "In negotiation",
     saleStatusSold: "Sold",
@@ -741,6 +751,428 @@ export const translations = {
     dealerAddressesLabel: "Addresses",
     dealerDirections: "Directions",
     dealerFilterEmpty: "No official distributor listed for this brand.",
+    sellTitleHint_tyres: "e.g. Michelin Energy XM2+ 195/65 R15 — new",
+    errorTyreSize:
+      "Enter the full tyre size — width, sidewall and rim — or buyers cannot find it.",
+    sellFieldPartType: "What are you publishing?",
+    sellPartTypeVehicle: "A vehicle",
+    sellPartTypeTyre: "Tyres",
+    sellMediaFramingTyre:
+      "Photograph the sidewall so the size is readable, plus the tread straight on.",
+    sellMediaFramingTyreUsed:
+      "Photograph the sidewall: the DOT code must be readable, and the flank must show it is free of bulges. Buyers are told to check both.",
+    sellFieldTyreSize: "Tyre size",
+    sellTyreSizeHint:
+      "Read the three numbers off the sidewall. This is the whole of how a buyer finds you.",
+    sellFieldTyreBrand: "Brand",
+    sellFieldTyreBrandPlaceholder: "Michelin, Bridgestone…",
+    sellFieldTyreModel: "Model",
+    sellFieldTyreModelPlaceholder: "Energy XM2+…",
+    sellFieldTyreCondition: "New or used?",
+    sellFieldTyreDot: "DOT year",
+    sellTyreDotHint:
+      "The year on the sidewall. Buyers are told to ask for it, so declaring it saves a call.",
+    sellFieldTyreTread: "Tread depth (mm)",
+    sellFieldTyreStock: "How many do you have?",
+    sellFieldTyreFitting: "Is fitting included?",
+    sellTyreFittingHint:
+      "The cheapest tyre in the list is not always the cheapest tyre on the car.",
+    sellFieldTyreServices: "What can you do?",
+    sellTyreServicesHint:
+      "Optional. Drivers filter on these, so anything left out is work you will not be offered.",
+    sellFieldTyreSizes: "Sizes you keep",
+    sellTyreSizesHint:
+      "Optional. Type a size and add it — you appear for anyone searching it, even without a priced listing.",
+    sellTyreSizeAdd: "Add",
+    sellFieldTyreBrands: "Brands you carry",
+    sellFieldTyreBrandsPlaceholder: "Michelin, Hankook, occasion importé…",
+    editFormTitle: "Edit listing",
+    editSaveButton: "Save changes",
+    editSavedTitle: "Changes saved",
+    editSavedReviewTitle: "Changes saved — back for review",
+    editSavedReviewMessage:
+      "You changed the listing itself, so it returns to review before going back online. It keeps its place and its history.",
+    editSavedMessage:
+      "Your listing has been updated. It keeps its place and its history.",
+    batteryEyebrow: "My battery",
+    batteryTitle: "Will it start tomorrow?",
+    batteryIntro:
+      "A battery fades without warning. A test takes five minutes and beats a tow.",
+    batteryNoVehicle: "No vehicle saved",
+    batteryNeverTested: "Not tested yet",
+    batterySaveHint: "Tap to save it and see the capacity that fits",
+    bodyEyebrow: "Bodywork",
+    bodyTitle: "Bodywork & paint",
+    bodyIntro:
+      "The one repair you can see and still cannot price. Photographs are how it starts.",
+    bodyProblemLabel: "What is the damage?",
+    bodyUrgentTitle: "Is the car still safe to drive?",
+    bodyUrgentCopy:
+      "After a collision, or with a shattered windscreen, roadside help comes first.",
+    bodyQuoteLabel: "Getting a price",
+    bodyQuoteTitle: "Photos are the quote",
+    bodyQuoteCopy:
+      "Chez-Nous cannot look at a dent or price a repair. Send your photos to a carrossier below and they answer you directly — four pictures are usually enough.",
+    bodyQuoteButton: "Choose a carrossier",
+    bodyQuoteNoPros:
+      "No carrossier has published yet, so there is nobody to send photos to.",
+    bodyQuoteDeclared: "{count} will price a job from photos",
+    bodyQuoteAction: "Quote",
+    bodyWhatsapp: "Ask on WhatsApp",
+    bodyPhotoQuotePill: "Photo quotes",
+    bodyServicesLabel: "Bodywork services",
+    bodyPartsLabel: "Body parts",
+    bodyPartsCopy:
+      "What a repair needs. The price often turns on whether you bring the part.",
+    bodyProsLabel: "Body shops near you",
+    bodyProsCount: "{count} declare it",
+    bodyNoPros: "No carrossier has published yet",
+    bodyNoneService: "Nobody declares {service} yet",
+    bodyNoProsCopy:
+      "This list fills as body shops publish. Garages reaches the wider trade in the meantime.",
+    bodyPostTitle: "You run a body shop?",
+    bodyPostCopy: "Publish your workshop and appear in this list.",
+    bodyQuoteOpen: "Hello, I am contacting you through Chez-Nous.",
+    bodyQuoteProblem: "The damage: {problem}.",
+    bodyQuoteService: "I am looking for: {service}.",
+    bodyQuoteAsk: "Can I send you photos for a quote?",
+    garageBodyLinkTitle: "Bodywork, priced from photos",
+    garageBodyLinkCopy:
+      "Send pictures of the damage instead of describing it on the phone.",
+    sellFieldBodyworkServices: "Bodywork you do",
+    sellBodyworkServicesHint:
+      "Only what you actually do. This is what customers filter on — including whether you quote from photos.",
+    sellTitleHint_bodywork:
+      "e.g. Carrosserie Akpakpa — panel beating, paint, bumpers",
+    sellTitleNote_bodywork:
+      "Name the work you do — carrosserie, tôlerie, débosselage, peinture, pare-brise. Drivers browse by damage, and these words are what list you under the right one.",
+    sellDescHint_bodywork:
+      "The work you do, whether you paint on site, and whether you will quote from photos.",
+    electricEyebrow: "Auto electrics",
+    electricTitle: "Electrics & diagnostics",
+    electricIntro:
+      "Start with what the car is doing. The trade follows from the symptom.",
+    electricProblemLabel: "What is happening?",
+    electricOtherProblem: "Something else — find a diagnostic workshop",
+    electricUrgentTitle: "Is the vehicle stuck where it is?",
+    electricUrgentCopy:
+      "This fault can immobilise it. Roadside help reaches you where you are.",
+    electricServicesLabel: "Electrical services",
+    electricDiagLabel: "Electronic diagnostics",
+    electricDiagTitle: "A warning light is not a diagnosis",
+    electricDiagCopy:
+      "Reading the fault codes takes a reader and the software for your model. These are the workshops that declare one.",
+    electricDiagButton: "Find a diagnostic workshop",
+    electricLightLabel: "Lighting",
+    electricLightCopy:
+      "The most-asked electrical job, and the one where the part is as often the answer as the labour.",
+    electricLightFit: "Find someone to fit it",
+    electricAccessoriesLabel: "Electrical accessories",
+    electricAccessoriesCopy:
+      "Search what is for sale here, then find someone who fits it.",
+    electricAccessoriesFit: "Find a fitter",
+    electricSolarLabel: "12V & solar",
+    electricSolarCopy:
+      "Kept separate from the repair trades: buying an inverter and fixing an alternator are not the same errand.",
+    electricProsLabel: "Auto electricians near you",
+    electricProsCount: "{count} declare it",
+    electricSendPhoto: "Show them the problem",
+    electricSendPhotoHint: "A photo of the light says more than a description",
+    electricNoPros: "No auto electrician has published yet",
+    electricNoneService: "Nobody declares {service} yet",
+    electricNoProsCopy:
+      "This list fills as electricians publish. Dépannage reaches every trade in the meantime.",
+    electricPostTitle: "You are an auto electrician?",
+    electricPostCopy: "Publish your workshop and appear in this list.",
+    electricQuoteOpen: "Hello, I am contacting you through Chez-Nous.",
+    electricQuoteProblem: "My problem: {problem}.",
+    electricQuoteService: "I am looking for: {service}.",
+    electricQuoteScope: "It is a {scope}.",
+    electricQuoteAsk: "Can you look at it, and what would it cost?",
+    garageElectricLinkTitle: "Electrics, by symptom",
+    garageElectricLinkCopy:
+      "Start from what the car is doing rather than from a list of trades.",
+    sellFieldElectricServices: "Electrical work you do",
+    sellElectricServicesHint:
+      "Only what you actually do. This is what buyers filter on.",
+    sellFieldBatteryServices: "Battery work you do",
+    sellBatteryServicesHint:
+      "Only what you actually do. This is what buyers filter on.",
+    batteryQuoteOpen: "Hello, I am contacting you through Chez-Nous.",
+    batteryQuoteAbout: "About your listing: {title}.",
+    batteryQuoteVehicle: "My vehicle is a {vehicle}.",
+    batteryQuoteNeed: "I am looking for a {spec} battery.",
+    batteryQuoteAsk: "Do you have it, and what is the price fitted?",
+    batteryTestedToday: "Tested today",
+    batteryTestedDays: "Tested {count} day(s) ago",
+    batteryTestedMonths: "Tested {count} month(s) ago",
+    batteryTestButton: "Test my battery",
+    batteryUrgentLabel: "Need help now",
+    batteryUrgentFlatTitle: "Flat battery",
+    batteryUrgentFlatCopy: "The car will not start at all",
+    batteryUrgentBoostTitle: "Jump start",
+    batteryUrgentBoostCopy:
+      "{count} professional(s) near you say they come out",
+    batteryFinderTitle: "I do not know my reference",
+    batteryFinderCopy:
+      "Give us your vehicle and we show the capacity it usually takes.",
+    batteryOffersLabel: "Batteries for sale",
+    batteryCount: "{count} battery(ies) listed",
+    batteryCountCapacity: "{count} battery(ies) in {ah} Ah",
+    batterySortCheapest: "Cheapest first",
+    batteryStock: "{count} in stock",
+    batteryNone: "No battery listed yet",
+    batteryNoneCapacity: "No battery listed in {ah} Ah",
+    batteryNoneHint:
+      "Nobody has published this yet. The professionals below sell and fit them — ask them directly.",
+    batteryProsLabel: "Testing & fitting",
+    batteryProCount: "{count} professional(s) near you",
+    batteryProCountService: "{count} professional(s) — {service}",
+    batteryNoPros: "Nobody yet",
+    batteryNoProsHint:
+      "No professional near you has published this service. Try another one, or ask a garage directly.",
+    batteryRecycleSafety:
+      "A battery is lead and acid — never bin it. Almost every seller takes the old one back and knocks its value off your purchase.",
+    batteryTestSheetTitle: "Testing your battery",
+    batteryTestWhat:
+      "The test measures resting voltage and cranking power. Five minutes, without removing the battery.",
+    batteryTestSigns:
+      "Slow starts in the morning, dim headlights at idle, or a battery past {years} years: have it checked before it strands you.",
+    batteryTestWhere:
+      "At any professional in the list, or at home with the ones who come to you.",
+    batteryTestSeePros: "See the professionals",
+    batteryTestDone: "I have had it tested",
+    batteryTestDoneNote:
+      "Kept on this phone only, so the screen can tell you how long ago it was. Nobody else sees it.",
+    batteryOwnerTitle: "Do you sell or fit batteries?",
+    batteryOwnerCopy:
+      "Publish your capacities and your services so drivers looking for them find you.",
+    batteryVehicleSheetTitle: "Find my reference",
+    batteryCapacityLabel: "Which capacity?",
+    batteryCapacityHint:
+      "The capacities this model is commonly fitted with, across its engines.",
+    batteryCapacityCaveat:
+      "Engines within the same model differ, and a previous owner may have changed it. Compare with the label on your current battery, and check which side the + terminal is on before buying.",
+    batteryCapacityApply: "See {ah} Ah batteries",
+    sellPartTypeBattery: "Batteries",
+    sellTitleHint_battery: "e.g. Bosch S4 60 Ah 540 A — new",
+    errorBatteryCapacity:
+      "Enter the capacity in Ah — buyers search by it, and without it nobody finds this.",
+    errorBatteryAmps: "Check the cranking amps: that is outside a real range.",
+    sellFieldBatteryCategory: "What is it for?",
+    sellFieldBatteryBrand: "Brand",
+    sellFieldBatteryBrandPlaceholder: "Bosch, Varta, Fulmen…",
+    sellFieldBatteryModel: "Model",
+    sellFieldBatteryModelPlaceholder: "S4 005…",
+    sellFieldBatteryAh: "Capacity (Ah)",
+    sellBatteryAhHint:
+      "Printed on the label. This is how a buyer finds you — everything else is detail.",
+    sellFieldBatteryAmps: "Cold cranking amps (A)",
+    sellBatteryAmpsHint: "Optional. The figure beside the Ah on the label.",
+    sellFieldBatteryTech: "Technology",
+    sellFieldBatteryTerminal: "Which side is the + terminal?",
+    sellBatteryTerminalHint:
+      "Optional, and the most common reason a battery goes back the same afternoon.",
+    sellFieldBatteryWarranty: "Warranty",
+    sellFieldBatteryStock: "How many do you have?",
+    sellFieldBatteryFitting: "Is fitting included?",
+    sellFieldBatteryTradeIn: "Trade-in for the old battery (FCFA)",
+    sellBatteryTradeInHint:
+      'Optional. State the amount rather than "trade-in possible" — buyers compare on it.',
+    sellMediaFramingBattery:
+      "Photograph the label so the Ah and the amps are readable, and the terminals from above.",
+    garageBatteryLinkTitle: "Looking for a battery itself?",
+    garageBatteryLinkCopy:
+      "Find the right capacity, compare prices and trade-ins.",
+    garageTyreLinkTitle: "Looking for tyres themselves?",
+    garageTyreLinkCopy: "Search by size, compare prices, new and used.",
+    tyresEyebrow: "Tyres",
+    tyresTitleBuy: "What size?",
+    tyresTitleServices: "Which job?",
+    tyresTitleSos: "Tyre trouble?",
+    tyresIntroBuy:
+      "It is written on the side of the tyres you already have. Three numbers, and you only see tyres that fit your car.",
+    tyresIntroServices:
+      "Fitting, balancing, alignment or a puncture repair — the professionals near you who say they do it.",
+    tyresIntroSos:
+      "Tell us what happened. We look for the ones who come to you, not only the ones with a shop.",
+    tyreSizeHelpLink: "Where do I find my size?",
+    tyreOpenNow: "Open now",
+    tyreVehicleLink: "I do not know my size",
+    tyreVehicleSheetTitle: "Find my size",
+    tyreVehicleMake: "Make",
+    tyreVehicleModel: "Model",
+    tyreVehicleChange: "Change",
+    tyreVehicleSearchMake: "Search a make",
+    tyreVehicleSearchModel: "Search a model",
+    tyreVehicleCommon: "Common here",
+    tyreVehicleAllMakes: "All makes",
+    tyreVehicleNoMatch:
+      "Nothing matches that. Check the spelling, or clear the search.",
+    tyreVehicleSizeLabel: "Which of these is on your car?",
+    tyreVehiclePickSize: "Choose a size",
+    tyreVehicleResultHint:
+      "The sizes this model is commonly found on, across its generations and trims.",
+    tyreVehicleCaveat:
+      "Trim levels and model years change size. Check the side of your current tyres, or the label inside the driver’s door, before you buy.",
+    tyreVehicleApply: "See tyres in {size}",
+    tyreHelpTitle: "Where to find your size",
+    tyreHelpWidth: "Tyre width in millimetres.",
+    tyreHelpRatio: "Sidewall height, as a percentage of the width.",
+    tyreHelpDiameter: "Rim diameter in inches.",
+    tyreHelpWhere:
+      "These numbers are moulded into the side of your current tyres, and usually printed on a label inside the driver’s door.",
+    tyreConditionAll: "All",
+    tyreNeedSize: "Enter your size",
+    tyreNeedSizeHint:
+      "A tyre fits one size only, so there is nothing useful to show until we know yours.",
+    tyreSizeInvalid: "Check those numbers",
+    tyreSizeInvalidHint:
+      "That is outside the range of a car tyre — a digit is probably missing. Read them again from the sidewall.",
+    tyreSizesAround: "Sizes available near you",
+    tyreOfferCount: "{count} offer(s) in {size}",
+    tyreSortCheapest: "Cheapest first",
+    tyrePricePerTyre: "per tyre",
+    tyreDotAge: "DOT {year} — {years} yr",
+    tyreTread: "Tread {depth} mm",
+    tyreStock: "{count} in stock",
+    tyreStockAge: "said {ago}",
+    tyreNoPhone: "No number on this listing — message the seller from the ad.",
+    tyreNoOffers: "No tyre published in {size}",
+    tyreNoOffersHint:
+      "Nobody has listed this size yet. Try one of the sizes below, or ask the professionals who fit tyres near you.",
+    tyreAlsoAt: "Also stocked at",
+    tyreAlsoAtHint:
+      "Professionals who say they keep this size. They have not published a price, so ask before you go.",
+    tyreQuoteTitle: "Make them compete",
+    tyreQuoteCopy:
+      "Send the same question to several sellers. The message is written for you — Chez-Nous sends nothing on your behalf.",
+    tyreQuantity: "Quantity",
+    tyreQuoteButton: "Ask {quantity} × {size}",
+    tyreQuoteSheetTitle: "Send your request",
+    tyreQuoteSheetNote:
+      "One tap each. Nothing is sent until you send it, and each seller replies to you directly.",
+    tyreQuoteMessage:
+      "Hello, do you have {quantity} tyres in {size}? What is your price, and is fitting included?",
+    tyreQuoteMessageNoSize:
+      "Hello, I am looking for tyres. What do you have in stock?",
+    tyreUsedSafety:
+      "On a used tyre, ask for the DOT code: past {years} years the rubber hardens even if the tread looks new. Check the sidewall for bulges too.",
+    tyreServicesLabel: "Services",
+    tyreShopCount: "{count} professional(s) near you",
+    tyreShopCountService: "{count} professional(s) — {service}",
+    tyreSortOpenFirst: "Open first",
+    tyreMobilePill: "Comes to you",
+    tyreNoShops: "Nobody yet",
+    tyreNoShopsHint:
+      "No professional near you has published this service. Try another one, or ask a garage directly.",
+    tyreSosQuestion: "What do you need?",
+    tyreMobileCount: "{count} professional(s) near you say they come to you.",
+    tyreSosButton: "Find help",
+    tyreFlatSafety:
+      "Do not drive on a flat tyre, even a short distance: the rim and the sidewall are damaged very quickly.",
+    tyreOwnerTitle: "Do you sell or fit tyres?",
+    tyreOwnerCopy:
+      "Publish your sizes and your services so drivers looking for them find you.",
+    findOnMapButton: "Find on the map",
+    breakdownSendPhoto: "Send a photo",
+    breakdownSendPhotoHint: "They see the problem before answering",
+    breakdownUsually: "Usually {time}",
+    breakdownUpdated: "Updated {ago}",
+    breakdownZones: "Covers: {zones}",
+    availabilityButton: "Set my availability",
+    availabilityPickerTitle: "Are you available right now?",
+    availabilityPickerNote:
+      "This is what a stranded driver sees. It stops showing after four hours, so it never speaks for you once it is out of date.",
+    sellFieldResponseTime: "How soon do you usually arrive?",
+    sellResponseTimeHint:
+      "Optional. Shown as your own typical time, never as a promise from Chez-Nous.",
+    sellFieldEquipment: "What can you bring?",
+    sellEquipmentHint:
+      "Optional. A flatbed or a winch decides whether a car can be recovered at all.",
+    sellFieldCoverageZones: "Areas you cover",
+    sellFieldCoverageZonesPlaceholder: "Cotonou, Akpakpa, Vèdoko…",
+    sellCoverageZonesHint:
+      "Optional. Separate them with commas — drivers see this before they call.",
+    breakdownEyebrow: "Roadside assistance",
+    breakdownTitle: "Need help right now?",
+    breakdownIntro:
+      "Tell us what happened and we show the providers nearest to you, with their own number.",
+    breakdownUseLocation: "Use my location",
+    breakdownLocating: "Finding you…",
+    breakdownLocationOff: "Location off",
+    breakdownQuestion: "What is the problem?",
+    breakdownNearYou: "Nearest to you",
+    breakdownCount: "{count} found",
+    breakdownCall: "Call",
+    breakdownCallEmergency: "Call {number} — emergency services",
+    breakdownSafetyOverheat:
+      "Stop somewhere safe as soon as you can and switch the engine off. Do not keep driving with the temperature high, and do not open the radiator cap while it is hot.",
+    breakdownSafetyAccident:
+      "Check first that everyone is safe and out of traffic. If anyone is hurt or the road is blocked, call the emergency services before anything else.",
+    breakdownNoteFuel:
+      "Chez-Nous does not deliver fuel. These are recovery providers near you — call to ask whether they can bring some.",
+    breakdownEmptyTitle: "Nobody listed for this yet",
+    breakdownEmptyCopy:
+      "No provider has published this trade near you. The full list of garages may still have someone who can help.",
+    breakdownSeeAll: "See all garages",
+    breakdownAvailabilityNote:
+      "We cannot tell you who is free right now — no provider has a way to say so yet. Call before you wait: the phone is the only thing that confirms someone is coming.",
+    garagesEyebrow: "Car services",
+    garagesTitle: "Find a garage",
+    garagesIntro:
+      "Mechanics, diagnostics, auto electrics and breakdown recovery — published by the providers themselves.",
+    garagesSearchPlaceholder: "Garage, trade, area…",
+    garageTriageTitle: "Tell us what is wrong",
+    garageTriageCopy:
+      "Pick the symptom and we point you at the right trade. You do not have to know what the fault is.",
+    garageCauseCopy:
+      "The most common causes. Pick one to see the providers for that trade — a proper diagnosis is still needed to confirm it.",
+    garageSosTitle: "Breakdown and recovery",
+    garageSosCopy:
+      "Broken down on the road? See the recovery providers listed near you.",
+    garageSpecialtiesLabel: "Trades",
+    garageSpecialtyAll: "All",
+    garageFiltersLabel: "Filters",
+    garageFilterOpen: "Open now",
+    garageFilterVerified: "Verified",
+    garageFilterWhatsapp: "WhatsApp",
+    garageFilterQuote: "Free quote",
+    garageSortDistance: "Nearest",
+    garageSortRating: "Best rated",
+    garageSortPrice: "Price",
+    garageCount: "{count} garage(s)",
+    garageDistanceHint:
+      "Allow location to sort by distance — until then they are in the order they were posted.",
+    garageReviewCount: "({count})",
+    garageNoRating: "No ratings yet",
+    garageVerified: "Verified",
+    garageOpenUntil: "Open until {time}",
+    garageClosed: "Closed right now",
+    garageContact: "Contact",
+    garageViewListing: "View details",
+    garageContactSheetTitle: "Contact the provider",
+    garageContactCall: "Direct call",
+    garageContactWhatsapp: "Send a photo or video of the problem",
+    garageContactWarn:
+      "Agree the price before the work starts, and ask for a receipt. No payment goes through Chez-Nous.",
+    garageSampleTag: "Example",
+    garageSampleDismiss: "Got it",
+    garageSampleNote:
+      "Two examples, shown while the directory fills up. They are not real garages — there is no number behind them and nothing to open. They disappear the moment a real garage is approved.",
+    garageEmptyTitle: "No garage here yet",
+    garageEmptyTradeTitle: "No {trade} provider yet",
+    garageEmptyNone:
+      "No repair provider has published a listing yet. They appear here as soon as one is approved.",
+    garageEmptyFiltered:
+      "No provider matches these filters. Try another trade, or clear the filters.",
+    garageEmptyReset: "Clear filters",
+    garageSafetyNote:
+      "Ratings come from customers who used the app. Hours and prices are what each provider published — call ahead to confirm before you drive over.",
+    garageOwnerTitle: "Do you run a garage?",
+    garageOwnerCardTitle: "Get your garage listed",
+    garageOwnerCopy:
+      "Post a Services listing and name the trades you do — vidange, freins, carrosserie, pneus. That wording is what places you under the right trade here.",
     carsDealershipsEyebrow: "Official distributors",
     carsDealershipsTitle: "Dealerships",
     carsDealershipsIntro:
@@ -976,6 +1408,14 @@ export const translations = {
     errorCategoryRequired: "Please choose a business category.",
 
     productDetailSellerTitle: "Seller",
+    roleProvider: "Provider",
+    roleEmployer: "Employer",
+    roleVenue: "Contact",
+    roleAuthor: "Posted by",
+    contactProviderButton: "Contact the provider",
+    contactEmployerButton: "Contact the employer",
+    contactVenueButton: "Get in touch",
+    contactAuthorButton: "Reply to the poster",
     productDetailDescriptionTitle: "Description",
     productDetailLocationTitle: "Location",
     productDetailShareCount: "{count} shares",
@@ -1563,6 +2003,15 @@ export const translations = {
     sellTitleHint_sports: "ex. VTT 26 pouces",
     sellTitleHint_agriculture: "ex. Sac de maïs 50 kg",
     sellTitleHint_services: "ex. Plombier — dépannage et installation",
+    sellTitleHint_electric:
+      "ex. Auto Élec Cotonou — alternateur, démarreur, diagnostic",
+    sellTitleNote_electric:
+      "Citez vos travaux électriques — alternateur, démarreur, faisceau, diagnostic, éclairage. Les automobilistes cherchent par symptôme, et ce sont ces mots qui vous y classent.",
+    sellDescHint_electric:
+      "Les travaux électriques que vous faites, si vous avez une valise de diagnostic, et si vous vous déplacez.",
+    sellTitleHint_garage: "ex. Garage Kuabo — mécanicien, vidange, freins",
+    sellTitleNote_garage:
+      "Citez vos spécialités — vidange, freins, carrosserie, pneus, batterie. Les automobilistes cherchent par spécialité, et ce sont ces mots qui vous y classent.",
     sellTitleHint_community: "ex. Chien perdu à Akpakpa",
     sellTitleHint_pharmacyOnDuty: "ex. Pharmacie Sainte-Rita",
     sellDescHint_services:
@@ -1793,7 +2242,6 @@ export const translations = {
     editButton: "Modifier",
     shareButton: "Partager",
     deleteButton: "Supprimer",
-    editListingTitle: "Modifier l'annonce",
     deleteListingConfirmTitle: "Supprimer l'annonce ?",
     deleteListingConfirmMessage:
       "Cette action est irréversible. L'annonce et ses photos seront définitivement supprimées.",
@@ -1810,13 +2258,15 @@ export const translations = {
     confirmCallTitle: "Appeler le {phone} ?",
     confirmCallMessage:
       "Vous êtes sur le point de passer un appel téléphonique.",
-    editListingSubmitButton: "Enregistrer les modifications",
-    editListingSuccessMessage: "Vos modifications ont été enregistrées.",
     myListingsLongPressHint:
       "Appuyez longuement sur une annonce pour la modifier, la partager ou la supprimer.",
     saleStatusButton: "Marquer comme...",
     saleStatusPickerTitle: "Marquer comme",
     saleStatusAvailable: "À vendre",
+    offerStatusAvailable: "Disponible",
+    offerStatusPending: "Réservé",
+    offerStatusNegotiating: "En discussion",
+    offerStatusEnded: "Plus proposé",
     saleStatusPending: "Vente en attente",
     saleStatusNegotiating: "En négociation",
     saleStatusSold: "Vendu",
@@ -2221,6 +2671,435 @@ export const translations = {
     dealerAddressesLabel: "Adresses",
     dealerDirections: "Itinéraire",
     dealerFilterEmpty: "Aucun distributeur officiel listé pour cette marque.",
+    sellTitleHint_tyres: "ex. Michelin Energy XM2+ 195/65 R15 — neuf",
+    errorTyreSize:
+      "Indiquez la dimension complète du pneu — largeur, flanc et jante — sinon les acheteurs ne peuvent pas la trouver.",
+    sellFieldPartType: "Que publiez-vous ?",
+    sellPartTypeVehicle: "Un véhicule",
+    sellPartTypeTyre: "Des pneus",
+    sellMediaFramingTyre:
+      "Photographiez le flanc pour que la dimension soit lisible, et la bande de roulement de face.",
+    sellMediaFramingTyreUsed:
+      "Photographiez le flanc : le code DOT doit être lisible et le flanc doit montrer l’absence de hernie. Nous conseillons aux acheteurs de vérifier les deux.",
+    sellFieldTyreSize: "Dimension du pneu",
+    sellTyreSizeHint:
+      "Relevez les trois nombres sur le flanc. C’est ainsi et uniquement ainsi qu’un acheteur vous trouve.",
+    sellFieldTyreBrand: "Marque",
+    sellFieldTyreBrandPlaceholder: "Michelin, Bridgestone…",
+    sellFieldTyreModel: "Modèle",
+    sellFieldTyreModelPlaceholder: "Energy XM2+…",
+    sellFieldTyreCondition: "Neuf ou occasion ?",
+    sellFieldTyreDot: "Année DOT",
+    sellTyreDotHint:
+      "L’année gravée sur le flanc. Nous conseillons aux acheteurs de la demander : l’indiquer vous évite un appel.",
+    sellFieldTyreTread: "Profondeur de gomme (mm)",
+    sellFieldTyreStock: "Combien en avez-vous ?",
+    sellFieldTyreFitting: "Le montage est-il compris ?",
+    sellTyreFittingHint:
+      "Le pneu le moins cher de la liste n’est pas toujours le moins cher une fois monté.",
+    sellFieldTyreServices: "Que faites-vous ?",
+    sellTyreServicesHint:
+      "Facultatif. Les automobilistes filtrent là-dessus : ce que vous n’indiquez pas ne vous sera pas proposé.",
+    sellFieldTyreSizes: "Dimensions que vous tenez",
+    sellTyreSizesHint:
+      "Facultatif. Saisissez une dimension et ajoutez-la — vous apparaissez pour ceux qui la cherchent, même sans annonce chiffrée.",
+    sellTyreSizeAdd: "Ajouter",
+    sellFieldTyreBrands: "Marques que vous proposez",
+    sellFieldTyreBrandsPlaceholder: "Michelin, Hankook, occasion importé…",
+    editFormTitle: "Modifier l’annonce",
+    editSaveButton: "Enregistrer les modifications",
+    editSavedTitle: "Modifications enregistrées",
+    editSavedReviewTitle: "Modifications enregistrées — en révision",
+    editSavedReviewMessage:
+      "Vous avez modifié l’annonce elle-même : elle repasse en révision avant d’être remise en ligne. Elle conserve sa place et son historique.",
+    editSavedMessage:
+      "Votre annonce est à jour. Elle conserve sa place et son historique.",
+    batteryEyebrow: "Ma batterie",
+    batteryTitle: "Elle tiendra demain ?",
+    batteryIntro:
+      "Une batterie fatigue sans prévenir. Un test prend cinq minutes et évite une dépanneuse.",
+    batteryNoVehicle: "Aucun véhicule enregistré",
+    batteryNeverTested: "Pas encore testée",
+    batterySaveHint:
+      "Appuyez pour l’enregistrer et voir la capacité qui lui correspond",
+    bodyEyebrow: "Carrosserie",
+    bodyTitle: "Carrosserie & peinture",
+    bodyIntro:
+      "La seule réparation que l’on voit sans pouvoir la chiffrer. Tout commence par des photos.",
+    bodyProblemLabel: "Quel est le dégât ?",
+    bodyUrgentTitle: "La voiture roule-t-elle encore sans danger ?",
+    bodyUrgentCopy:
+      "Après un choc, ou avec un pare-brise brisé, le dépannage passe d’abord.",
+    bodyQuoteLabel: "Obtenir un prix",
+    bodyQuoteTitle: "Les photos, c’est le devis",
+    bodyQuoteCopy:
+      "Chez-Nous ne peut ni regarder un choc ni chiffrer une réparation. Envoyez vos photos à un carrossier ci-dessous : il vous répond directement. Quatre photos suffisent en général.",
+    bodyQuoteButton: "Choisir un carrossier",
+    bodyQuoteNoPros:
+      "Aucun carrossier n’a encore publié : il n’y a donc personne à qui envoyer des photos.",
+    bodyQuoteDeclared: "{count} chiffrent sur photos",
+    bodyQuoteAction: "Devis",
+    bodyWhatsapp: "Demander sur WhatsApp",
+    bodyPhotoQuotePill: "Devis sur photos",
+    bodyServicesLabel: "Services de carrosserie",
+    bodyPartsLabel: "Pièces de carrosserie",
+    bodyPartsCopy:
+      "Ce qu’une réparation demande. Le prix change souvent selon que vous apportez la pièce.",
+    bodyProsLabel: "Carrossiers près de vous",
+    bodyProsCount: "{count} le déclarent",
+    bodyNoPros: "Aucun carrossier n’a encore publié",
+    bodyNoneService: "Personne ne déclare encore {service}",
+    bodyNoProsCopy:
+      "Cette liste se remplit au fur et à mesure des publications. En attendant, Garages couvre le métier plus largement.",
+    bodyPostTitle: "Vous tenez une carrosserie ?",
+    bodyPostCopy: "Publiez votre atelier et apparaissez dans cette liste.",
+    bodyQuoteOpen: "Bonjour, je vous contacte via Chez-Nous.",
+    bodyQuoteProblem: "Le dégât : {problem}.",
+    bodyQuoteService: "Je cherche : {service}.",
+    bodyQuoteAsk: "Puis-je vous envoyer des photos pour un devis ?",
+    garageBodyLinkTitle: "La carrosserie, chiffrée sur photos",
+    garageBodyLinkCopy:
+      "Envoyez des photos du dégât plutôt que de le décrire au téléphone.",
+    sellFieldBodyworkServices: "Travaux de carrosserie que vous faites",
+    sellBodyworkServicesHint:
+      "Uniquement ce que vous faites vraiment. C’est là-dessus que les clients filtrent — y compris si vous chiffrez sur photos.",
+    sellTitleHint_bodywork:
+      "ex. Carrosserie Akpakpa — tôlerie, peinture, pare-chocs",
+    sellTitleNote_bodywork:
+      "Citez vos travaux — carrosserie, tôlerie, débosselage, peinture, pare-brise. Les automobilistes cherchent par dégât, et ce sont ces mots qui vous y classent.",
+    sellDescHint_bodywork:
+      "Les travaux que vous faites, si vous peignez sur place, et si vous acceptez de chiffrer sur photos.",
+    electricEyebrow: "Électricité auto",
+    electricTitle: "Électricité & diagnostic",
+    electricIntro:
+      "Partez de ce que fait la voiture. Le métier découle du symptôme.",
+    electricProblemLabel: "Que se passe-t-il ?",
+    electricOtherProblem: "Autre problème — trouver un diagnostic",
+    electricUrgentTitle: "Le véhicule est-il immobilisé ?",
+    electricUrgentCopy:
+      "Cette panne peut l’immobiliser. Un dépanneur vient jusqu’à vous.",
+    electricServicesLabel: "Services électriques",
+    electricDiagLabel: "Diagnostic électronique",
+    electricDiagTitle: "Un voyant n’est pas un diagnostic",
+    electricDiagCopy:
+      "Lire les codes défaut demande une valise et le logiciel de votre modèle. Voici les garages qui en déclarent une.",
+    electricDiagButton: "Trouver un spécialiste",
+    electricLightLabel: "Éclairage",
+    electricLightCopy:
+      "Le travail électrique le plus demandé, et celui où la pièce est aussi souvent la réponse que la main-d’œuvre.",
+    electricLightFit: "Trouver qui la pose",
+    electricAccessoriesLabel: "Accessoires électriques",
+    electricAccessoriesCopy:
+      "Cherchez ce qui est en vente ici, puis trouvez qui l’installe.",
+    electricAccessoriesFit: "Trouver un installateur",
+    electricSolarLabel: "12V & solaire",
+    electricSolarCopy:
+      "Volontairement à part des métiers de la réparation : acheter un onduleur et réparer un alternateur ne sont pas la même course.",
+    electricProsLabel: "Électriciens auto près de vous",
+    electricProsCount: "{count} le déclarent",
+    electricSendPhoto: "Montrer le problème",
+    electricSendPhotoHint: "Une photo du voyant en dit plus qu’une phrase",
+    electricNoPros: "Aucun électricien auto n’a encore publié",
+    electricNoneService: "Personne ne déclare encore {service}",
+    electricNoProsCopy:
+      "Cette liste se remplit au fur et à mesure des publications. En attendant, Dépannage joint tous les métiers.",
+    electricPostTitle: "Vous êtes électricien auto ?",
+    electricPostCopy: "Publiez votre atelier et apparaissez dans cette liste.",
+    electricQuoteOpen: "Bonjour, je vous contacte via Chez-Nous.",
+    electricQuoteProblem: "Mon problème : {problem}.",
+    electricQuoteService: "Je cherche : {service}.",
+    electricQuoteScope: "C’est une {scope}.",
+    electricQuoteAsk: "Pouvez-vous regarder, et à quel prix ?",
+    garageElectricLinkTitle: "L’électricité, par symptôme",
+    garageElectricLinkCopy:
+      "Partez de ce que fait la voiture plutôt que d’une liste de métiers.",
+    sellFieldElectricServices: "Travaux électriques que vous faites",
+    sellElectricServicesHint:
+      "Uniquement ce que vous faites vraiment. C’est là-dessus que les clients filtrent.",
+    sellFieldBatteryServices: "Travaux batterie que vous faites",
+    sellBatteryServicesHint:
+      "Uniquement ce que vous faites vraiment. C’est là-dessus que les clients filtrent.",
+    batteryQuoteOpen: "Bonjour, je vous contacte via Chez-Nous.",
+    batteryQuoteAbout: "Au sujet de votre annonce : {title}.",
+    batteryQuoteVehicle: "Mon véhicule est une {vehicle}.",
+    batteryQuoteNeed: "Je cherche une batterie de {spec}.",
+    batteryQuoteAsk: "L’avez-vous, et à quel prix posée ?",
+    batteryTestedToday: "Testée aujourd’hui",
+    batteryTestedDays: "Testée il y a {count} jour(s)",
+    batteryTestedMonths: "Testée il y a {count} mois",
+    batteryTestButton: "Tester ma batterie",
+    batteryUrgentLabel: "Besoin d’aide maintenant",
+    batteryUrgentFlatTitle: "Batterie à plat",
+    batteryUrgentFlatCopy: "La voiture ne démarre plus du tout",
+    batteryUrgentBoostTitle: "Démarrage / booster",
+    batteryUrgentBoostCopy:
+      "{count} professionnel(s) près de vous déclarent se déplacer",
+    batteryFinderTitle: "Je ne connais pas ma référence",
+    batteryFinderCopy:
+      "Indiquez votre véhicule : nous affichons la capacité qu’il prend habituellement.",
+    batteryOffersLabel: "Batteries en vente",
+    batteryCount: "{count} batterie(s) publiée(s)",
+    batteryCountCapacity: "{count} batterie(s) en {ah} Ah",
+    batterySortCheapest: "Du moins cher",
+    batteryStock: "{count} en stock",
+    batteryNone: "Aucune batterie publiée",
+    batteryNoneCapacity: "Aucune batterie publiée en {ah} Ah",
+    batteryNoneHint:
+      "Personne n’en a encore publié. Les professionnels ci-dessous en vendent et les posent : demandez-leur directement.",
+    batteryProsLabel: "Test & pose",
+    batteryProCount: "{count} professionnel(s) près de vous",
+    batteryProCountService: "{count} professionnel(s) — {service}",
+    batteryNoPros: "Personne pour l’instant",
+    batteryNoProsHint:
+      "Aucun professionnel près de vous ne déclare cette prestation. Essayez-en une autre, ou demandez directement à un garage.",
+    batteryRecycleSafety:
+      "Une batterie contient du plomb et de l’acide : ne la jetez pas. La plupart des vendeurs la reprennent et déduisent sa valeur de votre achat.",
+    batteryTestSheetTitle: "Tester ma batterie",
+    batteryTestWhat:
+      "Le test mesure la tension au repos et la capacité de démarrage. Cinq minutes, sans démonter la batterie.",
+    batteryTestSigns:
+      "Un démarrage difficile le matin, des phares faibles au ralenti, ou une batterie de plus de {years} ans : faites-la vérifier avant la panne.",
+    batteryTestWhere:
+      "Chez un professionnel de la liste, ou à domicile avec ceux qui se déplacent.",
+    batteryTestSeePros: "Voir les professionnels",
+    batteryTestDone: "J’ai fait tester ma batterie",
+    batteryTestDoneNote:
+      "Conservé sur ce téléphone uniquement, pour vous rappeler depuis combien de temps. Personne d’autre ne le voit.",
+    batteryOwnerTitle: "Vous vendez ou posez des batteries ?",
+    batteryOwnerCopy:
+      "Publiez vos capacités et vos prestations pour être trouvé par ceux qui les cherchent.",
+    batteryVehicleSheetTitle: "Trouver ma référence",
+    batteryCapacityLabel: "Quelle capacité ?",
+    batteryCapacityHint:
+      "Les capacités couramment montées sur ce modèle, selon les motorisations.",
+    batteryCapacityCaveat:
+      "Les motorisations d’un même modèle diffèrent, et un ancien propriétaire a pu la changer. Comparez avec l’étiquette de votre batterie actuelle, et vérifiez de quel côté se trouve la borne + avant d’acheter.",
+    batteryCapacityApply: "Voir les batteries {ah} Ah",
+    sellPartTypeBattery: "Des batteries",
+    sellTitleHint_battery: "ex. Bosch S4 60 Ah 540 A — neuve",
+    errorBatteryCapacity:
+      "Indiquez la capacité en Ah : c’est ainsi que les acheteurs cherchent, et sans elle personne ne trouve l’annonce.",
+    errorBatteryAmps:
+      "Vérifiez les ampères de démarrage : la valeur sort des limites réelles.",
+    sellFieldBatteryCategory: "Pour quel usage ?",
+    sellFieldBatteryBrand: "Marque",
+    sellFieldBatteryBrandPlaceholder: "Bosch, Varta, Fulmen…",
+    sellFieldBatteryModel: "Modèle",
+    sellFieldBatteryModelPlaceholder: "S4 005…",
+    sellFieldBatteryAh: "Capacité (Ah)",
+    sellBatteryAhHint:
+      "Inscrite sur l’étiquette. C’est ainsi qu’un acheteur vous trouve : le reste est du détail.",
+    sellFieldBatteryAmps: "Ampères de démarrage (A)",
+    sellBatteryAmpsHint:
+      "Facultatif. Le chiffre indiqué à côté des Ah sur l’étiquette.",
+    sellFieldBatteryTech: "Technologie",
+    sellFieldBatteryTerminal: "De quel côté est la borne + ?",
+    sellBatteryTerminalHint:
+      "Facultatif, et première raison pour laquelle une batterie revient le jour même.",
+    sellFieldBatteryWarranty: "Garantie",
+    sellFieldBatteryStock: "Combien en avez-vous ?",
+    sellFieldBatteryFitting: "La pose est-elle comprise ?",
+    sellFieldBatteryTradeIn: "Reprise de l’ancienne batterie (FCFA)",
+    sellBatteryTradeInHint:
+      "Facultatif. Indiquez le montant plutôt que « reprise possible » : les acheteurs comparent dessus.",
+    sellMediaFramingBattery:
+      "Photographiez l’étiquette pour que les Ah et les ampères soient lisibles, et les bornes vues de dessus.",
+    garageBatteryLinkTitle: "Vous cherchez une batterie ?",
+    garageBatteryLinkCopy:
+      "Trouvez la bonne capacité, comparez les prix et les reprises.",
+    garageTyreLinkTitle: "Vous cherchez des pneus ?",
+    garageTyreLinkCopy:
+      "Cherchez par dimension et comparez les prix, neufs et occasion.",
+    tyresEyebrow: "Pneus",
+    tyresTitleBuy: "Quelle dimension ?",
+    tyresTitleServices: "Quel service ?",
+    tyresTitleSos: "Problème de pneu ?",
+    tyresIntroBuy:
+      "Elle est inscrite sur le flanc de vos pneus actuels. Trois nombres suffisent pour ne voir que des offres qui vont sur votre voiture.",
+    tyresIntroServices:
+      "Montage, équilibrage, géométrie ou réparation : les professionnels près de vous qui déclarent cette prestation.",
+    tyresIntroSos:
+      "Dites-nous ce qui se passe. Nous cherchons ceux qui se déplacent, pas seulement ceux qui ouvrent boutique.",
+    tyreSizeHelpLink: "Où trouver ma taille ?",
+    tyreOpenNow: "Ouvert",
+    tyreVehicleLink: "Je ne connais pas ma dimension",
+    tyreVehicleSheetTitle: "Trouver ma dimension",
+    tyreVehicleMake: "Marque",
+    tyreVehicleModel: "Modèle",
+    tyreVehicleChange: "Changer",
+    tyreVehicleSearchMake: "Rechercher une marque",
+    tyreVehicleSearchModel: "Rechercher un modèle",
+    tyreVehicleCommon: "Courantes ici",
+    tyreVehicleAllMakes: "Toutes les marques",
+    tyreVehicleNoMatch:
+      "Aucun résultat. Vérifiez l’orthographe ou effacez la recherche.",
+    tyreVehicleSizeLabel: "Laquelle est sur votre voiture ?",
+    tyreVehiclePickSize: "Choisissez une dimension",
+    tyreVehicleResultHint:
+      "Les dimensions couramment montées sur ce modèle, selon les générations et les finitions.",
+    tyreVehicleCaveat:
+      "Les finitions et les années changent parfois de dimension. Vérifiez le flanc de vos pneus actuels ou l’étiquette de la portière conducteur avant de commander.",
+    tyreVehicleApply: "Voir les pneus en {size}",
+    tyreHelpTitle: "Où trouver ma taille",
+    tyreHelpWidth: "Largeur du pneu en millimètres.",
+    tyreHelpRatio: "Hauteur du flanc, en pourcentage de la largeur.",
+    tyreHelpDiameter: "Diamètre de la jante en pouces.",
+    tyreHelpWhere:
+      "Ces nombres sont gravés sur le flanc de vos pneus actuels, et souvent aussi sur l’étiquette intérieure de la portière conducteur.",
+    tyreConditionAll: "Tous",
+    tyreNeedSize: "Entrez votre dimension",
+    tyreNeedSizeHint:
+      "Un pneu ne va que dans une seule dimension : tant que nous ne connaissons pas la vôtre, il n’y a rien d’utile à afficher.",
+    tyreSizeInvalid: "Vérifiez ces nombres",
+    tyreSizeInvalidHint:
+      "C’est en dehors des dimensions d’un pneu de voiture — il manque probablement un chiffre. Relisez-les sur le flanc.",
+    tyreSizesAround: "Dimensions disponibles près de vous",
+    tyreOfferCount: "{count} offre(s) en {size}",
+    tyreSortCheapest: "Du moins cher",
+    tyrePricePerTyre: "/ pneu",
+    tyreDotAge: "DOT {year} — {years} an(s)",
+    tyreTread: "Gomme {depth} mm",
+    tyreStock: "{count} en stock",
+    tyreStockAge: "annoncé {ago}",
+    tyreNoPhone:
+      "Aucun numéro sur cette annonce — écrivez au vendeur depuis l’annonce.",
+    tyreNoOffers: "Aucun pneu publié en {size}",
+    tyreNoOffersHint:
+      "Personne n’a encore publié cette dimension. Essayez une des dimensions ci-dessous, ou demandez aux professionnels qui montent des pneus près de vous.",
+    tyreAlsoAt: "Également en stock chez",
+    tyreAlsoAtHint:
+      "Des professionnels déclarent tenir cette dimension. Ils n’ont pas publié de prix : demandez avant de vous déplacer.",
+    tyreQuoteTitle: "Faire jouer la concurrence",
+    tyreQuoteCopy:
+      "Envoyez la même question à plusieurs vendeurs. Le message est déjà écrit — Chez-Nous n’envoie rien à votre place.",
+    tyreQuantity: "Quantité",
+    tyreQuoteButton: "Demander {quantity} × {size}",
+    tyreQuoteSheetTitle: "Envoyer ma demande",
+    tyreQuoteSheetNote:
+      "Un appui par vendeur. Rien ne part tant que vous ne l’envoyez pas, et chacun vous répond directement.",
+    tyreQuoteMessage:
+      "Bonjour, avez-vous {quantity} pneus en {size} ? Quel est votre prix, montage compris ou non ?",
+    tyreQuoteMessageNoSize:
+      "Bonjour, je cherche des pneus. Qu’avez-vous en stock ?",
+    tyreUsedSafety:
+      "Sur un pneu d’occasion, exigez le code DOT : au-delà de {years} ans la gomme durcit même si le dessin paraît neuf. Vérifiez aussi l’absence de hernie sur le flanc.",
+    tyreServicesLabel: "Prestations",
+    tyreShopCount: "{count} professionnel(s) près de vous",
+    tyreShopCountService: "{count} professionnel(s) — {service}",
+    tyreSortOpenFirst: "Ouverts d’abord",
+    tyreMobilePill: "Se déplace",
+    tyreNoShops: "Personne pour l’instant",
+    tyreNoShopsHint:
+      "Aucun professionnel près de vous ne déclare cette prestation. Essayez-en une autre, ou demandez directement à un garage.",
+    tyreSosQuestion: "De quoi avez-vous besoin ?",
+    tyreMobileCount:
+      "{count} professionnel(s) près de vous déclarent se déplacer.",
+    tyreSosButton: "Trouver une assistance",
+    tyreFlatSafety:
+      "Ne roulez pas sur un pneu à plat, même sur une courte distance : la jante et le flanc s’abîment très vite.",
+    tyreOwnerTitle: "Vous vendez ou montez des pneus ?",
+    tyreOwnerCopy:
+      "Publiez vos dimensions et vos prestations pour être trouvé par ceux qui les cherchent.",
+    findOnMapButton: "Trouver sur la carte",
+    breakdownSendPhoto: "Envoyer une photo",
+    breakdownSendPhotoHint:
+      "Le professionnel voit le problème avant de répondre",
+    breakdownUsually: "Habituellement {time}",
+    breakdownUpdated: "MAJ {ago}",
+    breakdownZones: "Zones couvertes : {zones}",
+    availabilityButton: "Indiquer ma disponibilité",
+    availabilityPickerTitle: "Êtes-vous disponible maintenant ?",
+    availabilityPickerNote:
+      "C’est ce que voit un automobiliste en panne. L’indication disparaît au bout de quatre heures : elle ne parle jamais à votre place une fois périmée.",
+    sellFieldResponseTime: "En combien de temps arrivez-vous d’habitude ?",
+    sellResponseTimeHint:
+      "Facultatif. Affiché comme votre délai habituel, jamais comme une promesse de Chez-Nous.",
+    sellFieldEquipment: "Que pouvez-vous apporter ?",
+    sellEquipmentHint:
+      "Facultatif. Un plateau ou un treuil décide si un véhicule peut être remorqué.",
+    sellFieldCoverageZones: "Zones que vous couvrez",
+    sellFieldCoverageZonesPlaceholder: "Cotonou, Akpakpa, Vèdoko…",
+    sellCoverageZonesHint:
+      "Facultatif. Séparez par des virgules — les automobilistes le voient avant d’appeler.",
+    breakdownEyebrow: "Assistance routière",
+    breakdownTitle: "Besoin d’aide maintenant ?",
+    breakdownIntro:
+      "Dites-nous ce qui s’est passé et nous affichons les professionnels les plus proches, avec leur propre numéro.",
+    breakdownUseLocation: "Utiliser ma position",
+    breakdownLocating: "Localisation…",
+    breakdownLocationOff: "Position désactivée",
+    breakdownQuestion: "Quel est votre problème ?",
+    breakdownNearYou: "Au plus proche de vous",
+    breakdownCount: "{count} trouvé(s)",
+    breakdownCall: "Appeler",
+    breakdownCallEmergency: "Appeler le {number} — secours",
+    breakdownSafetyOverheat:
+      "Arrêtez-vous dès que possible dans un endroit sûr et coupez le moteur. Ne continuez pas à rouler avec une température élevée et n’ouvrez pas le bouchon du radiateur à chaud.",
+    breakdownSafetyAccident:
+      "Vérifiez d’abord que tout le monde est en sécurité et hors de la circulation. En cas de blessé ou de route bloquée, appelez les secours avant toute autre chose.",
+    breakdownNoteFuel:
+      "Chez-Nous ne livre pas de carburant. Voici des dépanneurs près de vous — appelez pour demander s’ils peuvent en apporter.",
+    breakdownEmptyTitle: "Personne pour l’instant",
+    breakdownEmptyCopy:
+      "Aucun professionnel n’a publié cette spécialité près de vous. La liste complète des garages peut malgré tout contenir quelqu’un.",
+    breakdownSeeAll: "Voir tous les garages",
+    breakdownAvailabilityNote:
+      "Nous ne pouvons pas dire qui est libre en ce moment : aucun professionnel n’a encore le moyen de l’indiquer. Appelez avant d’attendre — seul le téléphone confirme que quelqu’un vient.",
+    garagesEyebrow: "Services automobiles",
+    garagesTitle: "Trouver un garage",
+    garagesIntro:
+      "Mécaniciens, diagnostic, électricité auto et dépannage — publiés par les prestataires eux-mêmes.",
+    garagesSearchPlaceholder: "Garage, spécialité, quartier…",
+    garageTriageTitle: "Dites-nous ce qui ne va pas",
+    garageTriageCopy:
+      "Choisissez le symptôme, nous vous orientons vers la bonne spécialité. Pas besoin de connaître la panne.",
+    garageCauseCopy:
+      "Les causes les plus fréquentes. Choisissez-en une pour voir les prestataires correspondants — un diagnostic reste nécessaire pour confirmer.",
+    garageSosTitle: "Dépannage et remorquage",
+    garageSosCopy:
+      "En panne sur la route ? Voir les dépanneurs publiés près de vous.",
+    garageSpecialtiesLabel: "Spécialités",
+    garageSpecialtyAll: "Tous",
+    garageFiltersLabel: "Filtres",
+    garageFilterOpen: "Ouvert maintenant",
+    garageFilterVerified: "Vérifié",
+    garageFilterWhatsapp: "WhatsApp",
+    garageFilterQuote: "Sur devis",
+    garageSortDistance: "Plus proche",
+    garageSortRating: "Mieux noté",
+    garageSortPrice: "Prix",
+    garageCount: "{count} garage(s)",
+    garageDistanceHint:
+      "Autorisez la localisation pour trier par distance — en attendant, l’ordre est celui de publication.",
+    garageReviewCount: "({count})",
+    garageNoRating: "Pas encore noté",
+    garageVerified: "Vérifié",
+    garageOpenUntil: "Ouvert jusqu’à {time}",
+    garageClosed: "Fermé actuellement",
+    garageContact: "Contacter",
+    garageViewListing: "Voir la fiche",
+    garageContactSheetTitle: "Contacter le prestataire",
+    garageContactCall: "Appel direct",
+    garageContactWhatsapp: "Envoyez une photo ou une vidéo du problème",
+    garageContactWarn:
+      "Convenez du prix avant le début des travaux et exigez un reçu. Aucun paiement ne transite par Chez-Nous.",
+    garageSampleTag: "Exemple",
+    garageSampleDismiss: "J’ai compris",
+    garageSampleNote:
+      "Deux exemples, affichés en attendant que l’annuaire se remplisse. Ce ne sont pas de vrais garages : aucun numéro derrière, rien à ouvrir. Ils disparaîtront dès qu’un vrai garage sera approuvé.",
+    garageEmptyTitle: "Aucun garage ici pour l’instant",
+    garageEmptyTradeTitle: "Aucun prestataire {trade} pour l’instant",
+    garageEmptyNone:
+      "Aucun réparateur n’a encore publié d’annonce. Ils apparaîtront ici dès qu’une annonce sera approuvée.",
+    garageEmptyFiltered:
+      "Aucun prestataire ne correspond à ces filtres. Essayez une autre spécialité ou retirez les filtres.",
+    garageEmptyReset: "Retirer les filtres",
+    garageSafetyNote:
+      "Les notes proviennent de clients passés par l’application. Les horaires et les prix sont ceux publiés par chaque prestataire — appelez avant de vous déplacer.",
+    garageOwnerTitle: "Vous tenez un garage ?",
+    garageOwnerCardTitle: "Faire figurer mon garage",
+    garageOwnerCopy:
+      "Publiez une annonce Services et citez vos spécialités — vidange, freins, carrosserie, pneus. Ce sont ces mots qui vous classent dans la bonne spécialité ici.",
     carsDealershipsEyebrow: "Distributeurs officiels",
     carsDealershipsTitle: "Concessionnaires",
     carsDealershipsIntro:
@@ -2460,6 +3339,14 @@ export const translations = {
     errorCategoryRequired: "Veuillez choisir une catégorie d'activité.",
 
     productDetailSellerTitle: "Vendeur",
+    roleProvider: "Prestataire",
+    roleEmployer: "Employeur",
+    roleVenue: "Contact",
+    roleAuthor: "Publié par",
+    contactProviderButton: "Contacter le prestataire",
+    contactEmployerButton: "Contacter l’employeur",
+    contactVenueButton: "Prendre contact",
+    contactAuthorButton: "Répondre à l’auteur",
     productDetailDescriptionTitle: "Description",
     productDetailLocationTitle: "Emplacement",
     productDetailShareCount: "{count} partage(s)",

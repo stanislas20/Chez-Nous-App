@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Image, Linking, Modal, Pressable } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import MapView, { Marker } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -27,6 +30,9 @@ import { queryMatches } from "../utils/search";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useApprovedListings } from "../hooks/useApprovedListings";
 import { useI18n } from "../i18n/I18nContext";
+import { useAuth } from "../auth/AuthContext";
+import { openAccountGate } from "../utils/openAccountGate";
+import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
 
 const EMERALD = "#0B6E4F";
 const GOLD = "#D9A441";
@@ -46,6 +52,21 @@ const PRICE_ORDER = { budget: 0, mid: 1, high: 2 };
 
 export function RestaurantsScreen({ navigation }) {
   const { colors } = useTheme();
+  const { user } = useAuth();
+  // Nested twice on purpose: the Sell tab opens SellerDashboard, so params
+  // addressed to the tab stop there — naming the inner screen is what
+  // carries the category through to the form.
+  const openRestaurantPostForm = () =>
+    navigation.navigate("MainTabs", {
+      screen: "Sell",
+      params: {
+        screen: "CreateListing",
+        params: { categoryKey: "restaurants" },
+      },
+    });
+  // Picks the form back up after a visitor creates an account, so signing
+  // up does not cost them the tap they already made.
+  const { remember } = useAccountGateIntent(user, openRestaurantPostForm);
   const { language, t } = useI18n();
   const [query, setQuery] = useState("");
   const [cuisine, setCuisine] = useState("all");
@@ -114,7 +135,8 @@ export function RestaurantsScreen({ navigation }) {
       const cityCoord = cityCoordinates[item.city];
       return {
         ...item,
-        distanceKm: userCoords && cityCoord ? distanceInKm(userCoords, cityCoord) : null,
+        distanceKm:
+          userCoords && cityCoord ? distanceInKm(userCoords, cityCoord) : null,
         // null means the owner didn't declare hours — which shows no badge
         // at all, rather than guessing "Fermé" and turning people away.
         openNow: isOpenNow(item.openDays, item.openTime, item.closeTime),
@@ -122,19 +144,31 @@ export function RestaurantsScreen({ navigation }) {
     });
 
     const filtered = withDistance.filter((item) => {
-      const matchesQuery = queryMatches(settledQuery, item.name, item.city, item.area);
+      const matchesQuery = queryMatches(
+        settledQuery,
+        item.name,
+        item.city,
+        item.area,
+      );
       const matchesCuisine = cuisine === "all" || item.cuisine === cuisine;
       const matchesDelivery = !deliveryOnly || item.delivery;
       // Only excludes places known to be closed: one with no declared hours
       // stays in, because "unknown" is not "closed".
       const matchesOpen = !openOnly || item.openNow !== false;
       const matchesCity = !cityFilter || item.city === cityFilter;
-      return matchesQuery && matchesCuisine && matchesDelivery && matchesOpen && matchesCity;
+      return (
+        matchesQuery &&
+        matchesCuisine &&
+        matchesDelivery &&
+        matchesOpen &&
+        matchesCity
+      );
     });
 
     return [...filtered].sort((a, b) => {
       if (sortBy === "name") return (a.name ?? "").localeCompare(b.name ?? "");
-      if (sortBy === "price") return PRICE_ORDER[a.priceBand] - PRICE_ORDER[b.priceBand];
+      if (sortBy === "price")
+        return PRICE_ORDER[a.priceBand] - PRICE_ORDER[b.priceBand];
       // Distance: a restaurant we can't measure sorts last rather than
       // first, which is what a null would do in a naive numeric compare.
       if (a.distanceKm == null && b.distanceKm == null) return 0;
@@ -142,7 +176,16 @@ export function RestaurantsScreen({ navigation }) {
       if (b.distanceKm == null) return -1;
       return a.distanceKm - b.distanceKm;
     });
-  }, [source, settledQuery, cuisine, deliveryOnly, openOnly, cityFilter, sortBy, userCoords]);
+  }, [
+    source,
+    settledQuery,
+    cuisine,
+    deliveryOnly,
+    openOnly,
+    cityFilter,
+    sortBy,
+    userCoords,
+  ]);
 
   // The promoted row is lifted out of the list so it can't appear twice —
   // once in its own slot and again further down. It still respects every
@@ -174,7 +217,9 @@ export function RestaurantsScreen({ navigation }) {
     );
     return candidate ?? null;
   }, [restaurants, showingSamples, openOnly, sortBy]);
-  const ordinary = restaurants.filter((item) => !item.promoted && item.id !== nearest?.id);
+  const ordinary = restaurants.filter(
+    (item) => !item.promoted && item.id !== nearest?.id,
+  );
 
   // Every city, with a count beside each. Filtering down to cities that
   // happen to have a restaurant today showed 5 of 61 and read as a
@@ -182,7 +227,8 @@ export function RestaurantsScreen({ navigation }) {
   // place rather than wonder why it's missing.
   const availableCities = useMemo(() => {
     const counts = new Map();
-    for (const item of source) counts.set(item.city, (counts.get(item.city) ?? 0) + 1);
+    for (const item of source)
+      counts.set(item.city, (counts.get(item.city) ?? 0) + 1);
     return cities
       .filter((city) => queryMatches(citySearch, city))
       .map((city) => ({ city, count: counts.get(city) ?? 0 }));
@@ -227,7 +273,9 @@ export function RestaurantsScreen({ navigation }) {
 
   const mapRegion = useMemo(() => {
     const anchor = cityFilter ? cityCoordinates[cityFilter] : null;
-    const fallback = restaurants.length ? cityCoordinates[restaurants[0].city] : null;
+    const fallback = restaurants.length
+      ? cityCoordinates[restaurants[0].city]
+      : null;
     const center = anchor ?? userCoords ?? fallback ?? cityCoordinates.Cotonou;
     return { ...center, latitudeDelta: 0.14, longitudeDelta: 0.14 };
   }, [cityFilter, userCoords, restaurants]);
@@ -307,14 +355,19 @@ export function RestaurantsScreen({ navigation }) {
         <HeroCopy>{t("restoHeroCopy")}</HeroCopy>
       </Hero>
 
-      <Body showsVerticalScrollIndicator={false} contentContainerStyle={bodyContentStyle}>
+      <Body
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={bodyContentStyle}
+      >
         {/* Area picker. Reads as one tappable row rather than a bare pill so
             the label above it can explain what the value means. */}
         <GeoRow onPress={() => setCitySheetOpen(true)}>
           <Ionicons name="location-outline" size={19} color={EMERALD} />
           <GeoTextCol>
             <GeoLabel>{t("restoAroundYou")}</GeoLabel>
-            <GeoValue numberOfLines={1}>{cityFilter ?? t("restoAllAreas")}</GeoValue>
+            <GeoValue numberOfLines={1}>
+              {cityFilter ?? t("restoAllAreas")}
+            </GeoValue>
           </GeoTextCol>
           <GeoAction>{t("restoChangeArea")}</GeoAction>
           <Ionicons name="chevron-forward" size={15} color={EMERALD} />
@@ -336,7 +389,11 @@ export function RestaurantsScreen({ navigation }) {
                 accent={option.color}
                 onPress={() => setCuisine(option.key)}
               >
-                <Ionicons name={option.icon} size={14} color={active ? "#ffffff" : option.color} />
+                <Ionicons
+                  name={option.icon}
+                  size={14}
+                  color={active ? "#ffffff" : option.color}
+                />
                 <CuisineChipLabel selected={active}>
                   {getCuisineLabel(option.key, language)}
                 </CuisineChipLabel>
@@ -346,7 +403,10 @@ export function RestaurantsScreen({ navigation }) {
         </ChipScroll>
 
         <ToggleRow>
-          <DeliveryToggle selected={deliveryOnly} onPress={() => setDeliveryOnly((p) => !p)}>
+          <DeliveryToggle
+            selected={deliveryOnly}
+            onPress={() => setDeliveryOnly((p) => !p)}
+          >
             <Ionicons
               name="bicycle-outline"
               size={15}
@@ -357,8 +417,15 @@ export function RestaurantsScreen({ navigation }) {
             </ToggleLabel>
           </DeliveryToggle>
 
-          <DeliveryToggle selected={openOnly} onPress={() => setOpenOnly((p) => !p)}>
-            <Ionicons name="time-outline" size={15} color={openOnly ? EMERALD : colors.textMuted} />
+          <DeliveryToggle
+            selected={openOnly}
+            onPress={() => setOpenOnly((p) => !p)}
+          >
+            <Ionicons
+              name="time-outline"
+              size={15}
+              color={openOnly ? EMERALD : colors.textMuted}
+            />
             <ToggleLabel selected={openOnly} numberOfLines={1}>
               {t("restoOpenNowFilter")}
             </ToggleLabel>
@@ -366,7 +433,10 @@ export function RestaurantsScreen({ navigation }) {
 
           {/* This lived as a bare icon in the header, where nobody found it.
               A labelled pill beside the other filters says what it does. */}
-          <DeliveryToggle selected={showMap} onPress={() => setShowMap((prev) => !prev)}>
+          <DeliveryToggle
+            selected={showMap}
+            onPress={() => setShowMap((prev) => !prev)}
+          >
             <Ionicons
               name={showMap ? "list-outline" : "map-outline"}
               size={15}
@@ -385,14 +455,20 @@ export function RestaurantsScreen({ navigation }) {
               selected={sortBy === option.key}
               onPress={() => selectSort(option.key)}
             >
-              <SortLabel selected={sortBy === option.key}>{t(option.labelKey)}</SortLabel>
+              <SortLabel selected={sortBy === option.key}>
+                {t(option.labelKey)}
+              </SortLabel>
             </SortOption>
           ))}
         </SortRow>
 
         {showMap ? (
           <MapCard>
-            <MapView ref={mapRef} style={mapStyle} initialRegion={initialRegionRef.current}>
+            <MapView
+              ref={mapRef}
+              style={mapStyle}
+              initialRegion={initialRegionRef.current}
+            >
               {mapMarkers.map((marker) => (
                 <Marker
                   key={marker.city}
@@ -416,7 +492,11 @@ export function RestaurantsScreen({ navigation }) {
         {showingSamples ? (
           <SampleNote>
             <SampleNoteIcon>
-              <Ionicons name="information-circle-outline" size={15} color={EMERALD} />
+              <Ionicons
+                name="information-circle-outline"
+                size={15}
+                color={EMERALD}
+              />
             </SampleNoteIcon>
             <SampleNoteLabel>{t("restoSampleNote")}</SampleNoteLabel>
           </SampleNote>
@@ -438,24 +518,37 @@ export function RestaurantsScreen({ navigation }) {
                   : ""}
               </NearestMeta>
             </NearestBody>
-            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={colors.textMuted}
+            />
           </NearestCard>
         ) : null}
 
         {promoted ? (
           <PromotedCard onPress={() => openRestaurant(promoted)}>
-            <PromotedGradient colors={[EMERALD, "#0a5e43"]} start={gradStart} end={gradEnd}>
+            <PromotedGradient
+              colors={[EMERALD, "#0a5e43"]}
+              start={gradStart}
+              end={gradEnd}
+            >
               {/* The picture leads. A featured slot that shows a generic
                   icon is a paid placement wasting the one thing that makes
                   someone choose a restaurant. */}
               {promoted.mediaUrl ? (
                 <PromotedBanner>
-                  <PromotedPhoto source={{ uri: promoted.mediaUrl }} resizeMode="contain" />
+                  <PromotedPhoto
+                    source={{ uri: promoted.mediaUrl }}
+                    resizeMode="contain"
+                  />
                 </PromotedBanner>
               ) : (
                 <PromotedBannerFallback>
                   <Ionicons
-                    name={getCuisine(promoted.cuisine)?.icon ?? "restaurant-outline"}
+                    name={
+                      getCuisine(promoted.cuisine)?.icon ?? "restaurant-outline"
+                    }
                     size={34}
                     color="rgba(255, 255, 255, 0.85)"
                   />
@@ -463,13 +556,17 @@ export function RestaurantsScreen({ navigation }) {
               )}
 
               <PromotedBadge>
-                <PromotedBadgeLabel>{t("restoPromotedBadge")}</PromotedBadgeLabel>
+                <PromotedBadgeLabel>
+                  {t("restoPromotedBadge")}
+                </PromotedBadgeLabel>
               </PromotedBadge>
 
               <PromotedName numberOfLines={1}>{promoted.name}</PromotedName>
               <PromotedMeta numberOfLines={1}>
                 {getCuisineLabel(promoted.cuisine, language)}
-                {promoted.priceBand ? ` · ${getPriceBandSymbol(promoted.priceBand)}` : ""}
+                {promoted.priceBand
+                  ? ` · ${getPriceBandSymbol(promoted.priceBand)}`
+                  : ""}
                 {` · ${promoted.area}`}
                 {promoted.distanceKm != null
                   ? ` · ${promoted.distanceKm.toFixed(1).replace(".", ",")} km`
@@ -491,7 +588,11 @@ export function RestaurantsScreen({ navigation }) {
                 ) : null}
                 {promoted.delivery ? (
                   <PromotedTag>
-                    <Ionicons name="bicycle-outline" size={11} color="#ffffff" />
+                    <Ionicons
+                      name="bicycle-outline"
+                      size={11}
+                      color="#ffffff"
+                    />
                     <PromotedTagLabel>{t("restoDeliveryTag")}</PromotedTagLabel>
                   </PromotedTag>
                 ) : null}
@@ -525,7 +626,11 @@ export function RestaurantsScreen({ navigation }) {
             an "aucun restaurant ne correspond" message contradicting it. */}
         {ordinary.length === 0 && !promoted && !nearest ? (
           <EmptyWrap>
-            <Ionicons name="restaurant-outline" size={30} color={colors.textMuted} />
+            <Ionicons
+              name="restaurant-outline"
+              size={30}
+              color={colors.textMuted}
+            />
             <EmptyTitle>{t("restoEmptyTitle")}</EmptyTitle>
             <EmptyCopy>{t("restoEmptyCopy")}</EmptyCopy>
           </EmptyWrap>
@@ -545,7 +650,10 @@ export function RestaurantsScreen({ navigation }) {
                     frame rather than a gap. */}
                 {item.mediaUrl ? (
                   <RestoPhotoWrap>
-                    <RestoPhoto source={{ uri: item.mediaUrl }} resizeMode="contain" />
+                    <RestoPhoto
+                      source={{ uri: item.mediaUrl }}
+                      resizeMode="contain"
+                    />
                   </RestoPhotoWrap>
                 ) : (
                   <RestoThumb
@@ -574,11 +682,17 @@ export function RestaurantsScreen({ navigation }) {
                       </OpenBadge>
                     ) : null}
                     <PriceBandChip>
-                      <PriceBandLabel>{getPriceBandSymbol(item.priceBand)}</PriceBandLabel>
+                      <PriceBandLabel>
+                        {getPriceBandSymbol(item.priceBand)}
+                      </PriceBandLabel>
                     </PriceBandChip>
                   </RestoNameRow>
                   <RestoLocRow>
-                    <Ionicons name="location-outline" size={11} color={colors.textMuted} />
+                    <Ionicons
+                      name="location-outline"
+                      size={11}
+                      color={colors.textMuted}
+                    />
                     <RestoLocLabel numberOfLines={1}>
                       {getCuisineLabel(item.cuisine, language)} · {item.area}
                       {item.distanceKm != null
@@ -592,17 +706,31 @@ export function RestaurantsScreen({ navigation }) {
                         listing. */}
                     {buildLinkUrl("whatsapp", item.whatsapp) ? (
                       <WhatsAppTag
-                        onPress={() => Linking.openURL(buildLinkUrl("whatsapp", item.whatsapp))}
+                        onPress={() =>
+                          Linking.openURL(
+                            buildLinkUrl("whatsapp", item.whatsapp),
+                          )
+                        }
                         hitSlop={6}
                       >
-                        <Ionicons name="logo-whatsapp" size={12} color="#ffffff" />
+                        <Ionicons
+                          name="logo-whatsapp"
+                          size={12}
+                          color="#ffffff"
+                        />
                         <WhatsAppTagLabel>WhatsApp</WhatsAppTagLabel>
                       </WhatsAppTag>
                     ) : null}
                     {item.delivery ? (
                       <DeliveryTag>
-                        <Ionicons name="bicycle-outline" size={11} color={EMERALD} />
-                        <DeliveryTagLabel>{t("restoDeliveryTag")}</DeliveryTagLabel>
+                        <Ionicons
+                          name="bicycle-outline"
+                          size={11}
+                          color={EMERALD}
+                        />
+                        <DeliveryTagLabel>
+                          {t("restoDeliveryTag")}
+                        </DeliveryTagLabel>
                       </DeliveryTag>
                     ) : null}
                     {item.dishes.map((dish) => (
@@ -622,15 +750,17 @@ export function RestaurantsScreen({ navigation }) {
             promo banner, so an owner tapping this used to end up buying an
             advert instead of getting listed. */}
         <OwnerCard
-          onPress={() =>
-            navigation.navigate("MainTabs", {
-              screen: "Sell",
-              // Nested twice on purpose: the Sell tab opens SellerDashboard,
-              // so params addressed to the tab stop there. Naming the inner
-              // screen is what carries the category through to the form.
-              params: { screen: "CreateListing", params: { categoryKey: "restaurants" } },
-            })
-          }
+          onPress={() => {
+            // The shared gate for a visitor: jumping to the Sell tab pops
+            // this screen off the root stack, so signup could not return
+            // here. See openAccountGate.
+            if (!user) {
+              remember();
+              openAccountGate(navigation);
+              return;
+            }
+            openRestaurantPostForm();
+          }}
         >
           <OwnerIcon>
             <Ionicons name="restaurant" size={21} color={GOLD} />
@@ -668,13 +798,23 @@ export function RestaurantsScreen({ navigation }) {
             <SheetScroll showsVerticalScrollIndicator={false}>
               <SheetRow onPress={() => selectCity(null)}>
                 <Ionicons name="globe-outline" size={18} color={EMERALD} />
-                <SheetRowLabel selected={!cityFilter}>{t("restoAllAreas")}</SheetRowLabel>
-                {!cityFilter ? <Ionicons name="checkmark" size={18} color={EMERALD} /> : null}
+                <SheetRowLabel selected={!cityFilter}>
+                  {t("restoAllAreas")}
+                </SheetRowLabel>
+                {!cityFilter ? (
+                  <Ionicons name="checkmark" size={18} color={EMERALD} />
+                ) : null}
               </SheetRow>
               {availableCities.map(({ city, count }) => (
                 <SheetRow key={city} onPress={() => selectCity(city)}>
-                  <Ionicons name="location-outline" size={18} color={colors.textMuted} />
-                  <SheetRowLabel selected={cityFilter === city}>{city}</SheetRowLabel>
+                  <Ionicons
+                    name="location-outline"
+                    size={18}
+                    color={colors.textMuted}
+                  />
+                  <SheetRowLabel selected={cityFilter === city}>
+                    {city}
+                  </SheetRowLabel>
                   <SheetCount>{count}</SheetCount>
                   {cityFilter === city ? (
                     <Ionicons name="checkmark" size={18} color={EMERALD} />
@@ -822,7 +962,10 @@ const GeoAction = styled.Text`
 // Bleeds to the screen edges so a clipped chip signals more to scroll —
 // same treatment as the jobs filter row.
 const ChipScroll = styled.ScrollView.attrs(() => ({
-  contentContainerStyle: { paddingHorizontal: spacing.md, paddingRight: spacing.lg },
+  contentContainerStyle: {
+    paddingHorizontal: spacing.md,
+    paddingRight: spacing.lg,
+  },
 }))`
   margin-horizontal: -${spacing.md}px;
   margin-top: ${spacing.md}px;

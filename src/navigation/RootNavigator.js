@@ -24,6 +24,12 @@ import { RealEstateScreen } from "../screens/RealEstateScreen";
 import { CarsScreen } from "../screens/CarsScreen";
 import { CarParksScreen } from "../screens/CarParksScreen";
 import { CarDealershipsScreen } from "../screens/CarDealershipsScreen";
+import { TyresScreen } from "../screens/TyresScreen";
+import { BatteryScreen } from "../screens/BatteryScreen";
+import { ElectricScreen } from "../screens/ElectricScreen";
+import { BodyworkScreen } from "../screens/BodyworkScreen";
+import { GaragesScreen } from "../screens/GaragesScreen";
+import { BreakdownScreen } from "../screens/BreakdownScreen";
 import { VehicleListScreen } from "../screens/VehicleListScreen";
 import { RealEstateDetailScreen } from "../screens/RealEstateDetailScreen";
 import { ReportListingScreen } from "../screens/ReportListingScreen";
@@ -136,6 +142,36 @@ export function RootNavigator() {
           <Stack.Screen
             name="CarDealerships"
             component={CarDealershipsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Garages"
+            component={GaragesScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Tyres"
+            component={TyresScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Battery"
+            component={BatteryScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Electric"
+            component={ElectricScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Bodywork"
+            component={BodyworkScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Breakdown"
+            component={BreakdownScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen

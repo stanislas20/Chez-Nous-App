@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   useWindowDimensions,
@@ -19,6 +21,8 @@ import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import {
   collection,
   addDoc,
+  doc,
+  updateDoc,
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
@@ -131,6 +135,34 @@ import {
 } from "../data/serviceRateTypes";
 import { sectorTint } from "../data/companySectors";
 import { getQuartiers } from "../data/quartiers";
+import {
+  getEquipmentLabel,
+  roadsideEquipment,
+  roadsideResponseTimes,
+} from "../data/roadside";
+import {
+  formatTyreSize,
+  isValidTyreSize,
+  parseTyreSize,
+  tyreConditions,
+  tyreDotYears,
+  tyreFittingModes,
+  tyreServices,
+} from "../data/tyres";
+import { matchesGarageSpecialty } from "../data/garageSpecialties";
+import {
+  batteryCategories,
+  batteryFittingModes,
+  batteryNeedsCrankingAmps,
+  batteryServices,
+  batteryTechnologies,
+  batteryTerminals,
+  batteryWarranties,
+  isValidBatteryCapacity,
+  isValidCrankingAmps,
+} from "../data/batteries";
+import { electricServices } from "../data/carElectrics";
+import { bodyworkServices } from "../data/bodywork";
 import { guessContentType } from "../utils/uploadContentType";
 import {
   experienceLevels,
@@ -184,6 +216,64 @@ function getPickerCardWidth(index, total) {
 // Explicit maps rather than a key built from the category at runtime:
 // t() falls back to the key itself when one is missing, so a typo would
 // render "sellTitleHint_vehicles" on screen instead of an example.
+// A trade named by whatever sent the seller here, when the category alone is
+// too broad to write a useful example. "Services" covers plumbers, hair-
+// dressers and mechanics, so its generic hint ("ex. Plombier — dépannage et
+// installation") is actively wrong for someone who arrived by tapping "Faire
+// figurer mon garage".
+const TRADE_HINT_KEYS = {
+  garage: "sellTitleHint_garage",
+  tyres: "sellTitleHint_tyres",
+  battery: "sellTitleHint_battery",
+  electric: "sellTitleHint_electric",
+  bodywork: "sellTitleHint_bodywork",
+};
+
+// The trades whose placement is decided by their own words. Each of these
+// arrives from a screen that filters by what the listing says, so the seller
+// has to be told on the field it applies to — not only on the card that sent
+// them here, which they may never read again. Without this an electrician
+// landed on the generic Services form and was shown a plumber as the
+// example, which is how a specialist form comes to look like the wrong one.
+const TRADE_NOTE_KEYS = {
+  garage: "sellTitleNote_garage",
+  electric: "sellTitleNote_electric",
+  bodywork: "sellTitleNote_bodywork",
+};
+
+// The description example matters as much as the title one: "ce que vous
+// faites et votre zone d'intervention" is right for a hairdresser and
+// useless to somebody who needs to say they own an OBD reader.
+const TRADE_DESC_HINT_KEYS = {
+  electric: "sellDescHint_electric",
+  bodywork: "sellDescHint_bodywork",
+};
+
+// Vehicles covers "cars, motorbikes, parts", and a part is not a car: asking
+// a tyre seller for a gearbox and a number of doors produced listings whose
+// every answer was "—". The pick is first because it decides the rest of the
+// form.
+const PART_TYPES = [
+  {
+    key: "vehicle",
+    icon: "car-sport-outline",
+    labelKey: "sellPartTypeVehicle",
+    color: "#2F6BB5",
+  },
+  {
+    key: "tyre",
+    icon: "disc-outline",
+    labelKey: "sellPartTypeTyre",
+    color: "#0B6E4F",
+  },
+  {
+    key: "battery",
+    icon: "battery-charging-outline",
+    labelKey: "sellPartTypeBattery",
+    color: "#D9A441",
+  },
+];
+
 const TITLE_HINT_KEYS = {
   vehicles: "sellTitleHint_vehicles",
   realEstate: "sellTitleHint_realEstate",
@@ -315,7 +405,34 @@ function VideoTile({ uri }) {
 
 export function CreateListingScreen({ route, navigation }) {
   const { colors } = useTheme();
-  const { categoryKey: initialCategoryKey, isPromoted } = route.params ?? {};
+  const {
+    categoryKey: initialCategoryKey,
+    isPromoted,
+    trade,
+    listing: editing,
+  } = route.params ?? {};
+
+  // Editing runs the real posting form rather than a second cut-down one.
+  //
+  // The old Modifier screen could change a title, a price, a phone and a
+  // city — nothing else. So a seller who mistyped a tyre size, sold their
+  // stock, changed their opening hours or picked the wrong fuel had one
+  // option: delete the listing and post it again, losing its age, its views
+  // and its place in every saved list. Every field on this form is now
+  // editable because it is the same form.
+  //
+  // Seeds are read from the listing and fall back to the same default a new
+  // listing gets, so a field the listing never had simply starts empty.
+  const seed = (field, fallback) => {
+    if (!editing) return fallback;
+    const value = editing[field];
+    return value === undefined || value === null ? fallback : value;
+  };
+  // Numbers are held as strings by the inputs.
+  const seedText = (field, fallback = "") => {
+    const value = seed(field, null);
+    return value === null || value === "" ? fallback : String(value);
+  };
   const { t, language } = useI18n();
   const { user, sellerProfile } = useAuth();
   const {
@@ -329,94 +446,209 @@ export function CreateListingScreen({ route, navigation }) {
   const presetCategory =
     categories.find((category) => category.key === initialCategoryKey) ?? null;
 
-  const [title, setTitle] = useState("");
-  const [price, setPrice] = useState("");
-  const [phone, setPhone] = useState("");
-  const [dutyHours, setDutyHours] = useState("");
-  const [description, setDescription] = useState("");
-  const [condition, setCondition] = useState(null);
-  const [communityType, setCommunityType] = useState(null);
-  const [serviceRateType, setServiceRateType] = useState(null);
-  const [agricultureKind, setAgricultureKind] = useState(null);
-  const [agricultureUnit, setAgricultureUnit] = useState(null);
-  const [sportsKind, setSportsKind] = useState(null);
-  const [sportsSize, setSportsSize] = useState("");
-  const [babyKind, setBabyKind] = useState(null);
-  const [babyDetail, setBabyDetail] = useState("");
-  const [realEstateDeal, setRealEstateDeal] = useState(null);
-  const [commercialType, setCommercialType] = useState(null);
-  const [vehicleDeal, setVehicleDeal] = useState(null);
+  const [title, setTitle] = useState(seedText("titleFr", ""));
+  const [price, setPrice] = useState(seedText("price", ""));
+  const [phone, setPhone] = useState(seedText("phone", ""));
+  const [dutyHours, setDutyHours] = useState(seedText("dutyHours", ""));
+  const [description, setDescription] = useState(seedText("descriptionFr", ""));
+  const [condition, setCondition] = useState(seed("condition", null));
+  const [communityType, setCommunityType] = useState(
+    seed("communityType", null),
+  );
+  const [serviceRateType, setServiceRateType] = useState(
+    seed("serviceRateType", null),
+  );
+  // Roadside declarations. All optional: a hairdresser answers none of them
+  // and loses nothing, a recovery truck answers all four and its card on
+  // Dépannage can finally say what a stranded person needs to know.
+  const [responseTime, setResponseTime] = useState(seed("responseTime", null));
+  const [equipment, setEquipment] = useState(seed("equipment", []));
+  const [coverageZones, setCoverageZones] = useState(
+    seedText("coverageZones", ""),
+  );
+  const [agricultureKind, setAgricultureKind] = useState(
+    seed("agricultureKind", null),
+  );
+  const [agricultureUnit, setAgricultureUnit] = useState(
+    seed("agricultureUnit", null),
+  );
+  const [sportsKind, setSportsKind] = useState(seed("sportsKind", null));
+  const [sportsSize, setSportsSize] = useState(seedText("sportsSize", ""));
+  const [babyKind, setBabyKind] = useState(seed("babyKind", null));
+  const [babyDetail, setBabyDetail] = useState(seedText("babyDetail", ""));
+  const [realEstateDeal, setRealEstateDeal] = useState(
+    seed("realEstateDeal", null),
+  );
+  const [commercialType, setCommercialType] = useState(
+    seed("commercialType", null),
+  );
+  const [vehicleDeal, setVehicleDeal] = useState(seed("vehicleDeal", null));
   // Preset when the seller arrived from a route that already knows — the
   // Vendre tab's "Publier mon véhicule", for instance.
   const [vehiclePurpose, setVehiclePurpose] = useState(
-    route.params?.vehiclePurpose ?? null,
+    seed("vehiclePurpose", route.params?.vehiclePurpose ?? null),
   );
-  const [brand, setBrand] = useState(null);
-  const [model, setModel] = useState("");
-  const [year, setYear] = useState("");
-  const [mileage, setMileage] = useState("");
-  const [fuel, setFuel] = useState(null);
-  const [transmission, setTransmission] = useState(null);
-  const [bodyType, setBodyType] = useState(null);
-  const [sellerKind, setSellerKind] = useState(null);
-  const [documents, setDocuments] = useState(null);
-  const [carPark, setCarPark] = useState(null);
-  const [color, setColor] = useState(null);
-  const [drivetrain, setDrivetrain] = useState(null);
-  const [seats, setSeats] = useState(null);
+  const [brand, setBrand] = useState(seed("brand", null));
+  const [model, setModel] = useState(seedText("model", ""));
+  // A tyre is not a car, and the vehicle form asks a car's questions —
+  // mileage, gearbox, number of doors. Same category (its own description is
+  // "cars, motorbikes, parts"), different set of facts.
+  const [partType, setPartType] = useState(
+    editing?.partType ??
+      (trade === "tyres"
+        ? "tyre"
+        : trade === "battery"
+          ? "battery"
+          : "vehicle"),
+  );
+  const [batteryCategory, setBatteryCategory] = useState(
+    seed("batteryCategory", "car"),
+  );
+  const [batteryBrand, setBatteryBrand] = useState(
+    seedText("batteryBrand", ""),
+  );
+  const [batteryModel, setBatteryModel] = useState(
+    seedText("batteryModel", ""),
+  );
+  const [batteryAh, setBatteryAh] = useState(seedText("batteryAh", ""));
+  const [batteryAmps, setBatteryAmps] = useState(seedText("batteryAmps", ""));
+  const [batteryTech, setBatteryTech] = useState(seed("batteryTech", null));
+  const [batteryTerminal, setBatteryTerminal] = useState(
+    seed("batteryTerminal", null),
+  );
+  const [batteryWarranty, setBatteryWarranty] = useState(
+    seed("batteryWarranty", null),
+  );
+  const [batteryStock, setBatteryStock] = useState(
+    seedText("batteryStock", ""),
+  );
+  const [batteryFitting, setBatteryFitting] = useState(
+    seed("batteryFitting", null),
+  );
+  const [batteryTradeIn, setBatteryTradeIn] = useState(
+    seedText("batteryTradeIn", ""),
+  );
+  // Declared by a battery professional rather than a battery seller.
+  const [batteryServiceKeys, setBatteryServiceKeys] = useState(
+    seed("batteryServices", []),
+  );
+  // Declared by an auto electrician. One vocabulary for cars and bikes,
+  // because a listing is written once and whoever rewinds a stator usually
+  // also fixes a car alternator.
+  const [electricServiceKeys, setElectricServiceKeys] = useState(
+    seed("electricServices", []),
+  );
+  // Declared by a carrossier. "Devis sur photos" sits in this list rather
+  // than being assumed of everyone: plenty of body shops will only price a
+  // job with the car in front of them, and a Devis button on their card has
+  // to mean what it says.
+  const [bodyworkServiceKeys, setBodyworkServiceKeys] = useState(
+    seed("bodyworkServices", []),
+  );
+  const [tyreBrand, setTyreBrand] = useState(seedText("tyreBrand", ""));
+  const [tyreModel, setTyreModel] = useState(seedText("tyreModel", ""));
+  const [tyreWidth, setTyreWidth] = useState(seedText("tyreWidth", ""));
+  const [tyreRatio, setTyreRatio] = useState(seedText("tyreRatio", ""));
+  const [tyreDiameter, setTyreDiameter] = useState(
+    seedText("tyreDiameter", ""),
+  );
+  const [tyreCondition, setTyreCondition] = useState(
+    seed("tyreCondition", "new"),
+  );
+  const [tyreDotYear, setTyreDotYear] = useState(seed("tyreDotYear", null));
+  const [tyreTreadMm, setTyreTreadMm] = useState(seedText("tyreTreadMm", ""));
+  const [tyreStock, setTyreStock] = useState(seedText("tyreStock", ""));
+  const [tyreFitting, setTyreFitting] = useState(seed("tyreFitting", null));
+
+  // Declared by a tyre professional rather than a tyre seller: what they can
+  // do to a wheel, which sizes they keep, and which brands they carry.
+  const [tyreServiceKeys, setTyreServiceKeys] = useState(
+    seed("tyreServices", []),
+  );
+  const [tyreSizes, setTyreSizes] = useState(seed("tyreSizes", []));
+  const [tyreSizeDraft, setTyreSizeDraft] = useState("");
+  const [tyreBrands, setTyreBrands] = useState(seedText("tyreBrands", ""));
+
+  const [year, setYear] = useState(seedText("year", ""));
+  const [mileage, setMileage] = useState(seedText("mileage", ""));
+  const [fuel, setFuel] = useState(seed("fuel", null));
+  const [transmission, setTransmission] = useState(seed("transmission", null));
+  const [bodyType, setBodyType] = useState(seed("bodyType", null));
+  const [sellerKind, setSellerKind] = useState(seed("sellerKind", null));
+  const [documents, setDocuments] = useState(seed("documents", null));
+  const [carPark, setCarPark] = useState(seed("carPark", null));
+  const [color, setColor] = useState(seed("color", null));
+  const [drivetrain, setDrivetrain] = useState(seed("drivetrain", null));
+  const [seats, setSeats] = useState(seed("seats", null));
   // Bénin-specific and consequential: whether duty is paid decides what the
   // buyer actually hands over.
-  const [customs, setCustoms] = useState(null);
-  const [plate, setPlate] = useState(null);
-  const [history, setHistory] = useState(null);
+  const [customs, setCustoms] = useState(seed("customs", null));
+  const [plate, setPlate] = useState(seed("plate", null));
+  const [history, setHistory] = useState(seed("history", null));
   // Declared equipment, as a set of keys. Absent means "not stated", which is
   // not the same as absent from the car — the browse filters only ever match
   // on what a seller ticked, never on what they left blank.
-  const [features, setFeatures] = useState([]);
-  const [capacity, setCapacity] = useState("");
-  const [propertyType, setPropertyType] = useState(null);
-  const [surfaceArea, setSurfaceArea] = useState("");
-  const [bedrooms, setBedrooms] = useState(null);
-  const [bathrooms, setBathrooms] = useState(null);
-  const [isFurnished, setIsFurnished] = useState(false);
-  const [depositMonths, setDepositMonths] = useState("");
-  const [avanceMonths, setAvanceMonths] = useState("");
-  const [landDocument, setLandDocument] = useState(null);
-  const [quartier, setQuartier] = useState(null);
-  const [isLotti, setIsLotti] = useState(false);
-  const [listerKind, setListerKind] = useState(null);
-  const [amenities, setAmenities] = useState([]);
-  const [cuisine, setCuisine] = useState(null);
-  const [area, setArea] = useState("");
-  const [priceBand, setPriceBand] = useState(null);
-  const [hasDelivery, setHasDelivery] = useState(false);
-  const [openDays, setOpenDays] = useState([]);
-  const [openTime, setOpenTime] = useState("");
-  const [closeTime, setCloseTime] = useState("");
+  const [features, setFeatures] = useState(seed("features", []));
+  const [capacity, setCapacity] = useState(seedText("capacity", ""));
+  const [propertyType, setPropertyType] = useState(seed("propertyType", null));
+  const [surfaceArea, setSurfaceArea] = useState(seedText("surfaceArea", ""));
+  const [bedrooms, setBedrooms] = useState(seed("bedrooms", null));
+  const [bathrooms, setBathrooms] = useState(seed("bathrooms", null));
+  const [isFurnished, setIsFurnished] = useState(seed("isFurnished", false));
+  const [depositMonths, setDepositMonths] = useState(
+    seedText("depositMonths", ""),
+  );
+  const [avanceMonths, setAvanceMonths] = useState(
+    seedText("avanceMonths", ""),
+  );
+  const [landDocument, setLandDocument] = useState(seed("landDocument", null));
+  const [quartier, setQuartier] = useState(seed("quartier", null));
+  const [isLotti, setIsLotti] = useState(seed("isLotti", false));
+  const [listerKind, setListerKind] = useState(seed("listerKind", null));
+  const [amenities, setAmenities] = useState(seed("amenities", []));
+  const [cuisine, setCuisine] = useState(seed("cuisine", null));
+  const [area, setArea] = useState(seedText("area", ""));
+  const [priceBand, setPriceBand] = useState(seed("priceBand", null));
+  const [hasDelivery, setHasDelivery] = useState(seed("hasDelivery", false));
+  const [openDays, setOpenDays] = useState(seed("openDays", []));
+  const [openTime, setOpenTime] = useState(seedText("openTime", ""));
+  const [closeTime, setCloseTime] = useState(seedText("closeTime", ""));
   // One optional field per channel, kept flat rather than nested so a
   // listing document stays queryable.
-  const [links, setLinks] = useState({});
+  const [links, setLinks] = useState(seed("links", {}));
   // Optional, one item per line. The detail screen has always had these
   // three sections but only the sample postings could fill them — a real
   // employer had no field to write them in, so the sections silently
   // vanished on every genuine job.
-  const [responsibilities, setResponsibilities] = useState("");
-  const [requirements, setRequirements] = useState("");
-  const [jobBenefits, setJobBenefits] = useState("");
-  const [negotiable, setNegotiable] = useState(false);
-  const [company, setCompany] = useState("");
-  const [jobType, setJobType] = useState(null);
-  const [jobCategory, setJobCategory] = useState(null);
-  const [salary, setSalary] = useState("");
+  const [responsibilities, setResponsibilities] = useState(
+    seed("responsibilities", ""),
+  );
+  const [requirements, setRequirements] = useState(seed("requirements", ""));
+  const [jobBenefits, setJobBenefits] = useState(seed("benefits", ""));
+  const [negotiable, setNegotiable] = useState(seed("negotiable", false));
+  const [company, setCompany] = useState(seedText("company", ""));
+  const [jobType, setJobType] = useState(seed("jobType", null));
+  const [jobCategory, setJobCategory] = useState(seed("jobCategory", null));
+  const [salary, setSalary] = useState(seedText("salary", ""));
   // Replaces a yes/no "no experience" checkbox. A band is what the home
   // feed colours by, and a poster who had only a checkbox could say
   // "experience needed" without ever saying how much.
-  const [experienceLevel, setExperienceLevel] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState(
-    initialCategoryKey ?? null,
+  const [experienceLevel, setExperienceLevel] = useState(
+    seed("experienceLevel", null),
   );
-  const [selectedCity, setSelectedCity] = useState(null);
-  const [assets, setAssets] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(
+    seed("categoryKey", initialCategoryKey ?? null),
+  );
+  const [selectedCity, setSelectedCity] = useState(seed("city", null));
+  const [assets, setAssets] = useState(
+    editing?.media?.length
+      ? editing.media.map((item) => ({
+          uri: item.mediaUrl,
+          type: item.mediaType === "video" ? "video" : "image",
+          published: item,
+        }))
+      : [],
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [categorySheetOpen, setCategorySheetOpen] = useState(false);
@@ -472,6 +704,72 @@ export function CreateListingScreen({ route, navigation }) {
   };
 
   const isVehicle = selectedCategory === "vehicles";
+  const isTyreOffer = isVehicle && partType === "tyre";
+  const isBatteryOffer = isVehicle && partType === "battery";
+  const isPartOffer = isTyreOffer || isBatteryOffer;
+
+  // The tyre questions appear for a service when the seller's own words are
+  // about tyres — asked of a hairdresser they would be noise, and guessing
+  // from the category alone is not possible because a garage and a tyre
+  // fitter are both "Services".
+  const mentionsTyres =
+    isServices &&
+    (trade === "tyres" ||
+      matchesGarageSpecialty(`${title} ${description}`, "pneu"));
+
+  // Same rule for batteries: the block appears because the seller's own
+  // words are about batteries, not because we guessed from the category.
+  const mentionsBattery =
+    isServices &&
+    (trade === "battery" ||
+      matchesGarageSpecialty(`${title} ${description}`, "batt"));
+
+  // And the same rule again for electrics. Both trades count: the workshop
+  // with the OBD reader is as often filed under "diagnostic" as under
+  // "électricité", and a listing that says either is describing this work.
+  const mentionsElectric =
+    isServices &&
+    (trade === "electric" ||
+      matchesGarageSpecialty(`${title} ${description}`, "elec") ||
+      matchesGarageSpecialty(`${title} ${description}`, "diag"));
+
+  // And once more for bodywork.
+  const mentionsBodywork =
+    isServices &&
+    (trade === "bodywork" ||
+      matchesGarageSpecialty(`${title} ${description}`, "carro"));
+
+  const tyreSizeValid = isValidTyreSize(tyreWidth, tyreRatio, tyreDiameter);
+
+  // Same three-boxes-one-number problem as the search on the Pneus screen:
+  // each box hands over when it is full, and the last one closes the
+  // keyboard rather than leaving it over the rest of the form.
+  const tyreWidthRef = useRef(null);
+  const tyreRatioRef = useRef(null);
+  const tyreDiameterRef = useRef(null);
+
+  // Same rule backwards: an empty box sends the backspace to the box before
+  // it, and deletes there, so one press does one visible thing.
+  const tyreBackspaceTo = (ref, value, setValue) => (event) => {
+    if (event.nativeEvent.key !== "Backspace") return;
+    if (value.length > 0) return;
+    ref.current?.focus();
+    setValue((prev) => prev.slice(0, -1));
+  };
+
+  const addTyreSize = () => {
+    const parsed = parseTyreSize(tyreSizeDraft);
+    if (!parsed) return;
+    const formatted = formatTyreSize(
+      parsed.width,
+      parsed.ratio,
+      parsed.diameter,
+    );
+    setTyreSizes((prev) =>
+      prev.includes(formatted) ? prev : [...prev, formatted],
+    );
+    setTyreSizeDraft("");
+  };
 
   // Who keeps stock on a park. A private owner does not, so the park picker
   // never appears for them.
@@ -581,6 +879,26 @@ export function CreateListingScreen({ route, navigation }) {
       return;
     }
 
+    // A tyre with no size cannot be matched to a car, so it would sit in
+    // the Vehicles list being scrolled past forever. Refusing it here is
+    // kinder than publishing something that can never be found.
+    if (isTyreOffer && !tyreSizeValid) {
+      Alert.alert(t("sellFormTitle"), t("errorTyreSize"));
+      return;
+    }
+    if (isBatteryOffer && !isValidBatteryCapacity(batteryAh)) {
+      Alert.alert(t("sellFormTitle"), t("errorBatteryCapacity"));
+      return;
+    }
+    if (isBatteryOffer && !isValidCrankingAmps(batteryAmps)) {
+      Alert.alert(t("sellFormTitle"), t("errorBatteryAmps"));
+      return;
+    }
+    if (isPartOffer && !phone.trim()) {
+      Alert.alert(t("sellFormTitle"), t("errorPhoneRequired"));
+      return;
+    }
+
     let numericPrice = 0;
     let numericDutyHours = 0;
     if (isPharmacy) {
@@ -629,7 +947,7 @@ export function CreateListingScreen({ route, navigation }) {
       }
       // No price on a place — the listing carries a band instead.
       numericPrice = 0;
-    } else if (isVehicle) {
+    } else if (isVehicle && !isPartOffer) {
       // A car without a deal, a make or a year cannot be filtered, compared
       // or trusted — those three are the minimum that makes a listing
       // usable. A missing vehicleDeal is worse than incomplete: the browse
@@ -699,6 +1017,29 @@ export function CreateListingScreen({ route, navigation }) {
         Alert.alert(t("sellFormTitle"), t("errorRequiredFields"));
         return;
       }
+      // A trade nobody can reach is not a listing. Restaurants have always
+      // required a number; a plumber or a garage needs one for the same
+      // reason, and without it their card carries a Contacter button that
+      // cannot do anything.
+      if (!phone.trim()) {
+        Alert.alert(t("sellFormTitle"), t("errorPhoneRequired"));
+        return;
+      }
+      // Hours stay optional — plenty would rather say nothing than commit —
+      // but half a pair would publish an "Ouvert" badge built on nothing.
+      // Same rule, and the same words, as the restaurant branch above.
+      const hasAnyServiceHours =
+        openTime.trim() || closeTime.trim() || openDays.length > 0;
+      if (hasAnyServiceHours) {
+        if (
+          !openDays.length ||
+          !normaliseTime(openTime) ||
+          !normaliseTime(closeTime)
+        ) {
+          Alert.alert(t("sellFormTitle"), t("errorOpeningHours"));
+          return;
+        }
+      }
       // "Sur devis" is the one rate with no number behind it yet.
       if (serviceRateNeedsAmount(serviceRateType)) {
         numericPrice = Number(price);
@@ -721,6 +1062,13 @@ export function CreateListingScreen({ route, navigation }) {
       const media = [];
       for (let i = 0; i < assets.length; i += 1) {
         const asset = assets[i];
+        // Already uploaded: carried through untouched, keeping its storage
+        // path so nothing is re-uploaded and nothing is orphaned.
+        if (asset.published) {
+          media.push(asset.published);
+          setProgress((i + 1) / assets.length);
+          continue;
+        }
         const mediaType = asset.type === "video" ? "video" : "image";
         const extension = asset.uri.split(".").pop().split("?")[0];
         const fileName = `${Date.now()}-${i}.${extension}`;
@@ -757,7 +1105,7 @@ export function CreateListingScreen({ route, navigation }) {
       const cover = media[0] ?? null;
       const coordsForCity = cityCoordinates[selectedCity] ?? null;
 
-      await addDoc(collection(firestore, "listings"), {
+      const data = {
         sellerId: user.uid,
         sellerName: sellerProfile?.fullName ?? "",
         // Denormalized like sellerName — lets ProductDetailScreen and
@@ -845,7 +1193,17 @@ export function CreateListingScreen({ route, navigation }) {
         // category is the one selected, so a listing only ever carries the
         // attributes its own form asked for.
         ...(isCommunity ? { communityType } : {}),
-        ...(isServices ? { serviceRateType } : {}),
+        ...(isServices
+          ? {
+              serviceRateType,
+              // Declared by the provider, never derived. A response window
+              // is their own typical, shown as such — not an ETA the app
+              // computed from distance and would be blamed for.
+              responseTime,
+              equipment,
+              coverageZones: coverageZones.trim() || null,
+            }
+          : {}),
         ...(isAgriculture ? { agricultureKind, agricultureUnit } : {}),
         ...(isSports
           ? { sportsKind, sportsSize: sportsSize.trim() || null }
@@ -856,9 +1214,43 @@ export function CreateListingScreen({ route, navigation }) {
         ...(isRestaurant
           ? {
               cuisine,
-              area: area.trim(),
               priceBand,
               hasDelivery,
+            }
+          : {}),
+        // How to reach a trade, and when. Restaurants asked for these from
+        // the start; services did not, which meant a garage could be listed
+        // on the Garages screen with no number to call, no hours, and no
+        // WhatsApp — its "Contacter" button could never work and the "Ouvert
+        // maintenant" filter could never match. Every service is a business
+        // somebody has to reach at a particular time, so the fields belong
+        // to both.
+        ...(isRestaurant || isServices || isPartOffer
+          ? {
+              // Where the business actually is. Restaurants were asked from
+              // the start; a garage was not, so its listing carried a city
+              // and nothing else — and the map on the listing could only
+              // point at the middle of that city.
+              area: area.trim() || null,
+              // Only written when the listing is about tyres; a plumber
+              // never sees these fields and never carries an empty array
+              // that a filter would later have to second-guess.
+              ...(mentionsTyres
+                ? {
+                    tyreServices: tyreServiceKeys,
+                    tyreSizes,
+                    tyreBrands: tyreBrands.trim() || null,
+                  }
+                : {}),
+              ...(mentionsBattery
+                ? { batteryServices: batteryServiceKeys }
+                : {}),
+              ...(mentionsElectric
+                ? { electricServices: electricServiceKeys }
+                : {}),
+              ...(mentionsBodywork
+                ? { bodyworkServices: bodyworkServiceKeys }
+                : {}),
               phone: phone.trim(),
               // Stored normalised so "9h", "9:00" and "09:00" all compare
               // the same way when the directory works out who is open.
@@ -903,7 +1295,49 @@ export function CreateListingScreen({ route, navigation }) {
               amenities,
             }
           : {}),
-        ...(isVehicle
+        ...(isTyreOffer
+          ? {
+              // What makes the Pneus screen able to match this to a car. A
+              // listing without all three numbers is not shown there at
+              // all, which is why the form refuses to publish without them.
+              partType: "tyre",
+              tyreBrand: tyreBrand.trim() || null,
+              tyreModel: tyreModel.trim() || null,
+              tyreWidth: Number(tyreWidth) || null,
+              tyreRatio: Number(tyreRatio) || null,
+              tyreDiameter: Number(tyreDiameter) || null,
+              tyreCondition,
+              // Stamped on the sidewall, so the seller reads it rather than
+              // judging it. Only meaningful on a used tyre.
+              tyreDotYear: tyreCondition === "used" ? tyreDotYear : null,
+              tyreTreadMm:
+                tyreCondition === "used" ? Number(tyreTreadMm) || null : null,
+              tyreStock: Number(tyreStock) || null,
+              tyreFitting,
+            }
+          : {}),
+        ...(isBatteryOffer
+          ? {
+              // Capacity is the search. Everything else here is what a buyer
+              // asks on the phone before driving over: does it fit, is it
+              // guaranteed, do you take the old one.
+              partType: "battery",
+              batteryCategory,
+              batteryBrand: batteryBrand.trim() || null,
+              batteryModel: batteryModel.trim() || null,
+              batteryAh: Number(batteryAh) || null,
+              batteryAmps: batteryNeedsCrankingAmps(batteryCategory)
+                ? Number(batteryAmps) || null
+                : null,
+              batteryTech,
+              batteryTerminal,
+              batteryWarranty,
+              batteryStock: Number(batteryStock) || null,
+              batteryFitting,
+              batteryTradeIn: Number(batteryTradeIn) || null,
+            }
+          : {}),
+        ...(isVehicle && !isPartOffer
           ? {
               vehicleDeal,
               brand,
@@ -944,7 +1378,73 @@ export function CreateListingScreen({ route, navigation }) {
         popular: false,
         status: "pending",
         createdAt: serverTimestamp(),
-      });
+      };
+
+      // Read by the success alert below, which sits outside this branch.
+      let backToReview = false;
+
+      if (editing) {
+        // What an edit must never rewrite. Identity and provenance belong to
+        // the original post; `status` is left alone so correcting a typo
+        // does not throw an approved listing back into the queue; and
+        // `isPromoted` is dropped because it comes from the route params of
+        // whoever opened the form — carrying it in would silently unpromote
+        // a paid listing the moment its owner fixed a word.
+        const {
+          sellerId: _sellerId,
+          sellerName: _sellerName,
+          sellerMemberSince: _memberSince,
+          sellerPhotoUrl: _photo,
+          status: _status,
+          createdAt: _createdAt,
+          isPromoted: _promoted,
+          popular: _popular,
+          ...editable
+        } = data;
+        // The price-drop badge, carried over from the old edit screen: a
+        // listing that gets cheaper says so on the browse card, and that
+        // only works if the previous price is captured at the moment it
+        // changes. Losing this would have quietly killed the feature the
+        // first time somebody edited a price here.
+        // A material edit goes back for review. Fixing a phone number or a
+        // closing time does not — sending those to the queue would punish
+        // the corrections we want people to make. What counts as material is
+        // what a moderator actually looked at: the words, the price, the
+        // category, the cover photo and what kind of thing it is.
+        const MATERIAL_FIELDS = [
+          "titleFr",
+          "descriptionFr",
+          "price",
+          "categoryKey",
+          "city",
+          "mediaUrl",
+          "partType",
+        ];
+        const changedMaterially = MATERIAL_FIELDS.some(
+          (field) => (data[field] ?? null) !== (editing[field] ?? null),
+        );
+        // Only an approved listing can fall back: one already pending stays
+        // pending, and a rejected one is not quietly promoted by an edit.
+        backToReview = editing.status === "approved" && changedMaterially;
+
+        const isPriceDrop =
+          Number(editing.price) > 0 &&
+          data.price > 0 &&
+          data.price < editing.price;
+        await updateDoc(doc(firestore, "listings", editing.id), {
+          ...editable,
+          ...(isPriceDrop
+            ? {
+                previousPrice: editing.price,
+                priceDroppedAt: serverTimestamp(),
+              }
+            : {}),
+          ...(backToReview ? { status: "pending" } : {}),
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        await addDoc(collection(firestore, "listings"), data);
+      }
 
       // A verified company's listing is published by the time this alert
       // shows (autoPublishVerifiedCompanyListing), so telling them it's
@@ -953,16 +1453,27 @@ export function CreateListingScreen({ route, navigation }) {
       const publishesImmediately =
         sellerProfile?.accountType === "company" &&
         sellerProfile?.verificationStatus === "verified";
+      // An edit is not a publication: telling a seller their correction is
+      // "awaiting review" would send them looking for a delay that is not
+      // there, since the edit keeps whatever status the listing already had.
       Alert.alert(
         t(
-          publishesImmediately
-            ? "sellSubmitLiveTitle"
-            : "sellSubmitSuccessTitle",
+          editing
+            ? backToReview
+              ? "editSavedReviewTitle"
+              : "editSavedTitle"
+            : publishesImmediately
+              ? "sellSubmitLiveTitle"
+              : "sellSubmitSuccessTitle",
         ),
         t(
-          publishesImmediately
-            ? "sellSubmitLiveMessage"
-            : "sellSubmitSuccessMessage",
+          editing
+            ? backToReview
+              ? "editSavedReviewMessage"
+              : "editSavedMessage"
+            : publishesImmediately
+              ? "sellSubmitLiveMessage"
+              : "sellSubmitSuccessMessage",
         ),
         [{ text: t("continue"), onPress: () => navigation.goBack() }],
       );
@@ -1208,13 +1719,15 @@ export function CreateListingScreen({ route, navigation }) {
   const previewCardWidth = windowWidth - spacing.md * 2;
 
   return (
-    <Flex>
+    <Flex behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Container edges={["top", "left", "right", "bottom"]}>
         <HeaderRow>
           <BackButton onPress={() => navigation.goBack()} hitSlop={8}>
             <Ionicons name="arrow-back" size={20} color={colors.text} />
           </BackButton>
-          <HeaderTitle numberOfLines={1}>{t("sellFormTitle")}</HeaderTitle>
+          <HeaderTitle numberOfLines={1}>
+            {t(editing ? "editFormTitle" : "sellFormTitle")}
+          </HeaderTitle>
           <DraftLabel>{t("sellDraftLabel")}</DraftLabel>
         </HeaderRow>
 
@@ -1304,7 +1817,20 @@ export function CreateListingScreen({ route, navigation }) {
                 size={16}
                 color={EMERALD}
               />
-              <FramingHintText>{t("sellMediaFramingCars")}</FramingHintText>
+              <FramingHintText>
+                {/* On a used tyre the sidewall photo IS the evidence: the
+                    DOT code and any bulge are what a buyer is told to check,
+                    and neither is visible in a photo of the tread. */}
+                {isBatteryOffer
+                  ? t("sellMediaFramingBattery")
+                  : isTyreOffer
+                    ? t(
+                        tyreCondition === "used"
+                          ? "sellMediaFramingTyreUsed"
+                          : "sellMediaFramingTyre",
+                      )
+                    : t("sellMediaFramingCars")}
+              </FramingHintText>
             </FramingHint>
           ) : null}
           {assets.length === 0 ? (
@@ -1377,12 +1903,21 @@ export function CreateListingScreen({ route, navigation }) {
               value={title}
               onChangeText={setTitle}
               placeholder={t(
-                TITLE_HINT_KEYS[selectedCategory] ??
+                TRADE_HINT_KEYS[trade] ??
+                  TITLE_HINT_KEYS[selectedCategory] ??
                   "sellFieldTitlePlaceholder",
               )}
               placeholderTextColor={colors.textMuted}
             />
           </InputRow>
+          {/* The one thing a garage cannot guess: the Garages screen places
+              a provider by the trades their own words name, so "Réparation
+              toutes marques" lists them nowhere in particular. Said here,
+              on the field it applies to, rather than only on the card that
+              sent them — which they may never have seen. */}
+          {TRADE_NOTE_KEYS[trade] ? (
+            <FieldNote>{t(TRADE_NOTE_KEYS[trade])}</FieldNote>
+          ) : null}
 
           <Label>{t("sellFieldCategory")}</Label>
           {presetCategory ? (
@@ -1439,6 +1974,46 @@ export function CreateListingScreen({ route, navigation }) {
             </SelectorRow>
           )}
 
+          {isVehicle ? (
+            <>
+              <Label>{t("sellFieldPartType")}</Label>
+              <PickerGrid>
+                {PART_TYPES.map((option, index, list) => {
+                  const active = partType === option.key;
+                  return (
+                    <PickerCard
+                      key={option.key}
+                      width={getPickerCardWidth(index, list.length)}
+                      full={isPickerCardFull(index, list.length)}
+                      selected={active}
+                      accent={option.color}
+                      tint={sectorTint(option.color, 0.09)}
+                      onPress={() => setPartType(option.key)}
+                    >
+                      <CategoryIconWrap
+                        small
+                        tint={sectorTint(option.color, active ? 0.22 : 0.12)}
+                      >
+                        <Ionicons
+                          name={option.icon}
+                          size={17}
+                          color={option.color}
+                        />
+                      </CategoryIconWrap>
+                      <PickerCardLabel
+                        full={isPickerCardFull(index, list.length)}
+                        selected={active}
+                        numberOfLines={2}
+                      >
+                        {t(option.labelKey)}
+                      </PickerCardLabel>
+                    </PickerCard>
+                  );
+                })}
+              </PickerGrid>
+            </>
+          ) : null}
+
           {isRestaurant ? (
             <>
               <Label>{t("sellFieldCuisine")}</Label>
@@ -1480,22 +2055,6 @@ export function CreateListingScreen({ route, navigation }) {
                     );
                   })}
               </PickerGrid>
-
-              <Label>{t("sellFieldArea")}</Label>
-              <InputRow>
-                <Ionicons
-                  name="navigate-outline"
-                  size={20}
-                  color={colors.textMuted}
-                />
-                <Input
-                  value={area}
-                  onChangeText={setArea}
-                  placeholder={t("sellFieldAreaPlaceholder")}
-                  placeholderTextColor={colors.textMuted}
-                />
-              </InputRow>
-              <FieldNote>{t("sellAreaHint")}</FieldNote>
 
               {/* A band, not a menu price: prices change and a stale figure
                   is worse than an honest range. */}
@@ -1541,6 +2100,36 @@ export function CreateListingScreen({ route, navigation }) {
                 </Checkbox>
                 <NegotiableLabel>{t("sellFieldHasDelivery")}</NegotiableLabel>
               </NegotiableRow>
+            </>
+          ) : null}
+
+          {/* Hours, links and a phone number: asked of restaurants, of
+              services, and of anyone selling tyres. A plumber or a garage is
+              a business somebody has to reach, and asking a restaurant for
+              its number while leaving a mechanic without one was an accident
+              of the form growing restaurant-first. A tyre seller belongs
+              here for the same reason: the Pneus card's first button is
+              "Appeler", and a listing with no number cannot answer it. */}
+          {isRestaurant || isServices || isPartOffer ? (
+            <>
+              {/* Asked of services too now. Without it a garage's listing
+                  knew only its city, so the map could point nowhere better
+                  than the middle of Cotonou. */}
+              <Label>{t("sellFieldArea")}</Label>
+              <InputRow>
+                <Ionicons
+                  name="navigate-outline"
+                  size={20}
+                  color={colors.textMuted}
+                />
+                <Input
+                  value={area}
+                  onChangeText={setArea}
+                  placeholder={t("sellFieldAreaPlaceholder")}
+                  placeholderTextColor={colors.textMuted}
+                />
+              </InputRow>
+              <FieldNote>{t("sellAreaHint")}</FieldNote>
 
               <Label>{t("sellFieldOpenDays")}</Label>
               {/* One even row of seven rather than wrapped pills: the week
@@ -2748,6 +3337,286 @@ export function CreateListingScreen({ route, navigation }) {
               ) : serviceRateType ? (
                 <FieldNote>{t("sellServiceQuoteHint")}</FieldNote>
               ) : null}
+
+              {/* Everything below is optional and only earns its place for a
+                  trade that goes to the customer. It is asked of every
+                  service rather than gated on guessing which ones are
+                  roadside — a hairdresser leaves it blank, and the Dépannage
+                  card shows only the lines that were answered. */}
+              <Label>{t("sellFieldResponseTime")}</Label>
+              <FieldNote>{t("sellResponseTimeHint")}</FieldNote>
+              <PickerGrid>
+                {roadsideResponseTimes.map((option, index) => {
+                  const active = responseTime === option.key;
+                  return (
+                    <PickerCard
+                      key={option.key}
+                      width={getPickerCardWidth(
+                        index,
+                        roadsideResponseTimes.length,
+                      )}
+                      full={isPickerCardFull(
+                        index,
+                        roadsideResponseTimes.length,
+                      )}
+                      selected={active}
+                      onPress={() =>
+                        setResponseTime(active ? null : option.key)
+                      }
+                    >
+                      <PickerCardLabel selected={active}>
+                        {language === "en" ? option.labelEn : option.labelFr}
+                      </PickerCardLabel>
+                    </PickerCard>
+                  );
+                })}
+              </PickerGrid>
+
+              <Label>{t("sellFieldEquipment")}</Label>
+              <FieldNote>{t("sellEquipmentHint")}</FieldNote>
+              <PickerGrid>
+                {roadsideEquipment.map((option, index) => {
+                  const active = equipment.includes(option.key);
+                  return (
+                    <PickerCard
+                      key={option.key}
+                      width={getPickerCardWidth(
+                        index,
+                        roadsideEquipment.length,
+                      )}
+                      full={isPickerCardFull(index, roadsideEquipment.length)}
+                      selected={active}
+                      onPress={() =>
+                        setEquipment((prev) =>
+                          prev.includes(option.key)
+                            ? prev.filter((key) => key !== option.key)
+                            : [...prev, option.key],
+                        )
+                      }
+                    >
+                      <PickerCardLabel selected={active}>
+                        {getEquipmentLabel(option.key, language)}
+                      </PickerCardLabel>
+                    </PickerCard>
+                  );
+                })}
+              </PickerGrid>
+
+              {/* Appears because the seller's own words are about tyres.
+                  Everything here is what the Pneus screen filters on, so a
+                  blank answer is not neutral — it is work that will not be
+                  offered. */}
+              {mentionsTyres ? (
+                <>
+                  <Label>{t("sellFieldTyreServices")}</Label>
+                  <FieldNote>{t("sellTyreServicesHint")}</FieldNote>
+                  <PickerGrid>
+                    {tyreServices.map((option, index) => {
+                      const active = tyreServiceKeys.includes(option.key);
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(index, tyreServices.length)}
+                          full={isPickerCardFull(index, tyreServices.length)}
+                          selected={active}
+                          onPress={() =>
+                            setTyreServiceKeys((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  <Label>{t("sellFieldTyreSizes")}</Label>
+                  <TyreSizeRow>
+                    <TyreSizeField>
+                      <InputRow>
+                        <Input
+                          value={tyreSizeDraft}
+                          onChangeText={setTyreSizeDraft}
+                          onSubmitEditing={addTyreSize}
+                          returnKeyType="done"
+                          placeholder="195/65 R15"
+                          placeholderTextColor={colors.textMuted}
+                        />
+                      </InputRow>
+                    </TyreSizeField>
+                    <AddSizeButton
+                      onPress={addTyreSize}
+                      disabled={!parseTyreSize(tyreSizeDraft)}
+                    >
+                      <AddSizeLabel>{t("sellTyreSizeAdd")}</AddSizeLabel>
+                    </AddSizeButton>
+                  </TyreSizeRow>
+                  {tyreSizes.length ? (
+                    <PickerGrid>
+                      {tyreSizes.map((value) => (
+                        <SizePill
+                          key={value}
+                          onPress={() =>
+                            setTyreSizes((prev) =>
+                              prev.filter((entry) => entry !== value),
+                            )
+                          }
+                        >
+                          <SizePillLabel>{value}</SizePillLabel>
+                          <Ionicons
+                            name="close"
+                            size={13}
+                            color={colors.textMuted}
+                          />
+                        </SizePill>
+                      ))}
+                    </PickerGrid>
+                  ) : null}
+                  <FieldNote>{t("sellTyreSizesHint")}</FieldNote>
+
+                  <Label>{t("sellFieldTyreBrands")}</Label>
+                  <InputRow>
+                    <Input
+                      value={tyreBrands}
+                      onChangeText={setTyreBrands}
+                      placeholder={t("sellFieldTyreBrandsPlaceholder")}
+                      placeholderTextColor={colors.textMuted}
+                    />
+                  </InputRow>
+                </>
+              ) : null}
+
+              {mentionsBattery ? (
+                <>
+                  <Label>{t("sellFieldBatteryServices")}</Label>
+                  <FieldNote>{t("sellBatteryServicesHint")}</FieldNote>
+                  <PickerGrid>
+                    {batteryServices.map((option, index) => {
+                      const active = batteryServiceKeys.includes(option.key);
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            batteryServices.length,
+                          )}
+                          full={isPickerCardFull(index, batteryServices.length)}
+                          selected={active}
+                          onPress={() =>
+                            setBatteryServiceKeys((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+                </>
+              ) : null}
+
+              {mentionsBodywork ? (
+                <>
+                  <Label>{t("sellFieldBodyworkServices")}</Label>
+                  <FieldNote>{t("sellBodyworkServicesHint")}</FieldNote>
+                  <PickerGrid>
+                    {bodyworkServices.map((option, index) => {
+                      const active = bodyworkServiceKeys.includes(option.key);
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            bodyworkServices.length,
+                          )}
+                          full={isPickerCardFull(
+                            index,
+                            bodyworkServices.length,
+                          )}
+                          selected={active}
+                          onPress={() =>
+                            setBodyworkServiceKeys((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+                </>
+              ) : null}
+
+              {mentionsElectric ? (
+                <>
+                  <Label>{t("sellFieldElectricServices")}</Label>
+                  <FieldNote>{t("sellElectricServicesHint")}</FieldNote>
+                  <PickerGrid>
+                    {electricServices.map((option, index) => {
+                      const active = electricServiceKeys.includes(option.key);
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            electricServices.length,
+                          )}
+                          full={isPickerCardFull(
+                            index,
+                            electricServices.length,
+                          )}
+                          selected={active}
+                          onPress={() =>
+                            setElectricServiceKeys((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+                </>
+              ) : null}
+
+              <Label>{t("sellFieldCoverageZones")}</Label>
+              <InputRow>
+                <Input
+                  value={coverageZones}
+                  onChangeText={setCoverageZones}
+                  placeholder={t("sellFieldCoverageZonesPlaceholder")}
+                  placeholderTextColor={colors.textMuted}
+                />
+              </InputRow>
+              <FieldNote>{t("sellCoverageZonesHint")}</FieldNote>
             </>
           ) : isCommunity ? (
             <>
@@ -2795,7 +3664,459 @@ export function CreateListingScreen({ route, navigation }) {
             // suffix (/mois, /nuit, total) — falling through to here as
             // well put a second Prix field on the same form.
             <>
-              {isVehicle ? (
+              {isBatteryOffer ? (
+                <>
+                  <Label>{t("sellFieldBatteryCategory")}</Label>
+                  <PickerGrid>
+                    {batteryCategories.map((option, index, list) => {
+                      const active = batteryCategory === option.key;
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(index, list.length)}
+                          full={isPickerCardFull(index, list.length)}
+                          selected={active}
+                          onPress={() => setBatteryCategory(option.key)}
+                        >
+                          <CategoryIconWrap
+                            small
+                            tint={sectorTint(EMERALD, active ? 0.22 : 0.12)}
+                          >
+                            <Ionicons
+                              name={option.icon}
+                              size={17}
+                              color={EMERALD}
+                            />
+                          </CategoryIconWrap>
+                          <PickerCardLabel
+                            full={isPickerCardFull(index, list.length)}
+                            selected={active}
+                            numberOfLines={2}
+                          >
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  {/* The capacity is the whole search, so it comes first
+                      among the numbers and is the only one that blocks. */}
+                  <Label>{t("sellFieldBatteryAh")}</Label>
+                  <InputRow>
+                    <Input
+                      value={batteryAh}
+                      onChangeText={(value) =>
+                        setBatteryAh(value.replace(/[^0-9]/g, "").slice(0, 3))
+                      }
+                      keyboardType="number-pad"
+                      placeholder="60"
+                      placeholderTextColor={colors.textMuted}
+                    />
+                  </InputRow>
+                  <FieldNote>{t("sellBatteryAhHint")}</FieldNote>
+
+                  {/* A solar cell has no starter to turn, so the amps box
+                      would only ever be filled with an invented number. */}
+                  {batteryNeedsCrankingAmps(batteryCategory) ? (
+                    <>
+                      <Label>{t("sellFieldBatteryAmps")}</Label>
+                      <InputRow>
+                        <Input
+                          value={batteryAmps}
+                          onChangeText={(value) =>
+                            setBatteryAmps(
+                              value.replace(/[^0-9]/g, "").slice(0, 4),
+                            )
+                          }
+                          keyboardType="number-pad"
+                          placeholder="540"
+                          placeholderTextColor={colors.textMuted}
+                        />
+                      </InputRow>
+                      <FieldNote>{t("sellBatteryAmpsHint")}</FieldNote>
+                    </>
+                  ) : null}
+
+                  <Label>{t("sellFieldBatteryBrand")}</Label>
+                  <InputRow>
+                    <Input
+                      value={batteryBrand}
+                      onChangeText={setBatteryBrand}
+                      placeholder={t("sellFieldBatteryBrandPlaceholder")}
+                      placeholderTextColor={colors.textMuted}
+                    />
+                  </InputRow>
+
+                  <Label>{t("sellFieldBatteryModel")}</Label>
+                  <InputRow>
+                    <Input
+                      value={batteryModel}
+                      onChangeText={setBatteryModel}
+                      placeholder={t("sellFieldBatteryModelPlaceholder")}
+                      placeholderTextColor={colors.textMuted}
+                    />
+                  </InputRow>
+
+                  <Label>{t("sellFieldBatteryTech")}</Label>
+                  <PickerGrid>
+                    {batteryTechnologies.map((option, index, list) => {
+                      const active = batteryTech === option.key;
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(index, list.length)}
+                          full={isPickerCardFull(index, list.length)}
+                          selected={active}
+                          onPress={() =>
+                            setBatteryTech(active ? null : option.key)
+                          }
+                        >
+                          <PickerCardLabel selected={active}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  <Label>{t("sellFieldBatteryTerminal")}</Label>
+                  <PickerGrid>
+                    {batteryTerminals.map((option, index, list) => {
+                      const active = batteryTerminal === option.key;
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(index, list.length)}
+                          full={isPickerCardFull(index, list.length)}
+                          selected={active}
+                          onPress={() =>
+                            setBatteryTerminal(active ? null : option.key)
+                          }
+                        >
+                          <PickerCardLabel
+                            full={isPickerCardFull(index, list.length)}
+                            selected={active}
+                            numberOfLines={2}
+                          >
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+                  <FieldNote>{t("sellBatteryTerminalHint")}</FieldNote>
+
+                  <Label>{t("sellFieldBatteryWarranty")}</Label>
+                  <PickerGrid>
+                    {batteryWarranties.map((option, index, list) => {
+                      const active = batteryWarranty === option.key;
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(index, list.length)}
+                          full={isPickerCardFull(index, list.length)}
+                          selected={active}
+                          onPress={() =>
+                            setBatteryWarranty(active ? null : option.key)
+                          }
+                        >
+                          <PickerCardLabel selected={active}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  <Label>{t("sellFieldBatteryFitting")}</Label>
+                  <PickerGrid>
+                    {batteryFittingModes.map((option, index, list) => {
+                      const active = batteryFitting === option.key;
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(index, list.length)}
+                          full={isPickerCardFull(index, list.length)}
+                          selected={active}
+                          onPress={() =>
+                            setBatteryFitting(active ? null : option.key)
+                          }
+                        >
+                          <PickerCardLabel
+                            full={isPickerCardFull(index, list.length)}
+                            selected={active}
+                            numberOfLines={2}
+                          >
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  <Label>{t("sellFieldBatteryStock")}</Label>
+                  <InputRow>
+                    <Input
+                      value={batteryStock}
+                      onChangeText={(value) =>
+                        setBatteryStock(
+                          value.replace(/[^0-9]/g, "").slice(0, 3),
+                        )
+                      }
+                      keyboardType="number-pad"
+                      placeholder="4"
+                      placeholderTextColor={colors.textMuted}
+                    />
+                  </InputRow>
+
+                  {/* An amount, not a promise: "reprise possible" tells a
+                      buyer nothing they can compare. */}
+                  <Label>{t("sellFieldBatteryTradeIn")}</Label>
+                  <InputRow>
+                    <Input
+                      value={batteryTradeIn}
+                      onChangeText={(value) =>
+                        setBatteryTradeIn(
+                          value.replace(/[^0-9]/g, "").slice(0, 7),
+                        )
+                      }
+                      keyboardType="number-pad"
+                      placeholder="8000"
+                      placeholderTextColor={colors.textMuted}
+                    />
+                  </InputRow>
+                  <FieldNote>{t("sellBatteryTradeInHint")}</FieldNote>
+                </>
+              ) : null}
+
+              {isTyreOffer ? (
+                <>
+                  {/* The three numbers, first and on their own line. Every
+                      other field on this form is a nice-to-have next to
+                      this one: a tyre nobody can match to a car is a tyre
+                      nobody will ever call about. */}
+                  <Label>{t("sellFieldTyreSize")}</Label>
+                  <TyreSizeRow>
+                    <TyreSizeField>
+                      <InputRow>
+                        <Input
+                          ref={tyreWidthRef}
+                          value={tyreWidth}
+                          onChangeText={(value) => {
+                            const digits = value
+                              .replace(/[^0-9]/g, "")
+                              .slice(0, 3);
+                            setTyreWidth(digits);
+                            if (digits.length === 3) {
+                              tyreRatioRef.current?.focus();
+                            }
+                          }}
+                          keyboardType="number-pad"
+                          maxLength={3}
+                          returnKeyType="next"
+                          placeholder="195"
+                          placeholderTextColor={colors.textMuted}
+                        />
+                      </InputRow>
+                    </TyreSizeField>
+                    <TyreSizeSeparator>/</TyreSizeSeparator>
+                    <TyreSizeField>
+                      <InputRow>
+                        <Input
+                          ref={tyreRatioRef}
+                          value={tyreRatio}
+                          onChangeText={(value) => {
+                            const digits = value
+                              .replace(/[^0-9]/g, "")
+                              .slice(0, 2);
+                            setTyreRatio(digits);
+                            if (digits.length === 2) {
+                              tyreDiameterRef.current?.focus();
+                            }
+                          }}
+                          onKeyPress={tyreBackspaceTo(
+                            tyreWidthRef,
+                            tyreRatio,
+                            setTyreWidth,
+                          )}
+                          keyboardType="number-pad"
+                          maxLength={2}
+                          returnKeyType="next"
+                          placeholder="65"
+                          placeholderTextColor={colors.textMuted}
+                        />
+                      </InputRow>
+                    </TyreSizeField>
+                    <TyreSizeSeparator>R</TyreSizeSeparator>
+                    <TyreSizeField>
+                      <InputRow>
+                        <Input
+                          ref={tyreDiameterRef}
+                          value={tyreDiameter}
+                          onChangeText={(value) => {
+                            const digits = value
+                              .replace(/[^0-9]/g, "")
+                              .slice(0, 2);
+                            setTyreDiameter(digits);
+                            if (digits.length === 2) Keyboard.dismiss();
+                          }}
+                          onKeyPress={tyreBackspaceTo(
+                            tyreRatioRef,
+                            tyreDiameter,
+                            setTyreRatio,
+                          )}
+                          keyboardType="number-pad"
+                          maxLength={2}
+                          returnKeyType="done"
+                          onSubmitEditing={Keyboard.dismiss}
+                          placeholder="15"
+                          placeholderTextColor={colors.textMuted}
+                        />
+                      </InputRow>
+                    </TyreSizeField>
+                  </TyreSizeRow>
+                  <FieldNote>{t("sellTyreSizeHint")}</FieldNote>
+
+                  <Label>{t("sellFieldTyreCondition")}</Label>
+                  <PickerGrid>
+                    {tyreConditions.map((option, index, list) => {
+                      const active = tyreCondition === option.key;
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(index, list.length)}
+                          full={isPickerCardFull(index, list.length)}
+                          selected={active}
+                          onPress={() => setTyreCondition(option.key)}
+                        >
+                          <PickerCardLabel selected={active}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  {/* Only for a used tyre. A new one's DOT year is the year
+                      it was made and tells a buyer nothing they need. */}
+                  {tyreCondition === "used" ? (
+                    <>
+                      <Label>{t("sellFieldTyreDot")}</Label>
+                      <PickerGrid>
+                        {tyreDotYears().map((option, index, list) => {
+                          const active = tyreDotYear === option;
+                          return (
+                            <PickerCard
+                              key={option}
+                              width={getPickerCardWidth(index, list.length)}
+                              full={isPickerCardFull(index, list.length)}
+                              selected={active}
+                              onPress={() =>
+                                setTyreDotYear(active ? null : option)
+                              }
+                            >
+                              <PickerCardLabel selected={active}>
+                                {option}
+                              </PickerCardLabel>
+                            </PickerCard>
+                          );
+                        })}
+                      </PickerGrid>
+                      <FieldNote>{t("sellTyreDotHint")}</FieldNote>
+
+                      <Label>{t("sellFieldTyreTread")}</Label>
+                      <InputRow>
+                        <Input
+                          value={tyreTreadMm}
+                          onChangeText={(value) =>
+                            setTyreTreadMm(value.replace(/[^0-9.,]/g, ""))
+                          }
+                          keyboardType="decimal-pad"
+                          placeholder="6"
+                          placeholderTextColor={colors.textMuted}
+                        />
+                      </InputRow>
+                    </>
+                  ) : null}
+
+                  <Label>{t("sellFieldTyreBrand")}</Label>
+                  <InputRow>
+                    <Input
+                      value={tyreBrand}
+                      onChangeText={setTyreBrand}
+                      placeholder={t("sellFieldTyreBrandPlaceholder")}
+                      placeholderTextColor={colors.textMuted}
+                    />
+                  </InputRow>
+
+                  <Label>{t("sellFieldTyreModel")}</Label>
+                  <InputRow>
+                    <Input
+                      value={tyreModel}
+                      onChangeText={setTyreModel}
+                      placeholder={t("sellFieldTyreModelPlaceholder")}
+                      placeholderTextColor={colors.textMuted}
+                    />
+                  </InputRow>
+
+                  <Label>{t("sellFieldTyreStock")}</Label>
+                  <InputRow>
+                    <Input
+                      value={tyreStock}
+                      onChangeText={(value) =>
+                        setTyreStock(value.replace(/[^0-9]/g, "").slice(0, 3))
+                      }
+                      keyboardType="number-pad"
+                      placeholder="4"
+                      placeholderTextColor={colors.textMuted}
+                    />
+                  </InputRow>
+
+                  <Label>{t("sellFieldTyreFitting")}</Label>
+                  <PickerGrid>
+                    {tyreFittingModes.map((option, index, list) => {
+                      const active = tyreFitting === option.key;
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(index, list.length)}
+                          full={isPickerCardFull(index, list.length)}
+                          selected={active}
+                          onPress={() =>
+                            setTyreFitting(active ? null : option.key)
+                          }
+                        >
+                          <PickerCardLabel
+                            full={isPickerCardFull(index, list.length)}
+                            selected={active}
+                            numberOfLines={2}
+                          >
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+                  <FieldNote>{t("sellTyreFittingHint")}</FieldNote>
+                </>
+              ) : null}
+
+              {isVehicle && !isTyreOffer ? (
                 <>
                   {/* Asked first, because the answer decides which deals
                       even exist. Previously all five were listed under one
@@ -3335,7 +4656,8 @@ export function CreateListingScreen({ route, navigation }) {
               value={description}
               onChangeText={setDescription}
               placeholder={t(
-                DESC_HINT_KEYS[selectedCategory] ??
+                TRADE_DESC_HINT_KEYS[trade] ??
+                  DESC_HINT_KEYS[selectedCategory] ??
                   "sellFieldDescriptionPlaceholder",
               )}
               placeholderTextColor={colors.textMuted}
@@ -3357,7 +4679,7 @@ export function CreateListingScreen({ route, navigation }) {
             <SubmitLabel>
               {isSubmitting
                 ? `${t("adUploadingLabel")} ${Math.round(progress * 100)}%`
-                : t("sellSubmitButton")}
+                : t(editing ? "editSaveButton" : "sellSubmitButton")}
             </SubmitLabel>
           </SubmitButton>
         </PublishDock>
@@ -3539,7 +4861,11 @@ export function CreateListingScreen({ route, navigation }) {
   );
 }
 
-const Flex = styled.View`
+// The longest form in the app, and until now nothing lifted it: on iOS the
+// keyboard simply covered whichever field was being typed into, from the
+// description downwards. It was already wrapped — the wrapper just was not
+// doing anything.
+const Flex = styled.KeyboardAvoidingView`
   flex: 1;
 `;
 
@@ -3849,6 +5175,53 @@ const FieldNote = styled.Text`
   line-height: 17px;
   color: ${(props) => props.theme.textMuted};
   margin-top: 8px;
+`;
+
+const AddSizeButton = styled(Pressable)`
+  min-height: 54px;
+  padding: 0px 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: ${radius.lg}px;
+  background-color: ${(props) =>
+    props.disabled ? props.theme.surfaceAlt : props.theme.primary};
+`;
+
+const AddSizeLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 13px;
+  color: #ffffff;
+`;
+
+const SizePill = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: ${radius.pill}px;
+  background-color: ${(props) => props.theme.surfaceAlt};
+`;
+
+const SizePillLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 12.5px;
+  color: ${(props) => props.theme.text};
+`;
+
+const TyreSizeRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.sm}px;
+`;
+
+const TyreSizeField = styled.View`
+  flex: 1;
+`;
+
+const TyreSizeSeparator = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 18px;
+  color: ${(props) => props.theme.textMuted};
 `;
 
 const PickerGrid = styled.View`

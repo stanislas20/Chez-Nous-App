@@ -17,7 +17,6 @@ import { CreateListingScreen } from "../screens/CreateListingScreen";
 import { CompanyProfileEditScreen } from "../screens/CompanyProfileEditScreen";
 import { MyListingsScreen } from "../screens/MyListingsScreen";
 import { ParkInventoryScreen } from "../screens/ParkInventoryScreen";
-import { EditListingScreen } from "../screens/EditListingScreen";
 import { SellerInsightsScreen } from "../screens/SellerInsightsScreen";
 import { categories } from "../data/categories";
 
@@ -157,11 +156,6 @@ export function SellStack() {
             name="ParkInventory"
             component={ParkInventoryScreen}
             options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="EditListing"
-            component={EditListingScreen}
-            options={{ title: t("editListingTitle") }}
           />
           <Stack.Screen
             name="SellerInsights"

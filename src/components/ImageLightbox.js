@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal, Pressable, StatusBar, useWindowDimensions } from "react-native";
 import {
   FlatList,
@@ -44,6 +44,7 @@ function ZoomablePage({
   uri,
   width,
   height,
+  zoomed,
   onZoomChange,
   onRequestClose,
   listRef,
@@ -74,11 +75,13 @@ function ZoomablePage({
     // swallow the two-finger touch before this handler sees it.
     .simultaneousWithExternalGesture(listRef)
     .onUpdate((event) => {
+      "worklet";
       // A little give below 1 while the fingers are down, snapped back on
       // release, so pinching in feels elastic rather than stuck.
       scale.value = clamp(savedScale.value * event.scale, 0.85, MAX_SCALE);
     })
     .onEnd(() => {
+      "worklet";
       if (scale.value <= 1.02) {
         resetToFit();
         return;
@@ -87,51 +90,83 @@ function ZoomablePage({
       runOnJS(onZoomChange)(true);
     });
 
-  const pan = Gesture.Pan()
-    .maxPointers(2)
-    .simultaneousWithExternalGesture(listRef)
-    .onUpdate((event) => {
-      // Unzoomed, the only drag that means anything is the downward one
-      // that dismisses, so the photo follows on Y alone and the pager keeps
-      // the horizontal axis.
-      if (savedScale.value <= 1) {
-        translateY.value = Math.max(0, event.translationY);
-        return;
-      }
-      translateX.value = savedX.value + event.translationX;
-      translateY.value = savedY.value + event.translationY;
-    })
-    .onEnd((event) => {
-      if (savedScale.value <= 1) {
-        if (event.translationY > DISMISS_DISTANCE) {
-          runOnJS(onRequestClose)();
+  // Every callback below is marked "worklet" by hand. Reanimated's Babel
+  // plugin only workletizes a gesture chain it recognises literally, and
+  // building this one inside useMemo puts it out of reach — the callbacks
+  // then run on the JS thread, which gesture-handler warns about once per
+  // gesture per render and which makes a pinch lag behind the fingers.
+  //
+  // Rebuilt when the zoom state changes, because the two states want
+  // opposite things from a sideways drag and a gesture's activation
+  // criteria are fixed once it is built.
+  //
+  // Unzoomed, a horizontal drag belongs to the pager and nothing else. It
+  // was not enough to ignore it in onUpdate: declaring the pan simultaneous
+  // with the list means both recognisers claim the same touch, and on iOS
+  // the pan winning it left the scroll view never scrolling — so the only
+  // way to reach the next photo was to close the viewer and reopen it on
+  // another one. failOffsetX makes the pan give the touch up instead of
+  // sharing it, and activeOffsetY keeps the dismiss drag from firing on the
+  // first stray pixel of a swipe.
+  //
+  // Zoomed, the pan needs every direction to move the photo around, and it
+  // can have them: the pager is disabled at that point.
+  const pan = useMemo(() => {
+    const gesture = Gesture.Pan()
+      .maxPointers(2)
+      .simultaneousWithExternalGesture(listRef);
+
+    if (!zoomed) {
+      gesture.activeOffsetY(14).failOffsetX([-12, 12]);
+    }
+
+    return gesture
+      .onUpdate((event) => {
+        "worklet";
+        // Unzoomed, the only drag that means anything is the downward one
+        // that dismisses, so the photo follows on Y alone and the pager keeps
+        // the horizontal axis.
+        if (savedScale.value <= 1) {
+          translateY.value = Math.max(0, event.translationY);
           return;
         }
-        translateY.value = withSpring(0);
-        return;
-      }
-      // Only the part of the photo that overflows the screen can be dragged
-      // into view, so the edges stop where the image ends instead of the
-      // photo flying off and leaving a black frame.
-      const overflowX = ((savedScale.value - 1) * width) / 2;
-      const overflowY = ((savedScale.value - 1) * height) / 2;
-      savedX.value = clamp(
-        savedX.value + event.translationX,
-        -overflowX,
-        overflowX,
-      );
-      savedY.value = clamp(
-        savedY.value + event.translationY,
-        -overflowY,
-        overflowY,
-      );
-      translateX.value = withSpring(savedX.value);
-      translateY.value = withSpring(savedY.value);
-    });
+        translateX.value = savedX.value + event.translationX;
+        translateY.value = savedY.value + event.translationY;
+      })
+      .onEnd((event) => {
+        "worklet";
+        if (savedScale.value <= 1) {
+          if (event.translationY > DISMISS_DISTANCE) {
+            runOnJS(onRequestClose)();
+            return;
+          }
+          translateY.value = withSpring(0);
+          return;
+        }
+        // Only the part of the photo that overflows the screen can be dragged
+        // into view, so the edges stop where the image ends instead of the
+        // photo flying off and leaving a black frame.
+        const overflowX = ((savedScale.value - 1) * width) / 2;
+        const overflowY = ((savedScale.value - 1) * height) / 2;
+        savedX.value = clamp(
+          savedX.value + event.translationX,
+          -overflowX,
+          overflowX,
+        );
+        savedY.value = clamp(
+          savedY.value + event.translationY,
+          -overflowY,
+          overflowY,
+        );
+        translateX.value = withSpring(savedX.value);
+        translateY.value = withSpring(savedY.value);
+      });
+  }, [zoomed, width, height, listRef, onRequestClose]);
 
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
     .onEnd(() => {
+      "worklet";
       if (savedScale.value > 1) {
         resetToFit();
         return;
@@ -144,7 +179,10 @@ function ZoomablePage({
   // The double tap races the drag gestures so a quick two-tap is never read
   // as a tiny pan; pinch and pan run together, which is what lets you zoom
   // and reposition in one movement.
-  const gesture = Gesture.Race(doubleTap, Gesture.Simultaneous(pinch, pan));
+  const gesture = useMemo(
+    () => Gesture.Race(doubleTap, Gesture.Simultaneous(pinch, pan)),
+    [doubleTap, pinch, pan],
+  );
 
   const imageStyle = useAnimatedStyle(() => ({
     transform: [
@@ -257,6 +295,12 @@ export function ImageLightbox({ visible, media, startIndex = 0, onClose }) {
             onMomentumScrollEnd={(event) =>
               setIndex(Math.round(event.nativeEvent.contentOffset.x / width))
             }
+            /* A slow drag let go without a flick settles without any
+               momentum, so on iOS the counter kept naming the photo that had
+               just gone off screen. */
+            onScrollEndDrag={(event) =>
+              setIndex(Math.round(event.nativeEvent.contentOffset.x / width))
+            }
             renderItem={({ item }) =>
               item.isVideo ? (
                 <VideoPage uri={item.uri} width={width} height={height} />
@@ -265,6 +309,7 @@ export function ImageLightbox({ visible, media, startIndex = 0, onClose }) {
                   uri={item.uri}
                   width={width}
                   height={height}
+                  zoomed={zoomed}
                   onZoomChange={setZoomed}
                   onRequestClose={onClose}
                   listRef={listRef}

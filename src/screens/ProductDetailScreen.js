@@ -17,6 +17,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import MapView, { Marker } from "react-native-maps";
 import {
+  formatBatterySpec,
+  getBatteryFittingLabel,
+  getBatteryTechLabel,
+  getBatteryTerminalLabel,
+  getBatteryWarrantyLabel,
+  tradeInLabel,
+} from "../data/batteries";
+import {
+  formatTyreSize,
+  getTyreConditionLabel,
+  getTyreFittingLabel,
+  TYRE_AGE_WARN_YEARS,
+  tyreAgeYears,
+} from "../data/tyres";
+import {
   addDoc,
   collection,
   doc,
@@ -51,6 +66,11 @@ import {
 } from "../data/realEstate";
 import { categories } from "../data/categories";
 import { openChat } from "../utils/openChat";
+import {
+  contactButtonLabelKey,
+  saleStatusLabelKey,
+  sellerRoleLabelKey,
+} from "../data/saleStatuses";
 import { useFavorites } from "../hooks/useFavorites";
 import { recordRecentlyViewed } from "../hooks/useRecentlyViewed";
 import { useApprovedListings } from "../hooks/useApprovedListings";
@@ -70,12 +90,6 @@ const categoryByKey = categories.reduce((map, category) => {
   map[category.key] = category;
   return map;
 }, {});
-const saleStatusLabelKeys = {
-  available: "saleStatusAvailable",
-  pending: "saleStatusPending",
-  negotiating: "saleStatusNegotiating",
-  sold: "saleStatusSold",
-};
 const saleStatusTint = (theme) => ({
   available: theme.primaryLight,
   pending: theme.accentLight,
@@ -324,6 +338,103 @@ export function ProductDetailScreen({ route, navigation }) {
   const isRestaurant = listing.categoryKey === "restaurants";
   const isRealEstate = listing.categoryKey === "realEstate";
   const isVehicle = listing.categoryKey === "vehicles";
+
+  // A tyre's facts, on the page a buyer lands on from ordinary browsing
+  // rather than from the Pneus screen. Every row is one the seller answered;
+  // an unanswered one is absent rather than shown as "—".
+  const isTyre = listing.partType === "tyre";
+  // A battery's facts, for anyone arriving from ordinary browsing rather
+  // than from the Batterie screen. Same rule as the tyre block: an
+  // unanswered row is absent, never shown as "—".
+  const isBattery = listing.partType === "battery";
+  const batterySpecs = !isBattery
+    ? []
+    : [
+        {
+          key: "capacity",
+          label: t("sellFieldBatteryAh"),
+          value: formatBatterySpec(
+            listing.batteryAh,
+            listing.batteryAmps,
+            language,
+          ),
+        },
+        {
+          key: "tech",
+          label: t("sellFieldBatteryTech"),
+          value: getBatteryTechLabel(listing.batteryTech, language),
+        },
+        {
+          key: "terminal",
+          label: t("sellFieldBatteryTerminal"),
+          value: getBatteryTerminalLabel(listing.batteryTerminal, language),
+        },
+        {
+          key: "warranty",
+          label: t("sellFieldBatteryWarranty"),
+          value: getBatteryWarrantyLabel(listing.batteryWarranty, language),
+        },
+        {
+          key: "fitting",
+          label: t("sellFieldBatteryFitting"),
+          value: getBatteryFittingLabel(listing.batteryFitting, language),
+        },
+        {
+          key: "tradeIn",
+          label: t("sellFieldBatteryTradeIn"),
+          value: tradeInLabel(listing.batteryTradeIn, language),
+        },
+        {
+          key: "stock",
+          label: t("sellFieldBatteryStock"),
+          value: listing.batteryStock ? String(listing.batteryStock) : null,
+        },
+      ].filter((row) => row.value);
+
+  const tyreSpecs = !isTyre
+    ? []
+    : [
+        {
+          key: "size",
+          label: t("sellFieldTyreSize"),
+          value: formatTyreSize(
+            listing.tyreWidth,
+            listing.tyreRatio,
+            listing.tyreDiameter,
+          ),
+        },
+        {
+          key: "condition",
+          label: t("sellFieldTyreCondition"),
+          value: getTyreConditionLabel(listing.tyreCondition, language),
+        },
+        {
+          key: "dot",
+          label: t("sellFieldTyreDot"),
+          value:
+            listing.tyreCondition === "used" && listing.tyreDotYear
+              ? t("tyreDotAge", {
+                  year: String(listing.tyreDotYear),
+                  years: String(tyreAgeYears(listing.tyreDotYear) ?? 0),
+                })
+              : null,
+        },
+        {
+          key: "tread",
+          label: t("sellFieldTyreTread"),
+          value: listing.tyreTreadMm ? `${listing.tyreTreadMm} mm` : null,
+        },
+        {
+          key: "stock",
+          label: t("sellFieldTyreStock"),
+          value: listing.tyreStock ? String(listing.tyreStock) : null,
+        },
+        {
+          key: "fitting",
+          label: t("sellFieldTyreFitting"),
+          value: getTyreFittingLabel(listing.tyreFitting, language),
+        },
+      ].filter((row) => row.value);
   // Reputation belongs beside the seller's name, which is where a buyer
   // decides whether to trust them — not two taps away on a profile they
   // have no particular reason to open.
@@ -335,13 +446,19 @@ export function ProductDetailScreen({ route, navigation }) {
     sellerStats?.photoUrl ?? listing.sellerPhotoUrl ?? null;
   // null when the owner declared no hours — no badge at all rather than a
   // guess that could send someone to a closed door.
-  const restaurantOpen = isRestaurant
+  // Services publish hours, a number and links exactly as restaurants do —
+  // the posting form asks both. Gating these on isRestaurant alone meant a
+  // garage's own opening hours and WhatsApp were collected and then never
+  // shown, so its card promised a fiche that dropped half of what the
+  // provider had filled in.
+  const isTrade = isRestaurant || listing.categoryKey === "services";
+  const restaurantOpen = isTrade
     ? isOpenNow(listing.openDays, listing.openTime, listing.closeTime)
     : null;
-  const whatsappUrl = isRestaurant
+  const whatsappUrl = isTrade
     ? buildLinkUrl("whatsapp", listing.whatsapp)
     : null;
-  const restaurantLinks = isRestaurant
+  const restaurantLinks = isTrade
     ? restaurantLinkKinds
         .filter((kind) => kind.key !== "whatsapp")
         .map((kind) => ({
@@ -429,6 +546,26 @@ export function ProductDetailScreen({ route, navigation }) {
   };
 
   const handleGetDirections = () => {
+    // A business gets searched for by name; a private sale gets the pin.
+    //
+    // No listing is geocoded — every one stores the coordinates of its CITY
+    // — so routing to the pin is turn-by-turn navigation to the middle of
+    // Cotonou. For a fridge that is deliberate and harmless: the map says
+    // "approximatif", you meet the seller somewhere anyway, and their home
+    // address is nobody's business. For a garage it is simply wrong, and a
+    // driver following it ends up nowhere near the workshop.
+    //
+    // A named business with an address can be looked up instead, so Maps
+    // does the work with what the provider actually wrote.
+    if (isTrade) {
+      const query = encodeURIComponent(
+        [title, listing.area, listing.city].filter(Boolean).join(" "),
+      );
+      Linking.openURL(
+        `https://www.google.com/maps/search/?api=1&query=${query}`,
+      );
+      return;
+    }
     const { latitude, longitude } = pinCoords;
     // No origin specified — the native maps app defaults to the user's
     // current location as the starting point.
@@ -577,21 +714,28 @@ export function ProductDetailScreen({ route, navigation }) {
         )}
 
         <Body>
-          {isRestaurant ? (
+          {/* Hours, links and the contact buttons belong to any trade that
+              published them. Only the cuisine and the price band above are
+              restaurant-specific — gating the whole card on isRestaurant
+              meant a garage's own opening hours, TikTok and WhatsApp were
+              collected by the form and then never shown to anyone. */}
+          {isTrade ? (
             <PriceCard>
-              <RestoTopRow>
-                <RestoCuisine>
-                  {getCuisineLabel(listing.cuisine, language)}
-                </RestoCuisine>
-                {listing.priceBand ? (
-                  <RestoBandChip>
-                    <RestoBandLabel>
-                      {getPriceBandSymbol(listing.priceBand)} ·{" "}
-                      {getPriceBandLabel(listing.priceBand, language)}
-                    </RestoBandLabel>
-                  </RestoBandChip>
-                ) : null}
-              </RestoTopRow>
+              {isRestaurant ? (
+                <RestoTopRow>
+                  <RestoCuisine>
+                    {getCuisineLabel(listing.cuisine, language)}
+                  </RestoCuisine>
+                  {listing.priceBand ? (
+                    <RestoBandChip>
+                      <RestoBandLabel>
+                        {getPriceBandSymbol(listing.priceBand)} ·{" "}
+                        {getPriceBandLabel(listing.priceBand, language)}
+                      </RestoBandLabel>
+                    </RestoBandChip>
+                  ) : null}
+                </RestoTopRow>
+              ) : null}
 
               {restaurantOpen != null ? (
                 <DutyRow>
@@ -725,7 +869,7 @@ export function ProductDetailScreen({ route, navigation }) {
               </PriceGroup>
               <SaleStatusPill saleStatus={saleStatus}>
                 <SaleStatusPillLabel saleStatus={saleStatus}>
-                  {t(saleStatusLabelKeys[saleStatus])}
+                  {t(saleStatusLabelKey(listing.categoryKey, saleStatus))}
                 </SaleStatusPillLabel>
               </SaleStatusPill>
             </PriceRow>
@@ -894,7 +1038,9 @@ export function ProductDetailScreen({ route, navigation }) {
 
           {listing.sellerName ? (
             <Section>
-              <SectionTitle>{t("productDetailSellerTitle")}</SectionTitle>
+              <SectionTitle>
+                {t(sellerRoleLabelKey(listing.categoryKey))}
+              </SectionTitle>
               <SellerRow onPress={handleViewSellerProfile}>
                 {/* The seller's own picture when they have set one — the
                     difference between a shop and an anonymous initial. The
@@ -988,7 +1134,7 @@ export function ProductDetailScreen({ route, navigation }) {
                 color={colors.primary}
               />
               <GetDirectionsLabel>
-                {t("getDirectionsButton")}
+                {t(isTrade ? "findOnMapButton" : "getDirectionsButton")}
               </GetDirectionsLabel>
             </GetDirectionsButton>
 
@@ -1008,6 +1154,36 @@ export function ProductDetailScreen({ route, navigation }) {
               <MapHint>{t("mapAdjustLocationHint")}</MapHint>
             ) : null}
           </Section>
+
+          {batterySpecs.length ? (
+            <Section>
+              <SectionTitle>{t("batteryEyebrow")}</SectionTitle>
+              {batterySpecs.map((row) => (
+                <TyreSpecRow key={row.key}>
+                  <TyreSpecKey>{row.label}</TyreSpecKey>
+                  <TyreSpecValue>{row.value}</TyreSpecValue>
+                </TyreSpecRow>
+              ))}
+              <TyreSpecNote>{t("batteryRecycleSafety")}</TyreSpecNote>
+            </Section>
+          ) : null}
+
+          {tyreSpecs.length ? (
+            <Section>
+              <SectionTitle>{t("tyresEyebrow")}</SectionTitle>
+              {tyreSpecs.map((row) => (
+                <TyreSpecRow key={row.key}>
+                  <TyreSpecKey>{row.label}</TyreSpecKey>
+                  <TyreSpecValue>{row.value}</TyreSpecValue>
+                </TyreSpecRow>
+              ))}
+              {listing.tyreCondition === "used" ? (
+                <TyreSpecNote>
+                  {t("tyreUsedSafety", { years: String(TYRE_AGE_WARN_YEARS) })}
+                </TyreSpecNote>
+              ) : null}
+            </Section>
+          ) : null}
 
           <Section>
             <SectionTitle>{t("productDetailDescriptionTitle")}</SectionTitle>
@@ -1125,7 +1301,7 @@ export function ProductDetailScreen({ route, navigation }) {
                   color={colors.textInverse}
                 />
                 <ContactButtonLabel>
-                  {t("productDetailContactButton")}
+                  {t(contactButtonLabelKey(listing.categoryKey))}
                 </ContactButtonLabel>
               </ContactButton>
             </FooterRow>
@@ -1465,6 +1641,38 @@ const MapContainer = styled.View`
   background-color: ${(props) => props.theme.surfaceAlt};
 `;
 
+const TyreSpecRow = styled.View`
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: ${spacing.md}px;
+  padding: 11px 0px;
+  border-top-width: 1px;
+  border-top-color: ${(props) => props.theme.border};
+`;
+
+const TyreSpecKey = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 12.5px;
+  color: ${(props) => props.theme.textMuted};
+  flex-shrink: 1;
+`;
+
+const TyreSpecValue = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 13.5px;
+  color: ${(props) => props.theme.text};
+  text-align: right;
+`;
+
+const TyreSpecNote = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 11.5px;
+  line-height: 17px;
+  color: #8a6415;
+  margin-top: ${spacing.sm}px;
+`;
+
 const ApproxLocationBadge = styled.View`
   position: absolute;
   top: ${spacing.sm}px;
@@ -1516,12 +1724,6 @@ const MapHint = styled.Text`
   ${type.caption}
   color: ${(props) => props.theme.textMuted};
   margin-top: ${spacing.xs}px;
-`;
-
-const Divider = styled.View`
-  height: 1px;
-  background-color: ${(props) => props.theme.border};
-  margin-vertical: ${spacing.lg}px;
 `;
 
 // Every block below the price now has the same anatomy: one heading, one

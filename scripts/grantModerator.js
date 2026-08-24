@@ -36,6 +36,18 @@ admin.initializeApp({ projectId: "benin-marketplace-3eb04" });
 
 const pseudoEmail = (e164) => `${e164.replace("+", "")}@${PSEUDO_EMAIL_DOMAIN}`;
 
+async function writeModeratorRouting() {
+  const page = await admin.auth().listUsers(1000);
+  const uids = page.users
+    .filter((u) => u.customClaims?.moderator === true)
+    .map((u) => u.uid);
+  await admin
+    .firestore()
+    .doc("appConfig/moderators")
+    .set({ uids, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+  return uids;
+}
+
 async function list() {
   const page = await admin.auth().listUsers(1000);
   const moderators = page.users.filter((u) => u.customClaims?.moderator);
@@ -69,6 +81,14 @@ async function apply(phone) {
     ...(user.customClaims || {}),
     moderator: REVOKE ? false : true,
   });
+
+  // The claim authorises; this document routes. Cloud Functions cannot page
+  // through every account on each listing write just to find who to notify,
+  // so the same script that grants the role also keeps the notification list
+  // beside it. If the two ever drift the worst case is a missed or a spare
+  // notification — the claim is still the only thing that decides who may
+  // actually approve anything.
+  await writeModeratorRouting();
 
   console.log(
     `${REVOKE ? "Revoked" : "Granted"} moderator for ${phone} ` +

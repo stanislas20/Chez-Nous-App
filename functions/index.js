@@ -532,6 +532,143 @@ exports.notifyFollowersOfNewListing = onDocumentUpdated(
   },
 );
 
+// Telling the moderator there is something to moderate.
+//
+// Publishing wrote status:"pending" and then told nobody. The only way to
+// learn a listing was waiting was to run --list-pending on a laptop, so a
+// mechanic who posted at nine in the evening was live the next time somebody
+// happened to check. Three listing pushes already existed and all three point
+// away from the moderator: the seller hears when they are approved, followers
+// hear when one goes live.
+//
+// Routed by the moderator role rather than by a named account. The claim is
+// what actually authorises approving, so the notification follows the same
+// list — grant a second moderator and they start hearing about it without
+// anybody remembering to update a config document.
+const MODERATOR_NOTIFY_WINDOW_MS = 10 * 60 * 1000;
+
+async function moderatorPushTokens() {
+  const db = admin.firestore();
+  const snap = await db.doc("appConfig/moderators").get();
+  const uids = snap.exists ? (snap.data().uids ?? []) : [];
+  if (!uids.length) {
+    logger.info("No moderators configured — skipping review notification.");
+    return [];
+  }
+
+  const sellers = await Promise.all(
+    uids.map((uid) => db.doc(`sellers/${uid}`).get()),
+  );
+  return sellers
+    .map((doc) => (doc.exists ? doc.data().pushToken : null))
+    .filter(Boolean);
+}
+
+// A seller correcting three listings in a row should not buzz three times.
+// The count travels in the message, so a suppressed push is not a lost one —
+// the next notification names the whole queue.
+async function shouldNotifyNow(db) {
+  const ref = db.doc("appConfig/moderatorNotifyState");
+  const snap = await ref.get();
+  const lastSentAt = snap.exists ? snap.data().lastSentAt?.toMillis?.() : null;
+  if (lastSentAt && Date.now() - lastSentAt < MODERATOR_NOTIFY_WINDOW_MS) {
+    return false;
+  }
+  await ref.set(
+    { lastSentAt: admin.firestore.FieldValue.serverTimestamp() },
+    { merge: true },
+  );
+  return true;
+}
+
+async function notifyModeratorOfQueue(listing, listingId, isEdit) {
+  const db = admin.firestore();
+
+  const tokens = await moderatorPushTokens();
+  if (!tokens.length) return;
+  if (!(await shouldNotifyNow(db))) {
+    logger.info(`Review push suppressed (within window) for ${listingId}.`);
+    return;
+  }
+
+  // Counted, never guessed: the number in the notification is the number of
+  // documents actually waiting.
+  const pending = await db
+    .collection("listings")
+    .where("status", "==", "pending")
+    .count()
+    .get();
+  const waiting = pending.data().count;
+
+  const title = listing.titleFr || listing.titleEn || "Annonce";
+  const body =
+    waiting > 1
+      ? `${title} · ${waiting} annonces en attente de validation.`
+      : `${title} attend votre validation.`;
+
+  await Promise.all(
+    tokens.map((token) =>
+      admin
+        .messaging()
+        .send({
+          token,
+          notification: {
+            title: isEdit
+              ? "Annonce modifiée à revoir"
+              : "Nouvelle annonce à valider",
+            body,
+          },
+          data: { type: "listingPendingReview", listingId },
+        })
+        .catch((error) =>
+          logger.warn("Review push failed", error?.code ?? error),
+        ),
+    ),
+  );
+}
+
+exports.notifyModeratorOfNewListing = onDocumentCreated(
+  "listings/{listingId}",
+  async (event) => {
+    const listing = event.data?.data();
+    if (listing?.status !== "pending") return;
+    if (!listing.sellerId) return;
+
+    // A verified company's listing is approved moments from now by
+    // autoPublishVerifiedCompanyListing, which runs on this same event.
+    // Checking the same condition here rather than racing it keeps the
+    // moderator from being called to a queue that empties itself.
+    const sellerSnap = await admin
+      .firestore()
+      .doc(`sellers/${listing.sellerId}`)
+      .get();
+    const seller = sellerSnap.exists ? sellerSnap.data() : null;
+    if (
+      seller?.accountType === "company" &&
+      seller?.verificationStatus === "verified"
+    ) {
+      return;
+    }
+
+    await notifyModeratorOfQueue(listing, event.params.listingId, false);
+  },
+);
+
+// A material edit sends an approved listing back to pending, and that was as
+// silent as a new one — arguably worse, because the listing stays visible in
+// its old form until somebody looks.
+exports.notifyModeratorOfEditedListing = onDocumentUpdated(
+  "listings/{listingId}",
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    if (!before || !after) return;
+    if (before.status !== "approved" || after.status !== "pending") return;
+
+    await notifyModeratorOfQueue(after, event.params.listingId, true);
+  },
+);
+
 exports.notifyListingModerated = onDocumentUpdated(
   "listings/{listingId}",
   async (event) => {

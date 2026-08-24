@@ -92,6 +92,27 @@ if (!/request\.auth\.token\.canPost == true/.test(createBlock)) {
   },
 );
 
+// --- moderation is a claim, and a narrow one.
+//
+// The danger with a role that can change a listing is scope creep: the day
+// it can also touch a price, "moderator" has quietly become "can edit
+// anybody's listing". These pin the shape.
+const modBlock = rules.slice(
+  rules.indexOf("Moderation, from inside the app"),
+  rules.indexOf("Lets anyone who can already read an approved listing"),
+);
+if (!/request\.auth\.token\.moderator == true/.test(modBlock)) {
+  fail(
+    "firestore.rules: moderation update does not require the moderator claim",
+  );
+}
+if (!/request\.auth\.uid != resource\.data\.sellerId/.test(modBlock)) {
+  fail("firestore.rules: a moderator can approve their own listing");
+}
+if (!/hasOnly\(\['status', 'approvedAt', 'moderationNote'\]\)/.test(modBlock)) {
+  fail("firestore.rules: moderation is not limited to the status fields");
+}
+
 // Reading must stay open, or the whole point of the app is lost.
 if (!/allow read: if resource\.data\.status == 'approved'/.test(rules)) {
   fail("firestore.rules: approved listings are no longer world-readable");

@@ -122,6 +122,30 @@ service cloud.firestore {
         && request.auth.uid == resource.data.sellerId
         && request.resource.data.status == resource.data.status;
 
+      // Moderation, from inside the app rather than from a laptop.
+      //
+      // Approving used to be possible only through the Admin SDK, which
+      // bypasses these rules entirely — so the moderator was whoever held
+      // the service-account key, a credential that also reads every private
+      // message and cannot be revoked for one person. The `moderator` claim
+      // can be, and is set only by scripts/grantModerator.js.
+      //
+      // The role is narrow on purpose: status, the timestamp that goes with
+      // it, and a reason. A moderator has no business editing a price, a
+      // phone number or a photo, and hasOnly() is what stops the role from
+      // quietly becoming that.
+      //
+      // A moderator may not approve their own listing. It protects nothing
+      // against the owner, who holds the master key regardless — it is here
+      // for the second moderator, where self-approval is the first thing
+      // that goes wrong.
+      allow update: if request.auth != null
+        && request.auth.token.moderator == true
+        && request.auth.uid != resource.data.sellerId
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'approvedAt', 'moderationNote'])
+        && request.resource.data.status in ['approved', 'rejected', 'pending'];
+
       // Lets anyone who can already read an approved listing (including
       // signed-out browsers, per the read rule above) bump its view
       // counter — but ONLY that one field, and only by exactly 1 at a

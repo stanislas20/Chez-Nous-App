@@ -13,9 +13,15 @@ import { useI18n } from "../i18n/I18nContext";
 const EMERALD = "#0B6E4F";
 const GOLD = "#D9A441";
 
+// Reach leads now, and it leads with a globe rather than a map pin.
+//
+// The order used to be post → reach → chat, which put the mechanics of the
+// app before the reason to use it. Since anyone in the world can now hold an
+// account, browse and message, "your shop seen from Paris" is both the
+// strongest thing this page can say and, for the first time, a true one.
 const BENEFIT_ICONS = [
+  "globe-outline",
   "camera-outline",
-  "location-outline",
   "chatbubble-ellipses-outline",
 ];
 
@@ -32,13 +38,13 @@ export function SellGateScreen({ navigation }) {
   const benefits = [
     {
       icon: BENEFIT_ICONS[0],
-      title: t("sellGateBenefit1Title"),
-      copy: t("sellGateBenefit1Copy"),
+      title: t("sellGateBenefit2Title"),
+      copy: t("sellGateBenefit2Copy"),
     },
     {
       icon: BENEFIT_ICONS[1],
-      title: t("sellGateBenefit2Title"),
-      copy: t("sellGateBenefit2Copy"),
+      title: t("sellGateBenefit1Title"),
+      copy: t("sellGateBenefit1Copy"),
     },
     {
       icon: BENEFIT_ICONS[2],
@@ -70,9 +76,7 @@ export function SellGateScreen({ navigation }) {
                 end={{ x: 1, y: 1 }}
               >
                 <StackBadge>
-                  <StackBadgeLabel>
-                    {t("sellGateSampleBadge")}
-                  </StackBadgeLabel>
+                  <StackBadgeLabel>{t("sellGateSampleBadge")}</StackBadgeLabel>
                 </StackBadge>
               </StackImage>
               <StackBody>
@@ -122,21 +126,18 @@ export function SellGateScreen({ navigation }) {
         </StepsRow>
 
         <TrustRow>
-          <Ionicons
-            name="shield-checkmark-outline"
-            size={18}
-            color={EMERALD}
-          />
+          <Ionicons name="shield-checkmark-outline" size={18} color={EMERALD} />
           <TrustText>{t("sellGateTrustText")}</TrustText>
         </TrustRow>
 
         <CtaBlock>
           <PrimaryButton onPress={() => navigation.navigate("AccountType")}>
-            <PrimaryButtonLabel>
-              {t("sellGateSignUpButton")}
-            </PrimaryButtonLabel>
+            <PrimaryButtonLabel>{t("sellGateSignUpButton")}</PrimaryButtonLabel>
           </PrimaryButton>
-          <LoginRow onPress={() => navigation.navigate("SellLogin")} hitSlop={8}>
+          <LoginRow
+            onPress={() => navigation.navigate("SellLogin")}
+            hitSlop={8}
+          >
             <LoginRowText>
               {t("sellGateAlreadySeller")}{" "}
               <LoginLink>{t("sellGateLoginButton")}</LoginLink>

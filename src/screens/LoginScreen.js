@@ -1,28 +1,40 @@
-import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Modal, Platform, Pressable } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import styled from 'styled-components/native';
-import { radius, shadow, spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { fontFamily, type } from '../theme/typography';
-import { useI18n } from '../i18n/I18nContext';
-import { useCountries } from '../hooks/useCountries';
-import { useAuth } from '../auth/AuthContext';
-import { mapAuthErrorToKey } from '../auth/phoneAuth';
-import { LanguageSwitch } from '../components/LanguageSwitch';
-import { closeAccountGate } from '../utils/openAccountGate';
-import { selectionTick } from '../utils/haptics';
+import { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Modal,
+  Platform,
+  Pressable,
+} from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import styled from "styled-components/native";
+import { radius, shadow, spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { fontFamily, type } from "../theme/typography";
+import { useI18n } from "../i18n/I18nContext";
+import { useCountries } from "../hooks/useCountries";
+import { POSTING_COUNTRY } from "../data/countries";
+import { CountryPickerSheet } from "../components/CountryPickerSheet";
+import { useAuth } from "../auth/AuthContext";
+import { isPossibleNationalNumber, mapAuthErrorToKey } from "../auth/phoneAuth";
+import { LanguageSwitch } from "../components/LanguageSwitch";
+import { closeAccountGate } from "../utils/openAccountGate";
+import { selectionTick } from "../utils/haptics";
 
 // Cross-links between sign-up and log-in navigate rather than replace.
 // `replace` drops the screen you came from, so the back arrow afterwards
 // skipped it and landed a step further back than the person expected.
 // `navigate` also reuses an instance already in the stack instead of
 // stacking a second copy, so bouncing between the two cannot pile up.
-const EMERALD = '#0B6E4F';
-const FLAG_GREEN = '#008751';
-const FLAG_YELLOW = '#FCD116';
-const FLAG_RED = '#E8112D';
+const EMERALD = "#0B6E4F";
+const FLAG_GREEN = "#008751";
+const FLAG_YELLOW = "#FCD116";
+const FLAG_RED = "#E8112D";
 
 // Same flag banner the account-type and company sign-up screens open with,
 // so signing in reads as part of that flow rather than a stray form.
@@ -44,21 +56,21 @@ export function LoginScreen({ navigation, route }) {
   const { logIn } = useAuth();
   const countries = useCountries();
 
-  const [phone, setPhone] = useState('');
-  const [countryIdx, setCountryIdx] = useState(0);
+  const [phone, setPhone] = useState("");
+  const [countryCode, setCountryCode] = useState(POSTING_COUNTRY);
   const [countrySheetOpen, setCountrySheetOpen] = useState(false);
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const insets = useSafeAreaInsets();
   // The floor matters on iOS, where this screen was reading a top inset of
   // roughly nothing: 56 clears the notch/Dynamic Island on every current
   // iPhone, and is ignored on any device that reports a real inset.
-  const topInset = Math.max(insets.top, Platform.OS === 'ios' ? 56 : 8);
-  const signUpRoute = route?.params?.signUpRoute ?? 'SellSignUp';
-  const loginRoute = route?.params?.loginRoute ?? 'SellLogin';
+  const topInset = Math.max(insets.top, Platform.OS === "ios" ? 56 : 8);
+  const signUpRoute = route?.params?.signUpRoute ?? "SellSignUp";
+  const loginRoute = route?.params?.loginRoute ?? "SellLogin";
   const originKey = route?.params?.originKey ?? null;
-  const forgotRoute = route?.params?.forgotRoute ?? 'ForgotPassword';
+  const forgotRoute = route?.params?.forgotRoute ?? "ForgotPassword";
 
   // Both screens rely on AuthContext flipping `user` and SellStack swapping
   // its routes — which never happens to the root-stack copies, so they
@@ -76,8 +88,10 @@ export function LoginScreen({ navigation, route }) {
   // the framing and where "create an account" leads; it is deliberately
   // NOT passed to logIn(), because filtering the login by it would either
   // be a lie or leak which numbers are registered as businesses.
-  const [accountType, setAccountType] = useState(route?.params?.accountType ?? 'individual');
-  const isCompany = accountType === 'company';
+  const [accountType, setAccountType] = useState(
+    route?.params?.accountType ?? "individual",
+  );
+  const isCompany = accountType === "company";
 
   // The thumb slides between the two sides instead of jumping. It is the
   // difference between a control that responds and one that simply redraws —
@@ -87,7 +101,8 @@ export function LoginScreen({ navigation, route }) {
   const [segWidth, setSegWidth] = useState(0);
   const thumbX = useRef(new Animated.Value(0)).current;
   const thumbSettled = useRef(false);
-  const thumbWidth = segWidth > 0 ? (segWidth - SEG_PADDING * 2 - SEG_GAP) / 2 : 0;
+  const thumbWidth =
+    segWidth > 0 ? (segWidth - SEG_PADDING * 2 - SEG_GAP) / 2 : 0;
 
   useEffect(() => {
     if (thumbWidth <= 0) return;
@@ -116,15 +131,19 @@ export function LoginScreen({ navigation, route }) {
     setAccountType(next);
   };
 
-  const country = countries[countryIdx];
-  const phoneDigits = phone.replace(/\D/g, '');
-  const isPhoneValid = phoneDigits.length >= 8;
+  const country =
+    countries.find((item) => item.code === countryCode) ?? countries[0];
+  const phoneDigits = phone.replace(/\D/g, "");
+  // Checked against the chosen country's real length rather than a blanket
+  // eight digits, so a dropped digit is caught here instead of coming back
+  // from Firebase as an error code.
+  const isPhoneValid = isPossibleNationalNumber(phoneDigits, country.code);
   const fullPhone = `${country.dial}${phoneDigits}`;
   const canSubmit = isPhoneValid && password.length >= 4;
 
   const handleSubmit = async () => {
     if (!canSubmit) {
-      Alert.alert(t('loginTitle'), t('errorRequiredFields'));
+      Alert.alert(t("loginTitle"), t("errorRequiredFields"));
       return;
     }
 
@@ -132,56 +151,71 @@ export function LoginScreen({ navigation, route }) {
     try {
       await logIn({ phone: fullPhone, password });
     } catch (error) {
-      Alert.alert(t('loginTitle'), t(mapAuthErrorToKey(error)));
+      Alert.alert(t("loginTitle"), t(mapAuthErrorToKey(error)));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Flex behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Container edges={['left', 'right', 'bottom']}>
+    <Flex behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <Container edges={["left", "right", "bottom"]}>
         <HeaderRow topInset={topInset}>
-          <BackLink onPress={() => closeAccountGate(navigation, originKey)} hitSlop={12}>
+          <BackLink
+            onPress={() => closeAccountGate(navigation, originKey)}
+            hitSlop={12}
+          >
             <Ionicons name="chevron-back" size={17} color={colors.text} />
             {/* Labelled "Sell" even when the user arrived from a listing
                 they were reporting, which named the wrong destination. The
                 chevron alone is honest wherever it came from. */}
           </BackLink>
-          <HeaderTitle>{t('loginTitle')}</HeaderTitle>
+          <HeaderTitle>{t("loginTitle")}</HeaderTitle>
           <LanguageSwitch />
         </HeaderRow>
 
         <Content
-          contentContainerStyle={{ padding: spacing.lg, paddingTop: spacing.sm }}
+          contentContainerStyle={{
+            padding: spacing.lg,
+            paddingTop: spacing.sm,
+          }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <FlagEyebrowRow>
             <BeninFlag />
             <FlagEyebrowLabel>
-              {t(isCompany ? 'companySignUpEyebrow' : 'loginEyebrow')}
+              {t(isCompany ? "companySignUpEyebrow" : "loginEyebrow")}
             </FlagEyebrowLabel>
           </FlagEyebrowRow>
           {/* "Welcome back" is wider than "Bon retour" and breaks in two on a
               narrower iPhone. Held to one line and allowed to shrink a little
               instead — the greeting reads worse split than a point smaller. */}
-          <Headline numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
-            {t('loginHeadline')}
+          <Headline
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
+            {t("loginHeadline")}
           </Headline>
           <HeadlineCopy>
-            {t(isCompany ? 'loginHeadlineCopyCompany' : 'loginHeadlineCopy')}
+            {t(isCompany ? "loginHeadlineCopyCompany" : "loginHeadlineCopy")}
           </HeadlineCopy>
 
-          <SegControl onLayout={(event) => setSegWidth(event.nativeEvent.layout.width)}>
+          <SegControl
+            onLayout={(event) => setSegWidth(event.nativeEvent.layout.width)}
+          >
             {thumbWidth > 0 ? (
               <SegThumb
-                style={{ width: thumbWidth, transform: [{ translateX: thumbX }] }}
+                style={{
+                  width: thumbWidth,
+                  transform: [{ translateX: thumbX }],
+                }}
               />
             ) : null}
             <SegOption
               selected={!isCompany}
-              onPress={() => chooseAccountType('individual')}
+              onPress={() => chooseAccountType("individual")}
               accessibilityRole="button"
               accessibilityState={{ selected: !isCompany }}
             >
@@ -192,11 +226,13 @@ export function LoginScreen({ navigation, route }) {
                   color={!isCompany ? EMERALD : colors.textMuted}
                 />
               </SegIcon>
-              <SegLabel selected={!isCompany}>{t('accountTypeIndividualTitle')}</SegLabel>
+              <SegLabel selected={!isCompany}>
+                {t("accountTypeIndividualTitle")}
+              </SegLabel>
             </SegOption>
             <SegOption
               selected={isCompany}
-              onPress={() => chooseAccountType('company')}
+              onPress={() => chooseAccountType("company")}
               accessibilityRole="button"
               accessibilityState={{ selected: isCompany }}
             >
@@ -207,41 +243,53 @@ export function LoginScreen({ navigation, route }) {
                   color={isCompany ? EMERALD : colors.textMuted}
                 />
               </SegIcon>
-              <SegLabel selected={isCompany}>{t('accountTypeCompanyTitle')}</SegLabel>
+              <SegLabel selected={isCompany}>
+                {t("accountTypeCompanyTitle")}
+              </SegLabel>
             </SegOption>
           </SegControl>
 
-          <Label>{t('fieldPhone')}</Label>
+          <Label>{t("fieldPhone")}</Label>
           <PhoneFieldRow valid={isPhoneValid}>
-            <CountrySelect onPress={() => setCountrySheetOpen(true)} hitSlop={8}>
+            <CountrySelect
+              onPress={() => setCountrySheetOpen(true)}
+              hitSlop={8}
+            >
               <FlagEmoji>{country.flag}</FlagEmoji>
               <DialCodeText>{country.dial}</DialCodeText>
-              <Ionicons name="chevron-down" size={12} color={colors.textMuted} />
+              <Ionicons
+                name="chevron-down"
+                size={12}
+                color={colors.textMuted}
+              />
             </CountrySelect>
             <FieldDivider />
             <PhoneInput
               value={phone}
               onChangeText={setPhone}
-              placeholder={t('fieldPhonePlaceholder')}
+              placeholder={t("fieldPhonePlaceholder")}
               placeholderTextColor={colors.textMuted}
               keyboardType="phone-pad"
               maxLength={10}
             />
           </PhoneFieldRow>
 
-          <Label>{t('fieldPassword')}</Label>
+          <Label>{t("fieldPassword")}</Label>
           <InputRow>
             <Input
               value={password}
               onChangeText={setPassword}
-              placeholder={t('fieldPasswordPlaceholder')}
+              placeholder={t("fieldPasswordPlaceholder")}
               placeholderTextColor={colors.textMuted}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
             />
-            <Pressable onPress={() => setShowPassword((prev) => !prev)} hitSlop={8}>
+            <Pressable
+              onPress={() => setShowPassword((prev) => !prev)}
+              hitSlop={8}
+            >
               <Ionicons
-                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                name={showPassword ? "eye-off-outline" : "eye-outline"}
                 size={20}
                 color={colors.textMuted}
               />
@@ -249,8 +297,10 @@ export function LoginScreen({ navigation, route }) {
           </InputRow>
 
           <ForgotPasswordRow>
-            <Pressable onPress={() => navigation.navigate(forgotRoute, { loginRoute })}>
-              <FooterLink>{t('forgotPasswordLink')}</FooterLink>
+            <Pressable
+              onPress={() => navigation.navigate(forgotRoute, { loginRoute })}
+            >
+              <FooterLink>{t("forgotPasswordLink")}</FooterLink>
             </Pressable>
           </ForgotPasswordRow>
         </Content>
@@ -260,12 +310,14 @@ export function LoginScreen({ navigation, route }) {
             {isSubmitting ? (
               <ActivityIndicator color={colors.textInverse} />
             ) : (
-              <SubmitLabel>{t('loginButton')}</SubmitLabel>
+              <SubmitLabel>{t("loginButton")}</SubmitLabel>
             )}
           </SubmitButton>
 
           <FooterRow>
-            <FooterText>{t(isCompany ? 'noAccountYetCompany' : 'noAccountYet')} </FooterText>
+            <FooterText>
+              {t(isCompany ? "noAccountYetCompany" : "noAccountYet")}{" "}
+            </FooterText>
             {/* The segmented control above IS the account-type choice, so
                 this carries it straight into sign-up rather than asking
                 again. It must always be passed: navigating to SellSignUp
@@ -282,43 +334,29 @@ export function LoginScreen({ navigation, route }) {
                 })
               }
             >
-              <FooterLink>{t(isCompany ? 'goToSignUpCompany' : 'goToSignUp')}</FooterLink>
+              <FooterLink>
+                {t(isCompany ? "goToSignUpCompany" : "goToSignUp")}
+              </FooterLink>
             </Pressable>
           </FooterRow>
 
           <TrustRow>
-            <Ionicons name="shield-checkmark-outline" size={13} color={colors.textMuted} />
-            <TrustText>{t('loginSecureConnection')}</TrustText>
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={13}
+              color={colors.textMuted}
+            />
+            <TrustText>{t("loginSecureConnection")}</TrustText>
           </TrustRow>
         </CtaDock>
       </Container>
 
-      <Modal
+      <CountryPickerSheet
         visible={countrySheetOpen}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setCountrySheetOpen(false)}
-      >
-        <SheetBackdrop onPress={() => setCountrySheetOpen(false)}>
-          <CountrySheet onStartShouldSetResponder={() => true}>
-            <SheetHandle />
-            {countries.map((item, index) => (
-              <CountryRow
-                key={item.dial}
-                selected={index === countryIdx}
-                onPress={() => {
-                  setCountryIdx(index);
-                  setCountrySheetOpen(false);
-                }}
-              >
-                <FlagEmoji>{item.flag}</FlagEmoji>
-                <CountryName>{item.name}</CountryName>
-                <CountryDial>{item.dial}</CountryDial>
-              </CountryRow>
-            ))}
-          </CountrySheet>
-        </SheetBackdrop>
-      </Modal>
+        selectedCode={countryCode}
+        onSelect={setCountryCode}
+        onClose={() => setCountrySheetOpen(false)}
+      />
     </Flex>
   );
 }
@@ -610,48 +648,6 @@ const TrustRow = styled.View`
 `;
 
 const TrustText = styled.Text`
-  ${type.caption}
-  color: ${(props) => props.theme.textMuted};
-`;
-
-const SheetBackdrop = styled(Pressable)`
-  flex: 1;
-  justify-content: flex-end;
-  background-color: rgba(0, 0, 0, 0.4);
-`;
-
-const CountrySheet = styled.View`
-  background-color: ${(props) => props.theme.surface};
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
-  padding: ${spacing.sm}px 0px ${spacing.xl}px;
-`;
-
-const SheetHandle = styled.View`
-  width: 36px;
-  height: 4px;
-  border-radius: ${radius.pill}px;
-  background-color: ${(props) => props.theme.border};
-  align-self: center;
-  margin-bottom: ${spacing.md}px;
-`;
-
-const CountryRow = styled(Pressable)`
-  flex-direction: row;
-  align-items: center;
-  gap: ${spacing.md}px;
-  padding-horizontal: ${spacing.lg}px;
-  padding-vertical: 13px;
-  background-color: ${(props) => (props.selected ? props.theme.primaryLight : 'transparent')};
-`;
-
-const CountryName = styled.Text`
-  ${type.bodyMedium}
-  color: ${(props) => props.theme.text};
-  flex: 1;
-`;
-
-const CountryDial = styled.Text`
   ${type.caption}
   color: ${(props) => props.theme.textMuted};
 `;

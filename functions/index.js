@@ -24,6 +24,12 @@ const MAX_PASSWORD_LENGTH = 128;
 const AUTH_TIME_MAX_AGE_SECONDS = 5 * 60;
 const E164_RE = /^\+[1-9]\d{6,14}$/;
 
+// The one country whose numbers may publish. Mirrors POSTING_DIAL in
+// src/data/countries.js; both are checked against each other by
+// scripts/check-posting-gate.js, because a disagreement between them would
+// mean the app shows one rule and the server enforces another.
+const POSTING_DIAL = "+229";
+
 function phoneToPseudoEmail(e164Phone) {
   // Mirrors src/auth/phoneAuth.js#phoneToPseudoEmail exactly.
   return `${e164Phone.replace("+", "")}@${PSEUDO_EMAIL_DOMAIN}`;
@@ -105,6 +111,102 @@ exports.resetSellerPassword = onCall(async (request) => {
   }
 
   return { success: true };
+});
+
+// Grants an account the right to publish, from a phone number Firebase
+// verified rather than one somebody typed.
+//
+// Chez-Nous is open to the world to read and to Bénin to write. The client
+// knows that rule too, but a client-side rule stops only the honest: anyone
+// can talk to Firestore with the SDK. So the decision is recorded as a custom
+// claim, which only this function can set, and the Firestore rules read the
+// claim.
+//
+// What makes it worth anything is where the number comes from. The caller
+// presents the ID token minted by the SMS step, and `phone_number` on a
+// verified token is put there by Firebase after a code was delivered to that
+// handset — it is not a field the caller chose. The account blessed is then
+// the one derived from that same number, so verifying one number cannot
+// grant another account anything.
+//
+// The gap this closes is real: before it, sign-up confirmed the code on the
+// device and then threw the result away, so an account could be created for
+// any number at all by calling Firebase directly and skipping the SMS.
+exports.claimPhoneCountry = onCall(async (request) => {
+  const { idToken } = request.data || {};
+
+  if (typeof idToken !== "string" || !idToken) {
+    throw new HttpsError("invalid-argument", "Missing verification token.");
+  }
+
+  let decodedToken;
+  try {
+    decodedToken = await admin.auth().verifyIdToken(idToken);
+  } catch (error) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Invalid or expired verification token.",
+    );
+  }
+
+  // An e-mail/password token would carry whatever address the account was
+  // created with; only a phone sign-in proves a handset answered.
+  if (decodedToken.firebase?.sign_in_provider !== "phone") {
+    throw new HttpsError("permission-denied", "Phone verification required.");
+  }
+
+  const phoneNumber = decodedToken.phone_number;
+  if (!phoneNumber || !E164_RE.test(phoneNumber)) {
+    throw new HttpsError(
+      "permission-denied",
+      "Missing or invalid phone number claim.",
+    );
+  }
+
+  // Same freshness window as the password reset: a token kept from last month
+  // is not evidence that anyone holds the handset today.
+  const authTimeSeconds = decodedToken.auth_time;
+  const nowSeconds = Date.now() / 1000;
+  if (
+    !authTimeSeconds ||
+    nowSeconds - authTimeSeconds > AUTH_TIME_MAX_AGE_SECONDS
+  ) {
+    throw new HttpsError(
+      "deadline-exceeded",
+      "Phone verification expired. Please verify again.",
+    );
+  }
+
+  const pseudoEmail = phoneToPseudoEmail(phoneNumber);
+
+  let userRecord;
+  try {
+    userRecord = await admin.auth().getUserByEmail(pseudoEmail);
+  } catch (error) {
+    if (error.code === "auth/user-not-found") {
+      throw new HttpsError(
+        "not-found",
+        "No account found for this phone number.",
+      );
+    }
+    throw new HttpsError("internal", "Could not look up account.");
+  }
+
+  const canPost = phoneNumber.startsWith(POSTING_DIAL);
+
+  try {
+    await admin.auth().setCustomUserClaims(userRecord.uid, {
+      ...(userRecord.customClaims || {}),
+      canPost,
+      phoneVerified: true,
+    });
+  } catch (error) {
+    throw new HttpsError("internal", "Could not record verification.");
+  }
+
+  // The caller has to refresh its ID token before Firestore sees this — a
+  // claim set now is not in a token minted a minute ago.
+  return { canPost };
 });
 
 // Names the account behind a phone number while it is being typed, so the

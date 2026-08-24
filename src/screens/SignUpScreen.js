@@ -8,7 +8,10 @@ import {
   Pressable,
   TouchableWithoutFeedback,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -19,13 +22,23 @@ import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { useCountries } from "../hooks/useCountries";
+import { POSTING_COUNTRY } from "../data/countries";
+import { CountryPickerSheet } from "../components/CountryPickerSheet";
 import { useAuth } from "../auth/AuthContext";
-import { mapAuthErrorToKey } from "../auth/phoneAuth";
-import { sendOtp, confirmOtp, mapPhoneAuthErrorToKey } from "../auth/phoneVerification";
+import { isPossibleNationalNumber, mapAuthErrorToKey } from "../auth/phoneAuth";
+import {
+  sendOtp,
+  confirmOtp,
+  mapPhoneAuthErrorToKey,
+} from "../auth/phoneVerification";
 import { LanguageSwitch } from "../components/LanguageSwitch";
 import { closeAccountGate } from "../utils/openAccountGate";
 import { cities } from "../data/cities";
-import { companySectors, getCompanySectorLabel, sectorTint } from "../data/companySectors";
+import {
+  companySectors,
+  getCompanySectorLabel,
+  sectorTint,
+} from "../data/companySectors";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -58,7 +71,11 @@ const TOTAL_STEPS_INDIVIDUAL = 3;
 // continuous counter — once a company account clears it, the wizard moves
 // into its own restarted 3-step progress (legal → documents →
 // representative) rather than showing "step 4 of 5".
-const STEP_NUMBER_COMPANY_DETAIL = { companyLegal: 1, companyDocs: 2, companyRep: 3 };
+const STEP_NUMBER_COMPANY_DETAIL = {
+  companyLegal: 1,
+  companyDocs: 2,
+  companyRep: 3,
+};
 const TOTAL_STEPS_COMPANY_DETAIL = 3;
 const COMPANY_DETAIL_STEPS = ["companyLegal", "companyDocs", "companyRep"];
 const COMPANY_STEP_TITLE_KEYS = {
@@ -111,7 +128,6 @@ export function SignUpScreen({ navigation, route }) {
     if (authedUser && originKey) navigation.navigate({ key: originKey });
   }, [authedUser, originKey, navigation]);
 
-
   // A company registers its business first and its sign-in credentials
   // last: the legal identifiers are the point of the account, so the flow
   // opens on them rather than making a business owner type a phone number
@@ -122,7 +138,8 @@ export function SignUpScreen({ navigation, route }) {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [phoneTouched, setPhoneTouched] = useState(false);
-  const [countryIdx, setCountryIdx] = useState(0);
+  const [phoneIdToken, setPhoneIdToken] = useState(null);
+  const [countryCode, setCountryCode] = useState(POSTING_COUNTRY);
   const [countrySheetOpen, setCountrySheetOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -165,7 +182,11 @@ export function SignUpScreen({ navigation, route }) {
   const rccmValid = RCCM_PATTERN.test(rccm.trim());
   const ifuValid = IFU_PATTERN.test(ifu.replace(/\s/g, ""));
   const companyLegalValid =
-    companyName.trim().length > 1 && rccmValid && ifuValid && sectorIdx !== null && !!companyCity;
+    companyName.trim().length > 1 &&
+    rccmValid &&
+    ifuValid &&
+    sectorIdx !== null &&
+    !!companyCity;
 
   const pickVerificationDoc = async (setter) => {
     try {
@@ -182,10 +203,15 @@ export function SignUpScreen({ navigation, route }) {
     }
   };
 
-  const country = countries[countryIdx];
+  const country =
+    countries.find((item) => item.code === countryCode) ?? countries[0];
   const phoneDigits = phone.replace(/\D/g, "");
-  const isPhoneValid = phoneDigits.length >= 8;
-  const showPhoneError = phoneTouched && phoneDigits.length > 0 && !isPhoneValid;
+  // Checked against the chosen country's real length rather than a blanket
+  // eight digits, so a dropped digit is caught here instead of coming back
+  // from Firebase as an error code.
+  const isPhoneValid = isPossibleNationalNumber(phoneDigits, country.code);
+  const showPhoneError =
+    phoneTouched && phoneDigits.length > 0 && !isPhoneValid;
   // Built from the selected country's own dial code rather than
   // phoneAuth.js's hardcoded +229 default — this is what lets sign-up
   // support every listed country instead of just Bénin.
@@ -202,7 +228,9 @@ export function SignUpScreen({ navigation, route }) {
       ? TOTAL_STEPS_COMPANY_DETAIL
       : STEP_NUMBER_INDIVIDUAL[step];
   const progressTotal =
-    isCompanyDetailStep || isCompanyOtp ? TOTAL_STEPS_COMPANY_DETAIL : TOTAL_STEPS_INDIVIDUAL;
+    isCompanyDetailStep || isCompanyOtp
+      ? TOTAL_STEPS_COMPANY_DETAIL
+      : TOTAL_STEPS_INDIVIDUAL;
   // Within the wizard the bar is scaled over four segments — the fourth is
   // the SMS gate — so finishing the representative step leaves the track
   // visibly short of full rather than claiming the account already exists.
@@ -271,13 +299,19 @@ export function SignUpScreen({ navigation, route }) {
 
     setIsVerifyingCode(true);
     try {
-      await confirmOtp(confirmation, otpCode.trim());
+      // Kept, not discarded. This token is the only proof that an SMS
+      // reached this handset, and the account cannot be allowed to publish
+      // without presenting it — see claimPostingRight.
+      const idToken = await confirmOtp(confirmation, otpCode.trim());
+      setPhoneIdToken(idToken);
       // For a company the code is the last thing standing between a
       // completed file and the account, so verifying it submits — there is
       // no further screen to send them to.
       if (isCompany) {
         setIsVerifyingCode(false);
-        await handleCompanySubmit();
+        // Passed directly: setPhoneIdToken above has not been applied to
+        // this render yet, and the company path submits immediately.
+        await handleCompanySubmit(idToken);
         return;
       }
       setStep("details");
@@ -312,7 +346,16 @@ export function SignUpScreen({ navigation, route }) {
 
     setIsSubmitting(true);
     try {
-      await signUp({ fullName: fullName.trim(), phone: fullPhone, password });
+      // The verification token travels with the sign-up. If the server
+      // cannot be told which number was verified, the whole sign-up is
+      // rolled back rather than leaving an account nobody could publish
+      // from and nobody could explain.
+      await signUp({
+        fullName: fullName.trim(),
+        phone: fullPhone,
+        password,
+        phoneIdToken,
+      });
     } catch (error) {
       Alert.alert(t("signUpTitle"), t(mapAuthErrorToKey(error)));
     } finally {
@@ -357,7 +400,10 @@ export function SignUpScreen({ navigation, route }) {
         ? !!rccmDoc && !!ifuDoc
         : companyRepValid && !isSubmitting && !isSendingCode;
 
-  const handleCompanySubmit = async () => {
+  // Takes the token explicitly on the first attempt, because the state
+  // setter has not been applied to the render that calls it. On the retry
+  // path there is no argument, and the stored one is by then correct.
+  const handleCompanySubmit = async (verifiedToken) => {
     if (!repName.trim() || !repRole.trim() || !repIdDoc) {
       Alert.alert(t("signUpTitle"), t("errorRequiredFields"));
       return;
@@ -393,6 +439,7 @@ export function SignUpScreen({ navigation, route }) {
         repRole: repRole.trim(),
         repIdDoc,
         logoAsset,
+        phoneIdToken: verifiedToken ?? phoneIdToken,
       });
     } catch (error) {
       if (error?.code !== "auth/email-already-in-use") {
@@ -457,7 +504,7 @@ export function SignUpScreen({ navigation, route }) {
       ? {
           label: t("companyRetryButton"),
           trust: t("companyRetryTrustText"),
-          onPress: handleCompanySubmit,
+          onPress: () => handleCompanySubmit(),
           enabled: !isSubmitting,
           busy: isSubmitting,
         }
@@ -474,7 +521,10 @@ export function SignUpScreen({ navigation, route }) {
           : step === "companyRep"
             ? t("companySubmitButton")
             : t("companyContinueButton"),
-        trust: step === "companyRep" ? t("companyRepTrustText") : t("companyLegalTrustText"),
+        trust:
+          step === "companyRep"
+            ? t("companyRepTrustText")
+            : t("companyLegalTrustText"),
         onPress: handleCompanyStepNext,
         enabled: companyStepValid,
         busy: isSendingCode,
@@ -519,7 +569,10 @@ export function SignUpScreen({ navigation, route }) {
             />
           </ProgressTrack>
           <ProgressLabel>
-            {t("signUpStepProgress", { step: progressCurrent, total: progressTotal })}
+            {t("signUpStepProgress", {
+              step: progressCurrent,
+              total: progressTotal,
+            })}
           </ProgressLabel>
         </ProgressWrap>
 
@@ -536,16 +589,27 @@ export function SignUpScreen({ navigation, route }) {
                   <HeadlineCopy>{t("signUpPhoneCopy")}</HeadlineCopy>
 
                   <SecureRow>
-                    <Ionicons name="shield-checkmark-outline" size={14} color={EMERALD} />
+                    <Ionicons
+                      name="shield-checkmark-outline"
+                      size={14}
+                      color={EMERALD}
+                    />
                     <SecureText>{t("signUpSecureConnection")}</SecureText>
                   </SecureRow>
 
                   <Label>{t("fieldPhone")}</Label>
                   <PhoneFieldRow valid={isPhoneValid} error={showPhoneError}>
-                    <CountrySelect onPress={() => setCountrySheetOpen(true)} hitSlop={8}>
+                    <CountrySelect
+                      onPress={() => setCountrySheetOpen(true)}
+                      hitSlop={8}
+                    >
                       <FlagEmoji>{country.flag}</FlagEmoji>
                       <DialCodeText>{country.dial}</DialCodeText>
-                      <Ionicons name="chevron-down" size={12} color={colors.textMuted} />
+                      <Ionicons
+                        name="chevron-down"
+                        size={12}
+                        color={colors.textMuted}
+                      />
                     </CountrySelect>
                     <FieldDivider />
                     <PhoneInput
@@ -561,14 +625,23 @@ export function SignUpScreen({ navigation, route }) {
                       maxLength={10}
                     />
                     {isPhoneValid ? (
-                      <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={18}
+                        color={colors.primary}
+                      />
                     ) : null}
                   </PhoneFieldRow>
-                  {showPhoneError ? <ErrorText>{t("errorInvalidPhone")}</ErrorText> : null}
+                  {showPhoneError ? (
+                    <ErrorText>{t("errorInvalidPhone")}</ErrorText>
+                  ) : null}
                 </Content>
 
                 <CtaDock>
-                  <SubmitButton onPress={handleSendCode} disabled={isSendingCode}>
+                  <SubmitButton
+                    onPress={handleSendCode}
+                    disabled={isSendingCode}
+                  >
                     {isSendingCode ? (
                       <SubmitRow>
                         <ActivityIndicator color={colors.textInverse} />
@@ -580,7 +653,11 @@ export function SignUpScreen({ navigation, route }) {
                   </SubmitButton>
 
                   <TrustRow>
-                    <Ionicons name="lock-closed-outline" size={13} color={colors.textMuted} />
+                    <Ionicons
+                      name="lock-closed-outline"
+                      size={13}
+                      color={colors.textMuted}
+                    />
                     <TrustText>{t("signUpPhoneTrustText")}</TrustText>
                   </TrustRow>
 
@@ -609,15 +686,25 @@ export function SignUpScreen({ navigation, route }) {
                   <>
                     <FlagEyebrowRow>
                       <BeninFlag />
-                      <FlagEyebrowLabel>{t("companySignUpEyebrow")}</FlagEyebrowLabel>
+                      <FlagEyebrowLabel>
+                        {t("companySignUpEyebrow")}
+                      </FlagEyebrowLabel>
                     </FlagEyebrowRow>
                     <CompanyHeadline>{t("otpTitle")}</CompanyHeadline>
-                    <CompanyCopy>{t("otpSubtitle", { phone: fullPhone })}</CompanyCopy>
+                    <CompanyCopy>
+                      {t("otpSubtitle", { phone: fullPhone })}
+                    </CompanyCopy>
 
                     {companySubmitFailed ? (
                       <RetryNotice>
-                        <Ionicons name="alert-circle-outline" size={18} color={colors.error} />
-                        <RetryNoticeText>{t("companyRetryNotice")}</RetryNoticeText>
+                        <Ionicons
+                          name="alert-circle-outline"
+                          size={18}
+                          color={colors.error}
+                        />
+                        <RetryNoticeText>
+                          {t("companyRetryNotice")}
+                        </RetryNoticeText>
                       </RetryNotice>
                     ) : (
                       <FieldGroup>
@@ -636,11 +723,17 @@ export function SignUpScreen({ navigation, route }) {
                 ) : (
                   <>
                     <HeaderTitle>{t("otpTitle")}</HeaderTitle>
-                    <OtpSubtitle>{t("otpSubtitle", { phone: fullPhone })}</OtpSubtitle>
+                    <OtpSubtitle>
+                      {t("otpSubtitle", { phone: fullPhone })}
+                    </OtpSubtitle>
 
                     <Label>{t("otpFieldCode")}</Label>
                     <InputRow>
-                      <Ionicons name="keypad-outline" size={20} color={colors.textMuted} />
+                      <Ionicons
+                        name="keypad-outline"
+                        size={20}
+                        color={colors.textMuted}
+                      />
                       <Input
                         value={otpCode}
                         onChangeText={setOtpCode}
@@ -656,7 +749,10 @@ export function SignUpScreen({ navigation, route }) {
                 {/* A company verifies from the docked CTA; only the
                     individual flow keeps its inline button. */}
                 {isCompany ? null : (
-                  <SubmitButton onPress={handleVerifyCode} disabled={isVerifyingCode}>
+                  <SubmitButton
+                    onPress={handleVerifyCode}
+                    disabled={isVerifyingCode}
+                  >
                     {isVerifyingCode ? (
                       <ActivityIndicator color={colors.textInverse} />
                     ) : (
@@ -669,8 +765,13 @@ export function SignUpScreen({ navigation, route }) {
                     what failed was the submission after it. */}
                 {companySubmitFailed ? null : (
                   <FooterRow>
-                    <Pressable onPress={handleSendCode} disabled={resendCooldown > 0}>
-                      <FooterLink style={{ opacity: resendCooldown > 0 ? 0.5 : 1 }}>
+                    <Pressable
+                      onPress={handleSendCode}
+                      disabled={resendCooldown > 0}
+                    >
+                      <FooterLink
+                        style={{ opacity: resendCooldown > 0 ? 0.5 : 1 }}
+                      >
                         {resendCooldown > 0
                           ? t("otpResendCountdown", { seconds: resendCooldown })
                           : t("otpResendButton")}
@@ -693,7 +794,11 @@ export function SignUpScreen({ navigation, route }) {
 
                 <Label>{t("fieldFullName")}</Label>
                 <InputRow>
-                  <Ionicons name="person-outline" size={20} color={colors.textMuted} />
+                  <Ionicons
+                    name="person-outline"
+                    size={20}
+                    color={colors.textMuted}
+                  />
                   <Input
                     value={fullName}
                     onChangeText={setFullName}
@@ -704,7 +809,11 @@ export function SignUpScreen({ navigation, route }) {
 
                 <Label>{t("fieldPassword")}</Label>
                 <InputRow>
-                  <Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} />
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={20}
+                    color={colors.textMuted}
+                  />
                   <Input
                     value={password}
                     onChangeText={setPassword}
@@ -713,7 +822,10 @@ export function SignUpScreen({ navigation, route }) {
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
                   />
-                  <Pressable onPress={() => setShowPassword((prev) => !prev)} hitSlop={8}>
+                  <Pressable
+                    onPress={() => setShowPassword((prev) => !prev)}
+                    hitSlop={8}
+                  >
                     <Ionicons
                       name={showPassword ? "eye-off-outline" : "eye-outline"}
                       size={20}
@@ -724,7 +836,11 @@ export function SignUpScreen({ navigation, route }) {
 
                 <Label>{t("fieldConfirmPassword")}</Label>
                 <InputRow>
-                  <Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} />
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={20}
+                    color={colors.textMuted}
+                  />
                   <Input
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
@@ -733,9 +849,14 @@ export function SignUpScreen({ navigation, route }) {
                     secureTextEntry={!showConfirmPassword}
                     autoCapitalize="none"
                   />
-                  <Pressable onPress={() => setShowConfirmPassword((prev) => !prev)} hitSlop={8}>
+                  <Pressable
+                    onPress={() => setShowConfirmPassword((prev) => !prev)}
+                    hitSlop={8}
+                  >
                     <Ionicons
-                      name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                      name={
+                        showConfirmPassword ? "eye-off-outline" : "eye-outline"
+                      }
                       size={20}
                       color={colors.textMuted}
                     />
@@ -756,9 +877,13 @@ export function SignUpScreen({ navigation, route }) {
               <Content>
                 <FlagEyebrowRow>
                   <BeninFlag />
-                  <FlagEyebrowLabel>{t("companySignUpEyebrow")}</FlagEyebrowLabel>
+                  <FlagEyebrowLabel>
+                    {t("companySignUpEyebrow")}
+                  </FlagEyebrowLabel>
                 </FlagEyebrowRow>
-                <CompanyHeadline>{t(COMPANY_STEP_TITLE_KEYS[step])}</CompanyHeadline>
+                <CompanyHeadline>
+                  {t(COMPANY_STEP_TITLE_KEYS[step])}
+                </CompanyHeadline>
                 <CompanyCopy>{t(COMPANY_STEP_COPY_KEYS[step])}</CompanyCopy>
 
                 {step === "companyLegal" ? (
@@ -768,19 +893,32 @@ export function SignUpScreen({ navigation, route }) {
                         rather than two grey initials. */}
                     <LogoRow onPress={pickLogo}>
                       {logoAsset ? (
-                        <LogoPreview source={{ uri: logoAsset.uri }} resizeMode="cover" />
+                        <LogoPreview
+                          source={{ uri: logoAsset.uri }}
+                          resizeMode="cover"
+                        />
                       ) : (
                         <LogoPlaceholder>
-                          <Ionicons name="image-outline" size={22} color={colors.primary} />
+                          <Ionicons
+                            name="image-outline"
+                            size={22}
+                            color={colors.primary}
+                          />
                         </LogoPlaceholder>
                       )}
                       <LogoTextCol>
                         <LogoTitle>{t("companyFieldLogo")}</LogoTitle>
                         <LogoHint>
-                          {logoAsset ? t("companyLogoChange") : t("companyFieldLogoHint")}
+                          {logoAsset
+                            ? t("companyLogoChange")
+                            : t("companyFieldLogoHint")}
                         </LogoHint>
                       </LogoTextCol>
-                      <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+                      <Ionicons
+                        name="chevron-forward"
+                        size={16}
+                        color={colors.textMuted}
+                      />
                     </LogoRow>
 
                     <FieldGroup>
@@ -828,7 +966,10 @@ export function SignUpScreen({ navigation, route }) {
                             recognisable at a glance instead of collapsing
                             back into plain text. */}
                         {selectedSector ? (
-                          <SectorIconWrap small tint={sectorTint(selectedSector.color, 0.12)}>
+                          <SectorIconWrap
+                            small
+                            tint={sectorTint(selectedSector.color, 0.12)}
+                          >
                             <Ionicons
                               name={selectedSector.icon}
                               size={17}
@@ -839,9 +980,16 @@ export function SignUpScreen({ navigation, route }) {
                         <CompanySelectorText muted={sectorIdx === null}>
                           {sectorIdx === null
                             ? t("companyFieldSectorPlaceholder")
-                            : getCompanySectorLabel(selectedSector.key, language)}
+                            : getCompanySectorLabel(
+                                selectedSector.key,
+                                language,
+                              )}
                         </CompanySelectorText>
-                        <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
+                        <Ionicons
+                          name="chevron-down"
+                          size={16}
+                          color={colors.textMuted}
+                        />
                       </CompanySelector>
                     </FieldGroup>
 
@@ -851,7 +999,11 @@ export function SignUpScreen({ navigation, route }) {
                         <CompanySelectorText muted={!companyCity}>
                           {companyCity || t("companyFieldCityPlaceholder")}
                         </CompanySelectorText>
-                        <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
+                        <Ionicons
+                          name="chevron-down"
+                          size={16}
+                          color={colors.textMuted}
+                        />
                       </CompanySelector>
                     </FieldGroup>
                   </>
@@ -859,8 +1011,15 @@ export function SignUpScreen({ navigation, route }) {
 
                 {step === "companyDocs" ? (
                   <>
-                    <DocRow onPress={() => pickVerificationDoc(setRccmDoc)} added={!!rccmDoc}>
-                      <Ionicons name="document-text-outline" size={20} color={EMERALD} />
+                    <DocRow
+                      onPress={() => pickVerificationDoc(setRccmDoc)}
+                      added={!!rccmDoc}
+                    >
+                      <Ionicons
+                        name="document-text-outline"
+                        size={20}
+                        color={EMERALD}
+                      />
                       <DocLabelCol>
                         <DocName>{t("companyDocRccmLabel")}</DocName>
                         <DocHint numberOfLines={1}>
@@ -869,13 +1028,22 @@ export function SignUpScreen({ navigation, route }) {
                       </DocLabelCol>
                       <DocBadge added={!!rccmDoc}>
                         <DocBadgeLabel added={!!rccmDoc}>
-                          {rccmDoc ? t("companyDocAdded") : t("companyDocAttach")}
+                          {rccmDoc
+                            ? t("companyDocAdded")
+                            : t("companyDocAttach")}
                         </DocBadgeLabel>
                       </DocBadge>
                     </DocRow>
 
-                    <DocRow onPress={() => pickVerificationDoc(setIfuDoc)} added={!!ifuDoc}>
-                      <Ionicons name="document-text-outline" size={20} color={EMERALD} />
+                    <DocRow
+                      onPress={() => pickVerificationDoc(setIfuDoc)}
+                      added={!!ifuDoc}
+                    >
+                      <Ionicons
+                        name="document-text-outline"
+                        size={20}
+                        color={EMERALD}
+                      />
                       <DocLabelCol>
                         <DocName>{t("companyDocIfuLabel")}</DocName>
                         <DocHint numberOfLines={1}>
@@ -884,7 +1052,9 @@ export function SignUpScreen({ navigation, route }) {
                       </DocLabelCol>
                       <DocBadge added={!!ifuDoc}>
                         <DocBadgeLabel added={!!ifuDoc}>
-                          {ifuDoc ? t("companyDocAdded") : t("companyDocAttach")}
+                          {ifuDoc
+                            ? t("companyDocAdded")
+                            : t("companyDocAttach")}
                         </DocBadgeLabel>
                       </DocBadge>
                     </DocRow>
@@ -918,11 +1088,21 @@ export function SignUpScreen({ navigation, route }) {
 
                     <FieldGroup>
                       <FieldLabel>{t("fieldPhone")}</FieldLabel>
-                      <CompanyInputRow valid={isPhoneValid} error={showPhoneError}>
-                        <CountrySelect onPress={() => setCountrySheetOpen(true)} hitSlop={8}>
+                      <CompanyInputRow
+                        valid={isPhoneValid}
+                        error={showPhoneError}
+                      >
+                        <CountrySelect
+                          onPress={() => setCountrySheetOpen(true)}
+                          hitSlop={8}
+                        >
                           <FlagEmoji>{country.flag}</FlagEmoji>
                           <DialCodeText>{country.dial}</DialCodeText>
-                          <Ionicons name="chevron-down" size={12} color={colors.textMuted} />
+                          <Ionicons
+                            name="chevron-down"
+                            size={12}
+                            color={colors.textMuted}
+                          />
                         </CountrySelect>
                         <FieldDivider />
                         <CompanyInputFlex
@@ -938,7 +1118,11 @@ export function SignUpScreen({ navigation, route }) {
                           maxLength={10}
                         />
                         {isPhoneValid ? (
-                          <Ionicons name="checkmark-circle" size={18} color={EMERALD} />
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={18}
+                            color={EMERALD}
+                          />
                         ) : null}
                       </CompanyInputRow>
                       <FieldHint>{t("companyFieldRepPhoneHint")}</FieldHint>
@@ -955,9 +1139,14 @@ export function SignUpScreen({ navigation, route }) {
                           secureTextEntry={!showPassword}
                           autoCapitalize="none"
                         />
-                        <Pressable onPress={() => setShowPassword((prev) => !prev)} hitSlop={8}>
+                        <Pressable
+                          onPress={() => setShowPassword((prev) => !prev)}
+                          hitSlop={8}
+                        >
                           <Ionicons
-                            name={showPassword ? "eye-off-outline" : "eye-outline"}
+                            name={
+                              showPassword ? "eye-off-outline" : "eye-outline"
+                            }
                             size={20}
                             color={colors.textMuted}
                           />
@@ -977,11 +1166,17 @@ export function SignUpScreen({ navigation, route }) {
                           autoCapitalize="none"
                         />
                         <Pressable
-                          onPress={() => setShowConfirmPassword((prev) => !prev)}
+                          onPress={() =>
+                            setShowConfirmPassword((prev) => !prev)
+                          }
                           hitSlop={8}
                         >
                           <Ionicons
-                            name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                            name={
+                              showConfirmPassword
+                                ? "eye-off-outline"
+                                : "eye-outline"
+                            }
                             size={20}
                             color={colors.textMuted}
                           />
@@ -989,7 +1184,10 @@ export function SignUpScreen({ navigation, route }) {
                       </CompanyInputRow>
                     </FieldGroup>
 
-                    <DocRow onPress={() => pickVerificationDoc(setRepIdDoc)} added={!!repIdDoc}>
+                    <DocRow
+                      onPress={() => pickVerificationDoc(setRepIdDoc)}
+                      added={!!repIdDoc}
+                    >
                       <Ionicons name="card-outline" size={20} color={EMERALD} />
                       <DocLabelCol>
                         <DocName>{t("companyDocRepIdLabel")}</DocName>
@@ -999,14 +1197,22 @@ export function SignUpScreen({ navigation, route }) {
                       </DocLabelCol>
                       <DocBadge added={!!repIdDoc}>
                         <DocBadgeLabel added={!!repIdDoc}>
-                          {repIdDoc ? t("companyDocAdded") : t("companyDocAttach")}
+                          {repIdDoc
+                            ? t("companyDocAdded")
+                            : t("companyDocAttach")}
                         </DocBadgeLabel>
                       </DocBadge>
                     </DocRow>
 
                     <ConsentRow onPress={() => setConsent((prev) => !prev)}>
                       <ConsentBox checked={consent}>
-                        {consent ? <Ionicons name="checkmark" size={13} color="#ffffff" /> : null}
+                        {consent ? (
+                          <Ionicons
+                            name="checkmark"
+                            size={13}
+                            color="#ffffff"
+                          />
+                        ) : null}
                       </ConsentBox>
                       <ConsentText>{t("companyConsentText")}</ConsentText>
                     </ConsentRow>
@@ -1019,7 +1225,10 @@ export function SignUpScreen({ navigation, route }) {
 
         {isCompanyDetailStep || isCompanyOtp ? (
           <CompanyDock>
-            <CompanyCta onPress={companyDock.onPress} disabled={!companyDock.enabled}>
+            <CompanyCta
+              onPress={companyDock.onPress}
+              disabled={!companyDock.enabled}
+            >
               {companyDock.busy ? (
                 <ActivityIndicator color={colors.textInverse} />
               ) : (
@@ -1027,39 +1236,23 @@ export function SignUpScreen({ navigation, route }) {
               )}
             </CompanyCta>
             <CompanyTrustRow>
-              <Ionicons name="lock-closed-outline" size={13} color={colors.textMuted} />
+              <Ionicons
+                name="lock-closed-outline"
+                size={13}
+                color={colors.textMuted}
+              />
               <CompanyTrustText>{companyDock.trust}</CompanyTrustText>
             </CompanyTrustRow>
           </CompanyDock>
         ) : null}
       </Container>
 
-      <Modal
+      <CountryPickerSheet
         visible={countrySheetOpen}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setCountrySheetOpen(false)}
-      >
-        <SheetBackdrop onPress={() => setCountrySheetOpen(false)}>
-          <CountrySheet onStartShouldSetResponder={() => true}>
-            <SheetHandle />
-            {countries.map((item, index) => (
-              <CountryRow
-                key={item.dial}
-                selected={index === countryIdx}
-                onPress={() => {
-                  setCountryIdx(index);
-                  setCountrySheetOpen(false);
-                }}
-              >
-                <FlagEmoji>{item.flag}</FlagEmoji>
-                <CountryName>{item.name}</CountryName>
-                <CountryDial>{item.dial}</CountryDial>
-              </CountryRow>
-            ))}
-          </CountrySheet>
-        </SheetBackdrop>
-      </Modal>
+        selectedCode={countryCode}
+        onSelect={setCountryCode}
+        onClose={() => setCountrySheetOpen(false)}
+      />
 
       <Modal
         visible={sectorSheetOpen}
@@ -1068,7 +1261,10 @@ export function SignUpScreen({ navigation, route }) {
         onRequestClose={() => setSectorSheetOpen(false)}
       >
         <SheetBackdrop onPress={() => setSectorSheetOpen(false)}>
-          <CountrySheet onStartShouldSetResponder={() => true} style={{ maxHeight: "70%" }}>
+          <CountrySheet
+            onStartShouldSetResponder={() => true}
+            style={{ maxHeight: "70%" }}
+          >
             <SheetHandle />
             <SheetTitle>{t("companyFieldSector")}</SheetTitle>
             {/* Scrolls for the same reason the city sheet does — the list is
@@ -1087,14 +1283,24 @@ export function SignUpScreen({ navigation, route }) {
                       setSectorSheetOpen(false);
                     }}
                   >
-                    <SectorIconWrap tint={sectorTint(sector.color, selected ? 0.2 : 0.12)}>
-                      <Ionicons name={sector.icon} size={20} color={sector.color} />
+                    <SectorIconWrap
+                      tint={sectorTint(sector.color, selected ? 0.2 : 0.12)}
+                    >
+                      <Ionicons
+                        name={sector.icon}
+                        size={20}
+                        color={sector.color}
+                      />
                     </SectorIconWrap>
                     <SectorLabel selected={selected}>
                       {getCompanySectorLabel(sector.key, language)}
                     </SectorLabel>
                     {selected ? (
-                      <Ionicons name="checkmark-circle" size={21} color={sector.color} />
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={21}
+                        color={sector.color}
+                      />
                     ) : null}
                   </SectorRow>
                 );
@@ -1111,7 +1317,10 @@ export function SignUpScreen({ navigation, route }) {
         onRequestClose={() => setCitySheetOpen(false)}
       >
         <SheetBackdrop onPress={() => setCitySheetOpen(false)}>
-          <CountrySheet onStartShouldSetResponder={() => true} style={{ maxHeight: "70%" }}>
+          <CountrySheet
+            onStartShouldSetResponder={() => true}
+            style={{ maxHeight: "70%" }}
+          >
             <SheetHandle />
             <SheetTitle>{t("companyFieldCity")}</SheetTitle>
             <CitySheetScroll showsVerticalScrollIndicator={false}>
@@ -1126,7 +1335,11 @@ export function SignUpScreen({ navigation, route }) {
                 >
                   <CountryName>{city}</CountryName>
                   {city === companyCity ? (
-                    <Ionicons name="checkmark" size={18} color={colors.primary} />
+                    <Ionicons
+                      name="checkmark"
+                      size={18}
+                      color={colors.primary}
+                    />
                   ) : null}
                 </CountryRow>
               ))}
@@ -1337,7 +1550,11 @@ const PhoneFieldRow = styled.View`
   background-color: ${(props) => props.theme.surface};
   border-width: 1.5px;
   border-color: ${(props) =>
-    props.error ? props.theme.error : props.valid ? props.theme.primary : props.theme.border};
+    props.error
+      ? props.theme.error
+      : props.valid
+        ? props.theme.primary
+        : props.theme.border};
   border-radius: ${radius.lg}px;
   padding-horizontal: ${spacing.md}px;
   min-height: 52px;
@@ -1472,11 +1689,6 @@ const CountryName = styled.Text`
   flex: 1;
 `;
 
-const CountryDial = styled.Text`
-  ${type.caption}
-  color: ${(props) => props.theme.textMuted};
-`;
-
 const SheetTitle = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 15px;
@@ -1573,7 +1785,11 @@ const companyFieldFrame = css`
   height: 54px;
   border-width: 1.5px;
   border-color: ${(props) =>
-    props.error ? props.theme.error : props.valid ? EMERALD : props.theme.border};
+    props.error
+      ? props.theme.error
+      : props.valid
+        ? EMERALD
+        : props.theme.border};
   border-radius: ${radius.lg}px;
   background-color: ${(props) => props.theme.surface};
 `;

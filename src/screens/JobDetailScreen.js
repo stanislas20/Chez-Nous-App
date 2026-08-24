@@ -10,14 +10,24 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { ensureCameraAccess } from "../utils/mediaAccess";
 import * as Print from "expo-print";
-import { addDoc, collection, doc, increment, serverTimestamp, updateDoc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  increment,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 import styled from "styled-components/native";
 import { radius, spacing } from "../theme/colors";
@@ -29,6 +39,8 @@ import { firestore, storage } from "../config/firebase";
 import { useJobFavorites } from "../hooks/useJobFavorites";
 import { useSellerListings } from "../hooks/useSellerListings";
 import { useJobApplications } from "../hooks/useJobApplications";
+import { canPublish } from "../utils/canPublish";
+import { POSTING_DIAL } from "../data/countries";
 import { jobCategories } from "../data/jobCategories";
 import {
   getExperienceAccent,
@@ -73,11 +85,17 @@ export function JobDetailScreen({ navigation, route }) {
   const salary = language === "en" ? job.salaryEn : job.salaryFr;
   const posted = language === "en" ? job.postedEn : job.postedFr;
   const description = language === "en" ? job.descriptionEn : job.descriptionFr;
-  const responsibilities = language === "en" ? job.responsibilitiesEn : job.responsibilitiesFr;
-  const requirements = language === "en" ? job.requirementsEn : job.requirementsFr;
+  const responsibilities =
+    language === "en" ? job.responsibilitiesEn : job.responsibilitiesFr;
+  const requirements =
+    language === "en" ? job.requirementsEn : job.requirementsFr;
   const benefits = language === "en" ? job.benefitsEn : job.benefitsFr;
   const category = jobCategories.find((c) => c.key === job.category);
-  const categoryLabel = category ? (language === "en" ? category.labelEn : category.labelFr) : null;
+  const categoryLabel = category
+    ? language === "en"
+      ? category.labelEn
+      : category.labelFr
+    : null;
   const isFav = favoriteIds.has(job.id);
   const isNew = job.postedDaysAgo < 1;
   // Falls back to the old wording only for legacy postings that recorded
@@ -85,7 +103,8 @@ export function JobDetailScreen({ navigation, route }) {
   // one.
   const experienceKey = getExperienceLevel(job);
   const experienceLabel =
-    getExperienceLabel(experienceKey, language) ?? t("jobDetailExperienceRequired");
+    getExperienceLabel(experienceKey, language) ??
+    t("jobDetailExperienceRequired");
   // Counted from real data either way — the seller's other approved job
   // listings for a real posting, or the static sample dataset for a mock
   // one — never a made-up figure.
@@ -98,7 +117,9 @@ export function JobDetailScreen({ navigation, route }) {
   // candidate has no reason to see (or be able to read, per firestore.rules)
   // another person's application list.
   const ownApplications = useJobApplications(isOwner ? job.sellerId : null);
-  const applicationsForThisJob = (ownApplications ?? []).filter((a) => a.jobId === job.id);
+  const applicationsForThisJob = (ownApplications ?? []).filter(
+    (a) => a.jobId === job.id,
+  );
 
   // One increment per real visit — skip the poster's own views (shouldn't
   // inflate their own count) and anything that isn't a real, persisted
@@ -134,14 +155,19 @@ export function JobDetailScreen({ navigation, route }) {
   // inbox, with the same unread counts, as any other enquiry.
   const handleContact = () => {
     if (!job.isReal || !job.sellerId) {
-      Alert.alert(t("jobDetailContactButton"), t("jobDetailApplySuccessSubtitle"));
+      Alert.alert(
+        t("jobDetailContactButton"),
+        t("jobDetailApplySuccessSubtitle"),
+      );
       return;
     }
     openChat({ listing: job, listingTitle: title, user, navigation, t });
   };
 
   const onShare = () => {
-    Share.share({ message: `${title} — ${job.company} (${job.city})` }).catch(() => {});
+    Share.share({ message: `${title} — ${job.company} (${job.city})` }).catch(
+      () => {},
+    );
   };
 
   // Same "search by name, don't pretend to have a pinned address" pattern
@@ -154,7 +180,21 @@ export function JobDetailScreen({ navigation, route }) {
 
   const openApplySheet = () => {
     if (!user) {
-      Alert.alert(t("jobDetailApplySignInTitle"), t("jobDetailApplySignInMessage"));
+      Alert.alert(
+        t("jobDetailApplySignInTitle"),
+        t("jobDetailApplySignInMessage"),
+      );
+      return;
+    }
+    // Applying writes to the market, so it follows the same rule as
+    // publishing. Said here rather than letting the sheet open onto a
+    // submission the database will refuse — filling in a CV and a covering
+    // message first would make the refusal cost something.
+    if (!canPublish(user)) {
+      Alert.alert(
+        t("postingCountryTitle"),
+        t("jobDetailApplyCountryMessage", { dial: POSTING_DIAL }),
+      );
       return;
     }
     // Deliberately doesn't clear the CV/phone/message draft here — an
@@ -184,7 +224,10 @@ export function JobDetailScreen({ navigation, route }) {
       if (!asset) return;
       setCvAsset(asset);
     } catch {
-      Alert.alert(t("jobDetailCvPickErrorTitle"), t("jobDetailCvPickErrorMessage"));
+      Alert.alert(
+        t("jobDetailCvPickErrorTitle"),
+        t("jobDetailCvPickErrorMessage"),
+      );
     }
   };
 
@@ -210,9 +253,16 @@ export function JobDetailScreen({ navigation, route }) {
     setCvProcessing(true);
     try {
       const pdfUri = await buildCvPdfFromImages(uris);
-      setCvAsset({ uri: pdfUri, name: `CV-${Date.now()}.pdf`, mimeType: "application/pdf" });
+      setCvAsset({
+        uri: pdfUri,
+        name: `CV-${Date.now()}.pdf`,
+        mimeType: "application/pdf",
+      });
     } catch {
-      Alert.alert(t("jobDetailCvPickErrorTitle"), t("jobDetailCvPickErrorMessage"));
+      Alert.alert(
+        t("jobDetailCvPickErrorTitle"),
+        t("jobDetailCvPickErrorMessage"),
+      );
     } finally {
       setCvProcessing(false);
     }
@@ -285,7 +335,10 @@ export function JobDetailScreen({ navigation, route }) {
       let cvFileName = null;
       if (cvAsset) {
         const extension = cvAsset.name?.split(".").pop() || "pdf";
-        const storageRef = ref(storage, `jobApplicationCvs/${user.uid}/${Date.now()}.${extension}`);
+        const storageRef = ref(
+          storage,
+          `jobApplicationCvs/${user.uid}/${Date.now()}.${extension}`,
+        );
         const response = await fetch(cvAsset.uri);
         const blob = await response.blob();
         await new Promise((resolve, reject) => {
@@ -318,7 +371,10 @@ export function JobDetailScreen({ navigation, route }) {
       setApplyPhone("");
       setApplyMessage("");
     } catch {
-      Alert.alert(t("jobDetailApplyErrorTitle"), t("jobDetailApplyErrorMessage"));
+      Alert.alert(
+        t("jobDetailApplyErrorTitle"),
+        t("jobDetailApplyErrorMessage"),
+      );
     } finally {
       setApplySubmitting(false);
     }
@@ -329,13 +385,17 @@ export function JobDetailScreen({ navigation, route }) {
       // Reporting requires an account: firestore.rules pins reporterId to
       // the caller, and a report worth acting on needs someone moderation
       // can come back to.
-      Alert.alert(t("reportSignUpRequiredTitle"), t("reportSignUpRequiredMessage"), [
-        { text: t("cancel"), style: "cancel" },
-        {
-          text: t("signUpButton"),
-          onPress: () => openAccountGate(navigation),
-        },
-      ]);
+      Alert.alert(
+        t("reportSignUpRequiredTitle"),
+        t("reportSignUpRequiredMessage"),
+        [
+          { text: t("cancel"), style: "cancel" },
+          {
+            text: t("signUpButton"),
+            onPress: () => openAccountGate(navigation),
+          },
+        ],
+      );
       return;
     }
     navigation.navigate("ReportListing", {
@@ -365,19 +425,32 @@ export function JobDetailScreen({ navigation, route }) {
         </CircleIconButton>
       </Header>
 
-      <Body showsVerticalScrollIndicator={false} contentContainerStyle={bodyContentStyle}>
+      <Body
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={bodyContentStyle}
+      >
         <HeroRow>
-          <LogoGradient colors={[EMERALD, GOLD]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <LogoGradient
+            colors={[EMERALD, GOLD]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
             <LogoLabel>{job.company.charAt(0)}</LogoLabel>
           </LogoGradient>
           <HeroInfo>
             <HeroTitle>{title}</HeroTitle>
             <HeroCompanyRow>
               <HeroCompanyText>{job.company}</HeroCompanyText>
-              {job.verified ? <Ionicons name="checkmark-circle" size={13} color={EMERALD} /> : null}
+              {job.verified ? (
+                <Ionicons name="checkmark-circle" size={13} color={EMERALD} />
+              ) : null}
             </HeroCompanyRow>
             <HeroMetaRow>
-              <Ionicons name="location-outline" size={11} color={colors.textMuted} />
+              <Ionicons
+                name="location-outline"
+                size={11}
+                color={colors.textMuted}
+              />
               <HeroMetaText>{job.city}</HeroMetaText>
               <HeroMetaText>·</HeroMetaText>
               <HeroMetaText>{posted}</HeroMetaText>
@@ -404,8 +477,13 @@ export function JobDetailScreen({ navigation, route }) {
           ) : null}
           {experienceKey ? (
             <Tag tint={getExperienceTint(experienceKey, colors)}>
-              <ExperienceDot color={getExperienceAccent(experienceKey, colors)} />
-              <TagLabel color={getExperienceAccent(experienceKey, colors)} numberOfLines={1}>
+              <ExperienceDot
+                color={getExperienceAccent(experienceKey, colors)}
+              />
+              <TagLabel
+                color={getExperienceAccent(experienceKey, colors)}
+                numberOfLines={1}
+              >
                 {getExperienceLabel(experienceKey, language)}
               </TagLabel>
             </Tag>
@@ -511,13 +589,19 @@ export function JobDetailScreen({ navigation, route }) {
 
         <SectionTitle>{t("jobDetailAboutCompanySection")}</SectionTitle>
         <CompanyCard>
-          <CompanyLogoGradient colors={[EMERALD, GOLD]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <CompanyLogoGradient
+            colors={[EMERALD, GOLD]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
             <CompanyLogoLabel>{job.company.charAt(0)}</CompanyLogoLabel>
           </CompanyLogoGradient>
           <CompanyInfoCol>
             <CompanyNameRow>
               <CompanyName>{job.company}</CompanyName>
-              {job.verified ? <Ionicons name="checkmark-circle" size={13} color={EMERALD} /> : null}
+              {job.verified ? (
+                <Ionicons name="checkmark-circle" size={13} color={EMERALD} />
+              ) : null}
             </CompanyNameRow>
             <CompanySub>
               {job.city} ·{" "}
@@ -538,7 +622,9 @@ export function JobDetailScreen({ navigation, route }) {
         </MapPreview>
         <DirectionsButton onPress={openInMaps}>
           <Ionicons name="navigate-outline" size={14} color={EMERALD} />
-          <DirectionsButtonLabel>{t("jobDetailViewOnMap")}</DirectionsButtonLabel>
+          <DirectionsButtonLabel>
+            {t("jobDetailViewOnMap")}
+          </DirectionsButtonLabel>
         </DirectionsButton>
 
         <SafetyBox>
@@ -560,11 +646,17 @@ export function JobDetailScreen({ navigation, route }) {
           </OwnerStatItem>
           <OwnerStatDivider />
           <OwnerStatItem>
-            <Ionicons name="mail-open-outline" size={16} color={colors.textMuted} />
+            <Ionicons
+              name="mail-open-outline"
+              size={16}
+              color={colors.textMuted}
+            />
             <OwnerStatValue>{applicationsForThisJob.length}</OwnerStatValue>
             <OwnerStatLabel>{t("jobDetailApplicationsStat")}</OwnerStatLabel>
           </OwnerStatItem>
-          <ViewApplicationsButton onPress={() => navigation.navigate("JobApplications")}>
+          <ViewApplicationsButton
+            onPress={() => navigation.navigate("JobApplications")}
+          >
             <ViewApplicationsButtonLabel>
               {t("jobDetailViewApplications")}
             </ViewApplicationsButtonLabel>
@@ -573,11 +665,15 @@ export function JobDetailScreen({ navigation, route }) {
       ) : (
         <CtaDock style={{ paddingBottom: insets.bottom + spacing.sm }}>
           <ContactButton onPress={handleContact}>
-            <ContactButtonLabel>{t("jobDetailContactButton")}</ContactButtonLabel>
+            <ContactButtonLabel>
+              {t("jobDetailContactButton")}
+            </ContactButtonLabel>
           </ContactButton>
-          <ApplyButton onPress={openApplySheet}>
-            <ApplyButtonLabel>{t("jobDetailApplyButton")}</ApplyButtonLabel>
-          </ApplyButton>
+          {canPublish(user) ? (
+            <ApplyButton onPress={openApplySheet}>
+              <ApplyButtonLabel>{t("jobDetailApplyButton")}</ApplyButtonLabel>
+            </ApplyButton>
+          ) : null}
         </CtaDock>
       )}
 
@@ -602,12 +698,22 @@ export function JobDetailScreen({ navigation, route }) {
                   keyboardShouldPersistTaps="handled"
                   showsVerticalScrollIndicator={false}
                 >
-                  <SheetTitle>{t("jobDetailApplySheetTitle", { title })}</SheetTitle>
+                  <SheetTitle>
+                    {t("jobDetailApplySheetTitle", { title })}
+                  </SheetTitle>
                   <CvRow
-                    onPress={cvAsset || cvProcessing ? undefined : () => setCvSourceSheetOpen(true)}
+                    onPress={
+                      cvAsset || cvProcessing
+                        ? undefined
+                        : () => setCvSourceSheetOpen(true)
+                    }
                   >
                     <Ionicons
-                      name={cvAsset ? "document-text-outline" : "cloud-upload-outline"}
+                      name={
+                        cvAsset
+                          ? "document-text-outline"
+                          : "cloud-upload-outline"
+                      }
                       size={16}
                       color={EMERALD}
                     />
@@ -620,7 +726,11 @@ export function JobDetailScreen({ navigation, route }) {
                     </CvRowLabel>
                     {cvAsset && !cvProcessing ? (
                       <Pressable onPress={() => setCvAsset(null)} hitSlop={8}>
-                        <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+                        <Ionicons
+                          name="close-circle"
+                          size={18}
+                          color={colors.textMuted}
+                        />
                       </Pressable>
                     ) : null}
                   </CvRow>
@@ -648,9 +758,14 @@ export function JobDetailScreen({ navigation, route }) {
                       />
                     </TextareaWrap>
                   </FieldGroup>
-                  <SubmitButton disabled={applyDisabled} onPress={submitApplication}>
+                  <SubmitButton
+                    disabled={applyDisabled}
+                    onPress={submitApplication}
+                  >
                     <SubmitButtonLabel>
-                      {applySubmitting ? t("jobDetailSubmitting") : t("jobDetailSubmitApplication")}
+                      {applySubmitting
+                        ? t("jobDetailSubmitting")
+                        : t("jobDetailSubmitApplication")}
                     </SubmitButtonLabel>
                   </SubmitButton>
                 </ApplyFormScroll>
@@ -663,16 +778,22 @@ export function JobDetailScreen({ navigation, route }) {
                   </SuccessIconRing>
                   <SuccessTitle>
                     {t(
-                      job.isReal ? "jobDetailApplySuccessTitleReal" : "jobDetailApplySuccessTitle",
+                      job.isReal
+                        ? "jobDetailApplySuccessTitleReal"
+                        : "jobDetailApplySuccessTitle",
                     )}
                   </SuccessTitle>
                   <SuccessSub>
                     {job.isReal
-                      ? t("jobDetailApplySuccessSubtitleReal", { company: job.company })
+                      ? t("jobDetailApplySuccessSubtitleReal", {
+                          company: job.company,
+                        })
                       : t("jobDetailApplySuccessSubtitle")}
                   </SuccessSub>
                   <SuccessCloseButton onPress={() => setApplySheetOpen(false)}>
-                    <SubmitButtonLabel>{t("jobDetailApplyCloseButton")}</SubmitButtonLabel>
+                    <SubmitButtonLabel>
+                      {t("jobDetailApplyCloseButton")}
+                    </SubmitButtonLabel>
                   </SuccessCloseButton>
                 </SuccessWrap>
               )}
@@ -699,8 +820,12 @@ export function JobDetailScreen({ navigation, route }) {
                 <Ionicons name="camera-outline" size={18} color={EMERALD} />
               </CvSourceIconWrap>
               <CvSourceTextCol>
-                <CvSourceOptionLabel>{t("jobDetailCvSourceScan")}</CvSourceOptionLabel>
-                <CvSourceOptionSub>{t("jobDetailCvSourceScanSub")}</CvSourceOptionSub>
+                <CvSourceOptionLabel>
+                  {t("jobDetailCvSourceScan")}
+                </CvSourceOptionLabel>
+                <CvSourceOptionSub>
+                  {t("jobDetailCvSourceScanSub")}
+                </CvSourceOptionSub>
               </CvSourceTextCol>
             </CvSourceOption>
             <CvSourceOption onPress={pickCvFromGallery}>
@@ -708,15 +833,23 @@ export function JobDetailScreen({ navigation, route }) {
                 <Ionicons name="images-outline" size={18} color={EMERALD} />
               </CvSourceIconWrap>
               <CvSourceTextCol>
-                <CvSourceOptionLabel>{t("jobDetailCvSourceGallery")}</CvSourceOptionLabel>
+                <CvSourceOptionLabel>
+                  {t("jobDetailCvSourceGallery")}
+                </CvSourceOptionLabel>
               </CvSourceTextCol>
             </CvSourceOption>
             <CvSourceOption onPress={pickCvFile}>
               <CvSourceIconWrap>
-                <Ionicons name="document-attach-outline" size={18} color={EMERALD} />
+                <Ionicons
+                  name="document-attach-outline"
+                  size={18}
+                  color={EMERALD}
+                />
               </CvSourceIconWrap>
               <CvSourceTextCol>
-                <CvSourceOptionLabel>{t("jobDetailCvSourceFile")}</CvSourceOptionLabel>
+                <CvSourceOptionLabel>
+                  {t("jobDetailCvSourceFile")}
+                </CvSourceOptionLabel>
               </CvSourceTextCol>
             </CvSourceOption>
           </CvSourceSheet>
@@ -850,7 +983,8 @@ const Tag = styled.View`
   padding: 7px 13px;
   border-radius: ${radius.pill}px;
   background-color: ${(props) =>
-    props.tint ?? (props.accent ? "rgba(11, 110, 79, 0.1)" : props.theme.surfaceAlt)};
+    props.tint ??
+    (props.accent ? "rgba(11, 110, 79, 0.1)" : props.theme.surfaceAlt)};
 `;
 
 // Carries the feed's green/amber/red onto the one tag it describes, rather

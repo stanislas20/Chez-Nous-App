@@ -1,5 +1,8 @@
 import { Platform, Pressable } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import styled from "styled-components/native";
 import { radius, shadow, spacing } from "../theme/colors";
@@ -16,7 +19,10 @@ const FLAG_GREEN = "#008751";
 const FLAG_YELLOW = "#FCD116";
 const FLAG_RED = "#E8112D";
 
-const scrollContentStyle = { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl };
+const scrollContentStyle = {
+  paddingHorizontal: spacing.lg,
+  paddingBottom: spacing.xl,
+};
 
 function BeninFlag() {
   return (
@@ -34,9 +40,9 @@ export function AccountTypeScreen({ navigation, route }) {
   // Registered in two stacks under different names, so the next route is
   // told to us rather than hardcoded. Defaults keep the Sell-tab copy
   // working unchanged.
-  const signUpRoute = route?.params?.signUpRoute ?? 'SellSignUp';
-  const loginRoute = route?.params?.loginRoute ?? 'SellLogin';
-  const forgotRoute = route?.params?.forgotRoute ?? 'ForgotPassword';
+  const signUpRoute = route?.params?.signUpRoute ?? "SellSignUp";
+  const loginRoute = route?.params?.loginRoute ?? "SellLogin";
+  const forgotRoute = route?.params?.forgotRoute ?? "ForgotPassword";
   const originKey = route?.params?.originKey ?? null;
 
   // Reached two ways: by tapping Vendre (history behind it) or by a jump
@@ -64,7 +70,10 @@ export function AccountTypeScreen({ navigation, route }) {
         <LanguageSwitch />
       </HeaderRow>
 
-      <Scroll contentContainerStyle={scrollContentStyle} showsVerticalScrollIndicator={false}>
+      <Scroll
+        contentContainerStyle={scrollContentStyle}
+        showsVerticalScrollIndicator={false}
+      >
         <CountryRow>
           <BeninFlag />
           <CountryLabel>{t("accountTypeCountryLabel")}</CountryLabel>
@@ -72,13 +81,17 @@ export function AccountTypeScreen({ navigation, route }) {
         <Headline>{t("accountTypeHeadline")}</Headline>
         <Copy>{t("accountTypeCopy")}</Copy>
 
-        <TypeCard onPress={() => navigation.navigate(signUpRoute, {
-              accountType: 'individual',
+        <TypeCard
+          onPress={() =>
+            navigation.navigate(signUpRoute, {
+              accountType: "individual",
               originKey,
               loginRoute,
               signUpRoute,
               forgotRoute,
-            })}>
+            })
+          }
+        >
           <AccentStripe>
             <AccentBand style={{ backgroundColor: FLAG_GREEN }} />
           </AccentStripe>
@@ -92,13 +105,17 @@ export function AccountTypeScreen({ navigation, route }) {
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </TypeCard>
 
-        <TypeCard onPress={() => navigation.navigate(signUpRoute, {
-              accountType: 'company',
+        <TypeCard
+          onPress={() =>
+            navigation.navigate(signUpRoute, {
+              accountType: "company",
               originKey,
               loginRoute,
               signUpRoute,
               forgotRoute,
-            })}>
+            })
+          }
+        >
           <AccentStripe>
             <AccentBand style={{ backgroundColor: FLAG_YELLOW }} />
             <AccentBand style={{ backgroundColor: FLAG_RED }} />
@@ -117,6 +134,26 @@ export function AccountTypeScreen({ navigation, route }) {
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </TypeCard>
 
+        {/* The way back in.
+            This screen already knew the login route — it hands it to both
+            sign-up screens — but never offered it. Anyone who already had an
+            account and tapped Messages, Vendre or a locked action was shown
+            two ways to create a second one and no way to use the first. */}
+        <LoginRow
+          onPress={() =>
+            navigation.navigate(loginRoute, {
+              originKey,
+              loginRoute,
+              signUpRoute,
+              forgotRoute,
+            })
+          }
+          hitSlop={8}
+        >
+          <LoginRowText>{t("accountTypeHaveAccount")}</LoginRowText>
+          <LoginRowAction>{t("accountTypeLogIn")}</LoginRowAction>
+        </LoginRow>
+
         <TrustRow>
           <Ionicons name="shield-checkmark-outline" size={14} color={EMERALD} />
           <TrustText>{t("accountTypeTrustText")}</TrustText>
@@ -125,6 +162,29 @@ export function AccountTypeScreen({ navigation, route }) {
     </Container>
   );
 }
+
+const LoginRow = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 48px;
+  margin-top: ${spacing.md}px;
+  border-radius: 16px;
+  background-color: ${(props) => props.theme.surfaceAlt};
+`;
+
+const LoginRowText = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 13.5px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+const LoginRowAction = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 13.5px;
+  color: ${EMERALD};
+`;
 
 const Container = styled(SafeAreaView)`
   flex: 1;

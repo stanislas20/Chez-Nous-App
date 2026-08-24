@@ -16,9 +16,9 @@ import * as ImagePicker from "expo-image-picker";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { doc, setDoc, updateDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
 import { radius, shadow, spacing } from "../theme/colors";
-import { gridItemWidth } from "../utils/gridWidth";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
@@ -27,6 +27,9 @@ import { useSellerStats } from "../hooks/useSellerStats";
 import { formatCount, statLabelKey } from "../utils/formatCount";
 import { guessContentType } from "../utils/uploadContentType";
 import { useAuth } from "../auth/AuthContext";
+import { useFavorites } from "../hooks/useFavorites";
+import { accountCountry, canPublish } from "../utils/canPublish";
+import { POSTING_DIAL } from "../data/countries";
 import { useMyListings } from "../hooks/useMyListings";
 import { useConversations } from "../hooks/useConversations";
 import { storage, firestore } from "../config/firebase";
@@ -41,7 +44,6 @@ import { withViewHeat } from "../utils/viewHeat";
 
 const EMERALD = "#0B6E4F";
 const GOLD = "#D9A441";
-const STATS_COLUMNS = 3;
 const priceFormatter = new Intl.NumberFormat("fr-FR");
 const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
 
@@ -55,6 +57,54 @@ const listingsRowStyle = {
   paddingRight: spacing.md,
   paddingBottom: spacing.md,
 };
+// A colour per action.
+//
+// Six identical white cards with six identical green badges meant the grid
+// could only be read by working through the labels one at a time — the icons
+// carried no information because they all looked the same. These are the
+// same hues the category tiles use elsewhere in the app, so a colour means
+// the same thing wherever it appears rather than being decoration invented
+// for this screen.
+const ACTION_TINTS = {
+  // Stat cards share this table with the action cards, so "saved" is the
+  // same pink in both places on the same screen.
+  total: "#2F6BB5",
+  active: "#12876A",
+  sold: "#C4478A",
+  views: "#6A5AE0",
+  following: "#EC8B2B",
+  listings: "#2F6BB5",
+  messages: "#12908C",
+  saved: "#C4478A",
+  browse: "#6A5AE0",
+  applications: "#12876A",
+  jobApplications: "#12876A",
+  parkStock: "#A0703F",
+  insights: "#EC8B2B",
+  profile: "#6B7A94",
+  share: "#5BA83A",
+  shareProfile: "#5BA83A",
+  promote: "#E8A33D",
+};
+
+// 14% of the hue on a light ground, 22% on a dark one: the same tint at one
+// opacity is either invisible on white or muddy on near-black.
+function edgeOf(hex, dark) {
+  const value = hex.replace("#", "");
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${dark ? 0.45 : 0.3})`;
+}
+
+function tintOf(hex, dark) {
+  const value = hex.replace("#", "");
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${dark ? 0.22 : 0.14})`;
+}
+
 const quickActionsGridStyle = {
   flexDirection: "row",
   flexWrap: "wrap",
@@ -62,7 +112,8 @@ const quickActionsGridStyle = {
 };
 
 export function SellerDashboardScreen({ navigation }) {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
+  const isDark = scheme === "dark";
   const insets = useSafeAreaInsets();
   const { language, t, resetLanguage } = useI18n();
   const { user, sellerProfile, logOut } = useAuth();
@@ -161,6 +212,27 @@ export function SellerDashboardScreen({ navigation }) {
     );
   };
 
+  // An account that cannot publish should not be shown a dashboard built
+  // around publishing. The two actions that lead to the posting form are
+  // taken out rather than greyed: a disabled button is still a promise, and
+  // this one could never be kept — no amount of tapping turns a French
+  // number into a Béninese one.
+  //
+  // What replaces them is a single card that says why, once. Everything else
+  // on the screen — messages, profile, saved, insights — keeps working,
+  // because all of it still applies.
+  const mayPublish = canPublish(user);
+  // Only read for the buyer's counters; a seller's grid never shows it.
+  const { favoriteIds } = useFavorites(user?.uid);
+  // The profile sheet is reached from three places, and all three named it
+  // for a seller. Computed once so the noun can never disagree with itself.
+  const profileLabel = mayPublish
+    ? t("dashboardQuickProfile")
+    : t("dashboardBuyerProfile");
+  const homeCountryName = mayPublish
+    ? null
+    : (accountCountry(user)?.name ?? null);
+
   const stats = useMemo(() => {
     const items = listings ?? [];
     const today = getTodayDateString();
@@ -180,38 +252,63 @@ export function SellerDashboardScreen({ navigation }) {
     };
   }, [listings, conversations]);
 
-  const statCards = [
-    {
-      key: "total",
-      value: stats.total,
-      label: t("dashboardStatTotal"),
-      onPress: () => navigation.navigate("MyListings", { filter: "all" }),
-    },
-    {
-      key: "active",
-      value: stats.active,
-      label: t("dashboardStatActive"),
-      onPress: () => navigation.navigate("MyListings", { filter: "active" }),
-    },
-    {
-      key: "sold",
-      value: stats.sold,
-      label: t("dashboardStatSold"),
-      onPress: () => navigation.navigate("MyListings", { filter: "sold" }),
-    },
-    {
-      key: "views",
-      value: stats.views,
-      label: t("dashboardStatViews"),
-      onPress: () => navigation.navigate("MyListings", { filter: "all" }),
-    },
-    {
-      key: "messages",
-      value: stats.messages,
-      label: t("tabChat"),
-      onPress: () => navigation.navigate("Messages"),
-    },
-  ];
+  // Counting listings at somebody who cannot publish is four zeroes and a
+  // reminder. A buyer's two numbers are what they saved and who they follow;
+  // messages is the one both accounts care about, so it stays in both.
+  const statCards = !mayPublish
+    ? [
+        {
+          key: "saved",
+          value: favoriteIds.size,
+          label: t("savedScreenTitle"),
+          onPress: () => navigation.navigate("Saved"),
+        },
+        {
+          key: "following",
+          value: ownStats?.following ?? 0,
+          label: t("profileStatFollowing"),
+          onPress: () => setProfileSheetOpen(true),
+        },
+        {
+          key: "messages",
+          value: stats.messages,
+          label: t("tabChat"),
+          onPress: () => navigation.navigate("Messages"),
+        },
+      ]
+    : [
+        {
+          key: "total",
+          value: stats.total,
+          label: t("dashboardStatTotal"),
+          onPress: () => navigation.navigate("MyListings", { filter: "all" }),
+        },
+        {
+          key: "active",
+          value: stats.active,
+          label: t("dashboardStatActive"),
+          onPress: () =>
+            navigation.navigate("MyListings", { filter: "active" }),
+        },
+        {
+          key: "sold",
+          value: stats.sold,
+          label: t("dashboardStatSold"),
+          onPress: () => navigation.navigate("MyListings", { filter: "sold" }),
+        },
+        {
+          key: "views",
+          value: stats.views,
+          label: t("dashboardStatViews"),
+          onPress: () => navigation.navigate("MyListings", { filter: "all" }),
+        },
+        {
+          key: "messages",
+          value: stats.messages,
+          label: t("tabChat"),
+          onPress: () => navigation.navigate("Messages"),
+        },
+      ];
 
   // Every item here is a real, computed condition — never a placeholder
   // count. Mirrors the same heuristics SellerInsightsScreen already uses
@@ -397,60 +494,108 @@ export function SellerDashboardScreen({ navigation }) {
 
   const recentListings = (listings ?? []).slice(0, 10);
 
-  const quickActions = [
-    {
-      key: "listings",
-      icon: "list-outline",
-      label: t("myListingsLink"),
-      onPress: () => navigation.navigate("MyListings"),
-    },
-    {
-      key: "jobApplications",
-      icon: "mail-open-outline",
-      label: t("dashboardApplicationsTile"),
-      onPress: () => navigation.navigate("JobApplications"),
-    },
-    {
-      key: "parkStock",
-      icon: "layers-outline",
-      label: t("dashboardParkStockTile"),
-      onPress: () => navigation.navigate("ParkInventory"),
-    },
-    {
-      key: "messages",
-      icon: "chatbubbles-outline",
-      label: t("tabChat"),
-      onPress: () => navigation.navigate("Messages"),
-    },
-    {
-      key: "insights",
-      icon: "stats-chart-outline",
-      label: t("sellerInsightsLink"),
-      onPress: () => navigation.navigate("SellerInsights"),
-    },
-    {
-      key: "profile",
-      icon: "person-outline",
-      label: t("dashboardQuickProfile"),
-      onPress: () => setProfileSheetOpen(true),
-    },
-    {
-      key: "shareProfile",
-      icon: "share-social-outline",
-      label: t("profileShareAction"),
-      onPress: handleShareProfile,
-    },
-    {
-      key: "promote",
-      icon: "megaphone-outline",
-      label: t("promoteListingTileLabel"),
-      onPress: () =>
-        navigation.navigate("CreateListing", {
-          categoryKey: null,
-          isPromoted: true,
-        }),
-    },
-  ];
+  // Two dashboards out of one screen.
+  //
+  // A seller opens this to manage what they have published. Somebody who
+  // cannot publish opens it to find what they saved and who they were
+  // talking to — so "Mes annonces" and "Ventes" are not merely useless to
+  // them, they describe a screen that will always be empty. The buyer's list
+  // leads with messages, because that is the only thing they came here to
+  // continue.
+  const quickActions = mayPublish
+    ? [
+        {
+          key: "listings",
+          icon: "list-outline",
+          label: t("myListingsLink"),
+          onPress: () => navigation.navigate("MyListings"),
+        },
+        {
+          key: "jobApplications",
+          icon: "mail-open-outline",
+          label: t("dashboardApplicationsTile"),
+          onPress: () => navigation.navigate("JobApplications"),
+        },
+        {
+          key: "parkStock",
+          icon: "layers-outline",
+          label: t("dashboardParkStockTile"),
+          onPress: () => navigation.navigate("ParkInventory"),
+        },
+        {
+          key: "messages",
+          icon: "chatbubbles-outline",
+          label: t("tabChat"),
+          onPress: () => navigation.navigate("Messages"),
+        },
+        {
+          key: "insights",
+          icon: "stats-chart-outline",
+          label: t("sellerInsightsLink"),
+          onPress: () => navigation.navigate("SellerInsights"),
+        },
+        {
+          key: "profile",
+          icon: "person-outline",
+          label: profileLabel,
+          onPress: () => setProfileSheetOpen(true),
+        },
+        {
+          key: "shareProfile",
+          icon: "share-social-outline",
+          label: t("profileShareAction"),
+          onPress: handleShareProfile,
+        },
+        // Promoting is publishing with a budget attached, so it goes with the
+        // rest of it.
+        {
+          key: "promote",
+          icon: "megaphone-outline",
+          label: t("promoteListingTileLabel"),
+          onPress: () =>
+            navigation.navigate("CreateListing", {
+              categoryKey: null,
+              isPromoted: true,
+            }),
+        },
+      ]
+    : [
+        {
+          key: "messages",
+          icon: "chatbubbles-outline",
+          tint: "messages",
+          label: t("tabChat"),
+          onPress: () => navigation.navigate("Messages"),
+        },
+        {
+          key: "saved",
+          icon: "heart-outline",
+          tint: "saved",
+          label: t("savedScreenTitle"),
+          onPress: () => navigation.navigate("Saved"),
+        },
+        {
+          key: "browse",
+          icon: "compass-outline",
+          tint: "browse",
+          label: t("dashboardBuyerBrowse"),
+          onPress: () => navigation.navigate("MainTabs", { screen: "ForYou" }),
+        },
+        {
+          key: "profile",
+          icon: "person-outline",
+          tint: "profile",
+          label: profileLabel,
+          onPress: () => setProfileSheetOpen(true),
+        },
+        {
+          key: "shareProfile",
+          icon: "share-social-outline",
+          tint: "share",
+          label: t("profileShareAction"),
+          onPress: handleShareProfile,
+        },
+      ];
 
   const sellerInitial = sellerProfile?.fullName
     ? sellerProfile.fullName.trim().charAt(0).toUpperCase()
@@ -478,7 +623,11 @@ export function SellerDashboardScreen({ navigation }) {
 
   return (
     <Container edges={["left", "right", "bottom"]}>
-      <Header>
+      <Header
+        colors={["#0B6E4F", "#07362A", "#05261D"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
         <HeaderRow>
           <AvatarButton onPress={pickAvatar} disabled={isUploadingAvatar}>
             {sellerProfile?.photoUrl ? (
@@ -502,7 +651,7 @@ export function SellerDashboardScreen({ navigation }) {
                 {t("homeGreeting", { name: sellerProfile?.fullName ?? "" })}
               </GreetingLine>
               {isVerifiedCompany ? (
-                <Ionicons name="checkmark-circle" size={15} color={EMERALD} />
+                <Ionicons name="checkmark-circle" size={15} color={GOLD} />
               ) : null}
             </GreetingLineRow>
             <GreetingSub numberOfLines={1}>
@@ -512,7 +661,7 @@ export function SellerDashboardScreen({ navigation }) {
             </GreetingSub>
           </GreetingCol>
           <SettingsButton onPress={() => setAccountSheetOpen(true)} hitSlop={8}>
-            <Ionicons name="settings-outline" size={19} color={colors.text} />
+            <Ionicons name="settings-outline" size={19} color="#ffffff" />
           </SettingsButton>
         </HeaderRow>
 
@@ -567,18 +716,45 @@ export function SellerDashboardScreen({ navigation }) {
           </OwnStatCell>
         </OwnStatRow>
 
-        <CreateButton
-          onPress={() =>
-            navigation.navigate("CreateListing", {
-              categoryKey: null,
-              isPromoted: false,
-            })
-          }
-        >
-          <CreateButtonLabel>
-            {t("dashboardCreateListingButton")}
-          </CreateButtonLabel>
-        </CreateButton>
+        {mayPublish ? (
+          <CreateButton
+            onPress={() =>
+              navigation.navigate("CreateListing", {
+                categoryKey: null,
+                isPromoted: false,
+              })
+            }
+          >
+            <CreateButtonLabel>
+              {t("dashboardCreateListingButton")}
+            </CreateButtonLabel>
+          </CreateButton>
+        ) : (
+          /* Not a disabled button. A greyed "Publier" still reads as
+             something to be unlocked, and there is nothing to unlock — the
+             rule is about the number the account was verified on. Saying it
+             plainly, once, is kinder than a control that never responds. */
+          <PublishNotice>
+            <PublishNoticeTop>
+              <Ionicons
+                name="information-circle-outline"
+                size={17}
+                color="#ffffff"
+              />
+              <PublishNoticeTitle>
+                {t("dashboardCannotPublishTitle")}
+              </PublishNoticeTitle>
+            </PublishNoticeTop>
+            <PublishNoticeCopy>
+              {homeCountryName
+                ? t("dashboardCannotPublishCopyCountry", {
+                    country: homeCountryName,
+                    dial: POSTING_DIAL,
+                  })
+                : t("dashboardCannotPublishCopy", { dial: POSTING_DIAL })}
+            </PublishNoticeCopy>
+          </PublishNotice>
+        )}
       </Header>
 
       <ScrollView
@@ -677,17 +853,20 @@ export function SellerDashboardScreen({ navigation }) {
         ) : null}
 
         <StatsGrid>
-          {statCards.map((card, index) => {
-            // Cards in an incomplete trailing row (grid doesn't divide
-            // evenly by STATS_COLUMNS) widen to fill that row evenly,
-            // instead of staying full-grid-width and leaving dead space.
-            const remainder = statCards.length % STATS_COLUMNS;
-            const lastRowStart =
-              statCards.length - (remainder || STATS_COLUMNS);
-            const wide = remainder !== 0 && index >= lastRowStart;
+          {statCards.map((card) => {
+            const statHue = ACTION_TINTS[card.key] ?? colors.primary;
+            // The trailing-row arithmetic this used to do is now the card's
+            // own job — see StatCard.
             return (
-              <StatCard key={card.key} onPress={card.onPress} wide={wide}>
-                <StatValue>{card.value}</StatValue>
+              <StatCard
+                key={card.key}
+                tint={tintOf(statHue, isDark)}
+                edge={edgeOf(statHue, isDark)}
+                onPress={card.onPress}
+              >
+                <StatValue hue={statHue} dark={isDark}>
+                  {card.value}
+                </StatValue>
                 <StatLabel>{card.label}</StatLabel>
               </StatCard>
             );
@@ -713,121 +892,132 @@ export function SellerDashboardScreen({ navigation }) {
           )}
         </TodoList>
 
-        <SectionHeadRow>
-          <SectionTitle>{t("myListingsLink")}</SectionTitle>
-          <Pressable onPress={() => navigation.navigate("MyListings")}>
-            <SeeAllLink>{t("dashboardSeeAll")}</SeeAllLink>
-          </Pressable>
-        </SectionHeadRow>
-        {recentListings.length > 0 ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={listingsRowWrapStyle}
-            contentContainerStyle={listingsRowStyle}
-          >
-            {recentListings.map((item) => {
-              const title = language === "en" ? item.titleEn : item.titleFr;
-              const coverUri = item.mediaUrl ?? item.image;
-              const isSold = item.saleStatus === "sold";
-              // "Vendu" on a service the seller has stopped offering is the
-              // app describing their own listing wrongly — saleStatusLabelKey
-              // picks the vocabulary the category actually uses.
-              const statusLabel = isSold
-                ? t(saleStatusLabelKey(item.categoryKey, "sold"))
-                : item.status === "approved"
-                  ? t("listingStatusApproved")
-                  : t("listingStatusPending");
-              return (
-                <ListingCardTouch
-                  key={item.id}
-                  onPress={() => openListing(navigation, item, t, language)}
-                >
-                  <ListingCardInner>
-                    <ListingImageWrap>
-                      {coverUri ? (
-                        <ListingImage
-                          source={{ uri: coverUri }}
-                          resizeMode="cover"
-                        />
-                      ) : null}
-                      <ListingStatusBadge
-                        sold={isSold}
-                        pending={item.status !== "approved"}
-                      >
-                        <ListingStatusLabel
-                          sold={isSold}
-                          pending={item.status !== "approved"}
-                        >
-                          {statusLabel}
-                        </ListingStatusLabel>
-                      </ListingStatusBadge>
-                    </ListingImageWrap>
-                    <ListingBody>
-                      <ListingTitle numberOfLines={1}>{title}</ListingTitle>
-                      <ListingPrice>
-                        {priceFormatter.format(item.price)} FCFA
-                      </ListingPrice>
-                      {item.status === "approved" ? (
-                        <ListingViewsRow>
-                          <Ionicons
-                            name="eye-outline"
-                            size={11}
-                            color={colors.textMuted}
-                          />
-                          <ListingViewsLabel>
-                            {/* Same badge the buyer sees on the listing, so
-                                a seller learns which of theirs is running
-                                hot without opening each one. */}
-                            {withViewHeat(item.viewCount, item.viewCount ?? 0)}
-                          </ListingViewsLabel>
-                          {/* Reach, next to attention. A listing shared ten
-                              times and viewed twelve is a different story
-                              from one viewed twelve times and shared none. */}
-                          {item.shareCount ? (
-                            <>
+        {/* The whole "Mes annonces" section, heading and all. An account
+            that cannot publish will never have one, so the section could
+            only ever render its own empty state under a title naming
+            something they do not have. */}
+        {mayPublish ? (
+          <>
+            <SectionHeadRow>
+              <SectionTitle>{t("myListingsLink")}</SectionTitle>
+              <Pressable onPress={() => navigation.navigate("MyListings")}>
+                <SeeAllLink>{t("dashboardSeeAll")}</SeeAllLink>
+              </Pressable>
+            </SectionHeadRow>
+            {recentListings.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={listingsRowWrapStyle}
+                contentContainerStyle={listingsRowStyle}
+              >
+                {recentListings.map((item) => {
+                  const title = language === "en" ? item.titleEn : item.titleFr;
+                  const coverUri = item.mediaUrl ?? item.image;
+                  const isSold = item.saleStatus === "sold";
+                  // "Vendu" on a service the seller has stopped offering is the
+                  // app describing their own listing wrongly — saleStatusLabelKey
+                  // picks the vocabulary the category actually uses.
+                  const statusLabel = isSold
+                    ? t(saleStatusLabelKey(item.categoryKey, "sold"))
+                    : item.status === "approved"
+                      ? t("listingStatusApproved")
+                      : t("listingStatusPending");
+                  return (
+                    <ListingCardTouch
+                      key={item.id}
+                      onPress={() => openListing(navigation, item, t, language)}
+                    >
+                      <ListingCardInner>
+                        <ListingImageWrap>
+                          {coverUri ? (
+                            <ListingImage
+                              source={{ uri: coverUri }}
+                              resizeMode="cover"
+                            />
+                          ) : null}
+                          <ListingStatusBadge
+                            sold={isSold}
+                            pending={item.status !== "approved"}
+                          >
+                            <ListingStatusLabel
+                              sold={isSold}
+                              pending={item.status !== "approved"}
+                            >
+                              {statusLabel}
+                            </ListingStatusLabel>
+                          </ListingStatusBadge>
+                        </ListingImageWrap>
+                        <ListingBody>
+                          <ListingTitle numberOfLines={1}>{title}</ListingTitle>
+                          <ListingPrice>
+                            {priceFormatter.format(item.price)} FCFA
+                          </ListingPrice>
+                          {item.status === "approved" ? (
+                            <ListingViewsRow>
                               <Ionicons
-                                name="share-social-outline"
+                                name="eye-outline"
                                 size={11}
                                 color={colors.textMuted}
                               />
                               <ListingViewsLabel>
-                                {item.shareCount}
+                                {/* Same badge the buyer sees on the listing, so
+                                a seller learns which of theirs is running
+                                hot without opening each one. */}
+                                {withViewHeat(
+                                  item.viewCount,
+                                  item.viewCount ?? 0,
+                                )}
                               </ListingViewsLabel>
-                            </>
+                              {/* Reach, next to attention. A listing shared ten
+                              times and viewed twelve is a different story
+                              from one viewed twelve times and shared none. */}
+                              {item.shareCount ? (
+                                <>
+                                  <Ionicons
+                                    name="share-social-outline"
+                                    size={11}
+                                    color={colors.textMuted}
+                                  />
+                                  <ListingViewsLabel>
+                                    {item.shareCount}
+                                  </ListingViewsLabel>
+                                </>
+                              ) : null}
+                            </ListingViewsRow>
                           ) : null}
-                        </ListingViewsRow>
-                      ) : null}
-                    </ListingBody>
-                  </ListingCardInner>
-                </ListingCardTouch>
-              );
-            })}
-          </ScrollView>
-        ) : (
-          <EmptyListingsText>{t("myListingsEmptyMessage")}</EmptyListingsText>
-        )}
+                        </ListingBody>
+                      </ListingCardInner>
+                    </ListingCardTouch>
+                  );
+                })}
+              </ScrollView>
+            ) : (
+              <EmptyListingsText>
+                {t("myListingsEmptyMessage")}
+              </EmptyListingsText>
+            )}
+          </>
+        ) : null}
 
         <SectionTitle>{t("dashboardQuickActionsTitle")}</SectionTitle>
         <QuickActionsGrid style={quickActionsGridStyle}>
-          {quickActions.map((action, index) => {
+          {quickActions.map((action) => {
             const isAccent = action.key === "promote";
+            const hue =
+              ACTION_TINTS[action.tint ?? action.key] ?? colors.primary;
             return (
               <QuickActionCard
                 key={action.key}
+                hue={hue}
+                tint={tintOf(hue, isDark)}
+                edge={edgeOf(hue, isDark)}
                 onPress={action.onPress}
-                style={{
-                  width: gridItemWidth(index, quickActions.length),
-                }}
               >
-                <QuickActionIconBadge accent={isAccent}>
-                  <Ionicons
-                    name={action.icon}
-                    size={19}
-                    color={isAccent ? colors.accentDark : colors.primary}
-                  />
+                <QuickActionIconBadge accent={isAccent} solid={hue}>
+                  <Ionicons name={action.icon} size={20} color="#ffffff" />
                 </QuickActionIconBadge>
-                <QuickActionLabel numberOfLines={2}>
+                <QuickActionLabel hue={hue} dark={isDark} numberOfLines={2}>
                   {action.label}
                 </QuickActionLabel>
               </QuickActionCard>
@@ -854,7 +1044,7 @@ export function SellerDashboardScreen({ navigation }) {
                 setProfileSheetOpen(true);
               }}
             >
-              <AccountRowLabel>{t("dashboardQuickProfile")}</AccountRowLabel>
+              <AccountRowLabel>{profileLabel}</AccountRowLabel>
             </AccountRow>
             <AccountRow
               onPress={() => {
@@ -896,9 +1086,7 @@ export function SellerDashboardScreen({ navigation }) {
           >
             <SheetHandle />
             <ProfileSheetHeaderRow>
-              <ProfileSheetTitle>
-                {t("dashboardQuickProfile")}
-              </ProfileSheetTitle>
+              <ProfileSheetTitle>{profileLabel}</ProfileSheetTitle>
               <Pressable onPress={() => setProfileSheetOpen(false)} hitSlop={8}>
                 <Ionicons name="close" size={22} color={colors.text} />
               </Pressable>
@@ -979,12 +1167,19 @@ const Container = styled(SafeAreaView)`
   background-color: ${(props) => props.theme.background};
 `;
 
-const Header = styled.View`
-  padding: ${spacing.md}px ${spacing.md}px ${spacing.md}px;
-  background-color: ${(props) => props.theme.surface};
+// The dashboard opened as a white panel on a near-white page, which read as
+// a screen still loading rather than a screen. It now carries the same
+// emerald gradient as Pneus, Batterie, Électricité and Carrosserie — the app
+// already had a house style for the top of a screen; this one simply was not
+// using it.
+//
+// Everything inside it turns white as a consequence, which also fixed a real
+// bug: the "cannot publish" notice was drawn as white text on a translucent
+// white panel, and on the old white header it was invisible.
+const Header = styled(LinearGradient)`
+  padding: ${spacing.md}px ${spacing.md}px ${spacing.lg}px;
   border-bottom-left-radius: 28px;
   border-bottom-right-radius: 28px;
-  ${shadow.card}
 `;
 
 const HeaderRow = styled.View`
@@ -1027,7 +1222,7 @@ const AvatarEditBadge = styled.View`
   width: 22px;
   height: 22px;
   border-radius: 11px;
-  background-color: ${EMERALD};
+  background-color: ${GOLD};
   align-items: center;
   justify-content: center;
   border-width: 2px;
@@ -1089,13 +1284,13 @@ const GreetingLineRow = styled.View`
 
 const GreetingLine = styled.Text`
   ${type.h3}
-  color: ${(props) => props.theme.text};
+  color: #ffffff;
   flex-shrink: 1;
 `;
 
 const GreetingSub = styled.Text`
   ${type.caption}
-  color: ${(props) => props.theme.textMuted};
+  color: rgba(255, 255, 255, 0.72);
   margin-top: 2px;
 `;
 
@@ -1216,7 +1411,7 @@ const SettingsButton = styled(Pressable)`
   border-radius: ${radius.md}px;
   align-items: center;
   justify-content: center;
-  background-color: ${(props) => props.theme.surfaceAlt};
+  background-color: rgba(255, 255, 255, 0.16);
 `;
 
 // Matches the card on the public profile, so the owner recognises the same
@@ -1227,15 +1422,15 @@ const OwnStatRow = styled.View`
   margin-top: ${spacing.md}px;
   padding: ${spacing.md}px ${spacing.xs}px;
   border-radius: ${radius.lg}px;
-  background-color: ${(props) => props.theme.surfaceAlt};
+  background-color: rgba(255, 255, 255, 0.12);
   border-width: 1px;
-  border-color: ${(props) => props.theme.border};
+  border-color: rgba(255, 255, 255, 0.2);
 `;
 
 const OwnStatSeparator = styled.View`
   width: 1px;
   height: 30px;
-  background-color: ${(props) => props.theme.border};
+  background-color: rgba(255, 255, 255, 0.22);
 `;
 
 const OwnStatCell = styled.View`
@@ -1247,7 +1442,7 @@ const OwnStatValue = styled.Text`
   font-family: ${fontFamily.bold};
   font-size: 21px;
   letter-spacing: -0.3px;
-  color: ${(props) => props.theme.text};
+  color: #ffffff;
 `;
 
 const OwnStatLabel = styled.Text`
@@ -1256,11 +1451,41 @@ const OwnStatLabel = styled.Text`
   letter-spacing: 0.6px;
   text-transform: uppercase;
   margin-top: 4px;
-  color: ${(props) => props.theme.textMuted};
+  color: rgba(255, 255, 255, 0.7);
+`;
+
+const PublishNotice = styled.View`
+  margin-top: ${spacing.md}px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  gap: 6px;
+  background-color: rgba(255, 255, 255, 0.14);
+  border-width: 1px;
+  border-color: rgba(255, 255, 255, 0.24);
+`;
+
+const PublishNoticeTop = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+`;
+
+const PublishNoticeTitle = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 13.5px;
+  color: #ffffff;
+  flex-shrink: 1;
+`;
+
+const PublishNoticeCopy = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 12px;
+  line-height: 17px;
+  color: rgba(255, 255, 255, 0.78);
 `;
 
 const CreateButton = styled(Pressable)`
-  background-color: ${EMERALD};
+  background-color: #ffffff;
   border-radius: ${radius.lg}px;
   padding-vertical: 15px;
   align-items: center;
@@ -1270,7 +1495,7 @@ const CreateButton = styled(Pressable)`
 const CreateButtonLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 15px;
-  color: #ffffff;
+  color: ${EMERALD};
 `;
 
 const StatsGrid = styled.View`
@@ -1280,19 +1505,28 @@ const StatsGrid = styled.View`
   margin-bottom: ${spacing.lg}px;
 `;
 
+// Grows to fill, like the action cards below it. The buyer's row has three
+// cards and the seller's has five, so any fixed fraction is right for one of
+// them and wrong for the other — 30% as a basis keeps three per row where
+// three fit and shares the rest out where they do not.
 const StatCard = styled(Pressable)`
-  width: ${(props) => (props.wide ? "48%" : "30.5%")};
+  flex-grow: 1;
+  flex-basis: 30%;
   align-items: center;
-  padding-vertical: ${spacing.sm}px;
+  justify-content: center;
+  min-height: 72px;
+  padding: ${spacing.sm}px ${spacing.xs}px;
   border-radius: ${radius.lg}px;
-  background-color: ${(props) => props.theme.surface};
-  ${shadow.card}
+  background-color: ${(props) => props.tint ?? props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.edge ?? props.theme.border};
 `;
 
 const StatValue = styled.Text`
   font-family: ${fontFamily.bold};
-  font-size: 19px;
-  color: ${(props) => props.theme.text};
+  font-size: 21px;
+  color: ${(props) =>
+    props.dark ? props.theme.text : (props.hue ?? props.theme.text)};
 `;
 
 const StatLabel = styled.Text`
@@ -1432,16 +1666,29 @@ const QuickActionsGrid = styled.View`
   margin-bottom: ${spacing.md}px;
 `;
 
+// Grows to fill its row instead of being sized to a third of one.
+//
+// A fixed third meant the last row of a five- or seven-item grid ended in a
+// gap the width of a whole card, and the two lists this screen builds are
+// six and eight items long — so the shape changed depending on which account
+// was looking. flex-basis at 30% keeps three per row when three fit and lets
+// them share the space out when they do not.
 const QuickActionCard = styled(Pressable)`
+  flex-grow: 1;
+  flex-basis: 30%;
   align-items: center;
   justify-content: center;
   gap: ${spacing.xs}px;
+  min-height: 96px;
   padding: ${spacing.md}px ${spacing.xs}px;
   border-radius: ${radius.lg}px;
-  background-color: ${(props) => props.theme.surface};
+  /* The card carries a wash of its own colour and the badge carries it at
+     full strength. The wash is what makes the grid read as colour from
+     across the room; keeping it weak is what stops six saturated tiles from
+     fighting each other. */
+  background-color: ${(props) => props.tint ?? props.theme.surface};
   border-width: 1px;
-  border-color: ${(props) => props.theme.border};
-  ${shadow.card}
+  border-color: ${(props) => props.edge ?? props.theme.border};
 `;
 
 const QuickActionIconBadge = styled.View`
@@ -1450,12 +1697,19 @@ const QuickActionIconBadge = styled.View`
   border-radius: ${radius.md}px;
   align-items: center;
   justify-content: center;
-  background-color: ${(props) => (props.accent ? props.theme.accentLight : props.theme.primaryLight)};
+  background-color: ${(props) =>
+    props.solid ??
+    (props.accent ? props.theme.accentLight : props.theme.primaryLight)};
 `;
 
 const QuickActionLabel = styled.Text`
   ${type.captionMedium}
-  color: ${(props) => props.theme.text};
+  /* The hue only on the light theme. On the dark one these colours sit too
+     close to the tinted ground behind them, and a label you have to lean in
+     to read is a worse outcome than a plain one. The flag is passed in
+     rather than sniffed from the theme's hex values, which change. */
+  color: ${(props) =>
+    props.dark ? props.theme.text : (props.hue ?? props.theme.text)};
   text-align: center;
 `;
 

@@ -149,7 +149,12 @@ import {
   tyreFittingModes,
   tyreServices,
 } from "../data/tyres";
-import { matchesGarageSpecialty } from "../data/garageSpecialties";
+import {
+  garageSpecialtiesFor,
+  getGarageSpecialtyLabel,
+  matchesGarageSpecialty,
+  mentionsVehicle,
+} from "../data/garageSpecialties";
 import {
   batteryCategories,
   batteryFittingModes,
@@ -161,6 +166,9 @@ import {
   isValidBatteryCapacity,
   isValidCrankingAmps,
 } from "../data/batteries";
+import { nearestKnownCity } from "../utils/nearestCity";
+import { accountCountry, canPublish } from "../utils/canPublish";
+import { POSTING_DIAL } from "../data/countries";
 import { electricServices } from "../data/carElectrics";
 import { bodyworkServices } from "../data/bodywork";
 import { guessContentType } from "../utils/uploadContentType";
@@ -229,6 +237,38 @@ const TRADE_HINT_KEYS = {
   bodywork: "sellTitleHint_bodywork",
 };
 
+// The car trades that have a screen of their own, offered inside the form
+// so they are reachable without walking back out to Voitures. Ordered by how
+// often somebody publishes one, not alphabetically.
+//
+// "tyres" and "battery" are the same trade keys the Pneus and Batterie
+// screens pass, deliberately: under Vehicles they mean somebody selling a
+// tyre, and under Services the same key means somebody who fits one. The
+// examples differ by category rather than by inventing two more keys that
+// every downstream test would then have to know about.
+const SERVICE_TRADES = [
+  { key: "garage", icon: "construct-outline", labelKey: "sellTradeGarage" },
+  {
+    key: "bodywork",
+    icon: "color-fill-outline",
+    labelKey: "sellTradeBodywork",
+  },
+  { key: "electric", icon: "flash-outline", labelKey: "sellTradeElectric" },
+  { key: "tyres", icon: "disc-outline", labelKey: "sellTradeTyres" },
+  {
+    key: "battery",
+    icon: "battery-charging-outline",
+    labelKey: "sellTradeBattery",
+  },
+];
+
+// Under Services these two keys describe a workshop, not a product, so the
+// examples cannot be the ones the Pneus and Batterie screens use.
+const SERVICE_TRADE_HINT_KEYS = {
+  tyres: "sellTitleHint_tyreShop",
+  battery: "sellTitleHint_batteryShop",
+};
+
 // The trades whose placement is decided by their own words. Each of these
 // arrives from a screen that filters by what the listing says, so the seller
 // has to be told on the field it applies to — not only on the card that sent
@@ -239,6 +279,8 @@ const TRADE_NOTE_KEYS = {
   garage: "sellTitleNote_garage",
   electric: "sellTitleNote_electric",
   bodywork: "sellTitleNote_bodywork",
+  tyres: "sellTitleNote_garage",
+  battery: "sellTitleNote_garage",
 };
 
 // The description example matters as much as the title one: "ce que vous
@@ -408,7 +450,7 @@ export function CreateListingScreen({ route, navigation }) {
   const {
     categoryKey: initialCategoryKey,
     isPromoted,
-    trade,
+    trade: initialTrade,
     listing: editing,
   } = route.params ?? {};
 
@@ -493,11 +535,15 @@ export function CreateListingScreen({ route, navigation }) {
   // A tyre is not a car, and the vehicle form asks a car's questions —
   // mileage, gearbox, number of doors. Same category (its own description is
   // "cars, motorbikes, parts"), different set of facts.
+  // initialTrade, not the `trade` state below it: this runs once at mount,
+  // and reading the state variable from here would be a use-before-declare.
+  // It is also the right value — the in-form trade picker only appears for
+  // Services, so it can never mean to change a part type.
   const [partType, setPartType] = useState(
     editing?.partType ??
-      (trade === "tyres"
+      (initialTrade === "tyres"
         ? "tyre"
-        : trade === "battery"
+        : initialTrade === "battery"
           ? "battery"
           : "vehicle"),
   );
@@ -639,6 +685,16 @@ export function CreateListingScreen({ route, navigation }) {
   const [selectedCategory, setSelectedCategory] = useState(
     seed("categoryKey", initialCategoryKey ?? null),
   );
+  // Which trade a Services listing is, when nothing navigated here to say.
+  //
+  // Every specialist door — Garages, Pneus, Batterie, Électricité,
+  // Carrosserie — passes a trade, so those sellers get their own examples
+  // and their own service picker. Somebody who starts from the dashboard
+  // passes nothing, lands on the form written for a plumber, and has no way
+  // to say otherwise. This is that way: the same answer, asked here instead
+  // of inferred from the route.
+  const [trade, setTrade] = useState(initialTrade ?? null);
+
   const [selectedCity, setSelectedCity] = useState(seed("city", null));
   const [assets, setAssets] = useState(
     editing?.media?.length
@@ -733,6 +789,46 @@ export function CreateListingScreen({ route, navigation }) {
       matchesGarageSpecialty(`${title} ${description}`, "elec") ||
       matchesGarageSpecialty(`${title} ${description}`, "diag"));
 
+  // The warning that only the words can trigger.
+  //
+  // Nothing in the app asks a provider to tick "I am a carrossier": the
+  // Garages, Pneus, Batterie, Électricité and Carrosserie screens are all
+  // built from what the listing itself says. So somebody can write
+  // "Je répare les voitures accidentées", publish successfully, and appear
+  // on none of them — with no error, because nothing is wrong. This is the
+  // one moment we can say so: the listing is plainly about vehicles and
+  // still lands in no trade.
+  //
+  // Deliberately a note and never a block. It is a guess about somebody
+  // else's business, and being told your own listing is invalid because a
+  // keyword list disagrees would be worse than being under-listed.
+  // Publishing is Bénin-only. Read from the account's own number here so the
+  // screen can explain itself offline; the database checks the verified claim
+  // and is the one that actually decides.
+  const blockedFromPosting = Boolean(user) && !canPublish(user);
+  const accountCountryName = blockedFromPosting
+    ? (accountCountry(user)?.name ??
+      (language === "en"
+        ? accountCountry(user)?.nameEn
+        : accountCountry(user)?.nameFr))
+    : null;
+
+  const serviceText = `${title} ${description}`;
+  const serviceTrades = isServices ? garageSpecialtiesFor(serviceText) : [];
+  const unplacedTrade =
+    isServices &&
+    title.trim().length > 3 &&
+    mentionsVehicle(serviceText) &&
+    serviceTrades.length === 0;
+
+  // And when it does land somewhere, say where — the same words that can
+  // strand a listing are invisible when they work, so the provider never
+  // learns which ones did it.
+  const placedTradeLabels = serviceTrades
+    .map((key) => getGarageSpecialtyLabel(key, language))
+    .filter(Boolean)
+    .join(" · ");
+
   // And once more for bodywork.
   const mentionsBodywork =
     isServices &&
@@ -793,27 +889,42 @@ export function CreateListingScreen({ route, navigation }) {
   const selectedCategoryDef =
     categories.find((category) => category.key === selectedCategory) ?? null;
 
-  // Once a GPS fix comes back, snap to whichever known city is closest —
-  // the listing still stores one of the fixed cities (and its known
-  // coordinates), the GPS fix is only used to pick which one automatically.
+  // A GPS fix fills the city in ONCE, and only when the seller has not
+  // answered the question themselves.
+  //
+  // It used to run on every change of `coords` with no guard at all, which
+  // made the picker unusable: choosing a city, or even just opening the
+  // sheet, was undone by the next fix — the list snapped back to whichever
+  // city the phone thought was nearest and closed itself. On an inaccurate
+  // fix that was Tanguiéta, hundreds of kilometres from anyone who
+  // reported it, and there was no way to overrule it.
+  //
+  // Worse, it did not know it was editing. Reopening an existing listing to
+  // fix a typo would quietly move it to wherever the phone happened to be,
+  // and the seller would have had no reason to look.
+  const autoCityDone = useRef(false);
+
   useEffect(() => {
     if (!coords) return;
-    let nearestCity = null;
-    let nearestDistance = Infinity;
-    for (const city of cities) {
-      const cityCoord = cityCoordinates[city];
-      if (!cityCoord) continue;
-      const distance = distanceInKm(coords, cityCoord);
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearestCity = city;
-      }
+    if (autoCityDone.current) return;
+    // Their own answer wins, whether it came from this form or from the
+    // listing being edited.
+    if (selectedCity) {
+      autoCityDone.current = true;
+      return;
     }
-    if (nearestCity) {
-      setSelectedCity(nearestCity);
-      setLocationSheetOpen(false);
-    }
-  }, [coords]);
+
+    // null when the fix is nowhere near any city we know — see the radius
+    // in nearestCity.js. No guess is better than a confident wrong one.
+    const nearest = nearestKnownCity(coords);
+    if (!nearest) return;
+
+    autoCityDone.current = true;
+    setSelectedCity(nearest.city);
+    // The sheet is not closed here. It is only ever open because somebody
+    // opened it, and shutting it under them was how this became impossible
+    // to argue with.
+  }, [coords, selectedCity]);
 
   const pickFromLibrary = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -1718,6 +1829,66 @@ export function CreateListingScreen({ route, navigation }) {
   };
   const previewCardWidth = windowWidth - spacing.md * 2;
 
+  // Every way into this form — the Vendre tab, the dashboard, and the eight
+  // "publish your workshop" cards on the trade screens — arrives here, so the
+  // rule is stated once, at the only place all of them pass through.
+  //
+  // It is stated instead of hidden. Buttons that quietly do nothing teach
+  // people the app is broken; a sentence explaining that publishing needs a
+  // Bénin number lets somebody decide what to do about it. Editing an
+  // existing listing is untouched, which is why this guards creation only.
+  if (!editing && blockedFromPosting) {
+    return (
+      <Container edges={["top", "left", "right", "bottom"]}>
+        <HeaderRow>
+          <BackButton onPress={() => navigation.goBack()} hitSlop={8}>
+            <Ionicons name="arrow-back" size={20} color={colors.text} />
+          </BackButton>
+          <HeaderTitle numberOfLines={1}>{t("sellFormTitle")}</HeaderTitle>
+        </HeaderRow>
+
+        <BlockedWrap>
+          <BlockedIcon>
+            <Ionicons name="globe-outline" size={26} color={colors.primary} />
+          </BlockedIcon>
+          <BlockedTitle>{t("postingCountryTitle")}</BlockedTitle>
+          <BlockedCopy>
+            {t("postingCountryCopy", { dial: POSTING_DIAL })}
+          </BlockedCopy>
+          {accountCountryName ? (
+            <BlockedAccount>
+              {t("postingCountryYourNumber", { country: accountCountryName })}
+            </BlockedAccount>
+          ) : null}
+
+          {/* What they can still do, said plainly — this is most of the app,
+              and somebody told only what is forbidden assumes the rest is
+              too. */}
+          <BlockedList>
+            {[
+              "postingCountryCanBrowse",
+              "postingCountryCanContact",
+              "postingCountryCanSave",
+            ].map((key) => (
+              <BlockedListRow key={key}>
+                <Ionicons
+                  name="checkmark-circle"
+                  size={16}
+                  color={colors.primary}
+                />
+                <BlockedListText>{t(key)}</BlockedListText>
+              </BlockedListRow>
+            ))}
+          </BlockedList>
+
+          <BlockedButton onPress={() => navigation.goBack()}>
+            <BlockedButtonLabel>{t("postingCountryBrowse")}</BlockedButtonLabel>
+          </BlockedButton>
+        </BlockedWrap>
+      </Container>
+    );
+  }
+
   return (
     <Flex behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Container edges={["top", "left", "right", "bottom"]}>
@@ -1903,7 +2074,8 @@ export function CreateListingScreen({ route, navigation }) {
               value={title}
               onChangeText={setTitle}
               placeholder={t(
-                TRADE_HINT_KEYS[trade] ??
+                (isServices ? SERVICE_TRADE_HINT_KEYS[trade] : null) ??
+                  TRADE_HINT_KEYS[trade] ??
                   TITLE_HINT_KEYS[selectedCategory] ??
                   "sellFieldTitlePlaceholder",
               )}
@@ -1917,6 +2089,26 @@ export function CreateListingScreen({ route, navigation }) {
               sent them — which they may never have seen. */}
           {TRADE_NOTE_KEYS[trade] ? (
             <FieldNote>{t(TRADE_NOTE_KEYS[trade])}</FieldNote>
+          ) : null}
+
+          {unplacedTrade ? (
+            <TradeWarning>
+              <Ionicons name="alert-circle-outline" size={15} color="#8a6415" />
+              <TradeWarningText>{t("sellTradeUnplaced")}</TradeWarningText>
+            </TradeWarning>
+          ) : null}
+
+          {placedTradeLabels ? (
+            <TradePlaced>
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={15}
+                color={colors.primary}
+              />
+              <TradePlacedText>
+                {t("sellTradePlaced", { trades: placedTradeLabels })}
+              </TradePlacedText>
+            </TradePlaced>
           ) : null}
 
           <Label>{t("sellFieldCategory")}</Label>
@@ -1973,6 +2165,44 @@ export function CreateListingScreen({ route, navigation }) {
               />
             </SelectorRow>
           )}
+
+          {/* Services covers plumbers, hairdressers and mechanics alike, so
+              the category alone cannot choose an example or a service list.
+              Optional on purpose: most services are not car trades, and
+              "Autre" is a real answer rather than a way out of the
+              question. */}
+          {isServices ? (
+            <>
+              <Label>{t("sellFieldTrade")}</Label>
+              <FieldNote>{t("sellFieldTradeHint")}</FieldNote>
+              <ChipWrapRow>
+                {SERVICE_TRADES.map((option) => {
+                  const active = trade === option.key;
+                  return (
+                    <TradeChip
+                      key={option.key}
+                      selected={active}
+                      onPress={() => setTrade(active ? null : option.key)}
+                    >
+                      <Ionicons
+                        name={option.icon}
+                        size={14}
+                        color={active ? "#ffffff" : colors.primary}
+                      />
+                      <TradeChipLabel selected={active}>
+                        {t(option.labelKey)}
+                      </TradeChipLabel>
+                    </TradeChip>
+                  );
+                })}
+                <TradeChip selected={!trade} onPress={() => setTrade(null)}>
+                  <TradeChipLabel selected={!trade}>
+                    {t("sellTradeOther")}
+                  </TradeChipLabel>
+                </TradeChip>
+              </ChipWrapRow>
+            </>
+          ) : null}
 
           {isVehicle ? (
             <>
@@ -4804,6 +5034,8 @@ export function CreateListingScreen({ route, navigation }) {
                   key={city}
                   selected={selectedCity === city}
                   onPress={() => {
+                    // Their answer, final: no later fix may overwrite it.
+                    autoCityDone.current = true;
                     setSelectedCity(city);
                     setLocationSheetOpen(false);
                     setCitySearch("");
@@ -5175,6 +5407,159 @@ const FieldNote = styled.Text`
   line-height: 17px;
   color: ${(props) => props.theme.textMuted};
   margin-top: 8px;
+`;
+
+// Amber, not red: the listing is publishable and this is advice about where
+// it will be found, not an error about what is in it.
+const BlockedWrap = styled.View`
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: ${spacing.lg}px ${spacing.md}px;
+  gap: 12px;
+`;
+
+const BlockedIcon = styled.View`
+  width: 64px;
+  height: 64px;
+  border-radius: 24px;
+  align-items: center;
+  justify-content: center;
+  background-color: ${(props) => props.theme.primaryLight};
+  margin-bottom: 4px;
+`;
+
+const BlockedTitle = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 19px;
+  text-align: center;
+  color: ${(props) => props.theme.text};
+`;
+
+const BlockedCopy = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 13.5px;
+  line-height: 20px;
+  text-align: center;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+const BlockedAccount = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 12.5px;
+  text-align: center;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+const BlockedList = styled.View`
+  gap: 9px;
+  margin-top: 6px;
+  align-self: stretch;
+  padding: ${spacing.md}px;
+  border-radius: ${radius.xl}px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+`;
+
+const BlockedListRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+`;
+
+const BlockedListText = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.regular};
+  font-size: 13px;
+  color: ${(props) => props.theme.text};
+`;
+
+const BlockedButton = styled(Pressable)`
+  align-self: stretch;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  margin-top: 6px;
+  border-radius: 16px;
+  background-color: ${(props) => props.theme.primary};
+`;
+
+const BlockedButtonLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 14px;
+  color: #ffffff;
+`;
+
+const ChipWrapRow = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+`;
+
+// flex-grow with an automatic basis, rather than a fixed percentage: these
+// labels differ in length by a factor of three ("Batterie" against
+// "Électricité auto"), so a column width picked in advance is either too
+// wide for one or too narrow for the other. Growing lets each row share out
+// exactly the space it has, which leaves no gap at the end of any of them —
+// including the last, where a lone chip becomes full width.
+const TradeChip = styled(Pressable)`
+  flex-grow: 1;
+  flex-basis: auto;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0px 13px;
+  border-radius: ${radius.pill}px;
+  background-color: ${(props) =>
+    props.selected ? props.theme.primary : props.theme.surfaceAlt};
+  border-width: 1px;
+  border-color: ${(props) =>
+    props.selected ? props.theme.primary : props.theme.border};
+`;
+
+const TradeChipLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 12.5px;
+  color: ${(props) => (props.selected ? "#ffffff" : props.theme.text)};
+`;
+
+const TradeWarning = styled.View`
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background-color: rgba(217, 164, 65, 0.12);
+  border-width: 1px;
+  border-color: rgba(217, 164, 65, 0.35);
+`;
+
+const TradeWarningText = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 11.5px;
+  line-height: 17px;
+  color: #8a6415;
+  flex-shrink: 1;
+`;
+
+const TradePlaced = styled.View`
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+`;
+
+const TradePlacedText = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 11.5px;
+  line-height: 17px;
+  color: ${(props) => props.theme.textMuted};
+  flex-shrink: 1;
 `;
 
 const AddSizeButton = styled(Pressable)`
@@ -5786,11 +6171,18 @@ const FeatureWrap = styled.View`
   gap: 8px;
 `;
 
+// Same treatment as the trade chips above: amenity labels run from "Wifi"
+// to "Groupe électrogène", so they fill their rows rather than being sized
+// to a guess.
 const FeatureChip = styled(Pressable)`
+  flex-grow: 1;
+  flex-basis: auto;
   flex-direction: row;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   padding: 10px 14px;
+  min-height: 40px;
   border-radius: ${radius.pill}px;
   background-color: ${(props) =>
     props.selected ? props.theme.primary : props.theme.surface};

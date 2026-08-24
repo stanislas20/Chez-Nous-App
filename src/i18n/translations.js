@@ -12,6 +12,7 @@ export const translations = {
     continue: "Continue",
 
     tabSell: "Sell",
+    tabBuy: "Buy",
     tabForYou: "For You",
     tabLocal: "Local",
     tabJobs: "Jobs",
@@ -892,6 +893,47 @@ export const translations = {
     garageElectricLinkTitle: "Electrics, by symptom",
     garageElectricLinkCopy:
       "Start from what the car is doing rather than from a list of trades.",
+    dashboardBuyerBrowse: "Browse the market",
+    dashboardBuyerProfile: "Buyer profile",
+    jobDetailApplyCountryMessage:
+      "Applications are sent from Bénin numbers ({dial}). You can still contact the employer directly from this page.",
+    dashboardCannotPublishTitle: "Your account cannot publish",
+    dashboardCannotPublishCopy:
+      "Listings are published from Bénin numbers ({dial}). Everything else is yours: messages, calls, saved listings and the sellers you follow.",
+    dashboardCannotPublishCopyCountry:
+      "Your number is registered in {country}, and listings are published from Bénin numbers ({dial}). Everything else is yours: messages, calls, saved listings and the sellers you follow.",
+    errorPhoneRegionBlocked:
+      "We cannot send a verification code to this country yet. Chez-Nous currently sends codes to a limited list of countries — please try a number from one of them.",
+    errorSignupVerification:
+      "We could not confirm your number with our servers, so the account was not created. Check your connection and try again — nothing was charged and your number is still free.",
+    postingCountryTitle: "Publishing is Bénin-only",
+    postingCountryCopy:
+      "Chez-Nous exists to show Bénin's businesses to the world, so listings are published from Bénin numbers ({dial}). It is about being reachable: a seller we can send an SMS to is a seller who can be held to what they wrote.",
+    postingCountryYourNumber: "Your number is registered in {country}.",
+    postingCountryCanBrowse: "Browse and search everything",
+    postingCountryCanContact: "Message, call and WhatsApp any seller",
+    postingCountryCanSave: "Save listings and follow sellers",
+    postingCountryBrowse: "Back to browsing",
+    countryPickerTitle: "Country",
+    countryPickerSearch: "Search a country or dial code",
+    countryPickerEmpty: "No country matches that.",
+    sellFieldTrade: "Is this a car trade?",
+    sellFieldTradeHint:
+      "Optional. Choosing one gives you the right fields and lists you on that screen.",
+    sellTradeGarage: "Mechanic",
+    sellTradeBodywork: "Bodywork",
+    sellTradeElectric: "Auto electrics",
+    sellTradeTyres: "Tyre fitting",
+    sellTradeBattery: "Battery",
+    sellTradeOther: "None of these",
+    sellTitleHint_tyreShop: "e.g. Pneus Ganhi — fitting, balancing, alignment",
+    sellTitleHint_batteryShop:
+      "e.g. Batterie Express — testing, jump start, fitting",
+    sellTradeUnplaced:
+      "These words place you in no car trade, so you will not appear on the Garages, Pneus, Batterie, Électricité or Carrosserie screens. Name what you do — carrosserie, tôlerie, alternateur, pare-brise, pneu, vidange.",
+    locationOutOfRange:
+      "Your position is not near any city we cover, so nothing was selected. Pick a city yourself.",
+    sellTradePlaced: "Drivers will find you under: {trades}",
     sellFieldElectricServices: "Electrical work you do",
     sellElectricServicesHint:
       "Only what you actually do. This is what buyers filter on.",
@@ -1491,7 +1533,7 @@ export const translations = {
     sellGateEyebrow: "SELL ON CHEZ-NOUS",
     sellGateHeadline: "Turn what you have into opportunity.",
     sellGateHeadlineCopy:
-      "Post your listings in minutes and find buyers near you.",
+      "Publish in minutes and be found by buyers in Bénin and around the world.",
     sellGateSampleBadge: "New",
     sellGateSamplePrice: "45,000 FCFA",
     sellGateSampleTitle: "Handmade rattan chair",
@@ -1499,8 +1541,9 @@ export const translations = {
     sellGateBenefitsTitle: "Sell with ease",
     sellGateBenefit1Title: "Post in minutes",
     sellGateBenefit1Copy: "Add your photos, price, and description.",
-    sellGateBenefit2Title: "Reach local buyers",
-    sellGateBenefit2Copy: "Get your products in front of people near you.",
+    sellGateBenefit2Title: "Reach buyers here and abroad",
+    sellGateBenefit2Copy:
+      "Chez-Nous can be browsed from anywhere, the diaspora included. Your listing is visible in Bénin and abroad.",
     sellGateBenefit3Title: "Chat directly",
     sellGateBenefit3Copy:
       "Receive and manage buyer messages right in Chez-Nous.",
@@ -1542,6 +1585,8 @@ export const translations = {
     accountTypeCompanyCopy:
       "Register your business with its RCCM and IFU to post under your brand name.",
     accountTypeCompanyTag: "Verified against the national registry",
+    accountTypeHaveAccount: "Already have an account?",
+    accountTypeLogIn: "Log in",
     accountTypeTrustText:
       "Companies are checked against Bénin's Portail National des services publics before receiving the Verified badge.",
 
@@ -1910,6 +1955,7 @@ export const translations = {
     continue: "Continuer",
 
     tabSell: "Vendre",
+    tabBuy: "Acheter",
     tabForYou: "Pour vous",
     tabLocal: "Local",
     tabJobs: "Emplois",
@@ -2813,6 +2859,47 @@ export const translations = {
     garageElectricLinkTitle: "L’électricité, par symptôme",
     garageElectricLinkCopy:
       "Partez de ce que fait la voiture plutôt que d’une liste de métiers.",
+    dashboardBuyerBrowse: "Parcourir le marché",
+    dashboardBuyerProfile: "Profil acheteur",
+    jobDetailApplyCountryMessage:
+      "Les candidatures partent d’un numéro béninois ({dial}). Vous pouvez toujours contacter l’employeur directement depuis cette page.",
+    dashboardCannotPublishTitle: "Votre compte ne peut pas publier",
+    dashboardCannotPublishCopy:
+      "Les annonces sont publiées depuis un numéro béninois ({dial}). Tout le reste est à vous : messages, appels, annonces enregistrées et vendeurs suivis.",
+    dashboardCannotPublishCopyCountry:
+      "Votre numéro est enregistré au {country}, et les annonces sont publiées depuis un numéro béninois ({dial}). Tout le reste est à vous : messages, appels, annonces enregistrées et vendeurs suivis.",
+    errorPhoneRegionBlocked:
+      "Nous ne pouvons pas encore envoyer de code vers ce pays. Chez-Nous n’envoie de codes que vers une liste limitée de pays — essayez un numéro de l’un d’eux.",
+    errorSignupVerification:
+      "Nous n’avons pas pu confirmer votre numéro auprès de nos serveurs : le compte n’a pas été créé. Vérifiez votre connexion et réessayez — votre numéro reste disponible.",
+    postingCountryTitle: "Publier est réservé au Bénin",
+    postingCountryCopy:
+      "Chez-Nous existe pour montrer les entreprises béninoises au monde : les annonces sont donc publiées depuis un numéro béninois ({dial}). C’est une question de joignabilité — un vendeur à qui l’on peut envoyer un SMS est un vendeur que l’on peut tenir à sa parole.",
+    postingCountryYourNumber: "Votre numéro est enregistré au {country}.",
+    postingCountryCanBrowse: "Parcourir et rechercher tout le marché",
+    postingCountryCanContact:
+      "Écrire, appeler et joindre les vendeurs sur WhatsApp",
+    postingCountryCanSave: "Enregistrer des annonces et suivre des vendeurs",
+    postingCountryBrowse: "Revenir aux annonces",
+    countryPickerTitle: "Pays",
+    countryPickerSearch: "Chercher un pays ou un indicatif",
+    countryPickerEmpty: "Aucun pays ne correspond.",
+    sellFieldTrade: "Est-ce un métier auto ?",
+    sellFieldTradeHint:
+      "Facultatif. En choisir un vous donne les bons champs et vous place sur cet écran.",
+    sellTradeGarage: "Mécanicien",
+    sellTradeBodywork: "Carrosserie",
+    sellTradeElectric: "Électricité auto",
+    sellTradeTyres: "Montage de pneus",
+    sellTradeBattery: "Batterie",
+    sellTradeOther: "Aucun de ceux-ci",
+    sellTitleHint_tyreShop: "ex. Pneus Ganhi — montage, équilibrage, géométrie",
+    sellTitleHint_batteryShop: "ex. Batterie Express — test, démarrage, pose",
+    sellTradeUnplaced:
+      "Ces mots ne vous classent dans aucun métier auto : vous n’apparaîtrez ni dans Garages, ni dans Pneus, Batterie, Électricité ou Carrosserie. Citez ce que vous faites — carrosserie, tôlerie, alternateur, pare-brise, pneu, vidange.",
+    locationOutOfRange:
+      "Votre position n’est proche d’aucune ville couverte : rien n’a été sélectionné. Choisissez une ville vous-même.",
+    sellTradePlaced: "Les automobilistes vous trouveront dans : {trades}",
     sellFieldElectricServices: "Travaux électriques que vous faites",
     sellElectricServicesHint:
       "Uniquement ce que vous faites vraiment. C’est là-dessus que les clients filtrent.",
@@ -3425,7 +3512,7 @@ export const translations = {
     sellGateEyebrow: "VENDEZ SUR CHEZ-NOUS",
     sellGateHeadline: "Transformez ce que vous avez en opportunités.",
     sellGateHeadlineCopy:
-      "Publiez vos annonces en quelques minutes et trouvez des acheteurs près de chez vous.",
+      "Publiez en quelques minutes et faites-vous trouver par des acheteurs au Bénin comme dans le monde entier.",
     sellGateSampleBadge: "Nouveau",
     sellGateSamplePrice: "45 000 FCFA",
     sellGateSampleTitle: "Chaise en rotin artisanale",
@@ -3434,9 +3521,9 @@ export const translations = {
     sellGateBenefit1Title: "Publiez rapidement",
     sellGateBenefit1Copy:
       "Ajoutez vos photos, votre prix et votre description.",
-    sellGateBenefit2Title: "Touchez des acheteurs locaux",
+    sellGateBenefit2Title: "Des acheteurs ici et à l’étranger",
     sellGateBenefit2Copy:
-      "Faites découvrir vos produits aux personnes près de chez vous.",
+      "Chez-Nous se consulte depuis n’importe où, diaspora comprise. Votre annonce est visible au Bénin comme à l’étranger.",
     sellGateBenefit3Title: "Discutez directement",
     sellGateBenefit3Copy:
       "Recevez et gérez les messages des acheteurs dans Chez-Nous.",
@@ -3481,6 +3568,8 @@ export const translations = {
     accountTypeCompanyCopy:
       "Enregistrez votre société avec son RCCM et son IFU pour publier au nom de la marque.",
     accountTypeCompanyTag: "Vérifié au registre national",
+    accountTypeHaveAccount: "Vous avez déjà un compte ?",
+    accountTypeLogIn: "Se connecter",
     accountTypeTrustText:
       "Les entreprises sont contrôlées auprès du Portail National des services publics du Bénin avant de recevoir le badge Vérifié.",
 

@@ -77,7 +77,13 @@ service cloud.firestore {
       allow read: if resource.data.status == 'approved'
         || (request.auth != null && request.auth.uid == resource.data.advertiserId);
 
+      // Same rule as listings: an advertisement is published content, and
+      // Chez-Nous publishes from Bénin. The advertiser sign-up already
+      // insists on a Bénin number, so this is the second lock rather than
+      // the first — but the first one is in the app, and the app is not
+      // where a determined writer goes.
       allow create: if request.auth != null
+        && request.auth.token.canPost == true
         && request.resource.data.advertiserId == request.auth.uid
         && request.resource.data.status == 'pending';
 
@@ -95,7 +101,20 @@ service cloud.firestore {
       allow read: if resource.data.status == 'approved'
         || (request.auth != null && request.auth.uid == resource.data.sellerId);
 
+      // Publishing is Bénin-only, and this is the line that makes that true.
+      //
+      // The app hides its posting buttons from accounts that cannot use them,
+      // but a hidden button stops only the honest — anyone can write to
+      // Firestore with the SDK. `canPost` is a custom claim, so it can only
+      // be set by the claimPhoneCountry function, and that function only sets
+      // it from a phone number Firebase itself verified by SMS.
+      //
+      // Reading stays open to the world, above. Someone in Paris or Lagos can
+      // browse everything, message any seller and call any number; they
+      // cannot add to the market, because we cannot put an SMS through to
+      // their handset and an unreachable seller is where the scams start.
       allow create: if request.auth != null
+        && request.auth.token.canPost == true
         && request.resource.data.sellerId == request.auth.uid
         && request.resource.data.status == 'pending';
 
@@ -232,7 +251,10 @@ service cloud.firestore {
       allow read: if resource.data.status == 'approved'
         || (request.auth != null && request.auth.uid == resource.data.submittedBy);
 
+      // A submitted car park is a place added to Bénin's map, which is
+      // publishing by another name.
       allow create: if request.auth != null
+        && request.auth.token.canPost == true
         && request.resource.data.submittedBy == request.auth.uid
         && request.resource.data.status == 'pending'
         && request.resource.data.name is string
@@ -290,7 +312,11 @@ service cloud.firestore {
       allow read: if request.auth != null
         && (request.auth.uid == resource.data.applicantUid || request.auth.uid == resource.data.employerUid);
 
+      // Applying is posting to an employer, so it follows the same rule as
+      // everything else somebody writes into the market. A job in Cotonou is
+      // filled by somebody who can be reached on a Bénin number.
       allow create: if request.auth != null
+        && request.auth.token.canPost == true
         && request.resource.data.applicantUid == request.auth.uid
         && request.resource.data.employerUid ==
           get(/databases/$(database)/documents/listings/$(request.resource.data.jobId)).data.sellerId

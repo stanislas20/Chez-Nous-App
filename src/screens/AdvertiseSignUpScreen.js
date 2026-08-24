@@ -1,14 +1,22 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import styled from 'styled-components/native';
-import { radius, spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { type } from '../theme/typography';
-import { useI18n } from '../i18n/I18nContext';
-import { useAuth } from '../auth/AuthContext';
-import { isValidPhone, normalizePhone, mapAuthErrorToKey } from '../auth/phoneAuth';
-import { sendOtp, confirmOtp, mapPhoneAuthErrorToKey } from '../auth/phoneVerification';
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Platform, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import styled from "styled-components/native";
+import { radius, spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { type } from "../theme/typography";
+import { useI18n } from "../i18n/I18nContext";
+import { useAuth } from "../auth/AuthContext";
+import {
+  isValidPhone,
+  normalizePhone,
+  mapAuthErrorToKey,
+} from "../auth/phoneAuth";
+import {
+  sendOtp,
+  confirmOtp,
+  mapPhoneAuthErrorToKey,
+} from "../auth/phoneVerification";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 const contentContainerStyle = { padding: spacing.lg };
@@ -18,15 +26,16 @@ export function AdvertiseSignUpScreen({ navigation }) {
   const { t } = useI18n();
   const { signUpAdvertiser } = useAuth();
 
-  const [step, setStep] = useState('phone');
-  const [businessName, setBusinessName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [step, setStep] = useState("phone");
+  const [businessName, setBusinessName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [confirmation, setConfirmation] = useState(null);
-  const [otpCode, setOtpCode] = useState('');
+  const [phoneIdToken, setPhoneIdToken] = useState(null);
+  const [otpCode, setOtpCode] = useState("");
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -39,7 +48,7 @@ export function AdvertiseSignUpScreen({ navigation }) {
 
   const handleSendCode = async () => {
     if (!isValidPhone(phone)) {
-      Alert.alert(t('advertiserSignUpTitle'), t('errorInvalidPhone'));
+      Alert.alert(t("advertiserSignUpTitle"), t("errorInvalidPhone"));
       return;
     }
 
@@ -47,11 +56,11 @@ export function AdvertiseSignUpScreen({ navigation }) {
     try {
       const nextConfirmation = await sendOtp(normalizePhone(phone));
       setConfirmation(nextConfirmation);
-      setOtpCode('');
+      setOtpCode("");
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
-      setStep('otp');
+      setStep("otp");
     } catch (error) {
-      Alert.alert(t('advertiserSignUpTitle'), t(mapPhoneAuthErrorToKey(error)));
+      Alert.alert(t("advertiserSignUpTitle"), t(mapPhoneAuthErrorToKey(error)));
     } finally {
       setIsSendingCode(false);
     }
@@ -59,72 +68,83 @@ export function AdvertiseSignUpScreen({ navigation }) {
 
   const handleVerifyCode = async () => {
     if (!otpCode.trim()) {
-      Alert.alert(t('otpTitle'), t('errorOtpInvalidCode'));
+      Alert.alert(t("otpTitle"), t("errorOtpInvalidCode"));
       return;
     }
 
     setIsVerifyingCode(true);
     try {
-      await confirmOtp(confirmation, otpCode.trim());
-      setStep('details');
+      // Kept: it is the only proof an SMS reached this handset, and the
+      // advertiser account cannot publish an ad without presenting it.
+      const idToken = await confirmOtp(confirmation, otpCode.trim());
+      setPhoneIdToken(idToken);
+      setStep("details");
     } catch (error) {
-      Alert.alert(t('otpTitle'), t(mapPhoneAuthErrorToKey(error)));
+      Alert.alert(t("otpTitle"), t(mapPhoneAuthErrorToKey(error)));
     } finally {
       setIsVerifyingCode(false);
     }
   };
 
   const handleChangeNumber = () => {
-    setStep('phone');
+    setStep("phone");
     setConfirmation(null);
-    setOtpCode('');
+    setOtpCode("");
     setResendCooldown(0);
   };
 
   const handleSubmit = async () => {
     if (!businessName.trim() || !password || !confirmPassword) {
-      Alert.alert(t('advertiserSignUpTitle'), t('errorRequiredFields'));
+      Alert.alert(t("advertiserSignUpTitle"), t("errorRequiredFields"));
       return;
     }
     if (password.length < 6) {
-      Alert.alert(t('advertiserSignUpTitle'), t('errorWeakPassword'));
+      Alert.alert(t("advertiserSignUpTitle"), t("errorWeakPassword"));
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert(t('advertiserSignUpTitle'), t('errorPasswordMismatch'));
+      Alert.alert(t("advertiserSignUpTitle"), t("errorPasswordMismatch"));
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await signUpAdvertiser({ businessName: businessName.trim(), phone, password });
+      await signUpAdvertiser({
+        businessName: businessName.trim(),
+        phone,
+        password,
+        phoneIdToken,
+      });
     } catch (error) {
-      Alert.alert(t('advertiserSignUpTitle'), t(mapAuthErrorToKey(error)));
+      Alert.alert(t("advertiserSignUpTitle"), t(mapAuthErrorToKey(error)));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const headerTitle = step === 'otp' ? t('otpTitle') : t('advertiserSignUpTitle');
+  const headerTitle =
+    step === "otp" ? t("otpTitle") : t("advertiserSignUpTitle");
 
   return (
-    <Flex behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Container edges={['left', 'right', 'bottom']}>
+    <Flex behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <Container edges={["left", "right", "bottom"]}>
         <Content
           contentContainerStyle={contentContainerStyle}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <Title>{headerTitle}</Title>
-          {step === 'phone' ? <Subtitle>{t('advertiserSignUpSubtitle')}</Subtitle> : null}
+          {step === "phone" ? (
+            <Subtitle>{t("advertiserSignUpSubtitle")}</Subtitle>
+          ) : null}
 
-          {step === 'phone' ? (
+          {step === "phone" ? (
             <>
-              <Label>{t('fieldPhone')}</Label>
+              <Label>{t("fieldPhone")}</Label>
               <Input
                 value={phone}
                 onChangeText={setPhone}
-                placeholder={t('fieldPhonePlaceholder')}
+                placeholder={t("fieldPhonePlaceholder")}
                 placeholderTextColor={colors.textMuted}
                 keyboardType="phone-pad"
                 maxLength={10}
@@ -135,84 +155,94 @@ export function AdvertiseSignUpScreen({ navigation }) {
                 {isSendingCode ? (
                   <ActivityIndicator color={colors.textInverse} />
                 ) : (
-                  <SubmitLabel>{t('otpSendCodeButton')}</SubmitLabel>
+                  <SubmitLabel>{t("otpSendCodeButton")}</SubmitLabel>
                 )}
               </SubmitButton>
 
               <FooterRow>
-                <FooterText>{t('alreadyHaveAccount')} </FooterText>
-                <Pressable onPress={() => navigation.navigate('AdvertiseLogin')}>
-                  <FooterLink>{t('goToLogin')}</FooterLink>
+                <FooterText>{t("alreadyHaveAccount")} </FooterText>
+                <Pressable
+                  onPress={() => navigation.navigate("AdvertiseLogin")}
+                >
+                  <FooterLink>{t("goToLogin")}</FooterLink>
                 </Pressable>
               </FooterRow>
             </>
           ) : null}
 
-          {step === 'otp' ? (
+          {step === "otp" ? (
             <>
-              <Subtitle>{t('otpSubtitle', { phone: normalizePhone(phone) })}</Subtitle>
+              <Subtitle>
+                {t("otpSubtitle", { phone: normalizePhone(phone) })}
+              </Subtitle>
 
-              <Label>{t('otpFieldCode')}</Label>
+              <Label>{t("otpFieldCode")}</Label>
               <Input
                 value={otpCode}
                 onChangeText={setOtpCode}
-                placeholder={t('otpFieldCodePlaceholder')}
+                placeholder={t("otpFieldCodePlaceholder")}
                 placeholderTextColor={colors.textMuted}
                 keyboardType="number-pad"
                 maxLength={6}
               />
 
-              <SubmitButton onPress={handleVerifyCode} disabled={isVerifyingCode}>
+              <SubmitButton
+                onPress={handleVerifyCode}
+                disabled={isVerifyingCode}
+              >
                 {isVerifyingCode ? (
                   <ActivityIndicator color={colors.textInverse} />
                 ) : (
-                  <SubmitLabel>{t('otpVerifyButton')}</SubmitLabel>
+                  <SubmitLabel>{t("otpVerifyButton")}</SubmitLabel>
                 )}
               </SubmitButton>
 
               <FooterRow>
-                <Pressable onPress={handleSendCode} disabled={resendCooldown > 0}>
+                <Pressable
+                  onPress={handleSendCode}
+                  disabled={resendCooldown > 0}
+                >
                   <FooterLink style={{ opacity: resendCooldown > 0 ? 0.5 : 1 }}>
                     {resendCooldown > 0
-                      ? t('otpResendCountdown', { seconds: resendCooldown })
-                      : t('otpResendButton')}
+                      ? t("otpResendCountdown", { seconds: resendCooldown })
+                      : t("otpResendButton")}
                   </FooterLink>
                 </Pressable>
               </FooterRow>
 
               <FooterRow>
                 <Pressable onPress={handleChangeNumber}>
-                  <FooterLink>{t('otpChangeNumberLink')}</FooterLink>
+                  <FooterLink>{t("otpChangeNumberLink")}</FooterLink>
                 </Pressable>
               </FooterRow>
             </>
           ) : null}
 
-          {step === 'details' ? (
+          {step === "details" ? (
             <>
-              <Label>{t('fieldBusinessName')}</Label>
+              <Label>{t("fieldBusinessName")}</Label>
               <Input
                 value={businessName}
                 onChangeText={setBusinessName}
-                placeholder={t('fieldBusinessNamePlaceholder')}
+                placeholder={t("fieldBusinessNamePlaceholder")}
                 placeholderTextColor={colors.textMuted}
               />
 
-              <Label>{t('fieldPassword')}</Label>
+              <Label>{t("fieldPassword")}</Label>
               <Input
                 value={password}
                 onChangeText={setPassword}
-                placeholder={t('fieldPasswordPlaceholder')}
+                placeholder={t("fieldPasswordPlaceholder")}
                 placeholderTextColor={colors.textMuted}
                 secureTextEntry
                 autoCapitalize="none"
               />
 
-              <Label>{t('fieldConfirmPassword')}</Label>
+              <Label>{t("fieldConfirmPassword")}</Label>
               <Input
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
-                placeholder={t('fieldConfirmPasswordPlaceholder')}
+                placeholder={t("fieldConfirmPasswordPlaceholder")}
                 placeholderTextColor={colors.textMuted}
                 secureTextEntry
                 autoCapitalize="none"
@@ -222,7 +252,7 @@ export function AdvertiseSignUpScreen({ navigation }) {
                 {isSubmitting ? (
                   <ActivityIndicator color={colors.textInverse} />
                 ) : (
-                  <SubmitLabel>{t('advertiserSignUpButton')}</SubmitLabel>
+                  <SubmitLabel>{t("advertiserSignUpButton")}</SubmitLabel>
                 )}
               </SubmitButton>
             </>

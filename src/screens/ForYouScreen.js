@@ -4,6 +4,7 @@ import {
   Animated,
   Easing,
   FlatList,
+  Image,
   Linking,
   Modal,
   Pressable,
@@ -49,6 +50,7 @@ import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useFavorites } from "../hooks/useFavorites";
 import { useJobFavorites } from "../hooks/useJobFavorites";
 import { useAuth } from "../auth/AuthContext";
+import { openAccountGate } from "../utils/openAccountGate";
 import { useI18n } from "../i18n/I18nContext";
 import { distanceInKm } from "../utils/geo";
 import { getDutyLabel } from "../utils/pharmacyDuty";
@@ -1205,6 +1207,22 @@ export function ForYouScreen({ navigation, route }) {
     sellerProfile?.fullName ||
     advertiserProfile?.businessName;
   const initial = name ? name.trim().charAt(0).toUpperCase() : null;
+  // Whatever the account actually has a picture of: a seller's own photo, a
+  // company logo, or the one Firebase Auth carries. Nothing is invented —
+  // no photo means the monogram, which is what was there before.
+  const avatarUrl =
+    sellerProfile?.photoUrl || advertiserProfile?.photoUrl || user?.photoURL;
+
+  // Signed in, the picture opens the account it belongs to. Signed out, it
+  // opens the way to make one — the same gate every other locked action
+  // uses, so it lands back here afterwards.
+  const openAccount = () => {
+    if (!user) {
+      openAccountGate(navigation);
+      return;
+    }
+    navigation.navigate("Sell");
+  };
   // The greeting row is tight (avatar + text + three icon buttons), so a
   // full "First Last" name gets cramped or clipped by numberOfLines={1} —
   // just the first name reads cleanly and is still a personal greeting.
@@ -1245,17 +1263,31 @@ export function ForYouScreen({ navigation, route }) {
     <Container edges={["top", "left", "right", "bottom"]}>
       <HeaderCard>
         <HeaderRow>
-          <Avatar
-            colors={[EMERALD, GOLD]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            {initial ? (
-              <AvatarLabel>{initial}</AvatarLabel>
+          {/* The account holder's own photo when they have uploaded one.
+              The gradient monogram stays as the fallback rather than being
+              replaced — a grey placeholder head for everyone without a photo
+              would be worse than the initial they already had.
+
+              Tappable either way: signed in it opens their dashboard, signed
+              out it opens the account gate, so the face in the corner is
+              also the way into the account. */}
+          <AvatarButton onPress={openAccount} hitSlop={6}>
+            {avatarUrl ? (
+              <AvatarPhoto source={{ uri: avatarUrl }} resizeMode="cover" />
             ) : (
-              <Ionicons name="person" size={16} color="#ffffff" />
+              <Avatar
+                colors={[EMERALD, GOLD]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                {initial ? (
+                  <AvatarLabel>{initial}</AvatarLabel>
+                ) : (
+                  <Ionicons name="person" size={16} color="#ffffff" />
+                )}
+              </Avatar>
             )}
-          </Avatar>
+          </AvatarButton>
           <GreetingBlock>
             <GreetingText numberOfLines={1}>
               {firstName
@@ -2116,6 +2148,19 @@ const HeaderRow = styled.View`
   padding-horizontal: 20px;
   gap: ${spacing.sm}px;
   margin-bottom: 16px;
+`;
+
+const AvatarButton = styled(Pressable)`
+  border-radius: 14px;
+`;
+
+// Same box as the monogram below it, so the header does not shift by a pixel
+// when a photo finishes loading or is removed.
+const AvatarPhoto = styled(Image)`
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background-color: ${(props) => props.theme.surfaceAlt};
 `;
 
 const Avatar = styled(LinearGradient)`

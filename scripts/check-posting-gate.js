@@ -113,6 +113,17 @@ if (!/hasOnly\(\['status', 'approvedAt', 'moderationNote'\]\)/.test(modBlock)) {
   fail("firestore.rules: moderation is not limited to the status fields");
 }
 
+// Judging what you cannot open is a coin toss, so the read has to match the
+// write. This is the pairing to check: a build that grants one without the
+// other is worse than granting neither.
+const readBlock = rules.slice(
+  rules.indexOf("match /listings/{listingId}"),
+  rules.indexOf("allow create", rules.indexOf("match /listings/{listingId}")),
+);
+if (!/request\.auth\.token\.moderator == true/.test(readBlock)) {
+  fail("firestore.rules: a moderator can approve listings they cannot read");
+}
+
 // Reading must stay open, or the whole point of the app is lost.
 if (!/allow read: if resource\.data\.status == 'approved'/.test(rules)) {
   fail("firestore.rules: approved listings are no longer world-readable");

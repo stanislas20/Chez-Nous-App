@@ -28,6 +28,7 @@ import { TyresScreen } from "../screens/TyresScreen";
 import { BatteryScreen } from "../screens/BatteryScreen";
 import { ElectricScreen } from "../screens/ElectricScreen";
 import { BodyworkScreen } from "../screens/BodyworkScreen";
+import { ModerationScreen } from "../screens/ModerationScreen";
 import { GaragesScreen } from "../screens/GaragesScreen";
 import { BreakdownScreen } from "../screens/BreakdownScreen";
 import { VehicleListScreen } from "../screens/VehicleListScreen";
@@ -167,6 +168,11 @@ export function RootNavigator() {
           <Stack.Screen
             name="Bodywork"
             component={BodyworkScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Moderation"
+            component={ModerationScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen

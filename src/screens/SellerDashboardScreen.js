@@ -28,6 +28,7 @@ import { formatCount, statLabelKey } from "../utils/formatCount";
 import { guessContentType } from "../utils/uploadContentType";
 import { useAuth } from "../auth/AuthContext";
 import { useFavorites } from "../hooks/useFavorites";
+import { useIsModerator } from "../hooks/useIsModerator";
 import { accountCountry, canPublish } from "../utils/canPublish";
 import { POSTING_DIAL } from "../data/countries";
 import { useMyListings } from "../hooks/useMyListings";
@@ -85,6 +86,7 @@ const ACTION_TINTS = {
   share: "#5BA83A",
   shareProfile: "#5BA83A",
   promote: "#E8A33D",
+  moderation: "#C1512D",
 };
 
 // 14% of the hue on a light ground, 22% on a dark one: the same tint at one
@@ -224,6 +226,10 @@ export function SellerDashboardScreen({ navigation }) {
   const mayPublish = canPublish(user);
   // Only read for the buyer's counters; a seller's grid never shows it.
   const { favoriteIds } = useFavorites(user?.uid);
+  // The queue is reachable from the notification, but a moderator who
+  // dismissed the push needs a way back that does not depend on remembering
+  // the notification existed.
+  const isModerator = useIsModerator(user);
   // The profile sheet is reached from three places, and all three named it
   // for a seller. Computed once so the noun can never disagree with itself.
   const profileLabel = mayPublish
@@ -548,6 +554,16 @@ export function SellerDashboardScreen({ navigation }) {
         },
         // Promoting is publishing with a budget attached, so it goes with the
         // rest of it.
+        ...(isModerator
+          ? [
+              {
+                key: "moderation",
+                icon: "shield-checkmark-outline",
+                label: t("moderationDashboardTile"),
+                onPress: () => navigation.navigate("Moderation"),
+              },
+            ]
+          : []),
         {
           key: "promote",
           icon: "megaphone-outline",

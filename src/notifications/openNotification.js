@@ -68,6 +68,13 @@ export async function openNotification(data) {
   }
 
   switch (data.type) {
+    // The moderator's own notification. It opens the queue rather than the
+    // one listing: by the time a phone is unlocked there is often more than
+    // one waiting, and the queue puts the named one at the top anyway.
+    case "listingPendingReview":
+      navigateWhenReady("Moderation");
+      return;
+
     case "followedSellerListing":
     case "listingApproved":
     case "listingRejected":

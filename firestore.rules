@@ -99,7 +99,12 @@ service cloud.firestore {
 
     match /listings/{listingId} {
       allow read: if resource.data.status == 'approved'
-        || (request.auth != null && request.auth.uid == resource.data.sellerId);
+        || (request.auth != null && request.auth.uid == resource.data.sellerId)
+        // A moderator has to see what they are being asked to judge. The
+        // write rule below already lets them change a status; without this
+        // they could approve a listing they had never been able to open,
+        // which is not moderation, it is a coin toss.
+        || (request.auth != null && request.auth.token.moderator == true);
 
       // Publishing is Bénin-only, and this is the line that makes that true.
       //

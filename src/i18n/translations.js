@@ -893,6 +893,32 @@ export const translations = {
     garageElectricLinkTitle: "Electrics, by symptom",
     garageElectricLinkCopy:
       "Start from what the car is doing rather than from a list of trades.",
+    moderationEyebrow: "Moderation",
+    moderationTitle: "Listings to review",
+    moderationLoading: "Loading the queue…",
+    moderationWaiting: "{count} waiting, oldest first.",
+    moderationEmpty: "Nothing waiting",
+    moderationEmptyCopy:
+      "Every listing has been reviewed. New ones appear here as they are published.",
+    moderationNotAllowed: "Not a moderator",
+    moderationNotAllowedCopy:
+      "This account cannot review listings. If that has just changed, sign out and back in — the permission arrives with a fresh session.",
+    moderationFactPrice: "Price",
+    moderationFactPhone: "Phone",
+    moderationNoPhoto: "No photo on this listing.",
+    moderationApprove: "Approve",
+    moderationReject: "Reject",
+    moderationApproveConfirmTitle: "Publish this listing?",
+    moderationApproveConfirmBody:
+      "{title} becomes visible to everyone, and the seller is notified.",
+    moderationRejectTitle: "Why is it being rejected?",
+    moderationRejectCopy:
+      "The seller is sent this reason, so it should say what to change. Without one they will simply publish the same thing again.",
+    moderationRejectPlaceholder:
+      "e.g. The photos are too blurred to read the plate.",
+    moderationFailed:
+      "That did not go through. If the permission is new, sign out and back in, then try again.",
+    moderationDashboardTile: "Review queue",
     dashboardBuyerBrowse: "Browse the market",
     dashboardBuyerProfile: "Buyer profile",
     jobDetailApplyCountryMessage:
@@ -2859,6 +2885,32 @@ export const translations = {
     garageElectricLinkTitle: "L’électricité, par symptôme",
     garageElectricLinkCopy:
       "Partez de ce que fait la voiture plutôt que d’une liste de métiers.",
+    moderationEyebrow: "Modération",
+    moderationTitle: "Annonces à valider",
+    moderationLoading: "Chargement de la file…",
+    moderationWaiting: "{count} en attente, les plus anciennes d’abord.",
+    moderationEmpty: "Rien en attente",
+    moderationEmptyCopy:
+      "Toutes les annonces ont été traitées. Les nouvelles apparaissent ici dès leur publication.",
+    moderationNotAllowed: "Pas modérateur",
+    moderationNotAllowedCopy:
+      "Ce compte ne peut pas valider d’annonces. Si cela vient de changer, déconnectez-vous puis reconnectez-vous : le droit arrive avec une nouvelle session.",
+    moderationFactPrice: "Prix",
+    moderationFactPhone: "Téléphone",
+    moderationNoPhoto: "Aucune photo sur cette annonce.",
+    moderationApprove: "Approuver",
+    moderationReject: "Refuser",
+    moderationApproveConfirmTitle: "Publier cette annonce ?",
+    moderationApproveConfirmBody:
+      "{title} devient visible par tous, et le vendeur est prévenu.",
+    moderationRejectTitle: "Pourquoi la refuser ?",
+    moderationRejectCopy:
+      "Le vendeur reçoit ce motif : dites-lui quoi corriger. Sans motif, il republiera la même chose.",
+    moderationRejectPlaceholder:
+      "ex. Les photos sont trop floues pour lire la plaque.",
+    moderationFailed:
+      "Cela n’a pas fonctionné. Si le droit vient d’être accordé, déconnectez-vous puis reconnectez-vous avant de réessayer.",
+    moderationDashboardTile: "File de validation",
     dashboardBuyerBrowse: "Parcourir le marché",
     dashboardBuyerProfile: "Profil acheteur",
     jobDetailApplyCountryMessage:

@@ -735,7 +735,17 @@ export function CreateListingScreen({ route, navigation }) {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [categorySheetOpen, setCategorySheetOpen] = useState(false);
+  // Opens on the category when nothing chose one for us.
+  //
+  // Arriving from the dashboard, the first thing on screen was an empty form
+  // with a "Catégorie" row you had to know to tap — so somebody looking for
+  // Services concluded the app had none. Every other way in (Garages, Pneus,
+  // Carrosserie, the Voitures tiles) already arrives with a category, and
+  // those must not be interrupted; nor must editing, where the category is
+  // already settled.
+  const [categorySheetOpen, setCategorySheetOpen] = useState(
+    !initialCategoryKey && !editing,
+  );
   const [locationSheetOpen, setLocationSheetOpen] = useState(false);
   const [citySearch, setCitySearch] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);

@@ -135,11 +135,44 @@ new Set(batteryVehicleSpecs.map((entry) => entry.make)).forEach((make) => {
   }
 });
 
+// The two vehicle tables must offer the same makes.
+//
+// This is the failure that shipped: tyres knew 55 makes and batteries knew
+// 21, so somebody on a Mazda opened the battery finder and was told the app
+// did not know their car — while the tyre screen, two taps away, did. The
+// lists are written by hand and will be extended by hand, so nothing but a
+// test keeps them level.
+const tyreSource = fs
+  .readFileSync(path.join(__dirname, "..", "src", "data", "tyres.js"), "utf8")
+  .replace(/^export /gm, "");
+const tyreContext = { console };
+vm.runInNewContext(
+  `${tyreSource}\nthis.tyreVehicleSizes = tyreVehicleSizes;`,
+  tyreContext,
+);
+const tyreMakes = Array.from(
+  new Set(tyreContext.tyreVehicleSizes.map((entry) => entry.make)),
+);
+const batteryMakes = new Set(batteryVehicleSpecs.map((entry) => entry.make));
+tyreMakes.forEach((make) => {
+  if (!batteryMakes.has(make)) {
+    failures.push(`${make}: in the tyre table but not the battery table`);
+  }
+});
+
+// Every entry must land in a segment the capacity table actually defines,
+// or the picker offers a model and then has nothing to say about it.
+batteryVehicleSpecs.forEach((entry) => {
+  if (!entry.specs?.length) {
+    failures.push(`${entry.make} ${entry.model}: no capacity for its segment`);
+  }
+});
+
 if (failures.length) {
   failures.forEach((line) => console.error(line));
   console.error(`\n${failures.length} problem(s)`);
   process.exit(1);
 }
 console.log(
-  `clean: 19 battery cases + ${rows} capacities across ${batteryVehicleSpecs.length} models`,
+  `clean: 19 battery cases + ${rows} capacities across ${batteryVehicleSpecs.length} models, ${batteryMakes.size} makes covering all ${tyreMakes.length} tyre makes`,
 );

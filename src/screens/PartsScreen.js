@@ -152,8 +152,35 @@ export function PartsScreen({ navigation }) {
           </BackButton>
           <HeroEyebrow>{t("partsEyebrow")}</HeroEyebrow>
         </HeroTop>
-        <HeroTitle>{t("partsTitle")}</HeroTitle>
-        <HeroCopy>{t("partsIntro")}</HeroCopy>
+        <HeroRow>
+          <HeroCol>
+            <HeroTitle>{t("partsTitle")}</HeroTitle>
+            <HeroCopy>{t("partsIntro")}</HeroCopy>
+          </HeroCol>
+
+          {/* Drawn, not photographed.
+              A stock photo of somebody else's brake disc on a marketplace
+              banner reads as a claim about stock we do not have — the same
+              reason Batterie draws its cell and Carrosserie draws its panel.
+              These are three real parts in outline: a disc with its vents, a
+              filter, and a cog behind them. */}
+          <PartsArt>
+            <BrakeDisc>
+              <DiscHub />
+              <DiscVent style={{ transform: [{ rotate: "0deg" }] }} />
+              <DiscVent style={{ transform: [{ rotate: "60deg" }] }} />
+              <DiscVent style={{ transform: [{ rotate: "120deg" }] }} />
+            </BrakeDisc>
+            <FilterBody>
+              <FilterPleat />
+              <FilterPleat />
+              <FilterPleat />
+            </FilterBody>
+            <CogBadge>
+              <Ionicons name="cog" size={20} color="#07362A" />
+            </CogBadge>
+          </PartsArt>
+        </HeroRow>
 
         <ScopeRow>
           {partScopes.map((option) => {
@@ -487,6 +514,90 @@ const HeroCopy = styled.Text`
   font-size: 13px;
   line-height: 19px;
   color: rgba(255, 255, 255, 0.72);
+`;
+
+const HeroRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.md}px;
+`;
+
+const HeroCol = styled.View`
+  flex: 1;
+  min-width: 0px;
+`;
+
+// Three parts, overlapping the way they would on a counter rather than
+// floating in a row: the disc behind, the filter in front of it, the cog
+// tucked into the corner.
+const PartsArt = styled.View`
+  width: 92px;
+  height: 82px;
+`;
+
+const BrakeDisc = styled.View`
+  position: absolute;
+  top: 0px;
+  right: 4px;
+  width: 62px;
+  height: 62px;
+  border-radius: 31px;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-width: 2px;
+  border-color: rgba(255, 255, 255, 0.45);
+`;
+
+const DiscHub = styled.View`
+  width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  background-color: rgba(255, 255, 255, 0.22);
+  border-width: 1.5px;
+  border-color: rgba(255, 255, 255, 0.5);
+`;
+
+// The slots a vented disc actually has, which is what makes the ring read as
+// a brake disc rather than as a circle.
+const DiscVent = styled.View`
+  position: absolute;
+  width: 2px;
+  height: 44px;
+  border-radius: 1px;
+  background-color: rgba(255, 255, 255, 0.2);
+`;
+
+const FilterBody = styled.View`
+  position: absolute;
+  bottom: 0px;
+  left: 0px;
+  width: 40px;
+  height: 46px;
+  border-radius: 10px;
+  padding: 7px 6px;
+  gap: 5px;
+  background-color: rgba(217, 164, 65, 0.24);
+  border-width: 1.5px;
+  border-color: rgba(217, 164, 65, 0.7);
+`;
+
+const FilterPleat = styled.View`
+  height: 3px;
+  border-radius: 2px;
+  background-color: rgba(255, 255, 255, 0.55);
+`;
+
+const CogBadge = styled.View`
+  position: absolute;
+  bottom: 2px;
+  right: 0px;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  align-items: center;
+  justify-content: center;
+  background-color: ${GOLD};
 `;
 
 const ScopeRow = styled.View`

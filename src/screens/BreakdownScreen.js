@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Linking, Pressable, ScrollView } from "react-native";
+import { FlatList, Linking, Modal, Pressable, ScrollView } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -79,6 +79,18 @@ export function BreakdownScreen({ navigation, route }) {
   const [problemKey, setProblemKey] = useState(route?.params?.problem ?? null);
   const [answerKey, setAnswerKey] = useState(null);
 
+  // A hand-picked city, which overrides the fix entirely.
+  //
+  // The nearest-known-city rule is a good guess and a guess is all it is:
+  // there are a few dozen cities in the list and hundreds of places to break
+  // down between them, so somebody stranded outside Natitingou can be told
+  // they are in Tanguiéta. Being wrong about where you are is worse on this
+  // screen than on any other — it decides every provider shown — so the row
+  // opens a list rather than only asking for the permission again.
+  const [manualCity, setManualCity] = useState(null);
+  const [cityPickerOpen, setCityPickerOpen] = useState(false);
+  const [citySearch, setCitySearch] = useState("");
+
   // Requested on arrival rather than on demand, unlike every other screen in
   // the app. Here the whole point is who is near, the person is unlikely to
   // want to type a quartier one-handed at the roadside, and they came to
@@ -109,7 +121,15 @@ export function BreakdownScreen({ navigation, route }) {
     return nearest;
   }, [userCoords]);
 
-  const providers = useGarageProviders(userCoords);
+  const activeCity = manualCity ?? detectedCity;
+  // A chosen city means the city's own coordinates. Distances then run from
+  // there and the screen says so, rather than presenting a measurement from
+  // a town centre as a measurement from the reader.
+  const activeCoords = manualCity
+    ? (cityCoordinates[manualCity] ?? userCoords)
+    : userCoords;
+
+  const providers = useGarageProviders(activeCoords);
   const ratings = useSellerRatings(
     useMemo(() => providers.map((item) => item.sellerId), [providers]),
   );
@@ -201,11 +221,20 @@ export function BreakdownScreen({ navigation, route }) {
   };
 
   const locationLabel =
-    locationStatus === "granted" && detectedCity
-      ? detectedCity
-      : locationStatus === "granted"
-        ? t("breakdownLocating")
-        : t("breakdownLocationOff");
+    activeCity ??
+    (locationStatus === "granted"
+      ? t("breakdownLocating")
+      : t("breakdownLocationOff"));
+
+  const filteredCities = cities.filter((city) =>
+    city.toLowerCase().includes(citySearch.trim().toLowerCase()),
+  );
+
+  const chooseCity = (city) => {
+    setManualCity(city);
+    setCityPickerOpen(false);
+    setCitySearch("");
+  };
 
   return (
     <Container edges={["left", "right"]}>
@@ -231,17 +260,24 @@ export function BreakdownScreen({ navigation, route }) {
           notice, and somebody who refused the permission has to see that
           there is something here to press. */}
       <LocationDock>
-        <LocationRow
-          onPress={locationStatus === "granted" ? undefined : requestLocation}
-        >
+        <LocationRow onPress={() => setCityPickerOpen(true)}>
           <LocationIcon>
-            <Ionicons name="location" size={15} color={TERRACOTTA} />
+            <Ionicons
+              name={manualCity ? "location" : "navigate"}
+              size={15}
+              color={TERRACOTTA}
+            />
           </LocationIcon>
           <LocationLabel numberOfLines={1}>{locationLabel}</LocationLabel>
-          {locationStatus !== "granted" ? (
-            <LocationAction>{t("breakdownUseLocation")}</LocationAction>
-          ) : null}
+          <LocationAction>{t("breakdownChangeCity")}</LocationAction>
+          <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
         </LocationRow>
+        {/* Said once, where the number it qualifies is about to appear. */}
+        {manualCity ? (
+          <ManualNote>
+            {t("breakdownManualCity", { city: manualCity })}
+          </ManualNote>
+        ) : null}
       </LocationDock>
 
       <ScrollView
@@ -526,6 +562,62 @@ export function BreakdownScreen({ navigation, route }) {
           </>
         ) : null}
       </ScrollView>
+      <Modal
+        visible={cityPickerOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setCityPickerOpen(false)}
+      >
+        <SheetBackdrop onPress={() => setCityPickerOpen(false)}>
+          <Sheet onStartShouldSetResponder={() => true}>
+            <SheetHandle />
+            <SheetTitle>{t("chooseCityTitle")}</SheetTitle>
+
+            <SheetSearch>
+              <Ionicons name="search" size={16} color={colors.textMuted} />
+              <SheetInput
+                value={citySearch}
+                onChangeText={setCitySearch}
+                placeholder={t("searchCityPlaceholder")}
+                placeholderTextColor={colors.textMuted}
+                autoCorrect={false}
+              />
+            </SheetSearch>
+
+            {/* Offered only once a city has been chosen, because with none
+                chosen it is already what the screen is doing. Asking again
+                also re-prompts when the permission was refused. */}
+            {manualCity || locationStatus !== "granted" ? (
+              <ResetRow
+                onPress={() => {
+                  setManualCity(null);
+                  setCityPickerOpen(false);
+                  setCitySearch("");
+                  if (locationStatus !== "granted") requestLocation();
+                }}
+              >
+                <Ionicons name="locate-outline" size={16} color={TERRACOTTA} />
+                <ResetLabel>{t("useMyLocationCity")}</ResetLabel>
+              </ResetRow>
+            ) : null}
+
+            <FlatList
+              data={filteredCities}
+              keyExtractor={(city) => city}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item: city }) => (
+                <CityRow onPress={() => chooseCity(city)}>
+                  <CityLabel selected={city === activeCity}>{city}</CityLabel>
+                  {city === activeCity ? (
+                    <Ionicons name="checkmark" size={17} color={TERRACOTTA} />
+                  ) : null}
+                </CityRow>
+              )}
+            />
+          </Sheet>
+        </SheetBackdrop>
+      </Modal>
     </Container>
   );
 }
@@ -616,6 +708,101 @@ const LocationIcon = styled.View`
   align-items: center;
   justify-content: center;
   background-color: rgba(193, 81, 45, 0.1);
+`;
+
+const ManualNote = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 11px;
+  line-height: 16px;
+  color: ${(props) => props.theme.textMuted};
+  margin-top: 8px;
+  margin-left: 4px;
+`;
+
+const SheetBackdrop = styled(Pressable)`
+  flex: 1;
+  justify-content: flex-end;
+  background-color: rgba(0, 0, 0, 0.35);
+`;
+
+const Sheet = styled.View`
+  max-height: 78%;
+  padding: 10px ${spacing.md}px ${spacing.lg}px;
+  border-top-left-radius: 26px;
+  border-top-right-radius: 26px;
+  background-color: ${(props) => props.theme.background};
+`;
+
+const SheetHandle = styled.View`
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  align-self: center;
+  background-color: ${(props) => props.theme.border};
+  margin-bottom: ${spacing.md}px;
+`;
+
+const SheetTitle = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 17px;
+  color: ${(props) => props.theme.text};
+  margin-bottom: ${spacing.md}px;
+`;
+
+const SheetSearch = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.sm}px;
+  padding: 0px 14px;
+  height: 48px;
+  border-radius: ${radius.lg}px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+  margin-bottom: ${spacing.sm}px;
+`;
+
+const SheetInput = styled.TextInput`
+  flex: 1;
+  font-family: ${fontFamily.regular};
+  font-size: 14px;
+  color: ${(props) => props.theme.text};
+  padding: 0px;
+`;
+
+const ResetRow = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.sm}px;
+  min-height: 50px;
+  padding: 0px 4px;
+  border-bottom-width: 1px;
+  border-bottom-color: ${(props) => props.theme.border};
+`;
+
+const ResetLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 13.5px;
+  color: ${TERRACOTTA};
+`;
+
+const CityRow = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${spacing.sm}px;
+  min-height: 50px;
+  padding: 0px 4px;
+  border-bottom-width: 1px;
+  border-bottom-color: ${(props) => props.theme.border};
+`;
+
+const CityLabel = styled.Text`
+  font-family: ${(props) =>
+    props.selected ? fontFamily.semiBold : fontFamily.regular};
+  font-size: 14.5px;
+  color: ${(props) =>
+    props.selected ? props.theme.text : props.theme.textMuted};
 `;
 
 const LocationLabel = styled.Text`

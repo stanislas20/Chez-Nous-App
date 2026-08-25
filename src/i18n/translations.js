@@ -1349,6 +1349,9 @@ export const translations = {
     breakdownIntro:
       "Tell us what happened and we show the providers nearest to you, with their own number.",
     breakdownUseLocation: "Use my location",
+    breakdownChangeCity: "Change",
+    breakdownManualCity:
+      "Distances are measured from the centre of {city}, not from you.",
     breakdownLocating: "Finding you…",
     breakdownLocationOff: "Location off",
     breakdownQuestion: "What is the problem?",
@@ -3533,6 +3536,9 @@ export const translations = {
     breakdownIntro:
       "Dites-nous ce qui s’est passé et nous affichons les professionnels les plus proches, avec leur propre numéro.",
     breakdownUseLocation: "Utiliser ma position",
+    breakdownChangeCity: "Modifier",
+    breakdownManualCity:
+      "Les distances sont mesurées depuis le centre de {city}, pas depuis vous.",
     breakdownLocating: "Localisation…",
     breakdownLocationOff: "Position désactivée",
     breakdownQuestion: "Quel est votre problème ?",

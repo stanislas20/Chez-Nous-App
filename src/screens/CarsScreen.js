@@ -43,7 +43,7 @@ import { useDirectory } from "../hooks/useDirectory";
 import { gridItemWidth } from "../utils/gridWidth";
 import { brandLogo, isWideLogo } from "../data/vehicleBrandLogos";
 import { buildLinkUrl } from "../data/restaurantLinks";
-import { openAccountGate, rootRouteKey } from "../utils/openAccountGate";
+import { openAccountGate, rootRouteName } from "../utils/openAccountGate";
 import { canPublish } from "../utils/canPublish";
 import {
   VEHICLE_BUDGET_BANDS,
@@ -475,7 +475,7 @@ export function CarsScreen({ navigation, route }) {
         params: {
           // So the form's back arrow returns here rather than to the
           // seller dashboard the Sell tab opens on.
-          originKey: rootRouteKey(navigation),
+          originName: rootRouteName(navigation),
           categoryKey: "vehicles",
           isPromoted: false,
           vehiclePurpose: "sell",

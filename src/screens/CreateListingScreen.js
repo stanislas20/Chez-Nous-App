@@ -464,7 +464,7 @@ export function CreateListingScreen({ route, navigation }) {
     isPromoted,
     trade: initialTrade,
     listing: editing,
-    originKey,
+    originName,
   } = route.params ?? {};
 
   // Editing runs the real posting form rather than a second cut-down one.
@@ -873,8 +873,11 @@ export function CreateListingScreen({ route, navigation }) {
   // navigating to a key returns there from anywhere, however many navigators
   // are in between. Same mechanism the account gate already used.
   const leaveForm = () => {
-    if (originKey) {
-      navigation.navigate({ key: originKey });
+    // By name: these are root-stack screens with unique names, so this
+    // returns to the instance already in the stack rather than pushing a
+    // second copy of it.
+    if (originName) {
+      navigation.navigate(originName);
       return;
     }
     if (navigation.canGoBack()) {

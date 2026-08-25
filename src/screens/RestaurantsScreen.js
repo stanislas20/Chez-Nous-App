@@ -31,7 +31,7 @@ import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useApprovedListings } from "../hooks/useApprovedListings";
 import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
-import { openAccountGate, rootRouteKey } from "../utils/openAccountGate";
+import { openAccountGate, rootRouteName } from "../utils/openAccountGate";
 import { canPublish } from "../utils/canPublish";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
 
@@ -72,7 +72,7 @@ export function RestaurantsScreen({ navigation }) {
         params: {
           // So the form's back arrow returns here rather than to the
           // seller dashboard the Sell tab opens on.
-          originKey: rootRouteKey(navigation),
+          originName: rootRouteName(navigation),
           categoryKey: "restaurants",
         },
       },

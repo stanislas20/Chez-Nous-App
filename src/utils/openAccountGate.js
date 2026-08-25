@@ -26,16 +26,20 @@ function getRootNavigation(navigation) {
   return current;
 }
 
-// The key of the screen the user is actually looking at, at the root.
+// The NAME of the screen the user is actually looking at, at the root.
 //
-// Navigating to a key returns to that exact screen from anywhere, however
-// many navigators are in between — which is what the posting form needs.
-// Reaching it lives in the Sell tab, so "back" would otherwise pop to the
-// seller dashboard: correct for the stack, wrong for the person, who came
-// from Chauffeurs or Pneus and expects to land back there.
-export function rootRouteKey(navigation) {
+// Name rather than key: navigate() in this version refuses an object with no
+// name ("You need to specify a name when calling navigate with an object"),
+// and a name is enough here because these are all root-stack screens with
+// unique names — navigating to one returns to the instance already in the
+// stack rather than pushing a second.
+//
+// The posting form needs this because it lives in the Sell tab, so popping
+// its own stack lands on the seller dashboard: correct for the stack, wrong
+// for the person, who came from Chauffeurs and expects Chauffeurs.
+export function rootRouteName(navigation) {
   const state = getRootNavigation(navigation).getState();
-  return state?.routes?.[state.index]?.key ?? null;
+  return state?.routes?.[state.index]?.name ?? null;
 }
 
 export function openAccountGate(navigation, { accountType } = {}) {

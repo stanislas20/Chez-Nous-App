@@ -20,7 +20,7 @@ import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
-import { openAccountGate, rootRouteKey } from "../utils/openAccountGate";
+import { openAccountGate, rootRouteName } from "../utils/openAccountGate";
 import { canPublish } from "../utils/canPublish";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
 import { useApprovedListings } from "../hooks/useApprovedListings";
@@ -184,7 +184,7 @@ export function GaragesScreen({ navigation, route }) {
         params: {
           // So the form's back arrow returns here rather than to the
           // seller dashboard the Sell tab opens on.
-          originKey: rootRouteKey(navigation),
+          originName: rootRouteName(navigation),
           categoryKey: "services",
           trade: "garage",
         },

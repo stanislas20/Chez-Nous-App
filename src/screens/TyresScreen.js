@@ -23,6 +23,7 @@ import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
 import { openAccountGate } from "../utils/openAccountGate";
+import { canPublish } from "../utils/canPublish";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useSellerRatings } from "../hooks/useSellerRatings";
@@ -345,6 +346,11 @@ export function TyresScreen({ navigation }) {
     });
 
   const { remember } = useAccountGateIntent(user, openPostForm);
+
+  // Signed out is a door, and the gate below opens it. Signed in on a
+  // number that cannot publish is a wall, and offering to walk into it
+  // is the dead promise the dashboard already stopped making.
+  const mayPublish = !user || canPublish(user);
 
   const startPosting = () => {
     if (!user) {
@@ -1049,20 +1055,22 @@ export function TyresScreen({ navigation }) {
             </>
           ) : null}
 
-          <OwnerCard onPress={startPosting}>
-            <OwnerIcon>
-              <Ionicons name="disc-outline" size={20} color={EMERALD} />
-            </OwnerIcon>
-            <OwnerCol>
-              <OwnerCardTitle>{t("tyreOwnerTitle")}</OwnerCardTitle>
-              <OwnerCopy>{t("tyreOwnerCopy")}</OwnerCopy>
-            </OwnerCol>
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={colors.textMuted}
-            />
-          </OwnerCard>
+          {mayPublish ? (
+            <OwnerCard onPress={startPosting}>
+              <OwnerIcon>
+                <Ionicons name="disc-outline" size={20} color={EMERALD} />
+              </OwnerIcon>
+              <OwnerCol>
+                <OwnerCardTitle>{t("tyreOwnerTitle")}</OwnerCardTitle>
+                <OwnerCopy>{t("tyreOwnerCopy")}</OwnerCopy>
+              </OwnerCol>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={colors.textMuted}
+              />
+            </OwnerCard>
+          ) : null}
         </Scroll>
 
         {/* Where the numbers are written. The single most common reason

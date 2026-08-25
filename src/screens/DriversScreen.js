@@ -13,6 +13,7 @@ import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
 import { openAccountGate } from "../utils/openAccountGate";
+import { canPublish } from "../utils/canPublish";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useSellerRatings } from "../hooks/useSellerRatings";
@@ -140,6 +141,11 @@ export function DriversScreen({ navigation }) {
     });
 
   const { remember } = useAccountGateIntent(user, openPostForm);
+
+  // Signed out is a door, and the gate below opens it. Signed in on a
+  // number that cannot publish is a wall, and offering to walk into it
+  // is the dead promise the dashboard already stopped making.
+  const mayPublish = !user || canPublish(user);
 
   const startPosting = () => {
     if (!user) {
@@ -491,16 +497,22 @@ export function DriversScreen({ navigation }) {
         {/* Both halves of this market, since a driver looking for work and an
             employer looking to hire arrive on the same screen from opposite
             directions. */}
-        <PostCard onPress={startPosting}>
-          <PostIcon>
-            <Ionicons name="car-outline" size={20} color={EMERALD} />
-          </PostIcon>
-          <PostCol>
-            <PostTitle>{t("driverPostTitle")}</PostTitle>
-            <PostCopy>{t("driverPostCopy")}</PostCopy>
-          </PostCol>
-          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-        </PostCard>
+        {mayPublish ? (
+          <PostCard onPress={startPosting}>
+            <PostIcon>
+              <Ionicons name="car-outline" size={20} color={EMERALD} />
+            </PostIcon>
+            <PostCol>
+              <PostTitle>{t("driverPostTitle")}</PostTitle>
+              <PostCopy>{t("driverPostCopy")}</PostCopy>
+            </PostCol>
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={colors.textMuted}
+            />
+          </PostCard>
+        ) : null}
 
         <JobsLink
           onPress={() =>

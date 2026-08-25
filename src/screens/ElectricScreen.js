@@ -13,6 +13,7 @@ import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
 import { openAccountGate } from "../utils/openAccountGate";
+import { canPublish } from "../utils/canPublish";
 import { openChat } from "../utils/openChat";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
@@ -200,6 +201,11 @@ export function ElectricScreen({ navigation }) {
     });
 
   const { remember } = useAccountGateIntent(user, openPostForm);
+
+  // Signed out is a door, and the gate below opens it. Signed in on a
+  // number that cannot publish is a wall, and offering to walk into it
+  // is the dead promise the dashboard already stopped making.
+  const mayPublish = !user || canPublish(user);
 
   const startPosting = () => {
     if (!user) {
@@ -651,16 +657,22 @@ export function ElectricScreen({ navigation }) {
           </EmptyCard>
         ) : null}
 
-        <PostCard onPress={startPosting}>
-          <PostIcon>
-            <Ionicons name="flash-outline" size={20} color={EMERALD} />
-          </PostIcon>
-          <PostCol>
-            <PostTitle>{t("electricPostTitle")}</PostTitle>
-            <PostCopy>{t("electricPostCopy")}</PostCopy>
-          </PostCol>
-          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-        </PostCard>
+        {mayPublish ? (
+          <PostCard onPress={startPosting}>
+            <PostIcon>
+              <Ionicons name="flash-outline" size={20} color={EMERALD} />
+            </PostIcon>
+            <PostCol>
+              <PostTitle>{t("electricPostTitle")}</PostTitle>
+              <PostCopy>{t("electricPostCopy")}</PostCopy>
+            </PostCol>
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={colors.textMuted}
+            />
+          </PostCard>
+        ) : null}
       </Scroll>
     </Container>
   );

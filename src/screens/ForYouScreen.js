@@ -52,6 +52,7 @@ import { useFavorites } from "../hooks/useFavorites";
 import { useJobFavorites } from "../hooks/useJobFavorites";
 import { useAuth } from "../auth/AuthContext";
 import { openAccountGate } from "../utils/openAccountGate";
+import { canPublish } from "../utils/canPublish";
 import { useI18n } from "../i18n/I18nContext";
 import { distanceInKm } from "../utils/geo";
 import { getDutyLabel } from "../utils/pharmacyDuty";
@@ -1258,6 +1259,10 @@ export function ForYouScreen({ navigation, route }) {
   // Straight into the form with Emplois already chosen, so an employer never
   // meets the category sheet or the word "Vendre". Signed out, the same gate
   // every other locked action uses — it returns here afterwards.
+  // Same rule as the trade screens: signed out is a door the gate opens,
+  // signed in on a number that cannot publish is a wall.
+  const mayPublish = !user || canPublish(user);
+
   const startJobPosting = () => {
     if (!user) {
       openAccountGate(navigation);
@@ -1905,24 +1910,26 @@ export function ForYouScreen({ navigation, route }) {
               who has just read what the market looks like is the person most
               likely to post, and the seventeen sector tiles below would bury
               it. */}
-          <JobPostCard onPress={startJobPosting}>
-            <JobPostIcon>
+          {mayPublish ? (
+            <JobPostCard onPress={startJobPosting}>
+              <JobPostIcon>
+                <Ionicons
+                  name="megaphone-outline"
+                  size={20}
+                  color={colors.primary}
+                />
+              </JobPostIcon>
+              <JobPostCol>
+                <JobPostTitle>{t("jobsPostTitle")}</JobPostTitle>
+                <JobPostCopy>{t("jobsPostCopy")}</JobPostCopy>
+              </JobPostCol>
               <Ionicons
-                name="megaphone-outline"
-                size={20}
-                color={colors.primary}
+                name="chevron-forward"
+                size={18}
+                color={colors.textMuted}
               />
-            </JobPostIcon>
-            <JobPostCol>
-              <JobPostTitle>{t("jobsPostTitle")}</JobPostTitle>
-              <JobPostCopy>{t("jobsPostCopy")}</JobPostCopy>
-            </JobPostCol>
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={colors.textMuted}
-            />
-          </JobPostCard>
+            </JobPostCard>
+          ) : null}
 
           <SectionTitle>{t("jobsExploreSection")}</SectionTitle>
           <CatGrid>

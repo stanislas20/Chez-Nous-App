@@ -13,6 +13,7 @@ import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
 import { openAccountGate } from "../utils/openAccountGate";
+import { canPublish } from "../utils/canPublish";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useSellerRatings } from "../hooks/useSellerRatings";
@@ -293,6 +294,11 @@ export function BatteryScreen({ navigation }) {
     });
 
   const { remember } = useAccountGateIntent(user, openPostForm);
+
+  // Signed out is a door, and the gate below opens it. Signed in on a
+  // number that cannot publish is a wall, and offering to walk into it
+  // is the dead promise the dashboard already stopped making.
+  const mayPublish = !user || canPublish(user);
 
   const startPosting = () => {
     if (!user) {
@@ -804,20 +810,26 @@ export function BatteryScreen({ navigation }) {
           <SafetyText>{t("batteryRecycleSafety")}</SafetyText>
         </SafetyNote>
 
-        <OwnerCard onPress={startPosting}>
-          <OwnerIcon>
+        {mayPublish ? (
+          <OwnerCard onPress={startPosting}>
+            <OwnerIcon>
+              <Ionicons
+                name="battery-charging-outline"
+                size={20}
+                color={EMERALD}
+              />
+            </OwnerIcon>
+            <OwnerCol>
+              <OwnerCardTitle>{t("batteryOwnerTitle")}</OwnerCardTitle>
+              <OwnerCopy>{t("batteryOwnerCopy")}</OwnerCopy>
+            </OwnerCol>
             <Ionicons
-              name="battery-charging-outline"
-              size={20}
-              color={EMERALD}
+              name="chevron-forward"
+              size={18}
+              color={colors.textMuted}
             />
-          </OwnerIcon>
-          <OwnerCol>
-            <OwnerCardTitle>{t("batteryOwnerTitle")}</OwnerCardTitle>
-            <OwnerCopy>{t("batteryOwnerCopy")}</OwnerCopy>
-          </OwnerCol>
-          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-        </OwnerCard>
+          </OwnerCard>
+        ) : null}
       </Scroll>
 
       {/* What a test is, and what the warning signs are. The last row is the

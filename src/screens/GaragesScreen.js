@@ -21,6 +21,7 @@ import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
 import { openAccountGate } from "../utils/openAccountGate";
+import { canPublish } from "../utils/canPublish";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
 import { useApprovedListings } from "../hooks/useApprovedListings";
 import { useSellerRatings } from "../hooks/useSellerRatings";
@@ -190,6 +191,11 @@ export function GaragesScreen({ navigation, route }) {
   // jumping to the tab pops this screen off the root stack, so the back
   // arrow had nothing to return to. The gate returns them here, and
   // `remember` picks the form back up when it does.
+  // Signed out is a door, and the gate below opens it. Signed in on a
+  // number that cannot publish is a wall, and offering to walk into it
+  // is the dead promise the dashboard already stopped making.
+  const mayPublish = !user || canPublish(user);
+
   const startPosting = () => {
     if (!user) {
       remember();
@@ -810,16 +816,22 @@ export function GaragesScreen({ navigation, route }) {
             opens the dashboard — naming the inner screen is what carries
             the category through to the form. */}
         <OwnerHeading>{t("garageOwnerTitle")}</OwnerHeading>
-        <OwnerCard onPress={startPosting}>
-          <OwnerIcon>
-            <Ionicons name="build" size={21} color={GOLD} />
-          </OwnerIcon>
-          <OwnerBody>
-            <OwnerCardTitle>{t("garageOwnerCardTitle")}</OwnerCardTitle>
-            <OwnerCopy>{t("garageOwnerCopy")}</OwnerCopy>
-          </OwnerBody>
-          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-        </OwnerCard>
+        {mayPublish ? (
+          <OwnerCard onPress={startPosting}>
+            <OwnerIcon>
+              <Ionicons name="build" size={21} color={GOLD} />
+            </OwnerIcon>
+            <OwnerBody>
+              <OwnerCardTitle>{t("garageOwnerCardTitle")}</OwnerCardTitle>
+              <OwnerCopy>{t("garageOwnerCopy")}</OwnerCopy>
+            </OwnerBody>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={colors.textMuted}
+            />
+          </OwnerCard>
+        ) : null}
       </ScrollView>
 
       <Modal

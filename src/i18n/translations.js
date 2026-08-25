@@ -33,7 +33,7 @@ export const translations = {
     forYouTitle: "For You",
     marketVerifiedOnlyFilter: "Verified businesses",
 
-    jobsPostTitle: "You are hiring?",
+    jobsPostTitle: "Are you hiring?",
     jobsPostCopy: "Post the role here — candidates apply from inside the app.",
     postingTitleVehicles: "Sell a vehicle",
     postingTitleRealEstate: "List a property",
@@ -839,7 +839,7 @@ export const translations = {
     bodyNoneService: "Nobody declares {service} yet",
     bodyNoProsCopy:
       "This list fills as body shops publish. Garages reaches the wider trade in the meantime.",
-    bodyPostTitle: "You run a body shop?",
+    bodyPostTitle: "Do you run a body shop?",
     bodyPostCopy: "Publish your workshop and appear in this list.",
     bodyQuoteOpen: "Hello, I am contacting you through Chez-Nous.",
     bodyQuoteProblem: "The damage: {problem}.",
@@ -891,7 +891,7 @@ export const translations = {
     electricNoneService: "Nobody declares {service} yet",
     electricNoProsCopy:
       "This list fills as electricians publish. Dépannage reaches every trade in the meantime.",
-    electricPostTitle: "You are an auto electrician?",
+    electricPostTitle: "Are you an auto electrician?",
     electricPostCopy: "Publish your workshop and appear in this list.",
     electricQuoteOpen: "Hello, I am contacting you through Chez-Nous.",
     electricQuoteProblem: "My problem: {problem}.",
@@ -953,7 +953,7 @@ export const translations = {
     driverNoneMatching: "No driver matches those filters",
     driverNoDriversCopy:
       "This list fills as drivers publish. A driver who left a field blank still appears — an empty answer is treated as unknown, not as no.",
-    driverPostTitle: "You are a driver?",
+    driverPostTitle: "Are you a driver?",
     driverPostCopy: "Publish once and appear here and under Transport jobs.",
     driverJobsLinkTitle: "Looking for a driving job?",
     driverJobsLinkCopy: "Employers post driving work under Transport.",

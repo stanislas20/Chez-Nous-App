@@ -223,19 +223,26 @@ export function BreakdownScreen({ navigation, route }) {
         </HeroTop>
         <HeroTitle>{t("breakdownTitle")}</HeroTitle>
         <HeroCopy>{t("breakdownIntro")}</HeroCopy>
+      </Hero>
 
-        {/* Where you are, on the screen where it decides everything. Tapping
-            it asks again if permission was refused. */}
+      {/* Where you are, on the screen where it decides everything, and now
+          astride the banner's edge instead of sunk into it. This is the one
+          control that must look tappable: on a red field it was another
+          notice, and somebody who refused the permission has to see that
+          there is something here to press. */}
+      <LocationDock>
         <LocationRow
           onPress={locationStatus === "granted" ? undefined : requestLocation}
         >
-          <Ionicons name="location" size={15} color="#ffffff" />
+          <LocationIcon>
+            <Ionicons name="location" size={15} color={TERRACOTTA} />
+          </LocationIcon>
           <LocationLabel numberOfLines={1}>{locationLabel}</LocationLabel>
           {locationStatus !== "granted" ? (
             <LocationAction>{t("breakdownUseLocation")}</LocationAction>
           ) : null}
         </LocationRow>
-      </Hero>
+      </LocationDock>
 
       <ScrollView
         contentContainerStyle={{
@@ -531,9 +538,14 @@ const Container = styled(SafeAreaView)`
 // Red, not the app's emerald. Every other screen is the marketplace; this one
 // is the one you open when something has gone wrong, and it should not look
 // like browsing.
+// Curved at the base like every other header in the app, with room at the
+// bottom for the location row that overlaps it: 54px, of which the card
+// takes back 30.
 const Hero = styled(LinearGradient)`
-  padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px
-    ${spacing.lg}px;
+  overflow: hidden;
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
+  padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px 54px;
 `;
 
 const HeroTop = styled.View`
@@ -576,29 +588,50 @@ const HeroCopy = styled.Text`
   max-width: 310px;
 `;
 
+// Pulled up over the banner's curve, so the banner reads as a surface with
+// something resting on it rather than a block with a gap beneath.
+const LocationDock = styled.View`
+  z-index: 2;
+  margin-top: -30px;
+  padding: 0px ${spacing.md}px;
+`;
+
 const LocationRow = styled(Pressable)`
   flex-direction: row;
   align-items: center;
   gap: ${spacing.sm}px;
-  margin-top: ${spacing.md}px;
-  padding: 11px 14px;
-  border-radius: 14px;
-  background-color: rgba(255, 255, 255, 0.14);
+  padding: 0px 14px;
+  min-height: 56px;
+  border-radius: ${radius.xl}px;
+  background-color: ${(props) => props.theme.surface};
   border-width: 1px;
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: ${(props) => props.theme.border};
+  ${shadow.card}
+`;
+
+const LocationIcon = styled.View`
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(193, 81, 45, 0.1);
 `;
 
 const LocationLabel = styled.Text`
   flex: 1;
   font-family: ${fontFamily.semiBold};
   font-size: 13px;
-  color: #ffffff;
+  color: ${(props) => props.theme.text};
 `;
 
+// The one place a colour is doing work rather than decoration: this is the
+// word somebody taps when the permission was refused, and it has to read as
+// an action rather than as the end of the sentence.
 const LocationAction = styled.Text`
   font-family: ${fontFamily.bold};
   font-size: 12px;
-  color: #ffffff;
+  color: ${TERRACOTTA};
 `;
 
 const Question = styled.Text`

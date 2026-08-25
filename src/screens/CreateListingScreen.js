@@ -4720,7 +4720,7 @@ export function CreateListingScreen({ route, navigation }) {
                   ) : null}
 
                   <Label>{t("sellFieldBrand")}</Label>
-                  <ChipScroll horizontal showsHorizontalScrollIndicator={false}>
+                  <ChipWrap>
                     {vehicleBrands.map((option) => (
                       <ScrollChip
                         key={option}
@@ -4734,7 +4734,7 @@ export function CreateListingScreen({ route, navigation }) {
                         </ScrollChipLabel>
                       </ScrollChip>
                     ))}
-                  </ChipScroll>
+                  </ChipWrap>
 
                   {/* The catalogue for the chosen marque. Typing stays
                       available underneath: 290 models is thorough, not
@@ -4743,10 +4743,7 @@ export function CreateListingScreen({ route, navigation }) {
                   {modelsForBrand(brand).length ? (
                     <>
                       <Label>{t("sellFieldModel")}</Label>
-                      <ChipScroll
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                      >
+                      <ChipWrap>
                         {modelsForBrand(brand).map((option) => (
                           <ScrollChip
                             key={option}
@@ -4760,7 +4757,7 @@ export function CreateListingScreen({ route, navigation }) {
                             </ScrollChipLabel>
                           </ScrollChip>
                         ))}
-                      </ChipScroll>
+                      </ChipWrap>
                       <FieldNote>{t("sellModelHint")}</FieldNote>
                     </>
                   ) : null}
@@ -4824,7 +4821,7 @@ export function CreateListingScreen({ route, navigation }) {
                   ) : null}
 
                   <Label>{t("sellFieldFuel")}</Label>
-                  <ChipScroll horizontal showsHorizontalScrollIndicator={false}>
+                  <ChipWrap>
                     {vehicleFuels.map((option) => (
                       <ScrollChip
                         key={option.key}
@@ -4838,7 +4835,7 @@ export function CreateListingScreen({ route, navigation }) {
                         </ScrollChipLabel>
                       </ScrollChip>
                     ))}
-                  </ChipScroll>
+                  </ChipWrap>
 
                   <Label>{t("sellFieldTransmission")}</Label>
                   <ConditionRow>
@@ -4862,7 +4859,7 @@ export function CreateListingScreen({ route, navigation }) {
                   </ConditionRow>
 
                   <Label>{t("sellFieldBodyType")}</Label>
-                  <ChipScroll horizontal showsHorizontalScrollIndicator={false}>
+                  <ChipWrap>
                     {vehicleBodyTypes.map((option) => (
                       <ScrollChip
                         key={option.key}
@@ -4878,10 +4875,10 @@ export function CreateListingScreen({ route, navigation }) {
                         </ScrollChipLabel>
                       </ScrollChip>
                     ))}
-                  </ChipScroll>
+                  </ChipWrap>
 
                   <Label>{t("sellFieldColor")}</Label>
-                  <ChipScroll horizontal showsHorizontalScrollIndicator={false}>
+                  <ChipWrap>
                     {vehicleColors.map((option) => (
                       <ScrollChip
                         key={option.key}
@@ -4898,7 +4895,7 @@ export function CreateListingScreen({ route, navigation }) {
                         </ScrollChipLabel>
                       </ScrollChip>
                     ))}
-                  </ChipScroll>
+                  </ChipWrap>
 
                   <Label>{t("sellFieldFeatures")}</Label>
                   <FeatureWrap>
@@ -4931,7 +4928,7 @@ export function CreateListingScreen({ route, navigation }) {
                   <FieldNote>{t("sellFeaturesHint")}</FieldNote>
 
                   <Label>{t("sellFieldDrivetrain")}</Label>
-                  <ChipScroll horizontal showsHorizontalScrollIndicator={false}>
+                  <ChipWrap>
                     {vehicleDrivetrains.map((option) => (
                       <ScrollChip
                         key={option.key}
@@ -4947,10 +4944,10 @@ export function CreateListingScreen({ route, navigation }) {
                         </ScrollChipLabel>
                       </ScrollChip>
                     ))}
-                  </ChipScroll>
+                  </ChipWrap>
 
                   <Label>{t("sellFieldSeats")}</Label>
-                  <ChipScroll horizontal showsHorizontalScrollIndicator={false}>
+                  <ChipWrap>
                     {VEHICLE_SEAT_OPTIONS.map((option) => (
                       <ScrollChip
                         key={option}
@@ -4964,11 +4961,11 @@ export function CreateListingScreen({ route, navigation }) {
                         </ScrollChipLabel>
                       </ScrollChip>
                     ))}
-                  </ChipScroll>
+                  </ChipWrap>
 
                   {/* The field with the most money attached to it. */}
                   <Label>{t("sellFieldCustoms")}</Label>
-                  <ChipScroll horizontal showsHorizontalScrollIndicator={false}>
+                  <ChipWrap>
                     {vehicleCustoms.map((option) => (
                       <ScrollChip
                         key={option.key}
@@ -4982,7 +4979,7 @@ export function CreateListingScreen({ route, navigation }) {
                         </ScrollChipLabel>
                       </ScrollChip>
                     ))}
-                  </ChipScroll>
+                  </ChipWrap>
                   {customs ? (
                     <FieldNote>
                       {getVehicleCustomsHint(customs, language)}
@@ -4992,7 +4989,7 @@ export function CreateListingScreen({ route, navigation }) {
                   )}
 
                   <Label>{t("sellFieldPlate")}</Label>
-                  <ChipScroll horizontal showsHorizontalScrollIndicator={false}>
+                  <ChipWrap>
                     {vehiclePlates.map((option) => (
                       <ScrollChip
                         key={option.key}
@@ -5006,10 +5003,10 @@ export function CreateListingScreen({ route, navigation }) {
                         </ScrollChipLabel>
                       </ScrollChip>
                     ))}
-                  </ChipScroll>
+                  </ChipWrap>
 
                   <Label>{t("sellFieldHistory")}</Label>
-                  <ChipScroll horizontal showsHorizontalScrollIndicator={false}>
+                  <ChipWrap>
                     {vehicleHistories.map((option) => (
                       <ScrollChip
                         key={option.key}
@@ -5023,11 +5020,11 @@ export function CreateListingScreen({ route, navigation }) {
                         </ScrollChipLabel>
                       </ScrollChip>
                     ))}
-                  </ChipScroll>
+                  </ChipWrap>
                   <FieldNote>{t("sellHistoryHint")}</FieldNote>
 
                   <Label>{t("sellFieldSellerKind")}</Label>
-                  <ChipScroll horizontal showsHorizontalScrollIndicator={false}>
+                  <ChipWrap>
                     {vehicleSellerKinds.map((option) => (
                       <ScrollChip
                         key={option.key}
@@ -5039,7 +5036,7 @@ export function CreateListingScreen({ route, navigation }) {
                         </ScrollChipLabel>
                       </ScrollChip>
                     ))}
-                  </ChipScroll>
+                  </ChipWrap>
                   <FieldNote>{t("sellSellerKindHint")}</FieldNote>
 
                   {/* The park picker follows the seller type and only exists
@@ -5052,10 +5049,7 @@ export function CreateListingScreen({ route, navigation }) {
                   {STOCK_SELLER_KINDS.includes(sellerKind) ? (
                     <>
                       <Label>{t("sellFieldCarPark")}</Label>
-                      <ChipScroll
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                      >
+                      <ChipWrap>
                         {carParks.map((option) => (
                           <ScrollChip
                             key={option.key}
@@ -5071,7 +5065,7 @@ export function CreateListingScreen({ route, navigation }) {
                             </ScrollChipLabel>
                           </ScrollChip>
                         ))}
-                      </ChipScroll>
+                      </ChipWrap>
                       <FieldNote>{t("sellCarParkHint")}</FieldNote>
                     </>
                   ) : null}
@@ -5086,7 +5080,7 @@ export function CreateListingScreen({ route, navigation }) {
                       unticked checkbox made "never answered" and "no papers"
                       publish identically. */}
                   <Label>{t("sellFieldDocuments")}</Label>
-                  <ChipScroll horizontal showsHorizontalScrollIndicator={false}>
+                  <ChipWrap>
                     {vehicleDocuments.map((option) => (
                       <ScrollChip
                         key={option.key}
@@ -5102,7 +5096,7 @@ export function CreateListingScreen({ route, navigation }) {
                         </ScrollChipLabel>
                       </ScrollChip>
                     ))}
-                  </ChipScroll>
+                  </ChipWrap>
                   <FieldNote>
                     {documents
                       ? getVehicleDocumentsHint(documents, language)
@@ -6046,14 +6040,30 @@ const PresetCategoryLabel = styled.Text`
 
 // A horizontal rail for the long option lists — twenty-four marques would
 // take five rows as a wrapping grid and bury the fields under them.
-const ChipScroll = styled.ScrollView.attrs({
-  contentContainerStyle: { gap: 8, paddingRight: spacing.md },
-})`
-  flex-grow: 0;
+// A wrapping grid, not a horizontal scroller.
+//
+// Carrosserie, Couleur, Carburant, Places and the rest ran off the right
+// edge, so every option past the fold was invisible unless somebody thought
+// to swipe a row that gave no sign it could be swiped — the same failure the
+// Batterie services had. Twenty-four makes and ten colours all fit on a
+// phone once they wrap, and every option being visible is worth more than
+// the two lines of height it costs.
+const ChipWrap = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: ${spacing.md}px;
 `;
 
+// Grows, so each row divides the width it has instead of ending ragged.
+// "Essence" and "Hybride rechargeable" are very different lengths, and that
+// difference is what left a hole at the end of every row.
 const ScrollChip = styled(Pressable)`
+  flex-grow: 1;
+  flex-basis: auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
   padding: 9px 15px;
   border-radius: ${radius.pill}px;
   background-color: ${(props) => (props.selected ? EMERALD : props.theme.surface)};

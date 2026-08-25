@@ -84,10 +84,40 @@ if (composed.size) {
     console.log(`  t(\`${pattern}\`)`);
 }
 
+// Keys that are computed rather than written as literals.
+//
+// This file finds t("someKey") by reading the source, so a key built at
+// runtime is invisible to it — and t() falls back to returning the key
+// itself, which means the miss ships as a header reading
+// "postingTitleServices" rather than as any kind of error. That happened.
+//
+// Every map that produces a key belongs here. It is a short list on purpose:
+// computed keys should stay rare.
+const COMPUTED_KEY_SOURCES = [
+  ["src/data/postingTitles.js", /"(postingTitle[A-Za-z]+)"/g],
+];
+
+for (const [file, pattern] of COMPUTED_KEY_SOURCES) {
+  const source = fs.readFileSync(path.join(__dirname, "..", file), "utf8");
+  for (const match of source.matchAll(pattern)) {
+    const key = match[1];
+    const absent = languages.filter((lang) => !(key in translations[lang]));
+    if (absent.length) {
+      missing.push({
+        file: path.join(__dirname, "..", file),
+        line: source.slice(0, match.index).split("\n").length,
+        key,
+        absent,
+      });
+    }
+  }
+}
+
 console.log(
   missing.length
     ? `\n${missing.length} missing translation key(s)`
-    : "\nclean: every literal t() key resolves in " + languages.join(" + "),
+    : "\nclean: every literal and computed t() key resolves in " +
+        languages.join(" + "),
 );
 
 process.exit(missing.length ? 1 : 0);

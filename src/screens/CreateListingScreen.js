@@ -167,6 +167,7 @@ import {
   isValidCrankingAmps,
 } from "../data/batteries";
 import { nearestKnownCity } from "../utils/nearestCity";
+import { postingTitleKey } from "../data/postingTitles";
 import { accountCountry, canPublish } from "../utils/canPublish";
 import { POSTING_DIAL } from "../data/countries";
 import { electricServices } from "../data/carElectrics";
@@ -850,6 +851,15 @@ export function CreateListingScreen({ route, navigation }) {
         ? accountCountry(user)?.nameEn
         : accountCountry(user)?.nameFr))
     : null;
+
+  // The header follows the category actually chosen, not the one the route
+  // arrived with. Without this, picking Services from the sheet left
+  // "Vendre un article" above a form about a service.
+  useEffect(() => {
+    navigation.setOptions({
+      title: t(postingTitleKey(selectedCategory, { isPromoted })),
+    });
+  }, [navigation, selectedCategory, isPromoted, t]);
 
   const serviceText = `${title} ${description}`;
   const serviceTrades = isServices ? garageSpecialtiesFor(serviceText) : [];

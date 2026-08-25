@@ -19,6 +19,7 @@ import { MyListingsScreen } from "../screens/MyListingsScreen";
 import { ParkInventoryScreen } from "../screens/ParkInventoryScreen";
 import { SellerInsightsScreen } from "../screens/SellerInsightsScreen";
 import { categories } from "../data/categories";
+import { postingTitleKey } from "../data/postingTitles";
 
 const Stack = createNativeStackNavigator();
 
@@ -133,19 +134,15 @@ export function SellStack() {
           <Stack.Screen
             name="CreateListing"
             component={CreateListingScreen}
-            options={({ route }) => {
-              const category = categories.find(
-                (item) => item.key === route.params?.categoryKey,
-              );
-              const title = category
-                ? language === "en"
-                  ? category.labelEn
-                  : category.labelFr
-                : route.params?.isPromoted
-                  ? t("promoteListingTileLabel")
-                  : t("sellTitle");
-              return { title };
-            }}
+            options={({ route }) => ({
+              // Only the first paint. Once a category is chosen inside the
+              // form, the screen sets this itself — see CreateListingScreen.
+              title: t(
+                postingTitleKey(route.params?.categoryKey, {
+                  isPromoted: route.params?.isPromoted,
+                }),
+              ),
+            })}
           />
           <Stack.Screen
             name="MyListings"

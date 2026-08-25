@@ -409,6 +409,93 @@ D.driverNeeds.forEach((item) => {
   if (D.isDriverListing(text)) fail(`"${text}" wrongly reads as a driver`);
 });
 
+// --- Pièces. The matcher here has the nastiest false positive in the app:
+// in French a flat is "un trois pièces", so the bare noun would place every
+// rental advert in the country on a car-parts screen.
+const P = load("src/data/vehicleParts.js", [
+  "partScopes",
+  "partCategories",
+  "partConditions",
+  "partBuyingTips",
+  "partCategoriesFor",
+  "getPartCategoryLabel",
+  "getPartConditionLabel",
+  "isPartsSellerListing",
+]);
+
+[
+  ["partScopes", P.partScopes, ["labelEn", "labelFr", "icon"]],
+  [
+    "partCategories",
+    P.partCategories,
+    ["labelEn", "labelFr", "detailEn", "detailFr", "icon"],
+  ],
+  [
+    "partConditions",
+    P.partConditions,
+    ["labelEn", "labelFr", "detailEn", "detailFr", "icon"],
+  ],
+  ["partBuyingTips", P.partBuyingTips, ["labelEn", "labelFr", "icon"]],
+].forEach(([name, list, fields]) => {
+  bilingual(list, name, fields);
+  unique(list, name);
+});
+
+const partScopeKeys = P.partScopes.map((item) => item.key);
+P.partCategories.forEach((item) => {
+  if (!item.scopes?.length) fail(`part ${item.key}: no scopes`);
+  item.scopes?.forEach((scope) => {
+    if (!partScopeKeys.includes(scope)) {
+      fail(`part ${item.key}: unknown scope ${scope}`);
+    }
+  });
+});
+
+// Both scopes must stand on their own, or a toggle position is a dead end.
+partScopeKeys.forEach((scope) => {
+  const list = P.partCategoriesFor(scope);
+  if (list.length < 4) fail(`scope ${scope}: only ${list.length} categories`);
+});
+
+[
+  [P.partCategories, P.getPartCategoryLabel, "part category"],
+  [P.partConditions, P.getPartConditionLabel, "part condition"],
+].forEach(([list, getter, what]) => {
+  list.forEach((item) => {
+    ["en", "fr"].forEach((language) => {
+      if (!getter(item.key, language))
+        fail(`${what} ${item.key}: no ${language}`);
+    });
+  });
+  if (getter("nope", "fr") !== null) {
+    fail(`${what} getter should return null for an unknown key`);
+  }
+});
+
+[
+  "Vente de pièces détachées auto toutes marques",
+  "Casse auto — pièces d occasion",
+  "Pièces moto et accessoires scooter",
+  "Magasin de pièces de rechange pour voiture",
+  "Pièces auto neuves et adaptables",
+  "Accessoires et pièces pour scooter",
+].forEach((text) => {
+  if (!P.isPartsSellerListing(text)) fail(`"${text}" does not reach Pièces`);
+});
+
+// The ones that must never appear there. The first four are flats.
+[
+  "Appartement 3 pièces à louer à Cotonou",
+  "Maison 4 pièces avec cour, location",
+  "Terrain 2 pièces viabilisé",
+  "Chambre salon meublé Fidjrossè",
+  "Quincaillerie : pièces de rechange pour pompe",
+  "Plomberie et pièces de rechange sanitaires",
+].forEach((text) => {
+  if (P.isPartsSellerListing(text))
+    fail(`"${text}" wrongly reads as a parts seller`);
+});
+
 if (failures.length) {
   failures.forEach((line) => console.error(line));
   console.error(`\n${failures.length} problem(s)`);
@@ -420,5 +507,6 @@ console.log(
     `across ${scopes.length} scopes; bodywork — ${C.bodyworkProblems.length} damages, ` +
     `${C.bodyworkServices.length} services, ${C.bodyworkParts.length} parts; ` +
     `drivers — ${D.driverNeeds.length} needs, ${D.permitCategories.length} permits, ` +
-    `${D.driverLanguages.length} languages, 14 matcher cases`,
+    `${D.driverLanguages.length} languages, 14 matcher cases; ` +
+    `parts — ${P.partCategories.length} systems, ${P.partConditions.length} conditions, 12 matcher cases`,
 );

@@ -31,6 +31,7 @@ import { BodyworkScreen } from "../screens/BodyworkScreen";
 import { ModerationScreen } from "../screens/ModerationScreen";
 import { CreateListingScreen } from "../screens/CreateListingScreen";
 import { DriversScreen } from "../screens/DriversScreen";
+import { PartsScreen } from "../screens/PartsScreen";
 import { GaragesScreen } from "../screens/GaragesScreen";
 import { BreakdownScreen } from "../screens/BreakdownScreen";
 import { VehicleListScreen } from "../screens/VehicleListScreen";
@@ -170,6 +171,11 @@ export function RootNavigator() {
           <Stack.Screen
             name="Bodywork"
             component={BodyworkScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Parts"
+            component={PartsScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen

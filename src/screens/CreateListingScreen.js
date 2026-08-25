@@ -173,6 +173,12 @@ import { POSTING_DIAL } from "../data/countries";
 import { electricServices } from "../data/carElectrics";
 import { bodyworkServices } from "../data/bodywork";
 import {
+  isPartsSellerListing,
+  partCategories,
+  partConditions,
+  partScopes,
+} from "../data/vehicleParts";
+import {
   driverAvailability,
   driverExperience,
   driverLanguages,
@@ -244,6 +250,7 @@ const TRADE_HINT_KEYS = {
   battery: "sellTitleHint_battery",
   electric: "sellTitleHint_electric",
   bodywork: "sellTitleHint_bodywork",
+  parts: "sellTitleHint_parts",
   driver: "sellTitleHint_driver",
 };
 
@@ -264,6 +271,7 @@ const SERVICE_TRADES = [
     labelKey: "sellTradeBodywork",
   },
   { key: "driver", icon: "person-outline", labelKey: "sellTradeDriver" },
+  { key: "parts", icon: "cog-outline", labelKey: "sellTradeParts" },
   { key: "electric", icon: "flash-outline", labelKey: "sellTradeElectric" },
   { key: "tyres", icon: "disc-outline", labelKey: "sellTradeTyres" },
   {
@@ -290,6 +298,7 @@ const TRADE_NOTE_KEYS = {
   garage: "sellTitleNote_garage",
   electric: "sellTitleNote_electric",
   bodywork: "sellTitleNote_bodywork",
+  parts: "sellTitleNote_parts",
   tyres: "sellTitleNote_garage",
   battery: "sellTitleNote_garage",
 };
@@ -300,6 +309,7 @@ const TRADE_NOTE_KEYS = {
 const TRADE_DESC_HINT_KEYS = {
   electric: "sellDescHint_electric",
   bodywork: "sellDescHint_bodywork",
+  parts: "sellDescHint_parts",
   driver: "sellDescHint_driver",
 };
 
@@ -607,6 +617,17 @@ export function CreateListingScreen({ route, navigation }) {
   // themselves — a permit category, who owns the car, which languages they
   // speak — and none of it is verified by the app, which the Chauffeurs
   // screen says out loud rather than implying otherwise here.
+  // Declared by a parts seller: which vehicles, which systems, and whether
+  // the stock is new, from a casse, or aftermarket. The last is the one
+  // buyers most need and listings most often omit.
+  const [partScopeKeys, setPartScopeKeys] = useState(seed("partScopes", []));
+  const [partCategoryKeys, setPartCategoryKeys] = useState(
+    seed("partCategories", []),
+  );
+  const [partConditionKeys, setPartConditionKeys] = useState(
+    seed("partConditions", []),
+  );
+
   const [driverPermits, setDriverPermits] = useState(seed("driverPermits", []));
   const [driverAvailabilityKeys, setDriverAvailabilityKeys] = useState(
     seed("driverAvailability", []),
@@ -912,6 +933,10 @@ export function CreateListingScreen({ route, navigation }) {
     isServices &&
     (trade === "bodywork" ||
       matchesGarageSpecialty(`${title} ${description}`, "carro"));
+
+  const mentionsParts =
+    isServices &&
+    (trade === "parts" || isPartsSellerListing(`${title} ${description}`));
 
   // And once more for chauffeurs, using the same rule: their own words, or
   // the trade they arrived with.
@@ -1451,6 +1476,13 @@ export function CreateListingScreen({ route, navigation }) {
                 : {}),
               ...(mentionsBodywork
                 ? { bodyworkServices: bodyworkServiceKeys }
+                : {}),
+              ...(mentionsParts
+                ? {
+                    partScopes: partScopeKeys,
+                    partCategories: partCategoryKeys,
+                    partConditions: partConditionKeys,
+                  }
                 : {}),
               ...(mentionsDriver
                 ? {
@@ -3854,6 +3886,102 @@ export function CreateListingScreen({ route, navigation }) {
                           selected={active}
                           onPress={() =>
                             setBatteryServiceKeys((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+                </>
+              ) : null}
+
+              {mentionsParts ? (
+                <>
+                  <Label>{t("sellFieldPartScopes")}</Label>
+                  <PickerGrid>
+                    {partScopes.map((option, index) => {
+                      const active = partScopeKeys.includes(option.key);
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(index, partScopes.length)}
+                          full={isPickerCardFull(index, partScopes.length)}
+                          selected={active}
+                          onPress={() =>
+                            setPartScopeKeys((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  <Label>{t("sellFieldPartCategories")}</Label>
+                  <FieldNote>{t("sellPartCategoriesHint")}</FieldNote>
+                  <PickerGrid>
+                    {partCategories.map((option, index) => {
+                      const active = partCategoryKeys.includes(option.key);
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            partCategories.length,
+                          )}
+                          full={isPickerCardFull(index, partCategories.length)}
+                          selected={active}
+                          onPress={() =>
+                            setPartCategoryKeys((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  <Label>{t("sellFieldPartConditions")}</Label>
+                  <FieldNote>{t("sellPartConditionsHint")}</FieldNote>
+                  <PickerGrid>
+                    {partConditions.map((option, index) => {
+                      const active = partConditionKeys.includes(option.key);
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            partConditions.length,
+                          )}
+                          full={isPickerCardFull(index, partConditions.length)}
+                          selected={active}
+                          onPress={() =>
+                            setPartConditionKeys((prev) =>
                               prev.includes(option.key)
                                 ? prev.filter((key) => key !== option.key)
                                 : [...prev, option.key],

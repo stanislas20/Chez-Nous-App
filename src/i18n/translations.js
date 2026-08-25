@@ -932,6 +932,38 @@ export const translations = {
     moderationFailed:
       "That did not go through. If the permission is new, sign out and back in, then try again.",
     moderationDashboardTile: "Review queue",
+    partsEyebrow: "Parts",
+    partsTitle: "Vehicle parts",
+    partsIntro:
+      "Where to buy one. Whether it fits your vehicle is a question for the seller.",
+    partsCategoryLabel: "What are you looking for?",
+    partsConditionLabel: "New, used or aftermarket",
+    partsTipsLabel: "Before you pay",
+    partsSellersLabel: "Parts sellers near you",
+    partsSellerCount: "{count} seller(s)",
+    partsNoSellers: "No parts seller has published yet",
+    partsNoneMatching: "No seller matches those filters",
+    partsNoSellersCopy:
+      "This list fills as shops publish. A shop that left a field blank still appears — an empty answer is treated as unknown, not as no.",
+    partsPostTitle: "Do you sell parts?",
+    partsPostCopy: "Publish your shop and appear in this list.",
+    partsQuoteOpen: "Hello, I am contacting you through Chez-Nous.",
+    partsQuoteCategory: "I am looking for: {category}.",
+    partsQuoteCondition: "Condition: {condition}.",
+    partsQuoteAsk: "Do you have it, and at what price?",
+    sellTradeParts: "Parts seller",
+    sellFieldPartScopes: "Vehicles you supply",
+    sellFieldPartCategories: "Systems you stock",
+    sellPartCategoriesHint:
+      "Only what you actually keep. This is what buyers filter on before calling.",
+    sellFieldPartConditions: "New, used or aftermarket",
+    sellPartConditionsHint:
+      "The answer buyers most want and listings most often leave out.",
+    sellTitleHint_parts: "e.g. Pièces auto Ganhi — new and used",
+    sellTitleNote_parts:
+      'Say pièces auto, pièces moto or casse — those words are what list you here. "Pièces" alone is also how a flat is described, so it is not enough on its own.',
+    sellDescHint_parts:
+      "What you stock, for which vehicles, and whether parts are new, from a breaker, or aftermarket.",
     driverEyebrow: "Drivers",
     driverTitle: "Find a driver",
     driverIntro:
@@ -2988,6 +3020,38 @@ export const translations = {
     moderationFailed:
       "Cela n’a pas fonctionné. Si le droit vient d’être accordé, déconnectez-vous puis reconnectez-vous avant de réessayer.",
     moderationDashboardTile: "File de validation",
+    partsEyebrow: "Pièces",
+    partsTitle: "Pièces détachées",
+    partsIntro:
+      "Où en acheter une. Si elle va sur votre véhicule, c’est au vendeur de le dire.",
+    partsCategoryLabel: "Que cherchez-vous ?",
+    partsConditionLabel: "Neuf, occasion ou adaptable",
+    partsTipsLabel: "Avant de payer",
+    partsSellersLabel: "Vendeurs de pièces près de vous",
+    partsSellerCount: "{count} vendeur(s)",
+    partsNoSellers: "Aucun vendeur de pièces n’a encore publié",
+    partsNoneMatching: "Aucun vendeur ne correspond à ces filtres",
+    partsNoSellersCopy:
+      "Cette liste se remplit au fur et à mesure des publications. Un magasin qui a laissé un champ vide apparaît quand même : une réponse absente est traitée comme inconnue, pas comme un non.",
+    partsPostTitle: "Vous vendez des pièces ?",
+    partsPostCopy: "Publiez votre magasin et apparaissez dans cette liste.",
+    partsQuoteOpen: "Bonjour, je vous contacte via Chez-Nous.",
+    partsQuoteCategory: "Je cherche : {category}.",
+    partsQuoteCondition: "État : {condition}.",
+    partsQuoteAsk: "L’avez-vous, et à quel prix ?",
+    sellTradeParts: "Vendeur de pièces",
+    sellFieldPartScopes: "Véhicules que vous fournissez",
+    sellFieldPartCategories: "Systèmes que vous avez en stock",
+    sellPartCategoriesHint:
+      "Uniquement ce que vous avez vraiment. C’est là-dessus que les clients filtrent avant d’appeler.",
+    sellFieldPartConditions: "Neuf, occasion ou adaptable",
+    sellPartConditionsHint:
+      "La réponse que les acheteurs cherchent le plus et que les annonces oublient le plus souvent.",
+    sellTitleHint_parts: "ex. Pièces auto Ganhi — neuf et occasion",
+    sellTitleNote_parts:
+      "Dites pièces auto, pièces moto ou casse — ce sont ces mots qui vous classent ici. « Pièces » tout seul décrit aussi un appartement, donc cela ne suffit pas.",
+    sellDescHint_parts:
+      "Ce que vous avez en stock, pour quels véhicules, et si les pièces sont neuves, de casse ou adaptables.",
     driverEyebrow: "Chauffeurs",
     driverTitle: "Trouver un chauffeur",
     driverIntro:

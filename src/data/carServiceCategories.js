@@ -98,7 +98,10 @@ export const carServicesPrimary = [
   // category, an availability and a language, and no keyword search can ask
   // those questions.
   { key: "driver", icon: "person-outline", route: "Drivers" },
-  { key: "parts", icon: "cog-outline", query: "pièce auto" },
+  // Its own screen rather than a text search: "pièce" alone finds every
+  // three-room flat in the country, and a parts shop is chosen on what it
+  // stocks and whether that stock is new or from a casse.
+  { key: "parts", icon: "cog-outline", route: "Parts" },
   { key: "wash", icon: "water-outline", query: "lavage auto" },
   { key: "parking", icon: "location-outline", route: "CarParks" },
   {

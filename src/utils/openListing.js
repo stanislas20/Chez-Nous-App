@@ -13,7 +13,9 @@ export function openListing(navigation, listing, t, language) {
   // no condition, and the thing that matters is a phone number someone can
   // dial at 2am.
   if (listing.categoryKey === "pharmacyOnDuty") {
-    navigation.navigate("PharmacyDetail", { listing: { ...listing, createdAt: null } });
+    navigation.navigate("PharmacyDetail", {
+      listing: { ...listing, createdAt: null },
+    });
     return;
   }
   // Property has its own detail screen — specs table, document tier,
@@ -22,12 +24,18 @@ export function openListing(navigation, listing, t, language) {
   // different screens depending on where it was tapped, and the goods one
   // silently dropped everything a property listing carries.
   if (listing.categoryKey === "realEstate") {
-    navigation.navigate("RealEstateDetail", { listing: { ...listing, createdAt: null } });
+    navigation.navigate("RealEstateDetail", {
+      listing: { ...listing, createdAt: null },
+    });
     return;
   }
   if (listing.categoryKey === "jobs") {
-    navigation.navigate("JobDetail", { job: normalizeJobListing(listing, t, language) });
+    navigation.navigate("JobDetail", {
+      job: normalizeJobListing(listing, t, language),
+    });
   } else {
-    navigation.navigate("ProductDetail", { listing: { ...listing, createdAt: null } });
+    navigation.navigate("ProductDetail", {
+      listing: { ...listing, createdAt: null },
+    });
   }
 }

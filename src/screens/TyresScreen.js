@@ -296,26 +296,6 @@ export function TyresScreen({ navigation }) {
     Linking.openURL(full).catch(() => {});
   };
 
-  // Only when the seller named a place.
-  //
-  // A trade listing's latitude and longitude are the CITY's, filled from the
-  // chosen city rather than from the shop, so a directions arrow would route
-  // somebody to the middle of Cotonou with total confidence. And a map search
-  // for a name plus a city alone returns whatever Google decides. A quartier
-  // or an area is the least a search needs to mean anything; without one the
-  // button is a promise the listing cannot keep, so it is not offered.
-  const hasMappablePlace = (item) =>
-    Boolean(item?.quartier?.trim?.() || item?.area?.trim?.());
-
-  const openDirections = (item) => {
-    const query = encodeURIComponent(
-      [title(item), item.place, item.city].filter(Boolean).join(" "),
-    );
-    Linking.openURL(
-      `https://www.google.com/maps/search/?api=1&query=${query}`,
-    ).catch(() => {});
-  };
-
   // One place that turns "195/65 R15" into the three boxes, used by the
   // vehicle sheet and by the suggested-size chips alike.
   const applySize = (value) => {
@@ -988,15 +968,6 @@ export function TyresScreen({ navigation }) {
                           />
                           <GhostLabel>WhatsApp</GhostLabel>
                         </GhostButton>
-                      ) : null}
-                      {hasMappablePlace(shop) ? (
-                        <IconButton onPress={() => openDirections(shop)}>
-                          <Ionicons
-                            name="navigate-outline"
-                            size={16}
-                            color={colors.textMuted}
-                          />
-                        </IconButton>
                       ) : null}
                     </ActionRow>
                   </Card>
@@ -1908,15 +1879,6 @@ const GhostLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 13px;
   color: ${EMERALD};
-`;
-
-const IconButton = styled(Pressable)`
-  width: 44px;
-  height: 44px;
-  border-radius: 15px;
-  align-items: center;
-  justify-content: center;
-  background-color: ${(props) => props.theme.surfaceAlt};
 `;
 
 const NoPhoneNote = styled.Text`

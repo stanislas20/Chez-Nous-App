@@ -112,26 +112,6 @@ export function PartsScreen({ navigation }) {
     ).catch(() => {});
   };
 
-  // Only when the seller named a place.
-  //
-  // A trade listing's latitude and longitude are the CITY's, filled from the
-  // chosen city rather than from the shop, so a directions arrow would route
-  // somebody to the middle of Cotonou with total confidence. And a map search
-  // for a name plus a city alone returns whatever Google decides. A quartier
-  // or an area is the least a search needs to mean anything; without one the
-  // button is a promise the listing cannot keep, so it is not offered.
-  const hasMappablePlace = (item) =>
-    Boolean(item?.quartier?.trim?.() || item?.area?.trim?.());
-
-  const openDirections = (item) => {
-    const place = encodeURIComponent(
-      [title(item), item.place, item.city].filter(Boolean).join(" "),
-    );
-    Linking.openURL(
-      `https://www.google.com/maps/search/?api=1&query=${place}`,
-    ).catch(() => {});
-  };
-
   const openPostForm = () =>
     navigation.navigate("CreateListing", {
       categoryKey: "services",
@@ -426,15 +406,6 @@ export function PartsScreen({ navigation }) {
                     <Ionicons name="logo-whatsapp" size={15} color={EMERALD} />
                     <GhostLabel>WhatsApp</GhostLabel>
                   </GhostButton>
-                ) : null}
-                {hasMappablePlace(item) ? (
-                  <IconButton onPress={() => openDirections(item)}>
-                    <Ionicons
-                      name="navigate-outline"
-                      size={16}
-                      color={colors.textMuted}
-                    />
-                  </IconButton>
                 ) : null}
               </ActionRow>
             </Card>
@@ -927,15 +898,6 @@ const GhostLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 13px;
   color: ${EMERALD};
-`;
-
-const IconButton = styled(Pressable)`
-  width: 46px;
-  height: 46px;
-  border-radius: ${radius.lg}px;
-  align-items: center;
-  justify-content: center;
-  background-color: ${(props) => props.theme.surfaceAlt};
 `;
 
 const EmptyCard = styled.View`

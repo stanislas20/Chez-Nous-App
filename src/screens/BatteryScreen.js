@@ -221,26 +221,6 @@ export function BatteryScreen({ navigation }) {
     );
   };
 
-  // Only when the seller named a place.
-  //
-  // A trade listing's latitude and longitude are the CITY's, filled from the
-  // chosen city rather than from the shop, so a directions arrow would route
-  // somebody to the middle of Cotonou with total confidence. And a map search
-  // for a name plus a city alone returns whatever Google decides. A quartier
-  // or an area is the least a search needs to mean anything; without one the
-  // button is a promise the listing cannot keep, so it is not offered.
-  const hasMappablePlace = (item) =>
-    Boolean(item?.quartier?.trim?.() || item?.area?.trim?.());
-
-  const openDirections = (item) => {
-    const query = encodeURIComponent(
-      [title(item), item.place, item.city].filter(Boolean).join(" "),
-    );
-    Linking.openURL(
-      `https://www.google.com/maps/search/?api=1&query=${query}`,
-    ).catch(() => {});
-  };
-
   // A flat battery is a roadside problem, so it hands over to Dépannage with
   // the problem already chosen rather than asking again.
   const goToBreakdown = () =>
@@ -786,15 +766,6 @@ export function BatteryScreen({ navigation }) {
                     <Ionicons name="logo-whatsapp" size={15} color={EMERALD} />
                     <GhostLabel>WhatsApp</GhostLabel>
                   </GhostButton>
-                ) : null}
-                {hasMappablePlace(shop) ? (
-                  <IconButton onPress={() => openDirections(shop)}>
-                    <Ionicons
-                      name="navigate-outline"
-                      size={16}
-                      color={colors.textMuted}
-                    />
-                  </IconButton>
                 ) : null}
               </ActionRow>
             </Card>
@@ -1692,15 +1663,6 @@ const GhostLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 13px;
   color: ${EMERALD};
-`;
-
-const IconButton = styled(Pressable)`
-  width: 44px;
-  height: 44px;
-  border-radius: 15px;
-  align-items: center;
-  justify-content: center;
-  background-color: ${(props) => props.theme.surfaceAlt};
 `;
 
 const EmptyCard = styled.View`

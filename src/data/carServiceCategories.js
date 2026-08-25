@@ -107,11 +107,7 @@ export const carServicesPrimary = [
   // sold — the Sèkandji and Ekpè market — and the tile said Parking, which
   // in both languages means somewhere to leave your own car instead.
   { key: "carParks", icon: "location-outline", route: "CarParks" },
-  {
-    key: "documents",
-    icon: "document-text-outline",
-    query: "visite technique",
-  },
+  { key: "documents", icon: "document-text-outline", route: "Papers" },
   {
     key: "insurance",
     icon: "shield-checkmark-outline",

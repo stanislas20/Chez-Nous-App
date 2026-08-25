@@ -869,6 +869,12 @@ export function CreateListingScreen({ route, navigation }) {
     isServices &&
     (trade === "driver" || isDriverListing(`${title} ${description}`));
 
+  // A chauffeur is not a dépanneur, so the roadside pair is dropped for
+  // them — unless their own words say they do both, which some do.
+  const showRoadsideFields =
+    !mentionsDriver ||
+    matchesGarageSpecialty(`${title} ${description}`, "depan");
+
   const tyreSizeValid = isValidTyreSize(tyreWidth, tyreRatio, tyreDiameter);
 
   // Same three-boxes-one-number problem as the search on the Pneus screen:
@@ -3611,69 +3617,85 @@ export function CreateListingScreen({ route, navigation }) {
                 <FieldNote>{t("sellServiceQuoteHint")}</FieldNote>
               ) : null}
 
-              {/* Everything below is optional and only earns its place for a
-                  trade that goes to the customer. It is asked of every
-                  service rather than gated on guessing which ones are
-                  roadside — a hairdresser leaves it blank, and the Dépannage
-                  card shows only the lines that were answered. */}
-              <Label>{t("sellFieldResponseTime")}</Label>
-              <FieldNote>{t("sellResponseTimeHint")}</FieldNote>
-              <PickerGrid>
-                {roadsideResponseTimes.map((option, index) => {
-                  const active = responseTime === option.key;
-                  return (
-                    <PickerCard
-                      key={option.key}
-                      width={getPickerCardWidth(
-                        index,
-                        roadsideResponseTimes.length,
-                      )}
-                      full={isPickerCardFull(
-                        index,
-                        roadsideResponseTimes.length,
-                      )}
-                      selected={active}
-                      onPress={() =>
-                        setResponseTime(active ? null : option.key)
-                      }
-                    >
-                      <PickerCardLabel selected={active}>
-                        {language === "en" ? option.labelEn : option.labelFr}
-                      </PickerCardLabel>
-                    </PickerCard>
-                  );
-                })}
-              </PickerGrid>
+              {/* Optional, and asked of most services rather than gated on
+                  guessing which ones are roadside — a hairdresser leaves it
+                  blank and the Dépannage card shows only what was answered.
+                  A chauffeur is the one trade where blank is not neutral but
+                  wrong: "Que pouvez-vous apporter ?" offers a driver a
+                  booster and a compressor for a breakdown they will never
+                  attend, and "sous quel délai intervenez-vous" is a
+                  dispatch question asked of somebody who is not dispatched.
+                  Both are Dépannage vocabulary, so they go with it.
 
-              <Label>{t("sellFieldEquipment")}</Label>
-              <FieldNote>{t("sellEquipmentHint")}</FieldNote>
-              <PickerGrid>
-                {roadsideEquipment.map((option, index) => {
-                  const active = equipment.includes(option.key);
-                  return (
-                    <PickerCard
-                      key={option.key}
-                      width={getPickerCardWidth(
-                        index,
-                        roadsideEquipment.length,
-                      )}
-                      full={isPickerCardFull(index, roadsideEquipment.length)}
-                      selected={active}
-                      onPress={() =>
-                        setEquipment((prev) =>
-                          prev.includes(option.key)
-                            ? prev.filter((key) => key !== option.key)
-                            : [...prev, option.key],
-                        )
-                      }
-                    >
-                      <PickerCardLabel selected={active}>
-                        {getEquipmentLabel(option.key, language)}
-                      </PickerCardLabel>
-                    </PickerCard>
-                  );
-                })}
-              </PickerGrid>
+                  Unless the driver also does roadside work, which some do —
+                  then their own words say so and they keep the fields. */}
+              {showRoadsideFields ? (
+                <>
+                  <Label>{t("sellFieldResponseTime")}</Label>
+                  <FieldNote>{t("sellResponseTimeHint")}</FieldNote>
+                  <PickerGrid>
+                    {roadsideResponseTimes.map((option, index) => {
+                      const active = responseTime === option.key;
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            roadsideResponseTimes.length,
+                          )}
+                          full={isPickerCardFull(
+                            index,
+                            roadsideResponseTimes.length,
+                          )}
+                          selected={active}
+                          onPress={() =>
+                            setResponseTime(active ? null : option.key)
+                          }
+                        >
+                          <PickerCardLabel selected={active}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  <Label>{t("sellFieldEquipment")}</Label>
+                  <FieldNote>{t("sellEquipmentHint")}</FieldNote>
+                  <PickerGrid>
+                    {roadsideEquipment.map((option, index) => {
+                      const active = equipment.includes(option.key);
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            roadsideEquipment.length,
+                          )}
+                          full={isPickerCardFull(
+                            index,
+                            roadsideEquipment.length,
+                          )}
+                          selected={active}
+                          onPress={() =>
+                            setEquipment((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active}>
+                            {getEquipmentLabel(option.key, language)}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+                </>
+              ) : null}
 
               {/* Appears because the seller's own words are about tyres.
                   Everything here is what the Pneus screen filters on, so a
@@ -6278,9 +6300,20 @@ const SheetTitle = styled.Text`
 // get eaten dismissing it — so selecting a city while typing silently
 // needed two taps. "handled" lets the row take the tap on the first try and
 // still dismisses the keyboard.
+// flex-shrink, and it is not cosmetic.
+//
+// The sheet around this is capped at 80% of the screen. A ScrollView with no
+// shrink lays itself out at its full content height, is then clipped by that
+// cap, and believes its viewport is as tall as its content — so it never
+// scrolls, and everything past the fold is simply unreachable. Thirteen
+// categories do not fit on a phone, which is how Services and Communauté and
+// Emplois came to be missing from a list they were always in.
+//
+// The same sheet holds the 61-city picker, so that list was cut off too.
 const SheetScroll = styled.ScrollView.attrs(() => ({
   keyboardShouldPersistTaps: "handled",
 }))`
+  flex-shrink: 1;
   padding-horizontal: ${spacing.md}px;
 `;
 

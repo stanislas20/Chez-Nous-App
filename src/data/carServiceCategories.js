@@ -94,7 +94,10 @@ export const carServicesPrimary = [
   // repair is priced from photographs, and no list of garages can carry the
   // photographs.
   { key: "bodywork", icon: "color-fill-outline", route: "Bodywork" },
-  { key: "driver", icon: "person-outline", query: "chauffeur" },
+  // Its own screen rather than a text search: a driver is chosen on a permit
+  // category, an availability and a language, and no keyword search can ask
+  // those questions.
+  { key: "driver", icon: "person-outline", route: "Drivers" },
   { key: "parts", icon: "cog-outline", query: "pièce auto" },
   { key: "wash", icon: "water-outline", query: "lavage auto" },
   { key: "parking", icon: "location-outline", route: "CarParks" },

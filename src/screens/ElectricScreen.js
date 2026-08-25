@@ -996,7 +996,10 @@ const ChipWrap = styled.View`
 `;
 
 const StaticChip = styled.View`
-  padding: 6px 11px;
+  flex-grow: 1;
+  flex-basis: auto;
+  align-items: center;
+  padding: 8px 11px;
   border-radius: ${radius.pill}px;
   background-color: ${(props) => props.theme.surfaceAlt};
 `;
@@ -1007,9 +1010,19 @@ const StaticChipLabel = styled.Text`
   color: ${(props) => props.theme.textMuted};
 `;
 
+// Grows to fill its row, matching the parts chips on Carrosserie.
+//
+// Three sections use these — lighting, accessories, 12V — and the widest
+// label is four times the narrowest ("GPS" against "Capteurs de
+// stationnement"), so wrapping at natural widths produced a different ragged
+// edge in each section of the same screen.
 const ActionChip = styled(Pressable)`
+  flex-grow: 1;
+  flex-basis: auto;
   flex-direction: row;
   align-items: center;
+  justify-content: center;
+  min-height: 40px;
   gap: 6px;
   padding: 8px 12px;
   border-radius: ${radius.pill}px;

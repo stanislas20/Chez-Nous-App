@@ -18,11 +18,32 @@ const code = babel.transformFileSync(file, {
   babelrc: false,
   configFile: false,
 }).code;
+// A require that actually resolves, because the module under test now
+// imports the shared word matcher. A stub returning undefined turned a
+// refactor into a crash here rather than a failure in the thing being
+// tested, which is the wrong place to find out.
+function loadEsm(relative) {
+  const shim = { exports: {} };
+  vm.runInNewContext(
+    babel.transformFileSync(path.join(__dirname, "..", relative), {
+      presets: [["@babel/preset-env", { targets: { node: "current" } }]],
+      babelrc: false,
+      configFile: false,
+    }).code,
+    { module: shim, exports: shim.exports, require: () => {}, console },
+  );
+  return shim.exports;
+}
+
 const moduleShim = { exports: {} };
 vm.runInNewContext(code, {
   module: moduleShim,
   exports: moduleShim.exports,
-  require: () => {},
+  require: (specifier) => {
+    if (specifier.endsWith("wordMatch"))
+      return loadEsm("src/utils/wordMatch.js");
+    return {};
+  },
   console,
 });
 const { isGarageListing, garageSpecialtiesFor } = moduleShim.exports;

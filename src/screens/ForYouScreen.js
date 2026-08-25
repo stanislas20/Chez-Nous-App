@@ -31,6 +31,7 @@ import { PhoneCallButtons } from "../components/PhoneCallButtons";
 import { mockListings } from "../data/mockListings";
 import { mockJobs } from "../data/mockJobs";
 import { jobCategories } from "../data/jobCategories";
+import { isDriverListing } from "../data/drivers";
 import { sectorTint } from "../data/companySectors";
 import { cities } from "../data/cities";
 import { cityCoordinates } from "../data/cityCoordinates";
@@ -940,10 +941,40 @@ export function ForYouScreen({ navigation, route }) {
   // has posted, mixing invented jobs in beside theirs would have a
   // candidate applying to a company that does not exist — so the whole
   // sample set steps aside, the same rule mockRestaurants follows.
-  const jobPool = useMemo(
-    () => (realJobListings.length > 0 ? realJobListings : mockJobs),
-    [realJobListings],
-  );
+  // Drivers advertising themselves, shown among Transport postings.
+  //
+  // A driver's listing is a Services listing — that is where it lives and
+  // where Chauffeurs reads it from. But somebody browsing Emplois → Transport
+  // is looking for exactly this person, and would never think to leave the
+  // jobs view to find them. So the same document is surfaced in both places
+  // rather than duplicated into a second one, which would then have to be
+  // kept in step and could contradict itself.
+  //
+  // Marked `isOffer` on the way through: it is somebody offering to work, not
+  // an employer offering a job, and a candidate must be able to tell those
+  // apart at a glance.
+  const driverListings = useMemo(() => {
+    if (!liveListings) return [];
+    return liveListings
+      .filter((listing) => listing.categoryKey === "services")
+      .filter((listing) =>
+        isDriverListing(
+          `${listing.titleEn ?? ""} ${listing.titleFr ?? ""} ${listing.descriptionEn ?? ""} ${listing.descriptionFr ?? ""}`,
+        ),
+      )
+      .map((listing) => ({
+        ...normalizeJobListing(listing, t, language),
+        category: "transport",
+        isOffer: true,
+      }));
+  }, [liveListings, t, language]);
+
+  const jobPool = useMemo(() => {
+    // Samples step aside for a driver's offer too — an invented company
+    // beside a real person's advert is the thing mockJobs must never do.
+    const real = [...realJobListings, ...driverListings];
+    return real.length > 0 ? real : mockJobs;
+  }, [realJobListings, driverListings]);
 
   // Identity, not a length check: the pool is either the sample array itself
   // or a list built from Firestore, and a real employer with five postings
@@ -1779,6 +1810,18 @@ export function ForYouScreen({ navigation, route }) {
                               size={13}
                               color={EMERALD}
                             />
+                          ) : null}
+                          {/* A driver offering to work, sitting among
+                              employers offering jobs. Both belong in
+                              Transport and they are opposite things, so the
+                              card says which one it is rather than leaving a
+                              candidate to apply to another candidate. */}
+                          {job.isOffer ? (
+                            <OfferBadge>
+                              <OfferBadgeLabel>
+                                {t("jobsOfferBadge")}
+                              </OfferBadgeLabel>
+                            </OfferBadge>
                           ) : null}
                         </JobCompanyRow>
                       </JobInfoCol>
@@ -3202,6 +3245,20 @@ const JobCompanyRow = styled.View`
   align-items: center;
   gap: 5px;
   margin-top: 2px;
+`;
+
+const OfferBadge = styled.View`
+  padding: 2px 7px;
+  border-radius: ${radius.pill}px;
+  background-color: rgba(217, 164, 65, 0.16);
+`;
+
+const OfferBadgeLabel = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 9px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #8a6415;
 `;
 
 const JobCompanyText = styled.Text`

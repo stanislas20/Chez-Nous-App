@@ -919,6 +919,55 @@ export const translations = {
     moderationFailed:
       "That did not go through. If the permission is new, sign out and back in, then try again.",
     moderationDashboardTile: "Review queue",
+    driverEyebrow: "Drivers",
+    driverTitle: "Find a driver",
+    driverIntro:
+      "Someone who drives — for a month, for a Saturday, or for the road to Parakou.",
+    driverNotRideHailing:
+      "Chez-Nous does not send a car. This is a directory of drivers you can call yourself, and every detail below is what they told us.",
+    driverNeedLabel: "What do you need?",
+    driverFilterLabel: "Narrow it down",
+    driverFilterPermit: "Permit category",
+    driverFilterAvailability: "Availability",
+    driverFilterVehicle: "Whose vehicle",
+    driverFilterLanguage: "Languages spoken",
+    driverClearFilters: "Clear filters",
+    driverFilterSummary: "{count} driver(s) · {filters}",
+    driverSafetyLabel: "Before you hand over the keys",
+    driverSafetyTitle: "We do not check anyone's licence",
+    driverSafetyCopy:
+      "Permit categories here are declared by the driver, not verified by Chez-Nous. These four checks take ten minutes and are yours to make.",
+    driverListLabel: "Drivers",
+    driverCardPermit: "Permit",
+    driverCardLanguages: "Speaks",
+    driverCardAvailability: "Available",
+    driverNoDrivers: "No driver has published yet",
+    driverNoneMatching: "No driver matches those filters",
+    driverNoDriversCopy:
+      "This list fills as drivers publish. A driver who left a field blank still appears — an empty answer is treated as unknown, not as no.",
+    driverPostTitle: "You are a driver?",
+    driverPostCopy: "Publish once and appear here and under Transport jobs.",
+    driverJobsLinkTitle: "Looking for a driving job?",
+    driverJobsLinkCopy: "Employers post driving work under Transport.",
+    driverQuoteOpen: "Hello, I am contacting you through Chez-Nous.",
+    driverQuoteNeed: "I am looking for: {need}.",
+    driverQuoteAsk: "Are you available, and what would it cost?",
+    jobsOfferBadge: "Offers to work",
+    sellTradeDriver: "Driver",
+    sellFieldDriverPermits: "Permit categories you hold",
+    sellDriverPermitsHint:
+      "Declared, not checked. Clients are told to ask for the original — say only what you can show.",
+    sellFieldDriverVehicle: "Whose vehicle",
+    sellFieldDriverAvailability: "When you are available",
+    sellFieldDriverLanguages: "Languages you speak",
+    sellDriverLanguagesHint:
+      "The filter families abroad use most when hiring for a relative.",
+    sellFieldDriverExperience: "Years driving",
+    sellTitleHint_driver: "e.g. Chauffeur privé, permit B, 8 years",
+    sellTitleNote_driver:
+      "Say what you do — chauffeur, livreur, longue distance — and whether you have your own vehicle. Clients browse by need, and these words are what list you.",
+    sellDescHint_driver:
+      "Your experience, the areas you know, your hours, and whether you drive your own vehicle or the client's.",
     dashboardBuyerBrowse: "Browse the market",
     dashboardBuyerProfile: "Buyer profile",
     jobDetailApplyCountryMessage:
@@ -2911,6 +2960,56 @@ export const translations = {
     moderationFailed:
       "Cela n’a pas fonctionné. Si le droit vient d’être accordé, déconnectez-vous puis reconnectez-vous avant de réessayer.",
     moderationDashboardTile: "File de validation",
+    driverEyebrow: "Chauffeurs",
+    driverTitle: "Trouver un chauffeur",
+    driverIntro:
+      "Quelqu’un qui conduit — au mois, pour un samedi, ou pour la route de Parakou.",
+    driverNotRideHailing:
+      "Chez-Nous n’envoie pas de voiture. Ceci est un annuaire de chauffeurs que vous appelez vous-même, et chaque information ci-dessous vient d’eux.",
+    driverNeedLabel: "De quoi avez-vous besoin ?",
+    driverFilterLabel: "Affiner",
+    driverFilterPermit: "Catégorie de permis",
+    driverFilterAvailability: "Disponibilité",
+    driverFilterVehicle: "Quel véhicule",
+    driverFilterLanguage: "Langues parlées",
+    driverClearFilters: "Effacer les filtres",
+    driverFilterSummary: "{count} chauffeur(s) · {filters}",
+    driverSafetyLabel: "Avant de confier vos clés",
+    driverSafetyTitle: "Nous ne vérifions le permis de personne",
+    driverSafetyCopy:
+      "Les catégories de permis affichées sont déclarées par le chauffeur, pas vérifiées par Chez-Nous. Ces quatre vérifications prennent dix minutes et vous reviennent.",
+    driverListLabel: "Chauffeurs",
+    driverCardPermit: "Permis",
+    driverCardLanguages: "Parle",
+    driverCardAvailability: "Dispo",
+    driverNoDrivers: "Aucun chauffeur n’a encore publié",
+    driverNoneMatching: "Aucun chauffeur ne correspond à ces filtres",
+    driverNoDriversCopy:
+      "Cette liste se remplit au fur et à mesure des publications. Un chauffeur qui a laissé un champ vide apparaît quand même : une réponse absente est traitée comme inconnue, pas comme un non.",
+    driverPostTitle: "Vous êtes chauffeur ?",
+    driverPostCopy:
+      "Publiez une fois et apparaissez ici et dans les emplois Transport.",
+    driverJobsLinkTitle: "Vous cherchez un emploi de chauffeur ?",
+    driverJobsLinkCopy: "Les employeurs publient sous la catégorie Transport.",
+    driverQuoteOpen: "Bonjour, je vous contacte via Chez-Nous.",
+    driverQuoteNeed: "Je cherche : {need}.",
+    driverQuoteAsk: "Êtes-vous disponible, et à quel tarif ?",
+    jobsOfferBadge: "Propose ses services",
+    sellTradeDriver: "Chauffeur",
+    sellFieldDriverPermits: "Catégories de permis que vous avez",
+    sellDriverPermitsHint:
+      "Déclaré, non vérifié. On demande aux clients d’exiger l’original — n’indiquez que ce que vous pouvez montrer.",
+    sellFieldDriverVehicle: "Quel véhicule",
+    sellFieldDriverAvailability: "Quand vous êtes disponible",
+    sellFieldDriverLanguages: "Langues que vous parlez",
+    sellDriverLanguagesHint:
+      "Le filtre le plus utilisé par les familles à l’étranger qui recrutent pour un proche.",
+    sellFieldDriverExperience: "Années de conduite",
+    sellTitleHint_driver: "ex. Chauffeur privé, permis B, 8 ans",
+    sellTitleNote_driver:
+      "Dites ce que vous faites — chauffeur, livreur, longue distance — et si vous avez votre véhicule. Les clients cherchent par besoin, et ce sont ces mots qui vous classent.",
+    sellDescHint_driver:
+      "Votre expérience, les zones que vous connaissez, vos horaires, et si vous conduisez votre véhicule ou celui du client.",
     dashboardBuyerBrowse: "Parcourir le marché",
     dashboardBuyerProfile: "Profil acheteur",
     jobDetailApplyCountryMessage:

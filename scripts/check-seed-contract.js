@@ -18,10 +18,20 @@ const vm = require("vm");
 
 const { buildDocs } = require("./seedTestListings.js");
 
+// The shared word matcher, inlined ahead of any module that imports it. The
+// vm has no module loader, so stripping the import without supplying the
+// functions turns a refactor elsewhere into a syntax error here.
+const WORD_MATCH = fs
+  .readFileSync(path.join(__dirname, "..", "src/utils/wordMatch.js"), "utf8")
+  .replace(/^export /gm, "");
+
 function loadModule(relative, expose = []) {
-  const source = fs
-    .readFileSync(path.join(__dirname, "..", relative), "utf8")
-    .replace(/^export /gm, "");
+  const raw = fs.readFileSync(path.join(__dirname, "..", relative), "utf8");
+  const source =
+    (/from "\.\.\/utils\/wordMatch"/.test(raw) ? WORD_MATCH + "\n" : "") +
+    raw
+      .replace(/import[\s\S]*?from\s*["'][^"']+["'];\n/g, "")
+      .replace(/^export /gm, "");
   const context = {};
   vm.createContext(context);
   vm.runInContext(

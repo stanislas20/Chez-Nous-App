@@ -171,6 +171,14 @@ import { accountCountry, canPublish } from "../utils/canPublish";
 import { POSTING_DIAL } from "../data/countries";
 import { electricServices } from "../data/carElectrics";
 import { bodyworkServices } from "../data/bodywork";
+import {
+  driverAvailability,
+  driverExperience,
+  driverLanguages,
+  driverVehicleModes,
+  isDriverListing,
+  permitCategories,
+} from "../data/drivers";
 import { guessContentType } from "../utils/uploadContentType";
 import {
   experienceLevels,
@@ -235,6 +243,7 @@ const TRADE_HINT_KEYS = {
   battery: "sellTitleHint_battery",
   electric: "sellTitleHint_electric",
   bodywork: "sellTitleHint_bodywork",
+  driver: "sellTitleHint_driver",
 };
 
 // The car trades that have a screen of their own, offered inside the form
@@ -253,6 +262,7 @@ const SERVICE_TRADES = [
     icon: "color-fill-outline",
     labelKey: "sellTradeBodywork",
   },
+  { key: "driver", icon: "person-outline", labelKey: "sellTradeDriver" },
   { key: "electric", icon: "flash-outline", labelKey: "sellTradeElectric" },
   { key: "tyres", icon: "disc-outline", labelKey: "sellTradeTyres" },
   {
@@ -289,6 +299,7 @@ const TRADE_NOTE_KEYS = {
 const TRADE_DESC_HINT_KEYS = {
   electric: "sellDescHint_electric",
   bodywork: "sellDescHint_bodywork",
+  driver: "sellDescHint_driver",
 };
 
 // Vehicles covers "cars, motorbikes, parts", and a part is not a car: asking
@@ -591,6 +602,23 @@ export function CreateListingScreen({ route, navigation }) {
   const [bodyworkServiceKeys, setBodyworkServiceKeys] = useState(
     seed("bodyworkServices", []),
   );
+  // Declared by a chauffeur. Every one of these is a fact they hold about
+  // themselves — a permit category, who owns the car, which languages they
+  // speak — and none of it is verified by the app, which the Chauffeurs
+  // screen says out loud rather than implying otherwise here.
+  const [driverPermits, setDriverPermits] = useState(seed("driverPermits", []));
+  const [driverAvailabilityKeys, setDriverAvailabilityKeys] = useState(
+    seed("driverAvailability", []),
+  );
+  const [driverLanguageKeys, setDriverLanguageKeys] = useState(
+    seed("driverLanguages", []),
+  );
+  const [driverVehicleMode, setDriverVehicleMode] = useState(
+    seed("driverVehicleMode", null),
+  );
+  const [driverExperienceKey, setDriverExperienceKey] = useState(
+    seed("driverExperience", null),
+  );
   const [tyreBrand, setTyreBrand] = useState(seedText("tyreBrand", ""));
   const [tyreModel, setTyreModel] = useState(seedText("tyreModel", ""));
   const [tyreWidth, setTyreWidth] = useState(seedText("tyreWidth", ""));
@@ -834,6 +862,12 @@ export function CreateListingScreen({ route, navigation }) {
     isServices &&
     (trade === "bodywork" ||
       matchesGarageSpecialty(`${title} ${description}`, "carro"));
+
+  // And once more for chauffeurs, using the same rule: their own words, or
+  // the trade they arrived with.
+  const mentionsDriver =
+    isServices &&
+    (trade === "driver" || isDriverListing(`${title} ${description}`));
 
   const tyreSizeValid = isValidTyreSize(tyreWidth, tyreRatio, tyreDiameter);
 
@@ -1361,6 +1395,15 @@ export function CreateListingScreen({ route, navigation }) {
                 : {}),
               ...(mentionsBodywork
                 ? { bodyworkServices: bodyworkServiceKeys }
+                : {}),
+              ...(mentionsDriver
+                ? {
+                    driverPermits,
+                    driverAvailability: driverAvailabilityKeys,
+                    driverLanguages: driverLanguageKeys,
+                    driverVehicleMode,
+                    driverExperience: driverExperienceKey,
+                  }
                 : {}),
               phone: phone.trim(),
               // Stored normalised so "9h", "9:00" and "09:00" all compare
@@ -3745,6 +3788,173 @@ export function CreateListingScreen({ route, navigation }) {
                                 ? prev.filter((key) => key !== option.key)
                                 : [...prev, option.key],
                             )
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+                </>
+              ) : null}
+
+              {mentionsDriver ? (
+                <>
+                  <Label>{t("sellFieldDriverPermits")}</Label>
+                  <FieldNote>{t("sellDriverPermitsHint")}</FieldNote>
+                  <PickerGrid>
+                    {permitCategories.map((option, index) => {
+                      const active = driverPermits.includes(option.key);
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            permitCategories.length,
+                          )}
+                          full={isPickerCardFull(
+                            index,
+                            permitCategories.length,
+                          )}
+                          selected={active}
+                          onPress={() =>
+                            setDriverPermits((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  <Label>{t("sellFieldDriverVehicle")}</Label>
+                  <PickerGrid>
+                    {driverVehicleModes.map((option, index) => {
+                      const active = driverVehicleMode === option.key;
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            driverVehicleModes.length,
+                          )}
+                          full={isPickerCardFull(
+                            index,
+                            driverVehicleModes.length,
+                          )}
+                          selected={active}
+                          onPress={() =>
+                            setDriverVehicleMode(active ? null : option.key)
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  <Label>{t("sellFieldDriverAvailability")}</Label>
+                  <PickerGrid>
+                    {driverAvailability.map((option, index) => {
+                      const active = driverAvailabilityKeys.includes(
+                        option.key,
+                      );
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            driverAvailability.length,
+                          )}
+                          full={isPickerCardFull(
+                            index,
+                            driverAvailability.length,
+                          )}
+                          selected={active}
+                          onPress={() =>
+                            setDriverAvailabilityKeys((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  <Label>{t("sellFieldDriverLanguages")}</Label>
+                  <FieldNote>{t("sellDriverLanguagesHint")}</FieldNote>
+                  <PickerGrid>
+                    {driverLanguages.map((option, index) => {
+                      const active = driverLanguageKeys.includes(option.key);
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            driverLanguages.length,
+                          )}
+                          full={isPickerCardFull(index, driverLanguages.length)}
+                          selected={active}
+                          onPress={() =>
+                            setDriverLanguageKeys((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  <Label>{t("sellFieldDriverExperience")}</Label>
+                  <PickerGrid>
+                    {driverExperience.map((option, index) => {
+                      const active = driverExperienceKey === option.key;
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            driverExperience.length,
+                          )}
+                          full={isPickerCardFull(
+                            index,
+                            driverExperience.length,
+                          )}
+                          selected={active}
+                          onPress={() =>
+                            setDriverExperienceKey(active ? null : option.key)
                           }
                         >
                           <PickerCardLabel selected={active} numberOfLines={2}>

@@ -13,10 +13,22 @@ const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 
+// The shared word matcher, inlined ahead of any module that imports it. The
+// vm has no module loader, and stripping the import without supplying the
+// functions turns a refactor into a syntax error here instead of a failure
+// in the thing under test.
+const WORD_MATCH = fs
+  .readFileSync(path.join(__dirname, "..", "src/utils/wordMatch.js"), "utf8")
+  .replace(/^export /gm, "");
+
 function load(relative, expose) {
-  const source = fs
-    .readFileSync(path.join(__dirname, "..", relative), "utf8")
-    .replace(/^export /gm, "");
+  const raw = fs.readFileSync(path.join(__dirname, "..", relative), "utf8");
+  const needsMatcher = /from "\.\.\/utils\/wordMatch"/.test(raw);
+  const source =
+    (needsMatcher ? WORD_MATCH + "\n" : "") +
+    raw
+      .replace(/import[\s\S]*?from\s*["'][^"']+["'];\n/g, "")
+      .replace(/^export /gm, "");
   const context = {};
   vm.createContext(context);
   vm.runInContext(
@@ -306,6 +318,97 @@ C.bodyworkServices.forEach((item) => {
   },
 );
 
+// --- Chauffeurs. The matcher here has no garageSpecialties to lean on, so
+// its own false positives are the whole risk: a driving school, a site
+// manager ("conducteur de travaux") and a plumber fitting a chauffe-eau all
+// sit one careless term away from this screen.
+const D = load("src/data/drivers.js", [
+  "driverNeeds",
+  "permitCategories",
+  "driverAvailability",
+  "driverVehicleModes",
+  "driverLanguages",
+  "driverExperience",
+  "driverSafetyChecks",
+  "isDriverListing",
+  "getPermitLabel",
+  "getAvailabilityLabel",
+  "getLanguageLabel",
+  "getVehicleModeLabel",
+  "getExperienceLabel",
+]);
+
+[
+  [
+    "driverNeeds",
+    D.driverNeeds,
+    ["labelEn", "labelFr", "hintEn", "hintFr", "icon"],
+  ],
+  ["permitCategories", D.permitCategories, ["labelEn", "labelFr", "icon"]],
+  ["driverAvailability", D.driverAvailability, ["labelEn", "labelFr", "icon"]],
+  ["driverVehicleModes", D.driverVehicleModes, ["labelEn", "labelFr", "icon"]],
+  ["driverLanguages", D.driverLanguages, ["labelEn", "labelFr"]],
+  ["driverExperience", D.driverExperience, ["labelEn", "labelFr"]],
+  ["driverSafetyChecks", D.driverSafetyChecks, ["labelEn", "labelFr", "icon"]],
+].forEach(([name, list, fields]) => {
+  bilingual(list, name, fields);
+  unique(list, name);
+});
+
+// Every need must select an availability a driver can actually declare, or
+// the tile filters the list to something nobody can ever match.
+const availabilityKeys = new Set(D.driverAvailability.map((item) => item.key));
+D.driverNeeds.forEach((item) => {
+  if (!availabilityKeys.has(item.availability)) {
+    fail(`driver need ${item.key}: unknown availability ${item.availability}`);
+  }
+});
+
+// Labels resolve, since the cards print them.
+[
+  [D.permitCategories, D.getPermitLabel, "permit"],
+  [D.driverAvailability, D.getAvailabilityLabel, "availability"],
+  [D.driverLanguages, D.getLanguageLabel, "language"],
+  [D.driverVehicleModes, D.getVehicleModeLabel, "vehicle mode"],
+  [D.driverExperience, D.getExperienceLabel, "experience"],
+].forEach(([list, getter, what]) => {
+  list.forEach((item) => {
+    ["en", "fr"].forEach((language) => {
+      if (!getter(item.key, language)) {
+        fail(`${what} ${item.key}: no ${language} label`);
+      }
+    });
+  });
+  if (getter("nope", "fr") !== null) {
+    fail(`${what} getter should return null for an unknown key`);
+  }
+});
+
+// The matcher, both ways round.
+[
+  "Chauffeur privé disponible, permis B, 8 ans d’expérience",
+  "Chauffeur-livreur avec sa propre moto",
+  "Je suis conducteur avec permis B et mon véhicule",
+  "Chauffeuse expérimentée, longue distance",
+  "Zem disponible pour vos courses en ville, moto",
+].forEach((text) => {
+  if (!D.isDriverListing(text)) fail(`"${text}" does not reach Chauffeurs`);
+});
+
+[
+  "Installation et réparation de chauffe-eau",
+  "Plomberie : fuite, robinet, chauffe-eau",
+  "Conducteur de travaux BTP, chantier et gros oeuvre",
+  "Auto-école : cours de code et permis",
+  "Auto école, leçons de conduite et permis B",
+  "Moniteur auto-école expérimenté",
+  "Transport de marchandises par conteneur maritime",
+  "Livreur de repas à vélo",
+  "Mécanicien auto toutes marques",
+].forEach((text) => {
+  if (D.isDriverListing(text)) fail(`"${text}" wrongly reads as a driver`);
+});
+
 if (failures.length) {
   failures.forEach((line) => console.error(line));
   console.error(`\n${failures.length} problem(s)`);
@@ -315,5 +418,7 @@ console.log(
   `clean: electrics — ${E.electricProblems.length} symptoms, ${E.electricServices.length} services, ` +
     `${E.electricLighting.length + E.electricAccessories.length + E.electricSolar.length} search chips ` +
     `across ${scopes.length} scopes; bodywork — ${C.bodyworkProblems.length} damages, ` +
-    `${C.bodyworkServices.length} services, ${C.bodyworkParts.length} parts`,
+    `${C.bodyworkServices.length} services, ${C.bodyworkParts.length} parts; ` +
+    `drivers — ${D.driverNeeds.length} needs, ${D.permitCategories.length} permits, ` +
+    `${D.driverLanguages.length} languages, 14 matcher cases`,
 );

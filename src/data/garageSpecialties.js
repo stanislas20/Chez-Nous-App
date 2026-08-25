@@ -1,3 +1,5 @@
+import { mentionsAnyWord } from "../utils/wordMatch";
+
 // The car-repair trades, and the symptom-first way into them.
 //
 // There is no "garage" category in Firestore. A garage publishes an ordinary
@@ -199,40 +201,8 @@ const AUTO_CONTEXT = [
 // matched inside "géométrie" and "eau" inside "faisceau", so a plumbing ad
 // ("fuite, robinet, chauffe-eau") came back as auto-electrics. Matching
 // whole words instead is what stops that.
-function fold(value) {
-  return (value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9]+/g, " ")
-    .trim()
-    .toLowerCase();
-}
 
-// Up to three trailing characters, so a term written in the plural or lightly
-// inflected still counts — "pneus" for pneu, "freinage" for frein — while
-// staying far too tight to reach an unrelated longer word.
-const INFLECTION_SLACK = 3;
-
-function mentionsTerm(text, term) {
-  const needle = fold(term);
-  if (!needle) return false;
-  const haystack = fold(text);
-  // A multi-word term ("valise diagnostic") is a phrase, so it is matched as
-  // one rather than word by word.
-  if (needle.includes(" ")) return haystack.includes(needle);
-  return haystack
-    .split(" ")
-    .some(
-      (word) =>
-        word === needle ||
-        (word.startsWith(needle) &&
-          word.length - needle.length <= INFLECTION_SLACK),
-    );
-}
-
-function mentionsAny(text, terms) {
-  return terms.some((term) => mentionsTerm(text, term));
-}
+const mentionsAny = mentionsAnyWord;
 
 export function mentionsVehicle(text) {
   return mentionsAny(text, AUTO_CONTEXT);

@@ -912,9 +912,21 @@ const ChipWrap = styled.View`
   gap: 7px;
 `;
 
+// Grows to fill its row rather than sizing to its label.
+//
+// These nine labels run from "Ailes" to "Rétroviseurs", so wrapping them at
+// their natural widths left a different ragged gap at the end of every row —
+// worst on the last, where two short words sat beside a third of a line of
+// nothing. Growing lets each row divide the space it actually has, and a
+// chip left alone on the final row takes the full width instead of hanging
+// at the left.
 const ActionChip = styled(Pressable)`
+  flex-grow: 1;
+  flex-basis: auto;
   flex-direction: row;
   align-items: center;
+  justify-content: center;
+  min-height: 40px;
   gap: 6px;
   padding: 8px 12px;
   border-radius: ${radius.pill}px;

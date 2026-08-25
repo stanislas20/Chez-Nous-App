@@ -53,3 +53,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Emulator output, regenerated on every rules test run.
+firestore-debug.log
+firebase-debug.log

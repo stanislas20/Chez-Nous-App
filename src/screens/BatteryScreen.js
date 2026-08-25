@@ -221,6 +221,17 @@ export function BatteryScreen({ navigation }) {
     );
   };
 
+  // Only when the seller named a place.
+  //
+  // A trade listing's latitude and longitude are the CITY's, filled from the
+  // chosen city rather than from the shop, so a directions arrow would route
+  // somebody to the middle of Cotonou with total confidence. And a map search
+  // for a name plus a city alone returns whatever Google decides. A quartier
+  // or an area is the least a search needs to mean anything; without one the
+  // button is a promise the listing cannot keep, so it is not offered.
+  const hasMappablePlace = (item) =>
+    Boolean(item?.quartier?.trim?.() || item?.area?.trim?.());
+
   const openDirections = (item) => {
     const query = encodeURIComponent(
       [title(item), item.place, item.city].filter(Boolean).join(" "),
@@ -776,13 +787,15 @@ export function BatteryScreen({ navigation }) {
                     <GhostLabel>WhatsApp</GhostLabel>
                   </GhostButton>
                 ) : null}
-                <IconButton onPress={() => openDirections(shop)}>
-                  <Ionicons
-                    name="navigate-outline"
-                    size={16}
-                    color={colors.textMuted}
-                  />
-                </IconButton>
+                {hasMappablePlace(shop) ? (
+                  <IconButton onPress={() => openDirections(shop)}>
+                    <Ionicons
+                      name="navigate-outline"
+                      size={16}
+                      color={colors.textMuted}
+                    />
+                  </IconButton>
+                ) : null}
               </ActionRow>
             </Card>
           );

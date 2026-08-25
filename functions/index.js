@@ -15,6 +15,8 @@ setGlobalOptions({ maxInstances: 10 });
 
 exports.syncPharmacyRosters =
   require("./pharmacyRosterSync").syncPharmacyRosters;
+exports.sendPaperReminders =
+  require("./paperReminders").sendPaperReminders;
 
 const PSEUDO_EMAIL_DOMAIN = "chez-nous.app";
 const MIN_PASSWORD_LENGTH = 6;

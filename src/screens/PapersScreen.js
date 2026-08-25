@@ -1,5 +1,11 @@
-import { useMemo, useState } from "react";
-import { Linking, Modal, Pressable } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  KeyboardAvoidingView,
+  Linking,
+  Modal,
+  Platform,
+  Pressable,
+} from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -11,6 +17,9 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
+import { useAuth } from "../auth/AuthContext";
+import { doc, setDoc } from "firebase/firestore";
+import { firestore } from "../config/firebase";
 import { useVehiclePapers } from "../hooks/useVehiclePapers";
 import {
   countNeedingAttention,
@@ -54,12 +63,27 @@ const TABS = [
 // nothing else. There are no providers on this screen and no addresses: the
 // app cannot see anyone's insurance certificate, so all it can honestly do is
 // hold the date the owner typed and count the days.
+// The date the reader typed, as the date they typed — not the instant it
+// happens to be stored as. An instant means "midnight somewhere", and the
+// server has no way of knowing where this phone was when it was written, so
+// the calendar date is the only form that survives the trip intact.
+function calendarDate(iso) {
+  const date = new Date(iso);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate(),
+  )}`;
+}
+
 export function PapersScreen({ navigation }) {
   const { colors } = useTheme();
   const { t, language } = useI18n();
   const insets = useSafeAreaInsets();
 
-  const { papers, loaded, remember } = useVehiclePapers();
+  const { user } = useAuth();
+  const { papers, loaded, remember, rememberVehicle } = useVehiclePapers();
+  const [vehicleOpen, setVehicleOpen] = useState(false);
+  const [vehicleDraft, setVehicleDraft] = useState("");
   const [tab, setTab] = useState("papers");
   const [openProcedure, setOpenProcedure] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -85,6 +109,104 @@ export function PapersScreen({ navigation }) {
   );
 
   const attention = countNeedingAttention(entries);
+  const recorded = entries.filter((entry) => entry.value != null).length;
+  // There is nothing to remind anybody about until a date with an expiry on
+  // it has been entered — a carte grise never runs out.
+  const hasExpiries = entries.some(
+    (entry) => entry.kind.renewable && entry.value,
+  );
+  const canRemind = Boolean(user) && hasExpiries;
+
+  // Two different things, and conflating them is what shows somebody an
+  // switch reading "on" over a list with no dates in it: `wanted` is the
+  // choice they made and it survives deleting every date, `remindersOn` is
+  // whether anything can actually be sent. The switch and the privacy note
+  // both follow the second, because both are claims about what is happening
+  // rather than about what was once asked for.
+  const wanted = papers.reminders === true;
+  const remindersOn = wanted && canRemind;
+
+  // What a reminder needs to know, and nothing else: the expiring papers, as
+  // plain calendar dates. No labels, no vehicle name, no carte grise.
+  const wire = useMemo(
+    () =>
+      Object.fromEntries(
+        paperKinds
+          .filter((kind) => kind.renewable && papers[kind.key])
+          .map((kind) => [kind.key, calendarDate(papers[kind.key])]),
+      ),
+    [papers],
+  );
+
+  // Turning reminders on is the moment the dates stop being private, so the
+  // write that enables them is the same write that sends them. Off deletes
+  // both, rather than leaving a copy behind on a server nobody asked.
+  const syncReminders = useCallback(
+    async (on, dates) => {
+      if (!user) return;
+      const payload = on
+        ? {
+            paperReminders: true,
+            // The reminder is written by a server that has no other way of
+            // knowing which of the two languages this reader chose.
+            paperLanguage: language,
+            paperDates: dates,
+          }
+        : {
+            paperReminders: false,
+            paperDates: null,
+            paperRemindersSent: null,
+          };
+      await setDoc(doc(firestore, "sellers", user.uid), payload, {
+        merge: true,
+      }).catch(() => {});
+    },
+    [user, language],
+  );
+
+  // The server copy follows the state rather than the individual gestures.
+  //
+  // Wiring it to the taps instead looks simpler and is wrong: switching
+  // reminders on with no dates yet, then adding one, leaves a switch reading
+  // "on" over a server holding nothing — the one failure mode where the app
+  // says a reminder is coming and none is. Whatever the reader ends up
+  // looking at, this is what the server has.
+  const sent = useRef(null);
+  useEffect(() => {
+    if (!loaded || !user || !remindersOn) return;
+    const next = JSON.stringify(wire);
+    if (sent.current === next) return;
+    sent.current = next;
+    syncReminders(true, wire);
+  }, [loaded, user, remindersOn, wire, syncReminders]);
+
+  const toggleReminders = () => {
+    if (!canRemind) return;
+    if (remindersOn) {
+      remember("reminders", null);
+      sent.current = null;
+      syncReminders(false);
+      return;
+    }
+    // On is left to the effect above, which is the only place that decides
+    // what the server holds.
+    remember("reminders", true);
+  };
+
+  // Deleting the last date silently ends the reminders, so the stored choice
+  // and the server's copy go with it rather than lying dormant and firing
+  // again months later when an unrelated date is added.
+  const dropRemindersIfEmpty = (next) => {
+    if (!wanted) return false;
+    const stillHas = paperKinds.some(
+      (kind) => kind.renewable && next[kind.key],
+    );
+    if (stillHas) return false;
+    remember("reminders", null);
+    sent.current = null;
+    syncReminders(false);
+    return true;
+  };
 
   const formatDate = (iso) =>
     new Date(iso).toLocaleDateString(language === "en" ? "en-GB" : "fr-FR", {
@@ -147,7 +269,10 @@ export function PapersScreen({ navigation }) {
 
   const clearDraft = () => {
     if (!editing) return;
+    const next = { ...papers };
+    delete next[editing.key];
     remember(editing.key, null);
+    dropRemindersIfEmpty(next);
     setEditing(null);
   };
 
@@ -175,11 +300,35 @@ export function PapersScreen({ navigation }) {
             ? t("papersLoading")
             : attention > 0
               ? t("papersAttention", { count: attention })
-              : Object.keys(papers).length === 0
+              : recorded === 0
                 ? t("papersEmptyTitle")
                 : t("papersAllValid")}
         </HeroTitle>
         <HeroCopy>{t("papersIntro")}</HeroCopy>
+
+        {/* The folder's name, in the reader's own words. Nothing is checked
+            against anything — it is here so a household with two cars knows
+            which one these dates belong to. */}
+        <VehicleRow
+          onPress={() => {
+            setVehicleDraft(papers.vehicle ?? "");
+            setVehicleOpen(true);
+          }}
+        >
+          <Ionicons
+            name="car-outline"
+            size={15}
+            color="rgba(255,255,255,0.72)"
+          />
+          <VehicleLabel numberOfLines={1}>
+            {papers.vehicle || t("papersNameVehicle")}
+          </VehicleLabel>
+          <Ionicons
+            name="chevron-forward"
+            size={14}
+            color="rgba(255,255,255,0.55)"
+          />
+        </VehicleRow>
       </Hero>
 
       {/* Three different errands — what I hold, what to prepare, where to go
@@ -273,6 +422,27 @@ export function PapersScreen({ navigation }) {
 
         {tab === "papers" ? (
           <>
+            {/* A real switch, wired to a real reminder. It is off by
+                default and it says what it costs: the dates leave the phone
+                so that something on a server can watch the calendar. */}
+            <ToggleRow onPress={toggleReminders} disabled={!canRemind}>
+              <ToggleCol>
+                <ToggleTitle>{t("papersRemindTitle")}</ToggleTitle>
+                <ToggleCopy>
+                  {!user
+                    ? t("papersRemindSignedOut")
+                    : !hasExpiries
+                      ? t("papersRemindNoDates")
+                      : remindersOn
+                        ? t("papersRemindOnCopy")
+                        : t("papersRemindOffCopy")}
+                </ToggleCopy>
+              </ToggleCol>
+              <Track on={remindersOn} disabled={!canRemind}>
+                <Knob on={remindersOn} />
+              </Track>
+            </ToggleRow>
+
             <Note>
               <Ionicons
                 name="information-circle-outline"
@@ -281,9 +451,14 @@ export function PapersScreen({ navigation }) {
               />
               <NoteText>{t("papersNoAlertsNote")}</NoteText>
             </Note>
+
             <PrivacyNote>
               <Ionicons name="lock-closed-outline" size={15} color={NAVY} />
-              <PrivacyText>{t("papersPrivacyNote")}</PrivacyText>
+              <PrivacyText>
+                {remindersOn
+                  ? t("papersPrivacyShared")
+                  : t("papersPrivacyNote")}
+              </PrivacyText>
             </PrivacyNote>
           </>
         ) : null}
@@ -393,80 +568,120 @@ export function PapersScreen({ navigation }) {
         onRequestClose={() => setEditing(null)}
       >
         <SheetBackdrop onPress={() => setEditing(null)}>
-          <Sheet onStartShouldSetResponder={() => true}>
-            <SheetHandle />
-            <SheetTitle>
-              {editing ? getPaperLabel(editing.key, language) : ""}
-            </SheetTitle>
-            <SheetCopy>{t("papersSheetCopy")}</SheetCopy>
+          <SheetLift behavior="padding">
+            <Sheet
+              bottomInset={insets.bottom}
+              onStartShouldSetResponder={() => true}
+            >
+              <SheetHandle />
+              <SheetTitle>
+                {editing ? getPaperLabel(editing.key, language) : ""}
+              </SheetTitle>
+              <SheetCopy>{t("papersSheetCopy")}</SheetCopy>
 
-            <DateRow>
-              <DateField>
-                <DateLabel>{t("papersDay")}</DateLabel>
-                <DateInput
-                  value={draft.day}
-                  onChangeText={(value) =>
-                    setDraft((prev) => ({
-                      ...prev,
-                      day: value.replace(/[^0-9]/g, "").slice(0, 2),
-                    }))
-                  }
-                  keyboardType="number-pad"
-                  placeholder="01"
-                  placeholderTextColor={colors.textMuted}
-                />
-              </DateField>
-              <DateField>
-                <DateLabel>{t("papersMonth")}</DateLabel>
-                <DateInput
-                  value={draft.month}
-                  onChangeText={(value) =>
-                    setDraft((prev) => ({
-                      ...prev,
-                      month: value.replace(/[^0-9]/g, "").slice(0, 2),
-                    }))
-                  }
-                  keyboardType="number-pad"
-                  placeholder="09"
-                  placeholderTextColor={colors.textMuted}
-                />
-              </DateField>
-              <DateField wide>
-                <DateLabel>{t("papersYear")}</DateLabel>
-                <DateInput
-                  value={draft.year}
-                  onChangeText={(value) =>
-                    setDraft((prev) => ({
-                      ...prev,
-                      year: value.replace(/[^0-9]/g, "").slice(0, 4),
-                    }))
-                  }
-                  keyboardType="number-pad"
-                  placeholder="2027"
-                  placeholderTextColor={colors.textMuted}
-                />
-              </DateField>
-            </DateRow>
+              <DateRow>
+                <DateField>
+                  <DateLabel>{t("papersDay")}</DateLabel>
+                  <DateInput
+                    value={draft.day}
+                    onChangeText={(value) =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        day: value.replace(/[^0-9]/g, "").slice(0, 2),
+                      }))
+                    }
+                    keyboardType="number-pad"
+                    placeholder="01"
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </DateField>
+                <DateField>
+                  <DateLabel>{t("papersMonth")}</DateLabel>
+                  <DateInput
+                    value={draft.month}
+                    onChangeText={(value) =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        month: value.replace(/[^0-9]/g, "").slice(0, 2),
+                      }))
+                    }
+                    keyboardType="number-pad"
+                    placeholder="09"
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </DateField>
+                <DateField wide>
+                  <DateLabel>{t("papersYear")}</DateLabel>
+                  <DateInput
+                    value={draft.year}
+                    onChangeText={(value) =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        year: value.replace(/[^0-9]/g, "").slice(0, 4),
+                      }))
+                    }
+                    keyboardType="number-pad"
+                    placeholder="2027"
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </DateField>
+              </DateRow>
 
-            {/* Echoed back in words. Three number boxes are easy to fill in
+              {/* Echoed back in words. Three number boxes are easy to fill in
                 the wrong order, and a date is worth confirming before it
                 starts driving a warning. */}
-            {draftDate ? (
-              <Echo>{formatDate(draftDate.toISOString())}</Echo>
-            ) : (
-              <EchoMuted>{t("papersDateHint")}</EchoMuted>
-            )}
+              {draftDate ? (
+                <Echo>{formatDate(draftDate.toISOString())}</Echo>
+              ) : (
+                <EchoMuted>{t("papersDateHint")}</EchoMuted>
+              )}
 
-            <SaveButton onPress={saveDraft} disabled={!draftDate}>
-              <SaveLabel>{t("papersSave")}</SaveLabel>
-            </SaveButton>
+              <SaveButton onPress={saveDraft} disabled={!draftDate}>
+                <SaveLabel>{t("papersSave")}</SaveLabel>
+              </SaveButton>
 
-            {editing && papers[editing.key] ? (
-              <ClearButton onPress={clearDraft}>
-                <ClearLabel>{t("papersForget")}</ClearLabel>
-              </ClearButton>
-            ) : null}
-          </Sheet>
+              {editing && papers[editing.key] ? (
+                <ClearButton onPress={clearDraft}>
+                  <ClearLabel>{t("papersForget")}</ClearLabel>
+                </ClearButton>
+              ) : null}
+            </Sheet>
+          </SheetLift>
+        </SheetBackdrop>
+      </Modal>
+      <Modal
+        visible={vehicleOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setVehicleOpen(false)}
+      >
+        <SheetBackdrop onPress={() => setVehicleOpen(false)}>
+          <SheetLift behavior="padding">
+            <Sheet
+              bottomInset={insets.bottom}
+              onStartShouldSetResponder={() => true}
+            >
+              <SheetHandle />
+              <SheetTitle>{t("papersVehicleTitle")}</SheetTitle>
+              <SheetCopy>{t("papersVehicleCopy")}</SheetCopy>
+              <VehicleInput
+                value={vehicleDraft}
+                onChangeText={setVehicleDraft}
+                placeholder={t("papersVehiclePlaceholder")}
+                placeholderTextColor={colors.textMuted}
+                autoCorrect={false}
+                autoFocus
+              />
+              <SaveButton
+                onPress={() => {
+                  rememberVehicle(vehicleDraft);
+                  setVehicleOpen(false);
+                }}
+              >
+                <SaveLabel>{t("papersSave")}</SaveLabel>
+              </SaveButton>
+            </Sheet>
+          </SheetLift>
         </SheetBackdrop>
       </Modal>
     </Container>
@@ -485,8 +700,9 @@ const Hero = styled(LinearGradient)`
   overflow: hidden;
   border-bottom-left-radius: 28px;
   border-bottom-right-radius: 28px;
-  padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px
-    ${spacing.lg}px;
+  /* 54px, against the dock's -30px lift: 24px of clear air under the
+     vehicle pill, matching every other vehicle banner. */
+  padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px 54px;
 `;
 
 const HeroGlow = styled.View`
@@ -654,6 +870,88 @@ const ProcedureWarnText = styled.Text`
   color: #7a5a12;
 `;
 
+const VehicleRow = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  margin-top: 14px;
+  padding: 8px 13px;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.12);
+  border-width: 1px;
+  border-color: rgba(255, 255, 255, 0.2);
+`;
+
+const VehicleLabel = styled.Text`
+  max-width: 220px;
+  font-family: ${fontFamily.semiBold};
+  font-size: 12.5px;
+  color: #ffffff;
+`;
+
+const VehicleInput = styled.TextInput`
+  min-height: 56px;
+  padding: 0px 15px;
+  border-radius: ${radius.lg}px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+  font-family: ${fontFamily.semiBold};
+  font-size: 15px;
+  color: ${(props) => props.theme.text};
+`;
+
+const ToggleRow = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 13px;
+  padding: ${spacing.md}px;
+  border-radius: ${radius.xl}px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+  margin-top: 4px;
+  margin-bottom: 11px;
+  opacity: ${(props) => (props.disabled ? 0.6 : 1)};
+  ${shadow.card}
+`;
+
+const ToggleCol = styled.View`
+  flex: 1;
+  gap: 4px;
+`;
+
+const ToggleTitle = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 13.5px;
+  color: ${(props) => props.theme.text};
+`;
+
+const ToggleCopy = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 11.5px;
+  line-height: 17px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+const Track = styled.View`
+  width: 46px;
+  height: 28px;
+  border-radius: 999px;
+  padding: 3px;
+  flex-direction: row;
+  justify-content: ${(props) => (props.on ? "flex-end" : "flex-start")};
+  background-color: ${(props) => (props.on ? NAVY : props.theme.border)};
+`;
+
+const Knob = styled.View`
+  width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  background-color: #ffffff;
+`;
+
 const Card = styled(Pressable)`
   flex-direction: row;
   align-items: flex-start;
@@ -773,12 +1071,26 @@ const PrivacyText = styled.Text`
 
 const SheetBackdrop = styled(Pressable)`
   flex: 1;
-  justify-content: flex-end;
   background-color: rgba(0, 0, 0, 0.35);
 `;
 
+// The keyboard covers the bottom of a bottom sheet, which is exactly where
+// the save button is — the sheet has to be lifted clear of it or the reader
+// types a date and then cannot reach the button that keeps it.
+//
+// "padding" on both platforms, deliberately. The app is built with
+// adjustPan (app.json: softwareKeyboardLayoutMode "pan"), so the Android
+// window never resizes and "height" measures a box that has not changed —
+// it shrinks the sheet to nothing and leaves it behind the keyboard.
+const SheetLift = styled(KeyboardAvoidingView)`
+  flex: 1;
+  justify-content: flex-end;
+`;
+
 const Sheet = styled.View`
-  padding: 10px ${spacing.md}px ${spacing.xl}px;
+  /* Plus the gesture bar, which otherwise sits on top of the last button. */
+  padding: 10px ${spacing.md}px
+    ${(props) => spacing.xl + (props.bottomInset ?? 0)}px;
   border-top-left-radius: 26px;
   border-top-right-radius: 26px;
   background-color: ${(props) => props.theme.background};

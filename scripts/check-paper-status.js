@@ -121,11 +121,164 @@ paperKinds.forEach((kind) => {
   check(`${kind.key} has an icon`, Boolean(kind.icon), true);
 });
 
+// ── The reminder that now sits behind the switch ────────────────────────
+//
+// The screen promises a notification 30, 7 and 1 day before each date. That
+// promise is kept by functions/paperReminders.js, which holds its own copy
+// of the paper labels because a Cloud Function cannot import the app's ES
+// modules. A duplicated table is only safe while something checks it, so
+// this is that something: add a renewable paper to the screen without adding
+// it to the function and the reminder silently never fires for it, which is
+// the worst possible failure for a feature whose entire job is to fire.
+const reminders = require("../functions/paperReminders").internals;
+
+const renewableKeys = paperKinds
+  .filter((kind) => kind.renewable)
+  .map((kind) => kind.key)
+  .sort()
+  .join(",");
+check(
+  "the function knows every renewable paper",
+  Object.keys(reminders.PAPER_LABELS).sort().join(","),
+  renewableKeys,
+);
+Object.entries(reminders.PAPER_LABELS).forEach(([key, label]) => {
+  check(
+    `${key} reminder has both languages`,
+    Boolean(label.fr && label.en),
+    true,
+  );
+});
+
+// The leads the screen's copy names. If these diverge, the app is promising
+// notifications on days nothing is sent.
+check("leads promised on screen", reminders.LEAD_DAYS.join(","), "30,7,1");
+
+// ── Calendar dates, not instants ────────────────────────────────────────
+//
+// The client sends "2026-08-26", not an ISO instant, precisely so that this
+// arithmetic cannot drift by a day depending on where the phone was. These
+// tests run on a laptop in America/Chicago and must give the same answers as
+// a server in Bénin, which is the property being checked: the only timezone
+// that appears anywhere below is Bénin's own, for "today".
+const at = (y, m, d, h, min) => new Date(Date.UTC(y, m - 1, d, h, min));
+
+// 06:30 UTC is 07:30 in Bénin — the same calendar day either way.
+check("tomorrow", reminders.daysUntil("2026-08-26", at(2026, 8, 25, 6, 30)), 1);
+// 23:30 UTC is already the 26th in Bénin, so "tomorrow" is now today.
+check(
+  "late enough that Bénin has turned the page",
+  reminders.daysUntil("2026-08-26", at(2026, 8, 25, 23, 30)),
+  0,
+);
+// ...and 22:30 UTC has not: still the 25th locally, so still one day out.
+check(
+  "an hour earlier, Bénin has not",
+  reminders.daysUntil("2026-08-26", at(2026, 8, 25, 22, 30)),
+  1,
+);
+check(
+  "today is zero, not minus one",
+  reminders.daysUntil("2026-08-25", at(2026, 8, 25, 6, 30)),
+  0,
+);
+check(
+  "thirty days out",
+  reminders.daysUntil("2026-09-24", at(2026, 8, 25, 6, 30)),
+  30,
+);
+check(
+  "a date already gone",
+  reminders.daysUntil("2026-08-20", at(2026, 8, 25, 6, 30)),
+  -5,
+);
+check(
+  "across a year boundary",
+  reminders.daysUntil("2027-01-01", at(2026, 12, 25, 6, 30)),
+  7,
+);
+
+// Date's own parser accepts a startling amount of rubbish and returns a
+// plausible instant for it. A reminder fired off a misread date is worse
+// than no reminder, so anything that is not a plain calendar date is
+// refused outright rather than coerced.
+[
+  "bananas",
+  "",
+  null,
+  undefined,
+  "2026-13-01",
+  "2026-02-31",
+  "26/08/2026",
+  "2026-08-26T00:00:00.000Z",
+  1756166400000,
+].forEach((value) =>
+  check(`refuses ${JSON.stringify(value)}`, reminders.parseDay(value), null),
+);
+check("accepts a plain date", reminders.parseDay("2026-08-26") !== null, true);
+check(
+  "accepts 29 February in a leap year",
+  reminders.parseDay("2028-02-29") !== null,
+  true,
+);
+check("refuses 29 February otherwise", reminders.parseDay("2027-02-29"), null);
+
+// The date in the message is the date the reader typed, written the way the
+// forms write it. Off-by-one here contradicts the screen they are looking at.
+check(
+  "date is written dd/mm/yyyy",
+  reminders.formatDate("2026-08-26"),
+  "26/08/2026",
+);
+check("new year's day", reminders.formatDate("2027-01-01"), "01/01/2027");
+
+// ── What the message may claim ──────────────────────────────────────────
+//
+// We hold a date somebody typed, not their insurance certificate. Every
+// message has to point back at the date as the thing we know, so that a
+// reader who renewed last week reads it as "your record is stale" rather
+// than "you are uninsured".
+["fr", "en"].forEach((language) => {
+  const message = reminders.buildMessage(
+    "insurance",
+    7,
+    "2026-09-01",
+    language,
+  );
+  check(`${language}: message exists`, Boolean(message), true);
+  check(`${language}: names the day count`, message.title.includes("7"), true);
+  check(
+    `${language}: points at the recorded date`,
+    message.body.includes("01/09/2026"),
+    true,
+  );
+});
+check(
+  "one day out says tomorrow, not 'in 1 days'",
+  reminders.buildMessage("insurance", 1, "2026-08-26", "en").title,
+  "Your insurance expires tomorrow",
+);
+check(
+  "no message for a paper we do not track",
+  reminders.buildMessage("carte-bleue", 7, "2026-09-01", "fr"),
+  null,
+);
+
+// One send per lead per expiry date, keyed so that correcting a date re-arms
+// the leads that have not passed.
+check("send key shape", reminders.sentKey("insurance", 30), "insurance_30");
+check(
+  "send key has no dot",
+  reminders.sentKey("insurance", 30).includes("."),
+  false,
+);
+
 if (failures.length) {
   failures.forEach((line) => console.error(`FAIL ${line}`));
   console.error(`\n${failures.length} failing`);
   process.exit(1);
 }
 console.log(
-  `clean: paper status — ${paperKinds.length} kinds, boundaries at 0 and ${EXPIRY_WARNING_DAYS} days`,
+  `clean: paper status — ${paperKinds.length} kinds, boundaries at 0 and ` +
+    `${EXPIRY_WARNING_DAYS} days, reminders at ${reminders.LEAD_DAYS.join("/")}`,
 );

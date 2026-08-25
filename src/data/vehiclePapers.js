@@ -41,6 +41,15 @@ export const paperKinds = [
     subFr: "Celui du conducteur, pas du véhicule",
   },
   {
+    key: "vignette",
+    icon: "pricetag-outline",
+    renewable: true,
+    labelEn: "Road tax",
+    labelFr: "Taxe / vignette",
+    subEn: "Renewed each year",
+    subFr: "À renouveler chaque année",
+  },
+  {
     key: "registration",
     icon: "document-text-outline",
     renewable: false,

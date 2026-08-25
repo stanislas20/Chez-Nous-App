@@ -1466,7 +1466,7 @@ export const translations = {
     papersSearchMap: "Search",
     papersEyebrow: "Papers & test",
     papersIntro:
-      "The dates that decide whether you may drive. You enter them, this phone keeps them, and nothing is sent anywhere.",
+      "The dates that decide whether you may drive. You enter them, this phone keeps them, and it counts the days for you.",
     papersLoading: "Opening your papers…",
     papersEmptyTitle: "Nothing recorded yet",
     papersAllValid: "Everything you recorded is valid",
@@ -1491,10 +1491,29 @@ export const translations = {
     papersDateHint: "Enter a day, a month and a four-figure year.",
     papersSave: "Save this date",
     papersForget: "Forget this date",
+    papersRemindTitle: "Remind me before they run out",
+    papersRemindOffCopy:
+      "Off. This screen counts the days when you open it, and does nothing when you don’t.",
+    papersRemindOnCopy:
+      "On. We will send you a notification 30, 7 and 1 day before each date you have entered.",
+    papersRemindSignedOut:
+      "Sign in to turn this on. A reminder has to be sent to an account, and you don’t have one open.",
+    papersRemindNoDates:
+      "Add a date above first. There is nothing to remind you about yet.",
     papersNoAlertsNote:
-      "This screen does not ring. It counts the days when you open it, and nothing more — a reminder that arrives on its own is a feature this app does not have yet, and a switch promising one would be a lie.",
+      "Only the dates you type here are watched. Chez-Nous cannot see your actual documents, so it can be wrong about anything except the date you gave it.",
     papersPrivacyNote:
       "These dates stay on this handset. They are not sent to Chez-Nous, not attached to your listings, and disappear if you uninstall the app.",
+    papersPrivacyShared:
+      "Because reminders are on, these dates are stored on your Chez-Nous account so something can watch the calendar while your phone is off. Turn reminders off and the copy is deleted.",
+    papersNameVehicle: "Name this vehicle",
+    papersVehicleTitle: "Which vehicle?",
+    papersVehicleCopy:
+      "A label for your own use — nobody else sees it and nothing is checked against it. It is here so a household with two vehicles knows whose dates these are.",
+    papersVehiclePlaceholder: "Toyota Corolla, AB 1234 RB…",
+    paperReminderTitle: "{label} expires in {days} days",
+    paperReminderTitleTomorrow: "{label} expires tomorrow",
+    paperReminderBody: "Recorded in Papers & test as expiring on {date}.",
     carsService_documents: "Papers & test",
     carsService_insurance: "Insurance",
     carsService_electrics: "Auto electrics",
@@ -3692,7 +3711,7 @@ export const translations = {
     papersSearchMap: "Chercher",
     papersEyebrow: "Papiers & contrôle",
     papersIntro:
-      "Les dates qui décident si vous pouvez rouler. Vous les saisissez, ce téléphone les garde, et rien n’est envoyé nulle part.",
+      "Les dates qui décident si vous pouvez rouler. Vous les saisissez, ce téléphone les garde, et compte les jours pour vous.",
     papersLoading: "Ouverture de vos papiers…",
     papersEmptyTitle: "Rien d’enregistré pour l’instant",
     papersAllValid: "Tout ce que vous avez saisi est valide",
@@ -3718,10 +3737,30 @@ export const translations = {
       "Saisissez un jour, un mois et une année à quatre chiffres.",
     papersSave: "Enregistrer cette date",
     papersForget: "Oublier cette date",
+    papersRemindTitle: "Me prévenir avant l’échéance",
+    papersRemindOffCopy:
+      "Désactivé. Cet écran compte les jours quand vous l’ouvrez, et ne fait rien quand vous ne l’ouvrez pas.",
+    papersRemindOnCopy:
+      "Activé. Nous vous enverrons une notification 30 jours, 7 jours et 1 jour avant chaque date saisie.",
+    papersRemindSignedOut:
+      "Connectez-vous pour activer les rappels. Un rappel doit être envoyé à un compte, et aucun n’est ouvert.",
+    papersRemindNoDates:
+      "Saisissez d’abord une date ci-dessus. Il n’y a encore rien à vous rappeler.",
     papersNoAlertsNote:
-      "Cet écran ne sonne pas. Il compte les jours quand vous l’ouvrez, et rien de plus — un rappel qui arrive tout seul est une fonction que cette application n’a pas encore, et un interrupteur qui le promettrait serait un mensonge.",
+      "Seules les dates que vous saisissez ici sont surveillées. Chez-Nous ne voit pas vos documents : l’application ne peut se tromper que si la date que vous lui avez donnée est fausse.",
     papersPrivacyNote:
       "Ces dates restent sur ce téléphone. Elles ne sont pas envoyées à Chez-Nous, ne sont liées à aucune de vos annonces, et disparaissent si vous désinstallez l’application.",
+    papersPrivacyShared:
+      "Les rappels étant activés, ces dates sont enregistrées sur votre compte Chez-Nous afin que le calendrier soit surveillé même téléphone éteint. Désactivez les rappels et cette copie est supprimée.",
+    papersNameVehicle: "Nommer ce véhicule",
+    papersVehicleTitle: "Quel véhicule ?",
+    papersVehicleCopy:
+      "Un libellé pour vous seul — personne d’autre ne le voit et rien n’est vérifié. Il est là pour qu’un foyer avec deux véhicules sache à qui sont ces dates.",
+    papersVehiclePlaceholder: "Toyota Corolla, AB 1234 RB…",
+    paperReminderTitle: "{label} expire dans {days} jours",
+    paperReminderTitleTomorrow: "{label} expire demain",
+    paperReminderBody:
+      "Enregistré dans Papiers & contrôle : échéance le {date}.",
     carsService_documents: "Papiers & contrôle",
     carsService_insurance: "Assurance",
     carsService_electrics: "Électricité",

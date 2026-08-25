@@ -80,6 +80,11 @@ export async function openNotification(data) {
     case "listingRejected":
       await openListingById(data.listingId);
       return;
+    // A paper expiry. The screen holding the date is the only useful place
+    // to land — it is where the reader corrects it or marks it renewed.
+    case "paperExpiring":
+      navigateWhenReady("Papers");
+      return;
     case "newJobApplication":
       // The employer's own list of applicants, which is a screen of its own
       // rather than the posting — somebody told "X applied" wants the

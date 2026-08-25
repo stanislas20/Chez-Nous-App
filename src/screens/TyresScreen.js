@@ -868,7 +868,6 @@ export function TyresScreen({ navigation }) {
                 return (
                   <Card
                     key={shop.id}
-                    closed={shop.openNow === false}
                     onPress={() =>
                       navigation.navigate("ProductDetail", { listing: shop })
                     }
@@ -1646,7 +1645,6 @@ const Card = styled(Pressable)`
   border-color: ${(props) => props.theme.border};
   margin-bottom: ${spacing.md}px;
   gap: 10px;
-  opacity: ${(props) => (props.closed ? 0.68 : 1)};
 `;
 
 const CardTop = styled.View`

@@ -297,7 +297,6 @@ export function PartsScreen({ navigation }) {
           return (
             <Card
               key={item.id}
-              closed={item.openNow === false}
               onPress={() =>
                 navigation.navigate("ProductDetail", { listing: item })
               }
@@ -699,7 +698,6 @@ const Card = styled(Pressable)`
   border-color: ${(props) => props.theme.border};
   margin-bottom: ${spacing.md}px;
   gap: 9px;
-  opacity: ${(props) => (props.closed ? 0.66 : 1)};
 `;
 
 const CardTop = styled.View`

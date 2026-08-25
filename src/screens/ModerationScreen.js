@@ -59,12 +59,18 @@ export function ModerationScreen({ navigation }) {
   const decide = async (item, status) => {
     setBusyId(item.id);
     try {
-      // Only the three fields the rules allow. approvedAt is stamped by
+      // Only the fields the rules allow. approvedAt is stamped by
       // notifyListingModerated on the way past, but writing it here too means
       // the list re-sorts immediately instead of after a round trip.
+      //
+      // moderatedBy is required by the rules and checked against the signed-in
+      // uid there, so it cannot be set to somebody else — the audit line is
+      // written by the same act it records.
       await updateDoc(doc(firestore, "listings", item.id), {
         status,
         moderationNote: note.trim() || null,
+        moderatedBy: user.uid,
+        moderatedAt: serverTimestamp(),
         ...(status === "approved" ? { approvedAt: serverTimestamp() } : {}),
       });
       setRejectFor(null);

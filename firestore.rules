@@ -125,7 +125,15 @@ service cloud.firestore {
 
       allow update: if request.auth != null
         && request.auth.uid == resource.data.sellerId
-        && request.resource.data.status == resource.data.status;
+        && request.resource.data.status == resource.data.status
+        // A seller may edit their listing; they may not write the record of
+        // who judged it. Without this the audit fields were writable by the
+        // one person with a motive to forge them — the rule only ever
+        // restricted `status`, so everything else on the document was fair
+        // game. Found by the emulator test, not by reading the rule.
+        && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['moderatedBy', 'moderatedAt', 'approvedAt',
+                       'moderationNote']);
 
       // Moderation, from inside the app rather than from a laptop.
       //
@@ -148,8 +156,22 @@ service cloud.firestore {
         && request.auth.token.moderator == true
         && request.auth.uid != resource.data.sellerId
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['status', 'approvedAt', 'moderationNote'])
-        && request.resource.data.status in ['approved', 'rejected', 'pending'];
+             .hasOnly(['status', 'approvedAt', 'moderationNote',
+                       'moderatedBy', 'moderatedAt'])
+        && request.resource.data.status in ['approved', 'rejected', 'pending']
+        // Who decided, recorded as the uid of whoever is signed in — not a
+        // value the client chooses. With one moderator this is redundant;
+        // with two it is the only answer to "who let that through?", and it
+        // cannot be reconstructed later from decisions already made.
+        //
+        // hasAll as well as the equality, and the emulator test is why. An
+        // update that simply omits these fields carries the previous values
+        // through request.resource.data, so the equality passed against the
+        // LAST moderator's uid — a second moderator could change a status and
+        // leave somebody else's name on it. Both must be rewritten every time.
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasAll(['moderatedBy', 'moderatedAt'])
+        && request.resource.data.moderatedBy == request.auth.uid;
 
       // Lets anyone who can already read an approved listing (including
       // signed-out browsers, per the read rule above) bump its view

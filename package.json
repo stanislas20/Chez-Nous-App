@@ -51,6 +51,7 @@
   },
   "private": true,
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "firebase-tools": "^15.26.0"
   }
 }

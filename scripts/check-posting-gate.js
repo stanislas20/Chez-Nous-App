@@ -109,8 +109,20 @@ if (!/request\.auth\.token\.moderator == true/.test(modBlock)) {
 if (!/request\.auth\.uid != resource\.data\.sellerId/.test(modBlock)) {
   fail("firestore.rules: a moderator can approve their own listing");
 }
-if (!/hasOnly\(\['status', 'approvedAt', 'moderationNote'\]\)/.test(modBlock)) {
+if (
+  !/hasOnly\(\[\s*'status',\s*'approvedAt',\s*'moderationNote',\s*'moderatedBy',\s*'moderatedAt'\s*\]\)/.test(
+    modBlock.replace(/\n\s*/g, " "),
+  )
+) {
   fail("firestore.rules: moderation is not limited to the status fields");
+}
+
+// The audit field has to be the signed-in uid, not whatever the client sends,
+// or it records only what the moderator wished to be recorded.
+if (
+  !/request\.resource\.data\.moderatedBy == request\.auth\.uid/.test(modBlock)
+) {
+  fail("firestore.rules: moderatedBy is not pinned to the acting account");
 }
 
 // Judging what you cannot open is a coin toss, so the read has to match the

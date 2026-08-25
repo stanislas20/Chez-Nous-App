@@ -2178,10 +2178,14 @@ export function CreateListingScreen({ route, navigation }) {
               A landscape shot from a phone camera is already 4:3, so a car
               framed this way is never cut — which is the whole reason the
               hint exists here rather than a warning appearing later. */}
-          {isVehicle ? (
+          {isVehicle || mentionsParts ? (
             <FramingHint>
               <Ionicons
-                name="phone-landscape-outline"
+                name={
+                  mentionsParts
+                    ? "storefront-outline"
+                    : "phone-landscape-outline"
+                }
                 size={16}
                 color={EMERALD}
               />
@@ -2189,15 +2193,17 @@ export function CreateListingScreen({ route, navigation }) {
                 {/* On a used tyre the sidewall photo IS the evidence: the
                     DOT code and any bulge are what a buyer is told to check,
                     and neither is visible in a photo of the tread. */}
-                {isBatteryOffer
-                  ? t("sellMediaFramingBattery")
-                  : isTyreOffer
-                    ? t(
-                        tyreCondition === "used"
-                          ? "sellMediaFramingTyreUsed"
-                          : "sellMediaFramingTyre",
-                      )
-                    : t("sellMediaFramingCars")}
+                {mentionsParts
+                  ? t("sellMediaFramingParts")
+                  : isBatteryOffer
+                    ? t("sellMediaFramingBattery")
+                    : isTyreOffer
+                      ? t(
+                          tyreCondition === "used"
+                            ? "sellMediaFramingTyreUsed"
+                            : "sellMediaFramingTyre",
+                        )
+                      : t("sellMediaFramingCars")}
               </FramingHintText>
             </FramingHint>
           ) : null}

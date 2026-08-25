@@ -269,6 +269,13 @@ export function PapersScreen({ navigation }) {
   // Handed to the phone's map rather than answered here. The app does not
   // know where the nearest testing centre is; Maps does, and it searches
   // around wherever the reader actually is.
+  // Straight out to the browser. These are government portals, and a
+  // reader who has to log in or pay a fee needs the real address bar and
+  // their own saved credentials, not a window inside a marketplace app.
+  const openSite = (url) => {
+    Linking.openURL(url).catch(() => {});
+  };
+
   const openMapsFor = (place) => {
     Linking.openURL(
       `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.query)}`,
@@ -587,22 +594,39 @@ export function PapersScreen({ navigation }) {
             </Caveat>
 
             {paperPlaces.map((place) => (
-              <Card key={place.key} onPress={() => openMapsFor(place)}>
-                <CardIcon bg="rgba(31,58,95,0.07)">
-                  <Ionicons name={place.icon} size={20} color={NAVY} />
-                </CardIcon>
-                <CardCol>
-                  <CardTitle>
-                    {language === "en" ? place.labelEn : place.labelFr}
-                  </CardTitle>
-                  <CardMeta numberOfLines={3}>
-                    {language === "en" ? place.forEn : place.forFr}
-                  </CardMeta>
-                </CardCol>
-                <Action urgent>
-                  <ActionLabel urgent>{t("papersSearchMap")}</ActionLabel>
-                </Action>
-              </Card>
+              <PlaceGroup key={place.key}>
+                <Card onPress={() => openMapsFor(place)}>
+                  <CardIcon bg="rgba(31,58,95,0.07)">
+                    <Ionicons name={place.icon} size={20} color={NAVY} />
+                  </CardIcon>
+                  <CardCol>
+                    <CardTitle>
+                      {language === "en" ? place.labelEn : place.labelFr}
+                    </CardTitle>
+                    <CardMeta numberOfLines={3}>
+                      {language === "en" ? place.forEn : place.forFr}
+                    </CardMeta>
+                  </CardCol>
+                  <Action urgent>
+                    <ActionLabel urgent>{t("papersSearchMap")}</ActionLabel>
+                  </Action>
+                </Card>
+
+                {/* Only where an official page for that procedure actually
+                    exists. A row with no link simply has none — an insurance
+                    agency has no official site to send anybody to, and
+                    picking one insurer's would be an advert in an official
+                    coat. */}
+                {place.site ? (
+                  <SiteRow onPress={() => openSite(place.site)}>
+                    <Ionicons name="globe-outline" size={15} color={NAVY} />
+                    <SiteLabel numberOfLines={1}>
+                      {language === "en" ? place.siteEn : place.siteFr}
+                    </SiteLabel>
+                    <Ionicons name="open-outline" size={14} color={NAVY} />
+                  </SiteRow>
+                ) : null}
+              </PlaceGroup>
             ))}
           </>
         ) : null}
@@ -1120,6 +1144,30 @@ const PrivacyText = styled.Text`
   font-family: ${fontFamily.regular};
   font-size: 11.5px;
   line-height: 17px;
+  color: ${NAVY};
+`;
+
+const PlaceGroup = styled.View`
+  margin-bottom: ${spacing.md}px;
+`;
+
+const SiteRow = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin-top: -6px;
+  margin-left: ${spacing.md}px;
+  margin-right: ${spacing.md}px;
+  padding: 11px ${spacing.md}px;
+  border-bottom-left-radius: ${radius.lg}px;
+  border-bottom-right-radius: ${radius.lg}px;
+  background-color: rgba(31, 58, 95, 0.06);
+`;
+
+const SiteLabel = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.semiBold};
+  font-size: 12px;
   color: ${NAVY};
 `;
 

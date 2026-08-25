@@ -244,6 +244,23 @@ export function getProcedureLabel(key, language) {
 // worse to invent than a shop's: somebody drives across Cotonou on them. So
 // each row hands the search to the phone's map, which does know, and the app
 // claims nothing it cannot support.
+//
+// `site` is the official page for the procedure that kind of place performs,
+// and every one was opened and read before being written down here — the
+// procedure code checked against its title AND its delivering agency, because
+// a link that quietly goes to the wrong procedure is worse than no link.
+//
+//   technical    PS00156, CNSR — Contrôle Technique Automobile périodique
+//   registration PS00903, ANaTT — Re-immatriculation véhicule 4 roues et plus
+//   customs      GUCE, the single window where a declaration is actually filed
+//
+// Insurance has no `site` and should not acquire one: agencies here are
+// private and numerous, so there is no official page to send anybody to, and
+// picking one insurer's site would be an advert wearing an official coat.
+//
+// Two sites are deliberately absent. anatt.bj redirects to a bare IP address
+// and would land the reader on a certificate warning; douanes.gouv.bj could
+// not be reached to check at all. An unverified link is not better than none.
 export const paperPlaces = [
   {
     key: "technical",
@@ -253,6 +270,9 @@ export const paperPlaces = [
     forEn: "Periodic inspection, and the test required before a transfer",
     forFr: "Contrôle périodique, et la visite exigée avant une mutation",
     query: "centre de visite technique automobile",
+    site: "https://service-public.bj/public/services/service/PS00156",
+    siteEn: "Official procedure — CNSR",
+    siteFr: "La démarche officielle — CNSR",
   },
   {
     key: "registration",
@@ -262,6 +282,9 @@ export const paperPlaces = [
     forEn: "Transfers, duplicates, plates for an imported vehicle",
     forFr: "Mutations, duplicatas, immatriculation d’un véhicule importé",
     query: "immatriculation véhicule carte grise",
+    site: "https://service-public.bj/public/services/service/PS00903",
+    siteEn: "Official procedure — ANaTT",
+    siteFr: "La démarche officielle — ANaTT",
   },
   {
     key: "insurance",
@@ -271,6 +294,9 @@ export const paperPlaces = [
     forEn: "Taking out or renewing cover",
     forFr: "Souscrire ou renouveler une assurance",
     query: "assurance automobile agence",
+    site: null,
+    siteEn: null,
+    siteFr: null,
   },
   {
     key: "customs",
@@ -280,5 +306,8 @@ export const paperPlaces = [
     forEn: "Clearing an imported vehicle and its certificate",
     forFr: "Dédouanement d’un véhicule importé et son certificat",
     query: "bureau des douanes",
+    site: "https://guce.gouv.bj/",
+    siteEn: "Official portal — GUCE single window",
+    siteFr: "Le portail officiel — guichet unique GUCE",
   },
 ];

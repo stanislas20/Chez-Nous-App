@@ -296,12 +296,56 @@ check(
   false,
 );
 
+// ── The official links on "Où aller" ────────────────────────────────────
+//
+// These point at government portals, and each was checked against both the
+// procedure title and its delivering agency before being written down. What
+// a test can still hold is the shape: https only, no hand-typed link that
+// slipped in without its label, and no link on a row that has no official
+// site to point at.
+const { paperPlaces } = loadEsm("src/data/vehiclePapers.js");
+
+paperPlaces.forEach((place) => {
+  check(`${place.key} has a map query`, Boolean(place.query), true);
+  if (!place.site) {
+    // No site is a valid answer and must stay a deliberate one: labels
+    // without a URL would render an empty row that goes nowhere.
+    check(`${place.key} has no orphan label`, Boolean(place.siteEn), false);
+    return;
+  }
+  // http:// on a government form is somewhere to lose an identity document.
+  check(`${place.key} site is https`, place.site.startsWith("https://"), true);
+  check(
+    `${place.key} site is labelled in both languages`,
+    Boolean(place.siteEn && place.siteFr),
+    true,
+  );
+  // A link the reader cannot place is a link they should not follow — the
+  // label has to name who is on the other end.
+  check(
+    `${place.key} label names the body`,
+    /CNSR|ANaTT|GUCE/.test(place.siteEn) &&
+      /CNSR|ANaTT|GUCE/.test(place.siteFr),
+    true,
+  );
+});
+
+// Insurance is the row that must NOT gain a link: the agencies are private
+// and numerous, so any single one is an advert wearing an official coat.
+check(
+  "insurance has no official site",
+  paperPlaces.find((place) => place.key === "insurance").site,
+  null,
+);
+
 if (failures.length) {
   failures.forEach((line) => console.error(`FAIL ${line}`));
   console.error(`\n${failures.length} failing`);
   process.exit(1);
 }
+const linked = paperPlaces.filter((place) => place.site).length;
 console.log(
   `clean: paper status — ${paperKinds.length} kinds, boundaries at 0 and ` +
-    `${EXPIRY_WARNING_DAYS} days, reminders at ${reminders.LEAD_DAYS.join("/")}`,
+    `${EXPIRY_WARNING_DAYS} days, reminders at ${reminders.LEAD_DAYS.join("/")}, ` +
+    `${linked}/${paperPlaces.length} places carry an official link`,
 );

@@ -7,7 +7,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
-import { radius, spacing } from "../theme/colors";
+import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
@@ -354,7 +354,16 @@ export function BatteryScreen({ navigation }) {
             </BatteryBody>
           </BatteryArt>
         </HeroRow>
+      </Hero>
 
+      {/* The vehicle and the test are one unit — this is yours, here is what
+          to do about it — so they leave the banner together and keep their
+          order. Lifting them out also settles something the old comment was
+          working around: with the status card gone from the gradient there
+          are no longer two pale blocks stacked inside it, so the card can be
+          a plain surface and the gold goes back to meaning "yours" rather
+          than "not the other white thing". */}
+      <VehicleDock>
         {/* The one honest status line: what the owner told us, and when. */}
         {/* Pressable, because the line it shows when nothing is saved is
             otherwise a dead end: it names an absence and offers no way to
@@ -369,7 +378,7 @@ export function BatteryScreen({ navigation }) {
             <Ionicons
               name={hasVehicle ? "car-sport" : "battery-half-outline"}
               size={20}
-              color={hasVehicle ? "#07362A" : "#ffffff"}
+              color={hasVehicle ? "#07362A" : colors.textMuted}
             />
           </StatusIcon>
           <StatusCol>
@@ -387,9 +396,7 @@ export function BatteryScreen({ navigation }) {
           <Ionicons
             name="chevron-forward"
             size={18}
-            color={
-              hasVehicle ? "rgba(217,164,65,0.75)" : "rgba(255,255,255,0.55)"
-            }
+            color={hasVehicle ? "#8a6415" : colors.textMuted}
           />
         </StatusCard>
 
@@ -397,7 +404,7 @@ export function BatteryScreen({ navigation }) {
           <Ionicons name="flash-outline" size={16} color={EMERALD} />
           <TestButtonLabel>{t("batteryTestButton")}</TestButtonLabel>
         </TestButton>
-      </Hero>
+      </VehicleDock>
 
       <Scroll
         contentContainerStyle={{
@@ -1046,9 +1053,14 @@ const Container = styled(SafeAreaView)`
   background-color: ${(props) => props.theme.background};
 `;
 
+// Curved at the base like every other header in the app, with room at the
+// bottom for the vehicle card that overlaps it: 54px, of which the card
+// takes back 30.
 const Hero = styled(LinearGradient)`
-  padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px
-    ${spacing.lg}px;
+  overflow: hidden;
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
+  padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px 54px;
 `;
 
 const HeroTop = styled.View`
@@ -1155,23 +1167,29 @@ const BatteryBolt = styled.View`
   background-color: ${GOLD};
 `;
 
+// Pulled up over the banner's curve, so the banner reads as a surface with
+// something resting on it rather than a block with a gap beneath.
+const VehicleDock = styled.View`
+  z-index: 2;
+  margin-top: -30px;
+  padding: 0px ${spacing.md}px;
+  gap: ${spacing.sm}px;
+`;
+
 const StatusCard = styled(Pressable)`
   flex-direction: row;
   align-items: center;
   gap: ${spacing.sm}px;
-  margin-top: ${spacing.md}px;
   padding: 13px 14px;
-  border-radius: 18px;
-  /* Gold, not white: the button underneath is already the white block in
-     this banner, and two stacked white blocks read as one control split in
-     half. Gold is the app's accent for something that belongs to the
-     reader, and it is the only warm note on a green gradient — so the card
-     is unmistakable without shouting over the button below it. */
-  background-color: ${(props) =>
-    props.saved ? "rgba(217, 164, 65, 0.18)" : "rgba(255, 255, 255, 0.12)"};
+  border-radius: ${radius.xl}px;
+  background-color: ${(props) => props.theme.surface};
   border-width: 1px;
+  /* Gold only once there is a vehicle to own. It is the app's accent for
+     something that belongs to the reader, and an empty prompt does not
+     belong to anybody yet. */
   border-color: ${(props) =>
-    props.saved ? "rgba(217, 164, 65, 0.55)" : "rgba(255, 255, 255, 0.2)"};
+    props.saved ? "rgba(217, 164, 65, 0.55)" : props.theme.border};
+  ${shadow.card}
 `;
 
 const StatusIcon = styled.View`
@@ -1180,8 +1198,7 @@ const StatusIcon = styled.View`
   border-radius: 13px;
   align-items: center;
   justify-content: center;
-  background-color: ${(props) =>
-    props.saved ? GOLD : "rgba(255, 255, 255, 0.14)"};
+  background-color: ${(props) => (props.saved ? GOLD : props.theme.surfaceAlt)};
 `;
 
 const StatusCol = styled.View`
@@ -1192,26 +1209,29 @@ const StatusCol = styled.View`
 const StatusVehicle = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 14px;
-  color: #ffffff;
+  color: ${(props) => props.theme.text};
 `;
 
 const StatusMeta = styled.Text`
   font-family: ${fontFamily.regular};
   font-size: 11.5px;
   line-height: 16px;
-  color: ${(props) => (props.saved ? "#F0CE8E" : "rgba(255, 255, 255, 0.65)")};
+  color: ${(props) => (props.saved ? "#8a6415" : props.theme.textMuted)};
   margin-top: 3px;
 `;
 
+// White on a white page is invisible, so the button that was the banner's
+// bright block becomes an outlined one out here.
 const TestButton = styled(Pressable)`
   flex-direction: row;
   align-items: center;
   justify-content: center;
   gap: ${spacing.sm}px;
-  min-height: 46px;
-  margin-top: ${spacing.sm}px;
-  border-radius: 16px;
-  background-color: #ffffff;
+  min-height: 48px;
+  border-radius: ${radius.lg}px;
+  background-color: rgba(11, 110, 79, 0.07);
+  border-width: 1px;
+  border-color: rgba(11, 110, 79, 0.24);
 `;
 
 const TestButtonLabel = styled.Text`

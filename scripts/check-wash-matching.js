@@ -128,10 +128,10 @@ check("at home: no polishing", homeKeys.includes("polish"), false);
 check("at home: no ceramic", homeKeys.includes("ceramic"), false);
 check("at home: full wash offered", homeKeys.includes("full"), true);
 
-// A washer who takes both motorbikes and saloons is still asked about seat
+// A washer who takes both motorbikes and sedans is still asked about seat
 // shampooing — the union, not the intersection.
 const bothKeys = washFormulasForVehicles(["moto", "berline"]).map((i) => i.key);
-check("moto + saloon: seats offered", bothKeys.includes("seats"), true);
+check("moto + sedan: seats offered", bothKeys.includes("seats"), true);
 check(
   "moto only: seats not offered",
   washFormulasForVehicles(["moto"]).some((item) => item.key === "seats"),

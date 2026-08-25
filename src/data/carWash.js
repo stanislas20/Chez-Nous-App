@@ -48,7 +48,7 @@ export const washVehicles = [
   {
     key: "berline",
     icon: "car-outline",
-    labelEn: "Saloon",
+    labelEn: "Sedan",
     labelFr: "Berline",
   },
   {

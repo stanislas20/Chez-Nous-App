@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Linking, Pressable } from "react-native";
+import { Image, Linking, Pressable } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -126,6 +126,20 @@ export function DriversScreen({ navigation }) {
         end={{ x: 1, y: 1 }}
         topInset={insets.top}
       >
+        {/* The mockup's blueprint grid, drawn rather than tiled.
+            React Native has no repeating background image, so the lines are
+            real views — fourteen of them, thin and barely visible, which is
+            what stops the navy from reading as a flat block. */}
+        <GridOverlay pointerEvents="none">
+          {GRID_COLUMNS.map((left) => (
+            <GridLine key={`v${left}`} vertical style={{ left }} />
+          ))}
+          {GRID_ROWS.map((top) => (
+            <GridLine key={`h${top}`} style={{ top }} />
+          ))}
+        </GridOverlay>
+        <HeroGlow pointerEvents="none" />
+
         <HeroTop>
           <BackButton onPress={() => navigation.goBack()} hitSlop={12}>
             <Ionicons name="chevron-back" size={20} color="#ffffff" />
@@ -134,6 +148,19 @@ export function DriversScreen({ navigation }) {
         </HeroTop>
         <HeroTitle>{copy.title}</HeroTitle>
         <HeroCopy>{copy.copy}</HeroCopy>
+
+        {/* The count moves into the banner. It belongs to the arrangement
+            being described, and putting it here lets the hero end on
+            something concrete instead of trailing off into a filter row. */}
+        <HeroFooter>
+          <HeroCount>
+            {t("driverCountLabel", {
+              count: matching.length,
+              occasion: getOccasionLabel(occasion, language),
+            })}
+          </HeroCount>
+          {anyPriced ? <HeroSort>{t("driverCheapestFirst")}</HeroSort> : null}
+        </HeroFooter>
       </Hero>
 
       <Scroll
@@ -165,16 +192,6 @@ export function DriversScreen({ navigation }) {
           })}
         </ChipWrap>
 
-        <CountRow>
-          <CountText numberOfLines={2}>
-            {t("driverCountLabel", {
-              count: matching.length,
-              occasion: getOccasionLabel(occasion, language),
-            })}
-          </CountText>
-          {anyPriced ? <SortNote>{t("driverCheapestFirst")}</SortNote> : null}
-        </CountRow>
-
         {matching.map((item, index) => {
           const score = ratings[item.sellerId];
           const price = priceFor(item, occasion);
@@ -203,11 +220,18 @@ export function DriversScreen({ navigation }) {
               }
             >
               <CardTop>
-                <Monogram>
-                  <MonogramLabel>
-                    {(title(item) || "?").slice(0, 2).toUpperCase()}
-                  </MonogramLabel>
-                </Monogram>
+                {item.photoUrl ? (
+                  <Portrait
+                    source={{ uri: item.photoUrl }}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Monogram>
+                    <MonogramLabel>
+                      {(title(item) || "?").slice(0, 2).toUpperCase()}
+                    </MonogramLabel>
+                  </Monogram>
+                )}
                 <CardTitleCol>
                   <DriverName numberOfLines={1}>{title(item)}</DriverName>
                   <RatingRow>
@@ -374,8 +398,70 @@ const Container = styled(SafeAreaView)`
 `;
 
 const Hero = styled(LinearGradient)`
-  padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px
+  position: relative;
+  overflow: hidden;
+  padding: ${(props) => props.topInset + spacing.md}px ${spacing.md}px
     ${spacing.lg}px;
+`;
+
+// Positions rather than a loop in the render, so the arrays are constant and
+// the lines never re-key on a state change.
+const GRID_COLUMNS = [34, 68, 102, 136, 170, 204, 238, 272, 306, 340, 374];
+const GRID_ROWS = [40, 74, 108, 142, 176, 210, 244, 278];
+
+const GridOverlay = styled.View`
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+  opacity: 0.14;
+`;
+
+const GridLine = styled.View`
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.5);
+  ${(props) =>
+    props.vertical
+      ? "top: 0px; bottom: 0px; width: 1px;"
+      : "left: 0px; right: 0px; height: 1px;"}
+`;
+
+// One soft light source, top right, so the gradient has somewhere to come
+// from. Bigger than the banner on purpose — only the falloff shows.
+const HeroGlow = styled.View`
+  position: absolute;
+  top: -120px;
+  right: -90px;
+  width: 260px;
+  height: 260px;
+  border-radius: 130px;
+  background-color: rgba(90, 150, 220, 0.22);
+`;
+
+const HeroFooter = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${spacing.sm}px;
+  margin-top: ${spacing.lg}px;
+  padding-top: ${spacing.md}px;
+  border-top-width: 1px;
+  border-top-color: rgba(255, 255, 255, 0.14);
+`;
+
+const HeroCount = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.semiBold};
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+`;
+
+const HeroSort = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.6);
+  flex-shrink: 0;
 `;
 
 const HeroTop = styled.View`
@@ -396,7 +482,7 @@ const BackButton = styled(Pressable)`
 
 const HeroEyebrow = styled.Text`
   font-family: ${fontFamily.bold};
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 1.4px;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.6);
@@ -404,17 +490,19 @@ const HeroEyebrow = styled.Text`
 
 const HeroTitle = styled.Text`
   font-family: ${fontFamily.bold};
-  font-size: 25px;
-  line-height: 30px;
+  font-size: 30px;
+  line-height: 35px;
+  letter-spacing: -0.5px;
   color: #ffffff;
-  margin-bottom: 9px;
+  margin-bottom: 10px;
 `;
 
 const HeroCopy = styled.Text`
   font-family: ${fontFamily.regular};
-  font-size: 12.5px;
-  line-height: 19px;
-  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  line-height: 20px;
+  color: rgba(255, 255, 255, 0.74);
+  max-width: 300px;
 `;
 
 const Scroll = styled.ScrollView`
@@ -450,28 +538,6 @@ const ChipLabel = styled.Text`
   color: ${(props) => (props.active ? "#ffffff" : props.theme.text)};
 `;
 
-const CountRow = styled.View`
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${spacing.sm}px;
-  margin-bottom: 13px;
-`;
-
-const CountText = styled.Text`
-  flex: 1;
-  font-family: ${fontFamily.semiBold};
-  font-size: 13px;
-  color: ${(props) => props.theme.text};
-`;
-
-const SortNote = styled.Text`
-  font-family: ${fontFamily.regular};
-  font-size: 11.5px;
-  color: ${(props) => props.theme.textMuted};
-  flex-shrink: 0;
-`;
-
 const Card = styled(Pressable)`
   padding: ${spacing.md}px;
   border-radius: ${radius.xl}px;
@@ -494,10 +560,19 @@ const CardTitleCol = styled.View`
   min-width: 0px;
 `;
 
+// Same box as the monogram beside it, so a card does not shift by a pixel
+// when a photo finishes loading.
+const Portrait = styled(Image)`
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  background-color: ${(props) => props.theme.surfaceAlt};
+`;
+
 const Monogram = styled.View`
-  width: 44px;
-  height: 44px;
-  border-radius: 16px;
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
   align-items: center;
   justify-content: center;
   background-color: ${(props) => props.theme.primaryLight};

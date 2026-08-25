@@ -39,6 +39,11 @@ export function useDrivers(userCoords) {
             seats: listing.driverSeats ?? null,
             airConditioned: listing.driverAc === true,
             experience: listing.driverExperience ?? null,
+            // Their own first photo. A driver who uploaded a picture of
+            // themselves should be shown as themselves — this is the trade
+            // where a face is most of the reassurance — and the monogram
+            // stays as the fallback rather than a grey silhouette.
+            photoUrl: listing.mediaUrl ?? listing.media?.[0]?.url ?? null,
             distanceKm:
               userCoords && cityCoord
                 ? distanceInKm(userCoords, cityCoord)

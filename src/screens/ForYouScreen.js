@@ -1255,6 +1255,23 @@ export function ForYouScreen({ navigation, route }) {
   // Signed in, the picture opens the account it belongs to. Signed out, it
   // opens the way to make one — the same gate every other locked action
   // uses, so it lands back here afterwards.
+  // Straight into the form with Emplois already chosen, so an employer never
+  // meets the category sheet or the word "Vendre". Signed out, the same gate
+  // every other locked action uses — it returns here afterwards.
+  const startJobPosting = () => {
+    if (!user) {
+      openAccountGate(navigation);
+      return;
+    }
+    navigation.navigate("MainTabs", {
+      screen: "Sell",
+      params: {
+        screen: "CreateListing",
+        params: { categoryKey: "jobs" },
+      },
+    });
+  };
+
   const openAccount = () => {
     if (!user) {
       openAccountGate(navigation);
@@ -1870,6 +1887,35 @@ export function ForYouScreen({ navigation, route }) {
               })}
             </JobList>
           )}
+
+          {/* Every other vertical in the app offers to publish from inside
+              itself — a garage from Garages, a carrossier from Carrosserie,
+              a chauffeur from Chauffeurs. Emplois was the one that did not,
+              and "Vendre" is a strange door for an employer who is not
+              selling anything.
+
+              Placed after the list rather than at the very bottom: somebody
+              who has just read what the market looks like is the person most
+              likely to post, and the seventeen sector tiles below would bury
+              it. */}
+          <JobPostCard onPress={startJobPosting}>
+            <JobPostIcon>
+              <Ionicons
+                name="megaphone-outline"
+                size={20}
+                color={colors.primary}
+              />
+            </JobPostIcon>
+            <JobPostCol>
+              <JobPostTitle>{t("jobsPostTitle")}</JobPostTitle>
+              <JobPostCopy>{t("jobsPostCopy")}</JobPostCopy>
+            </JobPostCol>
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={colors.textMuted}
+            />
+          </JobPostCard>
 
           <SectionTitle>{t("jobsExploreSection")}</SectionTitle>
           <CatGrid>
@@ -3253,6 +3299,46 @@ const JobCompanyRow = styled.View`
   align-items: center;
   gap: 5px;
   margin-top: 2px;
+`;
+
+const JobPostCard = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.sm}px;
+  padding: 14px 15px;
+  margin-bottom: ${spacing.lg}px;
+  border-radius: ${radius.xl}px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+`;
+
+const JobPostIcon = styled.View`
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  align-items: center;
+  justify-content: center;
+  background-color: ${(props) => props.theme.primaryLight};
+`;
+
+const JobPostCol = styled.View`
+  flex: 1;
+  min-width: 0px;
+`;
+
+const JobPostTitle = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 14px;
+  color: ${(props) => props.theme.text};
+`;
+
+const JobPostCopy = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 12px;
+  line-height: 17px;
+  margin-top: 2px;
+  color: ${(props) => props.theme.textMuted};
 `;
 
 const OfferBadge = styled.View`

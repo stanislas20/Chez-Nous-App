@@ -33,6 +33,8 @@ export const translations = {
     forYouTitle: "For You",
     marketVerifiedOnlyFilter: "Verified businesses",
 
+    jobsPostTitle: "You are hiring?",
+    jobsPostCopy: "Post the role here — candidates apply from inside the app.",
     postingTitleVehicles: "Sell a vehicle",
     postingTitleRealEstate: "List a property",
     postingTitleServices: "Offer a service",
@@ -2058,6 +2060,9 @@ export const translations = {
     forYouTitle: "Pour vous",
     marketVerifiedOnlyFilter: "Entreprises vérifiées",
 
+    jobsPostTitle: "Vous recrutez ?",
+    jobsPostCopy:
+      "Publiez le poste ici — les candidats postulent depuis l’application.",
     postingTitleVehicles: "Vendre un véhicule",
     postingTitleRealEstate: "Publier un bien",
     postingTitleServices: "Proposer un service",

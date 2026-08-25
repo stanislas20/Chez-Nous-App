@@ -33,6 +33,9 @@ export const translations = {
     forYouTitle: "For You",
     marketVerifiedOnlyFilter: "Verified businesses",
 
+    realEstatePostTitle: "Do you have a property to list?",
+    realEstatePostCopy:
+      "Publish it here — rent, sale or land, seen from Bénin and abroad.",
     jobsPostTitle: "Are you hiring?",
     jobsPostCopy: "Post the role here — candidates apply from inside the app.",
     postingTitleVehicles: "Sell a vehicle",
@@ -2060,6 +2063,9 @@ export const translations = {
     forYouTitle: "Pour vous",
     marketVerifiedOnlyFilter: "Entreprises vérifiées",
 
+    realEstatePostTitle: "Vous avez un bien à publier ?",
+    realEstatePostCopy:
+      "Publiez-le ici — location, vente ou terrain, vu du Bénin comme de l’étranger.",
     jobsPostTitle: "Vous recrutez ?",
     jobsPostCopy:
       "Publiez le poste ici — les candidats postulent depuis l’application.",

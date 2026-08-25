@@ -23,6 +23,9 @@ import { SearchBar } from "../components/SearchBar";
 import { sectorTint } from "../data/companySectors";
 import { selectionTick } from "../utils/haptics";
 import { useAuth } from "../auth/AuthContext";
+import { openAccountGate } from "../utils/openAccountGate";
+import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
+import { canPublish } from "../utils/canPublish";
 import { useFavorites } from "../hooks/useFavorites";
 import { queryMatches } from "../utils/search";
 import { cities } from "../data/cities";
@@ -139,6 +142,37 @@ export function RealEstateScreen({ navigation }) {
   const { language, t } = useI18n();
   const listings = useApprovedListings();
   const { user } = useAuth();
+
+  // Publishing a property meant leaving this screen for Vendre and finding
+  // Immobilier in a category sheet — the same detour every other vertical
+  // has now stopped asking for. A landlord reading the market is exactly the
+  // person about to list one.
+  const openPostForm = () =>
+    navigation.navigate("MainTabs", {
+      screen: "Sell",
+      params: {
+        screen: "CreateListing",
+        // Keeps SellerDashboard beneath the form so its back arrow works.
+        initial: false,
+        params: { categoryKey: "realEstate" },
+      },
+    });
+
+  const { remember } = useAccountGateIntent(user, openPostForm);
+
+  // Signed out is a door the gate opens; signed in on a number that cannot
+  // publish is a wall, and inviting somebody into it is the dead promise
+  // every other screen has stopped making.
+  const mayPublish = !user || canPublish(user);
+
+  const startPosting = () => {
+    if (!user) {
+      remember();
+      openAccountGate(navigation);
+      return;
+    }
+    openPostForm();
+  };
   // The same store the heart on every other card writes to, so a property
   // saved here turns up in Saved listings rather than in a set that dies
   // with the screen.
@@ -629,6 +663,28 @@ export function RealEstateScreen({ navigation }) {
               ) : null}
             </EmptyWrap>
           )
+        }
+        ListFooterComponent={
+          mayPublish ? (
+            <PostCard onPress={startPosting}>
+              <PostIcon>
+                <Ionicons
+                  name="home-outline"
+                  size={20}
+                  color={colors.primary}
+                />
+              </PostIcon>
+              <PostCol>
+                <PostTitle>{t("realEstatePostTitle")}</PostTitle>
+                <PostCopy>{t("realEstatePostCopy")}</PostCopy>
+              </PostCol>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={colors.textMuted}
+              />
+            </PostCard>
+          ) : null
         }
         renderItem={({ item }) => (
           <PropertyCard
@@ -1822,6 +1878,46 @@ const EmptyWrap = styled.View`
 const EmptyGlyph = styled.Text`
   font-size: 34px;
   margin-bottom: 4px;
+`;
+
+const PostCard = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 15px;
+  margin-top: 8px;
+  border-radius: 20px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+`;
+
+const PostIcon = styled.View`
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  align-items: center;
+  justify-content: center;
+  background-color: ${(props) => props.theme.primaryLight};
+`;
+
+const PostCol = styled.View`
+  flex: 1;
+  min-width: 0px;
+`;
+
+const PostTitle = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 14px;
+  color: ${(props) => props.theme.text};
+`;
+
+const PostCopy = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 12px;
+  line-height: 17px;
+  margin-top: 2px;
+  color: ${(props) => props.theme.textMuted};
 `;
 
 const EmptyTitle = styled.Text`

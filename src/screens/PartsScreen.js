@@ -7,7 +7,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
-import { radius, spacing } from "../theme/colors";
+import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
@@ -182,14 +182,10 @@ export function PartsScreen({ navigation }) {
         </SearchField>
       </Hero>
 
-      <Scroll
-        contentContainerStyle={{
-          padding: spacing.md,
-          paddingBottom: insets.bottom + spacing.xl,
-        }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+      {/* A chain and sprockets mean nothing on a saloon. The choice governs
+          every family, quality and shop below it, so it sits astride the
+          banner's edge rather than scrolling away with them. */}
+      <ScopeDock>
         <ScopeRow>
           {partScopes.map((option) => {
             const active = scope === option.key;
@@ -211,7 +207,16 @@ export function PartsScreen({ navigation }) {
             );
           })}
         </ScopeRow>
+      </ScopeDock>
 
+      <Scroll
+        contentContainerStyle={{
+          padding: spacing.md,
+          paddingBottom: insets.bottom + spacing.xl,
+        }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <SectionTitle>{t("partsFamiliesLabel")}</SectionTitle>
         <Grid>
           {partCategoriesFor(scope).map((item) => {
@@ -483,9 +488,13 @@ const Container = styled(SafeAreaView)`
   background-color: ${(props) => props.theme.background};
 `;
 
+// Curved at the base, with room for the scope row that overlaps it: 54px,
+// of which the card takes back 30.
 const Hero = styled(LinearGradient)`
-  padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px
-    ${spacing.md}px;
+  overflow: hidden;
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
+  padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px 54px;
 `;
 
 const HeroTop = styled.View`
@@ -551,13 +560,21 @@ const Scroll = styled.ScrollView`
   flex: 1;
 `;
 
+const ScopeDock = styled.View`
+  z-index: 2;
+  margin-top: -30px;
+  padding: 0px ${spacing.md}px;
+`;
+
 const ScopeRow = styled.View`
   flex-direction: row;
   gap: 4px;
-  padding: 4px;
-  border-radius: ${radius.lg}px;
-  background-color: ${(props) => props.theme.surfaceAlt};
-  margin-bottom: ${spacing.md}px;
+  padding: 5px;
+  border-radius: ${radius.xl}px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+  ${shadow.card}
 `;
 
 const ScopeTab = styled(Pressable)`
@@ -567,10 +584,10 @@ const ScopeTab = styled(Pressable)`
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 42px;
-  border-radius: ${radius.md}px;
+  min-height: 46px;
+  border-radius: ${radius.lg}px;
   background-color: ${(props) =>
-    props.active ? props.theme.surface : "transparent"};
+    props.active ? props.theme.surfaceAlt : "transparent"};
 `;
 
 const ScopeLabel = styled.Text`

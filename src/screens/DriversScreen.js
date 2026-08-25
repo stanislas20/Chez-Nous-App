@@ -7,7 +7,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
-import { radius, spacing } from "../theme/colors";
+import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
@@ -162,13 +162,11 @@ export function DriversScreen({ navigation }) {
         </HeroFooter>
       </Hero>
 
-      <Scroll
-        contentContainerStyle={{
-          padding: spacing.md,
-          paddingBottom: insets.bottom + spacing.xl,
-        }}
-        showsVerticalScrollIndicator={false}
-      >
+      {/* Five arrangements are five different prices, so the choice governs
+          every card below it and sits astride the banner's edge. No card
+          around them: the chips already carry their own surface and border,
+          and a bordered box full of bordered boxes is one border too many. */}
+      <ChipDock>
         <ChipWrap>
           {driverOccasions.map((item) => {
             const active = occasion === item.key;
@@ -190,7 +188,15 @@ export function DriversScreen({ navigation }) {
             );
           })}
         </ChipWrap>
+      </ChipDock>
 
+      <Scroll
+        contentContainerStyle={{
+          padding: spacing.md,
+          paddingBottom: insets.bottom + spacing.xl,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
         {matching.map((item, index) => {
           const score = ratings[item.sellerId];
           const price = priceFor(item, occasion);
@@ -399,8 +405,9 @@ const Container = styled(SafeAreaView)`
 const Hero = styled(LinearGradient)`
   position: relative;
   overflow: hidden;
-  padding: ${(props) => props.topInset + spacing.md}px ${spacing.md}px
-    ${spacing.lg}px;
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
+  padding: ${(props) => props.topInset + spacing.md}px ${spacing.md}px 54px;
 `;
 
 // Positions rather than a loop in the render, so the arrays are constant and
@@ -508,11 +515,18 @@ const Scroll = styled.ScrollView`
   flex: 1;
 `;
 
+// Pulled up over the banner's curve, so the banner reads as a surface with
+// something resting on it rather than a block with a gap beneath.
+const ChipDock = styled.View`
+  z-index: 2;
+  margin-top: -30px;
+  padding: 0px ${spacing.md}px;
+`;
+
 const ChipWrap = styled.View`
   flex-direction: row;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: ${spacing.md}px;
 `;
 
 const Chip = styled(Pressable)`
@@ -529,6 +543,7 @@ const Chip = styled(Pressable)`
     props.active ? EMERALD : props.theme.surface};
   border-width: 1px;
   border-color: ${(props) => (props.active ? EMERALD : props.theme.border)};
+  ${shadow.card}
 `;
 
 const ChipLabel = styled.Text`

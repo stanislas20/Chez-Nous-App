@@ -555,7 +555,11 @@ const Container = styled(SafeAreaView)`
   background-color: ${(props) => props.theme.background};
 `;
 
+// Curved at the base like every other header in the app.
 const Hero = styled(LinearGradient)`
+  overflow: hidden;
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
   padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px
     ${spacing.lg}px;
 `;

@@ -288,7 +288,11 @@ const Container = styled(SafeAreaView)`
 // Three stops rather than two: the depth the Cars hero gets from its glow
 // has to come from the gradient here, because a plain View cannot blur in
 // React Native and a hard-edged circle reads as a rendering fault, not light.
+// Curved at the base like every other header in the app.
 const Hero = styled(LinearGradient)`
+  overflow: hidden;
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
   padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px
     ${spacing.lg}px;
 `;

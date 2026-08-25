@@ -33,6 +33,8 @@ export const translations = {
     forYouTitle: "For You",
     marketVerifiedOnlyFilter: "Verified businesses",
 
+    carsPostTitle: "Do you have a vehicle to sell?",
+    carsPostCopy: "Publish it here — buyers in Bénin and abroad are looking.",
     realEstatePostTitle: "Do you have a property to list?",
     realEstatePostCopy:
       "Publish it here — rent, sale or land, seen from Bénin and abroad.",
@@ -2063,6 +2065,9 @@ export const translations = {
     forYouTitle: "Pour vous",
     marketVerifiedOnlyFilter: "Entreprises vérifiées",
 
+    carsPostTitle: "Vous avez un véhicule à vendre ?",
+    carsPostCopy:
+      "Publiez-le ici — des acheteurs au Bénin comme à l’étranger cherchent.",
     realEstatePostTitle: "Vous avez un bien à publier ?",
     realEstatePostCopy:
       "Publiez-le ici — location, vente ou terrain, vu du Bénin comme de l’étranger.",

@@ -723,6 +723,24 @@ export function CarsScreen({ navigation, route }) {
   // needs the panel beater as much as someone buying one does.
   const bottomBlock = (
     <>
+      {/* Publishing a car lived behind the Vendre intent, which swaps the
+          whole screen — so somebody browsing had no way to add to what they
+          were looking at without first changing what the screen was for.
+          Every other vertical offers it in place; this brings Voitures into
+          line. The Vendre panel keeps its own fuller pitch. */}
+      {mayPublish ? (
+        <PostVehicleCard onPress={startSelling}>
+          <PostVehicleIcon>
+            <Ionicons name="car-sport-outline" size={20} color={EMERALD} />
+          </PostVehicleIcon>
+          <PostVehicleCol>
+            <PostVehicleTitle>{t("carsPostTitle")}</PostVehicleTitle>
+            <PostVehicleCopy>{t("carsPostCopy")}</PostVehicleCopy>
+          </PostVehicleCol>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        </PostVehicleCard>
+      ) : null}
+
       <SectionHead>
         <SectionHeadTitle>{t("carsDealershipsTitle")}</SectionHeadTitle>
         <SectionLink
@@ -2771,6 +2789,46 @@ const SellCopy = styled.Text`
   line-height: 19px;
   color: ${(props) => props.theme.textMuted};
   margin-bottom: 14px;
+`;
+
+const PostVehicleCard = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 15px;
+  margin-bottom: 18px;
+  border-radius: 20px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+`;
+
+const PostVehicleIcon = styled.View`
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  align-items: center;
+  justify-content: center;
+  background-color: ${(props) => props.theme.primaryLight};
+`;
+
+const PostVehicleCol = styled.View`
+  flex: 1;
+  min-width: 0px;
+`;
+
+const PostVehicleTitle = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 14px;
+  color: ${(props) => props.theme.text};
+`;
+
+const PostVehicleCopy = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 12px;
+  line-height: 17px;
+  margin-top: 2px;
+  color: ${(props) => props.theme.textMuted};
 `;
 
 const SellFieldRow = styled.View`

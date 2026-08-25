@@ -102,7 +102,7 @@ export const carServicesPrimary = [
   // three-room flat in the country, and a parts shop is chosen on what it
   // stocks and whether that stock is new or from a casse.
   { key: "parts", icon: "cog-outline", route: "Parts" },
-  { key: "wash", icon: "water-outline", query: "lavage auto" },
+  { key: "wash", icon: "water-outline", route: "CarWash" },
   { key: "parking", icon: "location-outline", route: "CarParks" },
   {
     key: "documents",

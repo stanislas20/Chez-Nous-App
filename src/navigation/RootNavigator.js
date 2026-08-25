@@ -32,6 +32,7 @@ import { ModerationScreen } from "../screens/ModerationScreen";
 import { CreateListingScreen } from "../screens/CreateListingScreen";
 import { DriversScreen } from "../screens/DriversScreen";
 import { PartsScreen } from "../screens/PartsScreen";
+import { CarWashScreen } from "../screens/CarWashScreen";
 import { GaragesScreen } from "../screens/GaragesScreen";
 import { BreakdownScreen } from "../screens/BreakdownScreen";
 import { VehicleListScreen } from "../screens/VehicleListScreen";
@@ -181,6 +182,11 @@ export function RootNavigator() {
           <Stack.Screen
             name="Drivers"
             component={DriversScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="CarWash"
+            component={CarWashScreen}
             options={{ headerShown: false }}
           />
           {/* Also registered inside the Sell tab, where the dashboard

@@ -975,6 +975,52 @@ export const translations = {
     partsQuoteCategory: "I am looking for: {category}.",
     partsQuoteQuality: "Quality: {quality}.",
     partsQuoteAsk: "Do you have it, and at what price?",
+    washEyebrow: "Car washing",
+    washTitle: "What does a wash cost?",
+    washIntro:
+      "The price comes from your vehicle and the formula, not from the station. Choose both and compare the people who can take you.",
+    washVehicleLabel: "Your vehicle",
+    washFormulaLabel: "What you are asking for",
+    washHomeLimitNote:
+      "Polishing and ceramic are not done at your gate: they need a dust-free covered workshop.",
+    washCount: "{count} provider(s) — {vehicle}",
+    washCheapestFirst: "Cheapest first",
+    washPriceFor: "for a {vehicle}",
+    washPriceOnAsking: "Price on asking",
+    washHomeFee: "Call-out {fee} on top",
+    washByAppointment: "By appointment",
+    washNoneMatching: "Nobody for a {vehicle} on this job yet",
+    washNoneMatchingCopy:
+      "This list fills as washers publish. A provider who left a field blank still appears — an empty answer is treated as unknown, not as no.",
+    washNoneHomeCopy:
+      "Nobody has declared they come to you for this. Try “At the station”, or ask a provider directly — many will travel without saying so in the advert.",
+    washSafetyNote:
+      "Empty the glovebox and the boot before an interior wash. Providers do not answer for what is left in the vehicle.",
+    washPostTitle: "Do you wash vehicles?",
+    washPostCopy: "Publish your prices by formula and appear in this list.",
+    washQuoteIntro: "Hello, I am contacting you through Chez-Nous.",
+    washQuoteJob: "I would like: {formula} for a {vehicle}.",
+    washQuoteHome: "At my address.",
+    washQuoteAsk: "What is your price, and when can you take it?",
+    sellTradeWash: "Car wash",
+    sellFieldWashModes: "Where you work",
+    sellFieldWashVehicles: "Vehicles you take",
+    sellFieldWashFormulas: "Services you offer",
+    sellFieldWashPrices: "Your prices",
+    sellWashPricesHint:
+      "One price per service and per vehicle. Leave blank what you would rather discuss — a blank shows as “price on asking”, never as free.",
+    sellFieldWashHomeFee: "Call-out charge",
+    sellWashHomeFeeHint:
+      "Charged once for the visit, on top of the wash. Leave blank if you include it.",
+    sellFieldWashEquipment: "Your equipment",
+    sellWashEquipmentHint:
+      "e.g. pressure washer, vacuum, orbital polisher, enclosed workshop.",
+    sellFieldWashWaterSupply: "Water at the customer's address",
+    sellWashWaterHint:
+      "Say whether you bring your own. On a day the supply is cut, this is what decides who can come.",
+    sellFieldWashAppointment: "By appointment only",
+    sellMediaFramingWash:
+      "Photograph a vehicle you have finished, not the equipment. The result is what a customer is choosing between, and wet paintwork in daylight shows it better than any description.",
     sellTradeParts: "Parts seller",
     sellPartStockPlaceholder:
       "plaquettes de frein, alternateur, filtre à huile, radiateur…",
@@ -3105,6 +3151,53 @@ export const translations = {
     partsQuoteCategory: "Je cherche : {category}.",
     partsQuoteQuality: "Qualité : {quality}.",
     partsQuoteAsk: "L’avez-vous, et à quel prix ?",
+    washEyebrow: "Lavage automobile",
+    washTitle: "Combien ça coûte ?",
+    washIntro:
+      "Le prix dépend de votre véhicule et de la formule, pas de la station. Choisissez les deux et comparez ceux qui vous prennent.",
+    washVehicleLabel: "Votre véhicule",
+    washFormulaLabel: "Ce que vous demandez",
+    washHomeLimitNote:
+      "Le polissage et la céramique ne se font pas devant chez vous : il leur faut un local couvert, à l’abri de la poussière.",
+    washCount: "{count} prestataire(s) — {vehicle}",
+    washCheapestFirst: "Du moins cher",
+    washPriceFor: "pour un(e) {vehicle}",
+    washPriceOnAsking: "Prix à convenir",
+    washHomeFee: "Déplacement {fee} en plus",
+    washByAppointment: "Sur rendez-vous",
+    washNoneMatching: "Personne sur cette prestation pour un(e) {vehicle}",
+    washNoneMatchingCopy:
+      "Cette liste se remplit à mesure que les laveurs publient. Un prestataire qui a laissé un champ vide apparaît quand même — une réponse vide vaut inconnue, pas non.",
+    washNoneHomeCopy:
+      "Personne n’a déclaré se déplacer pour cette prestation. Essayez « En station », ou demandez directement : beaucoup se déplacent sans le dire dans l’annonce.",
+    washSafetyNote:
+      "Videz la boîte à gants et le coffre avant un lavage intérieur. Les prestataires ne répondent pas des objets laissés dans le véhicule.",
+    washPostTitle: "Vous lavez des véhicules ?",
+    washPostCopy:
+      "Publiez vos tarifs par formule et apparaissez dans cette liste.",
+    washQuoteIntro: "Bonjour, je vous contacte via Chez-Nous.",
+    washQuoteJob: "Je souhaite : {formula} pour un(e) {vehicle}.",
+    washQuoteHome: "À mon adresse.",
+    washQuoteAsk: "Quel est votre tarif, et quand pouvez-vous le prendre ?",
+    sellTradeWash: "Lavage auto",
+    sellFieldWashModes: "Où vous travaillez",
+    sellFieldWashVehicles: "Véhicules que vous prenez",
+    sellFieldWashFormulas: "Prestations proposées",
+    sellFieldWashPrices: "Vos tarifs",
+    sellWashPricesHint:
+      "Un tarif par prestation et par véhicule. Laissez vide ce que vous préférez discuter — un champ vide s’affiche « prix à convenir », jamais comme gratuit.",
+    sellFieldWashHomeFee: "Frais de déplacement",
+    sellWashHomeFeeHint:
+      "Facturé une fois pour la visite, en plus du lavage. Laissez vide si vous l’incluez.",
+    sellFieldWashEquipment: "Votre matériel",
+    sellWashEquipmentHint:
+      "Ex. : Karcher, aspirateur, polisseuse orbitale, local fermé.",
+    sellFieldWashWaterSupply: "Eau chez le client",
+    sellWashWaterHint:
+      "Précisez si vous apportez la vôtre. Un jour de coupure, c’est ce qui décide qui peut venir.",
+    sellFieldWashAppointment: "Sur rendez-vous uniquement",
+    sellMediaFramingWash:
+      "Photographiez un véhicule que vous avez terminé, pas le matériel. C’est le résultat que le client compare, et une carrosserie encore humide en plein jour le montre mieux que n’importe quelle description.",
     sellTradeParts: "Vendeur de pièces",
     sellPartStockPlaceholder:
       "plaquettes de frein, alternateur, filtre à huile, radiateur…",

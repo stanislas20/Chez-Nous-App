@@ -173,6 +173,15 @@ import { POSTING_DIAL } from "../data/countries";
 import { electricServices } from "../data/carElectrics";
 import { bodyworkServices } from "../data/bodywork";
 import {
+  getWashFormulaLabel,
+  getWashVehicleLabel,
+  isWashListing,
+  washFormulasForVehicles,
+  washModes,
+  washPriceKey,
+  washVehicles,
+} from "../data/carWash";
+import {
   isPartsSellerListing,
   partCategories,
   partQualities,
@@ -274,6 +283,7 @@ const SERVICE_TRADES = [
   },
   { key: "driver", icon: "person-outline", labelKey: "sellTradeDriver" },
   { key: "parts", icon: "cog-outline", labelKey: "sellTradeParts" },
+  { key: "wash", icon: "water-outline", labelKey: "sellTradeWash" },
   { key: "electric", icon: "flash-outline", labelKey: "sellTradeElectric" },
   { key: "tyres", icon: "disc-outline", labelKey: "sellTradeTyres" },
   {
@@ -644,6 +654,30 @@ export function CreateListingScreen({ route, navigation }) {
     seed("partChecksFit", false),
   );
 
+  // Keyed by formula and vehicle together, because that pair IS the price.
+  // A blank cell is not free and not cheap: the card reads "prix à convenir"
+  // and sorts last, which is the honest reading of an unanswered field.
+  const [washModeKeys, setWashModeKeys] = useState(seed("washModes", []));
+  const [washVehicleKeys, setWashVehicleKeys] = useState(
+    seed("washVehicles", []),
+  );
+  const [washFormulaKeys, setWashFormulaKeys] = useState(
+    seed("washFormulas", []),
+  );
+  const [washPrices, setWashPrices] = useState(seed("washPrices", {}));
+  const [washHomeFee, setWashHomeFee] = useState(
+    seed("washHomeFee", null) == null ? "" : String(seed("washHomeFee", "")),
+  );
+  const [washEquipment, setWashEquipment] = useState(
+    seed("washEquipment", "") ?? "",
+  );
+  const [washWaterSupply, setWashWaterSupply] = useState(
+    seed("washWaterSupply", "") ?? "",
+  );
+  const [washByAppointment, setWashByAppointment] = useState(
+    seed("washByAppointment", false) === true,
+  );
+
   const [driverPermits, setDriverPermits] = useState(seed("driverPermits", []));
   const [driverOccasionKeys, setDriverOccasionKeys] = useState(
     seed("driverOccasions", []),
@@ -972,6 +1006,22 @@ export function CreateListingScreen({ route, navigation }) {
   const mentionsParts =
     isServices &&
     (trade === "parts" || isPartsSellerListing(`${title} ${description}`));
+
+  // What this washer can be asked to price: the formulas that survive the
+  // vehicles they take, crossed with those vehicles. Nothing is offered that
+  // the taxonomy already rules out.
+  const washFormulaOptions = washFormulasForVehicles(washVehicleKeys);
+
+  const washPriceCells = washFormulaKeys.flatMap((formula) =>
+    washVehicleKeys.map((vehicle) => ({
+      key: washPriceKey(formula, vehicle),
+      label: `${getWashFormulaLabel(formula, language)} · ${getWashVehicleLabel(vehicle, language)}`,
+    })),
+  );
+
+  const mentionsWash =
+    isServices &&
+    (trade === "wash" || isWashListing(`${title} ${description}`));
 
   // And once more for chauffeurs, using the same rule: their own words, or
   // the trade they arrived with.
@@ -1535,6 +1585,33 @@ export function CreateListingScreen({ route, navigation }) {
                     partWarranty: partWarranty.trim() || null,
                     partDelivery: partDelivery.trim() || null,
                     partChecksFit,
+                  }
+                : {}),
+              ...(mentionsWash
+                ? {
+                    washModes: washModeKeys,
+                    washVehicles: washVehicleKeys,
+                    washFormulas: washFormulaKeys,
+                    // Only the cells they still offer. A price left behind by
+                    // an untick would otherwise reappear on a card for work
+                    // they no longer do.
+                    washPrices: Object.fromEntries(
+                      washFormulaKeys
+                        .flatMap((formula) =>
+                          washVehicleKeys.map((vehicle) => [
+                            washPriceKey(formula, vehicle),
+                            Number(washPrices[washPriceKey(formula, vehicle)]),
+                          ]),
+                        )
+                        .filter(
+                          ([, value]) => Number.isFinite(value) && value > 0,
+                        ),
+                    ),
+                    washHomeFee:
+                      Number(washHomeFee) > 0 ? Number(washHomeFee) : null,
+                    washEquipment: washEquipment.trim() || null,
+                    washWaterSupply: washWaterSupply.trim() || null,
+                    washByAppointment,
                   }
                 : {}),
               ...(mentionsDriver
@@ -2178,15 +2255,17 @@ export function CreateListingScreen({ route, navigation }) {
               A landscape shot from a phone camera is already 4:3, so a car
               framed this way is never cut — which is the whole reason the
               hint exists here rather than a warning appearing later. */}
-          {isVehicle || mentionsParts || mentionsDriver ? (
+          {isVehicle || mentionsParts || mentionsDriver || mentionsWash ? (
             <FramingHint>
               <Ionicons
                 name={
-                  mentionsParts
-                    ? "storefront-outline"
-                    : mentionsDriver
-                      ? "person-circle-outline"
-                      : "phone-landscape-outline"
+                  mentionsWash
+                    ? "water-outline"
+                    : mentionsParts
+                      ? "storefront-outline"
+                      : mentionsDriver
+                        ? "person-circle-outline"
+                        : "phone-landscape-outline"
                 }
                 size={16}
                 color={EMERALD}
@@ -2195,19 +2274,21 @@ export function CreateListingScreen({ route, navigation }) {
                 {/* On a used tyre the sidewall photo IS the evidence: the
                     DOT code and any bulge are what a buyer is told to check,
                     and neither is visible in a photo of the tread. */}
-                {mentionsParts
-                  ? t("sellMediaFramingParts")
-                  : mentionsDriver
-                    ? t("sellMediaFramingDriver")
-                    : isBatteryOffer
-                      ? t("sellMediaFramingBattery")
-                      : isTyreOffer
-                        ? t(
-                            tyreCondition === "used"
-                              ? "sellMediaFramingTyreUsed"
-                              : "sellMediaFramingTyre",
-                          )
-                        : t("sellMediaFramingCars")}
+                {mentionsWash
+                  ? t("sellMediaFramingWash")
+                  : mentionsParts
+                    ? t("sellMediaFramingParts")
+                    : mentionsDriver
+                      ? t("sellMediaFramingDriver")
+                      : isBatteryOffer
+                        ? t("sellMediaFramingBattery")
+                        : isTyreOffer
+                          ? t(
+                              tyreCondition === "used"
+                                ? "sellMediaFramingTyreUsed"
+                                : "sellMediaFramingTyre",
+                            )
+                          : t("sellMediaFramingCars")}
               </FramingHintText>
             </FramingHint>
           ) : null}
@@ -4177,6 +4258,187 @@ export function CreateListingScreen({ route, navigation }) {
                     </NegotiableLabel>
                   </NegotiableRow>
                   <FieldNote>{t("sellPartChecksFitHint")}</FieldNote>
+                </>
+              ) : null}
+
+              {mentionsWash ? (
+                <>
+                  <Label>{t("sellFieldWashModes")}</Label>
+                  <PickerGrid>
+                    {washModes.map((option, index) => {
+                      const active = washModeKeys.includes(option.key);
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(index, washModes.length)}
+                          full={isPickerCardFull(index, washModes.length)}
+                          selected={active}
+                          onPress={() =>
+                            setWashModeKeys((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  <Label>{t("sellFieldWashVehicles")}</Label>
+                  <PickerGrid>
+                    {washVehicles.map((option, index) => {
+                      const active = washVehicleKeys.includes(option.key);
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(index, washVehicles.length)}
+                          full={isPickerCardFull(index, washVehicles.length)}
+                          selected={active}
+                          onPress={() =>
+                            setWashVehicleKeys((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  {/* Offered against the vehicles they just ticked, so a
+                      washer who only takes motorbikes is never asked about
+                      shampooing seats. */}
+                  <Label>{t("sellFieldWashFormulas")}</Label>
+                  <PickerGrid>
+                    {washFormulaOptions.map((option, index) => {
+                      const active = washFormulaKeys.includes(option.key);
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            washFormulaOptions.length,
+                          )}
+                          full={isPickerCardFull(
+                            index,
+                            washFormulaOptions.length,
+                          )}
+                          selected={active}
+                          onPress={() =>
+                            setWashFormulaKeys((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  {/* One row per cell they actually offer. Ticking two
+                      formulas and two vehicles asks for four numbers, all
+                      optional — nobody is made to fill a whole grid. */}
+                  {washPriceCells.length ? (
+                    <>
+                      <Label>{t("sellFieldWashPrices")}</Label>
+                      <FieldNote>{t("sellWashPricesHint")}</FieldNote>
+                      {washPriceCells.map((cell) => (
+                        <MoneyFieldRow key={cell.key}>
+                          <OccasionPriceLabel numberOfLines={2}>
+                            {cell.label}
+                          </OccasionPriceLabel>
+                          <Input
+                            value={String(washPrices[cell.key] ?? "")}
+                            onChangeText={(value) =>
+                              setWashPrices((prev) => ({
+                                ...prev,
+                                [cell.key]: value.replace(/[^0-9]/g, ""),
+                              }))
+                            }
+                            keyboardType="number-pad"
+                            placeholder="0"
+                            placeholderTextColor={colors.textMuted}
+                          />
+                          <CurrencyTag>
+                            <CurrencyTagLabel>FCFA</CurrencyTagLabel>
+                          </CurrencyTag>
+                        </MoneyFieldRow>
+                      ))}
+                    </>
+                  ) : null}
+
+                  {washModeKeys.includes("domicile") ? (
+                    <>
+                      <Label>{t("sellFieldWashHomeFee")}</Label>
+                      <FieldNote>{t("sellWashHomeFeeHint")}</FieldNote>
+                      <PriceFieldRow>
+                        <Input
+                          value={washHomeFee}
+                          onChangeText={(value) =>
+                            setWashHomeFee(value.replace(/[^0-9]/g, ""))
+                          }
+                          keyboardType="number-pad"
+                          placeholder="0"
+                          placeholderTextColor={colors.textMuted}
+                        />
+                        <CurrencyTag>
+                          <CurrencyTagLabel>FCFA</CurrencyTagLabel>
+                        </CurrencyTag>
+                      </PriceFieldRow>
+
+                      <Label>{t("sellFieldWashWaterSupply")}</Label>
+                      <FieldNote>{t("sellWashWaterHint")}</FieldNote>
+                      <Input
+                        value={washWaterSupply}
+                        onChangeText={setWashWaterSupply}
+                        placeholder={t("sellFieldWashWaterSupply")}
+                        placeholderTextColor={colors.textMuted}
+                      />
+                    </>
+                  ) : null}
+
+                  <Label>{t("sellFieldWashEquipment")}</Label>
+                  <FieldNote>{t("sellWashEquipmentHint")}</FieldNote>
+                  <Input
+                    value={washEquipment}
+                    onChangeText={setWashEquipment}
+                    placeholder={t("sellFieldWashEquipment")}
+                    placeholderTextColor={colors.textMuted}
+                  />
+
+                  <NegotiableRow
+                    onPress={() => setWashByAppointment((prev) => !prev)}
+                  >
+                    <Checkbox checked={washByAppointment}>
+                      {washByAppointment ? (
+                        <Ionicons name="checkmark" size={13} color="#ffffff" />
+                      ) : null}
+                    </Checkbox>
+                    <NegotiableLabel>
+                      {t("sellFieldWashAppointment")}
+                    </NegotiableLabel>
+                  </NegotiableRow>
                 </>
               ) : null}
 

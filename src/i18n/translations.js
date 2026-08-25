@@ -916,6 +916,9 @@ export const translations = {
     moderationNotAllowed: "Not a moderator",
     moderationNotAllowedCopy:
       "This account cannot review listings. If that has just changed, sign out and back in — the permission arrives with a fresh session.",
+    moderationQueueFailed: "The queue could not be read",
+    moderationQueueFailedCopy:
+      "This is not an empty queue — the read itself failed. If the code says permission-denied, sign out and back in: the moderator right arrives with a fresh session.",
     moderationFactPrice: "Price",
     moderationFactPhone: "Phone",
     moderationNoPhoto: "No photo on this listing.",
@@ -3038,6 +3041,9 @@ export const translations = {
     moderationNotAllowed: "Pas modérateur",
     moderationNotAllowedCopy:
       "Ce compte ne peut pas valider d’annonces. Si cela vient de changer, déconnectez-vous puis reconnectez-vous : le droit arrive avec une nouvelle session.",
+    moderationQueueFailed: "La file n’a pas pu être lue",
+    moderationQueueFailedCopy:
+      "Ce n’est pas une file vide : c’est la lecture qui a échoué. Si le code indique permission-denied, déconnectez-vous puis reconnectez-vous : le droit de modération arrive avec une nouvelle session.",
     moderationFactPrice: "Prix",
     moderationFactPhone: "Téléphone",
     moderationNoPhoto: "Aucune photo sur cette annonce.",

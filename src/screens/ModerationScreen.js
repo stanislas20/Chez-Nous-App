@@ -36,7 +36,11 @@ export function ModerationScreen({ navigation }) {
   const insets = useSafeAreaInsets();
 
   const isModerator = useIsModerator(user);
-  const { pending, loading } = useModerationQueue(isModerator);
+  const {
+    pending,
+    loading,
+    error: queueError,
+  } = useModerationQueue(isModerator);
 
   const [openId, setOpenId] = useState(null);
   const [rejectFor, setRejectFor] = useState(null);
@@ -241,6 +245,15 @@ export function ModerationScreen({ navigation }) {
             <EmptyTitle>{t("moderationNotAllowed")}</EmptyTitle>
             <EmptyCopy>{t("moderationNotAllowedCopy")}</EmptyCopy>
           </EmptyCard>
+        ) : queueError ? (
+          /* A refused or failed read is not an empty queue, and must never
+             look like one — that is exactly how a listing sat waiting behind
+             a screen saying "Rien en attente". */
+          <ErrorCard>
+            <ErrorTitle>{t("moderationQueueFailed")}</ErrorTitle>
+            <EmptyCopy>{t("moderationQueueFailedCopy")}</EmptyCopy>
+            <ErrorCode>{queueError}</ErrorCode>
+          </ErrorCard>
         ) : pending.length === 0 && !loading ? (
           <EmptyCard>
             <EmptyTitle>{t("moderationEmpty")}</EmptyTitle>
@@ -475,6 +488,33 @@ const RejectLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 13.5px;
   color: ${TERRACOTTA};
+`;
+
+const ErrorCard = styled.View`
+  padding: ${spacing.lg}px ${spacing.md}px;
+  border-radius: ${radius.xl}px;
+  background-color: rgba(193, 81, 45, 0.08);
+  border-width: 1px;
+  border-color: rgba(193, 81, 45, 0.3);
+  margin-bottom: ${spacing.md}px;
+`;
+
+const ErrorTitle = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 15px;
+  color: ${TERRACOTTA};
+  margin-bottom: 6px;
+`;
+
+// The raw code, on purpose. "permission-denied" and "failed-precondition"
+// mean completely different things — the first is a claim that has not
+// arrived, the second a missing index — and a friendly message that hides
+// which one costs an hour of guessing.
+const ErrorCode = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 11px;
+  color: ${(props) => props.theme.textMuted};
+  margin-top: 8px;
 `;
 
 const EmptyCard = styled.View`

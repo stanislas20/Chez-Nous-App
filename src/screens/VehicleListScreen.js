@@ -39,6 +39,8 @@ import { useDirectory } from "../hooks/useDirectory";
 import { modelsForBrand } from "../data/vehicleModels";
 import { brandLogo, isWideLogo } from "../data/vehicleBrandLogos";
 import { isLastRowOrphan } from "../utils/gridWidth";
+import { useAuth } from "../auth/AuthContext";
+import { canPublish } from "../utils/canPublish";
 
 const EMERALD = "#0B6E4F";
 const GOLD = "#D9A441";
@@ -76,6 +78,7 @@ function SectionHeader({ icon, title, subtitle, right, flush }) {
 // down. Near-identical screens per axis would have drifted apart the first
 // time a filter changed.
 export function VehicleListScreen({ navigation, route }) {
+  const { user } = useAuth();
   const parks = useDirectory("carParks", carParks, { approvedOnly: true });
   const { colors } = useTheme();
   const { t, language } = useI18n();
@@ -237,6 +240,11 @@ export function VehicleListScreen({ navigation, route }) {
     setWanted((prev) =>
       prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key],
     );
+
+  // Signed out is a door the Sell tab's own gate opens; signed in on a
+  // number that cannot publish is a wall. Same rule as every other
+  // posting entry point in the app.
+  const mayPublish = !user || canPublish(user);
 
   // Publishing lives in the Sell tab and needs an account, so this goes
   // through the same gate the rest of the app uses.
@@ -924,13 +932,15 @@ export function VehicleListScreen({ navigation, route }) {
                     >
                       <EmptyGhostLabel>{t("brandAllMakes")}</EmptyGhostLabel>
                     </EmptyGhost>
-                    <EmptyGhost onPress={goSell}>
-                      <EmptyGhostLabel numberOfLines={1}>
-                        {fixedBrand
-                          ? t("brandSellMine", { brand })
-                          : t("carsSellCta")}
-                      </EmptyGhostLabel>
-                    </EmptyGhost>
+                    {mayPublish ? (
+                      <EmptyGhost onPress={goSell}>
+                        <EmptyGhostLabel numberOfLines={1}>
+                          {fixedBrand
+                            ? t("brandSellMine", { brand })
+                            : t("carsSellCta")}
+                        </EmptyGhostLabel>
+                      </EmptyGhost>
+                    ) : null}
                   </EmptyRow>
                 </EmptyActions>
               </EmptyCard>

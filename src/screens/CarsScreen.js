@@ -44,6 +44,7 @@ import { gridItemWidth } from "../utils/gridWidth";
 import { brandLogo, isWideLogo } from "../data/vehicleBrandLogos";
 import { buildLinkUrl } from "../data/restaurantLinks";
 import { openAccountGate } from "../utils/openAccountGate";
+import { canPublish } from "../utils/canPublish";
 import {
   VEHICLE_BUDGET_BANDS,
   dealsForIntent,
@@ -448,6 +449,11 @@ export function CarsScreen({ navigation, route }) {
   // Publishing lives in the Sell tab and needs an account, so someone without
   // one goes through the same neutral gate the rest of the app uses rather
   // than hitting a dead button.
+  // Signed out is a door the account gate opens; signed in on a number
+  // that cannot publish is a wall. Same rule as every other posting
+  // entry point in the app.
+  const mayPublish = !user || canPublish(user);
+
   const startSelling = () => {
     if (!user) {
       openAccountGate(navigation);
@@ -973,9 +979,11 @@ export function CarsScreen({ navigation, route }) {
             <SellFieldLabel>{field}</SellFieldLabel>
           </SellFieldRow>
         ))}
-        <SellCta onPress={startSelling}>
-          <SellCtaLabel>{t("carsSellCta")}</SellCtaLabel>
-        </SellCta>
+        {mayPublish ? (
+          <SellCta onPress={startSelling}>
+            <SellCtaLabel>{t("carsSellCta")}</SellCtaLabel>
+          </SellCta>
+        ) : null}
       </SellCard>
       <SafetyNote>
         <Ionicons name="shield-checkmark-outline" size={14} color={GOLD} />

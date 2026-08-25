@@ -32,6 +32,7 @@ import { useApprovedListings } from "../hooks/useApprovedListings";
 import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
 import { openAccountGate } from "../utils/openAccountGate";
+import { canPublish } from "../utils/canPublish";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
 
 const EMERALD = "#0B6E4F";
@@ -74,6 +75,11 @@ export function RestaurantsScreen({ navigation }) {
   // Picks the form back up after a visitor creates an account, so signing
   // up does not cost them the tap they already made.
   const { remember } = useAccountGateIntent(user, openRestaurantPostForm);
+  // Signed out still sees this: that is a door, and the gate opens it.
+  // Signed in on a number that cannot publish is a wall, and inviting an
+  // owner abroad to list a restaurant they will be refused is the dead
+  // promise every other screen has now stopped making.
+  const mayPublish = !user || canPublish(user);
   const { language, t } = useI18n();
   const [query, setQuery] = useState("");
   const [cuisine, setCuisine] = useState("all");
@@ -752,32 +758,40 @@ export function RestaurantsScreen({ navigation }) {
           })
         )}
 
-        <OwnerHeading>{t("restoOwnerTitle")}</OwnerHeading>
-        {/* Goes to Post-a-Listing, not the ad flow: the ad flow sells a
-            promo banner, so an owner tapping this used to end up buying an
-            advert instead of getting listed. */}
-        <OwnerCard
-          onPress={() => {
-            // The shared gate for a visitor: jumping to the Sell tab pops
-            // this screen off the root stack, so signup could not return
-            // here. See openAccountGate.
-            if (!user) {
-              remember();
-              openAccountGate(navigation);
-              return;
-            }
-            openRestaurantPostForm();
-          }}
-        >
-          <OwnerIcon>
-            <Ionicons name="restaurant" size={21} color={GOLD} />
-          </OwnerIcon>
-          <OwnerBody>
-            <OwnerTitle>{t("restoOwnerCardTitle")}</OwnerTitle>
-            <OwnerCopy>{t("restoOwnerCopy")}</OwnerCopy>
-          </OwnerBody>
-          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-        </OwnerCard>
+        {mayPublish ? (
+          <>
+            <OwnerHeading>{t("restoOwnerTitle")}</OwnerHeading>
+            {/* Goes to Post-a-Listing, not the ad flow: the ad flow sells a
+              promo banner, so an owner tapping this used to end up buying an
+              advert instead of getting listed. */}
+            <OwnerCard
+              onPress={() => {
+                // The shared gate for a visitor: jumping to the Sell tab pops
+                // this screen off the root stack, so signup could not return
+                // here. See openAccountGate.
+                if (!user) {
+                  remember();
+                  openAccountGate(navigation);
+                  return;
+                }
+                openRestaurantPostForm();
+              }}
+            >
+              <OwnerIcon>
+                <Ionicons name="restaurant" size={21} color={GOLD} />
+              </OwnerIcon>
+              <OwnerBody>
+                <OwnerTitle>{t("restoOwnerCardTitle")}</OwnerTitle>
+                <OwnerCopy>{t("restoOwnerCopy")}</OwnerCopy>
+              </OwnerBody>
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={colors.textMuted}
+              />
+            </OwnerCard>
+          </>
+        ) : null}
       </Body>
 
       <Modal

@@ -18,6 +18,16 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Service-account credentials. The key lives outside this repo and should stay
+# there — this is here so that copying one in for "just a second" cannot end
+# up in a commit. A leaked admin key reads every private message in the
+# database and mints a token for any account; it is not a file that can be
+# quietly rotated after the fact.
+*service-account*.json
+*serviceaccount*.json
+*-firebase-adminsdk-*.json
+google-application-credentials.json
+
 # Metro
 .metro-health-check*
 

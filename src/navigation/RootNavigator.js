@@ -29,6 +29,7 @@ import { BatteryScreen } from "../screens/BatteryScreen";
 import { ElectricScreen } from "../screens/ElectricScreen";
 import { BodyworkScreen } from "../screens/BodyworkScreen";
 import { ModerationScreen } from "../screens/ModerationScreen";
+import { CreateListingScreen } from "../screens/CreateListingScreen";
 import { DriversScreen } from "../screens/DriversScreen";
 import { GaragesScreen } from "../screens/GaragesScreen";
 import { BreakdownScreen } from "../screens/BreakdownScreen";
@@ -174,6 +175,17 @@ export function RootNavigator() {
           <Stack.Screen
             name="Drivers"
             component={DriversScreen}
+            options={{ headerShown: false }}
+          />
+          {/* Also registered inside the Sell tab, where the dashboard
+              opens it. Here so that a screen on THIS stack — Chauffeurs,
+              Pneus, Immobilier — can push the form without jumping into the
+              tab, which pops the origin off this stack and leaves nothing to
+              come back to. Pushed here, the origin stays underneath and the
+              back arrow is ordinary again. */}
+          <Stack.Screen
+            name="CreateListing"
+            component={CreateListingScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen

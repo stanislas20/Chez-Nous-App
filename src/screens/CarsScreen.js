@@ -43,7 +43,7 @@ import { useDirectory } from "../hooks/useDirectory";
 import { gridItemWidth } from "../utils/gridWidth";
 import { brandLogo, isWideLogo } from "../data/vehicleBrandLogos";
 import { buildLinkUrl } from "../data/restaurantLinks";
-import { openAccountGate, rootRouteName } from "../utils/openAccountGate";
+import { openAccountGate } from "../utils/openAccountGate";
 import { canPublish } from "../utils/canPublish";
 import {
   VEHICLE_BUDGET_BANDS,
@@ -459,28 +459,10 @@ export function CarsScreen({ navigation, route }) {
       openAccountGate(navigation);
       return;
     }
-    navigation.navigate("MainTabs", {
-      screen: "Sell",
-      params: {
-        screen: "CreateListing",
-        // initial: false, and this is the whole of why the back arrow was
-        // dead. A nested navigate into a tab that has not been opened yet sets
-        // the child stack's state to exactly the screen named — so
-        // CreateListing became the only route in SellStack, with no dashboard
-        // beneath it and nothing for goBack to pop. This keeps the stack's own
-        // initial route underneath, which is what makes the arrow work.
-        initial: false,
-        // Arriving from Vendre, so the form opens on the sale side and never
-        // offers a rental deal to someone selling their car.
-        params: {
-          // So the form's back arrow returns here rather than to the
-          // seller dashboard the Sell tab opens on.
-          originName: rootRouteName(navigation),
-          categoryKey: "vehicles",
-          isPromoted: false,
-          vehiclePurpose: "sell",
-        },
-      },
+    navigation.navigate("CreateListing", {
+      categoryKey: "vehicles",
+      isPromoted: false,
+      vehiclePurpose: "sell",
     });
   };
 

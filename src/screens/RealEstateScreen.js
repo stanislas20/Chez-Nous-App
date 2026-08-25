@@ -23,7 +23,7 @@ import { SearchBar } from "../components/SearchBar";
 import { sectorTint } from "../data/companySectors";
 import { selectionTick } from "../utils/haptics";
 import { useAuth } from "../auth/AuthContext";
-import { openAccountGate, rootRouteName } from "../utils/openAccountGate";
+import { openAccountGate } from "../utils/openAccountGate";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
 import { canPublish } from "../utils/canPublish";
 import { useFavorites } from "../hooks/useFavorites";
@@ -148,19 +148,8 @@ export function RealEstateScreen({ navigation }) {
   // has now stopped asking for. A landlord reading the market is exactly the
   // person about to list one.
   const openPostForm = () =>
-    navigation.navigate("MainTabs", {
-      screen: "Sell",
-      params: {
-        screen: "CreateListing",
-        // Keeps SellerDashboard beneath the form so its back arrow works.
-        initial: false,
-        params: {
-          // So the form's back arrow returns here rather than to the
-          // seller dashboard the Sell tab opens on.
-          originName: rootRouteName(navigation),
-          categoryKey: "realEstate",
-        },
-      },
+    navigation.navigate("CreateListing", {
+      categoryKey: "realEstate",
     });
 
   const { remember } = useAccountGateIntent(user, openPostForm);

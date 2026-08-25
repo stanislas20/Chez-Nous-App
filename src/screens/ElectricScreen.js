@@ -12,7 +12,7 @@ import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
-import { openAccountGate, rootRouteName } from "../utils/openAccountGate";
+import { openAccountGate } from "../utils/openAccountGate";
 import { canPublish } from "../utils/canPublish";
 import { openChat } from "../utils/openChat";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
@@ -185,25 +185,9 @@ export function ElectricScreen({ navigation }) {
   };
 
   const openPostForm = () =>
-    navigation.navigate("MainTabs", {
-      screen: "Sell",
-      params: {
-        screen: "CreateListing",
-        // initial: false, and this is the whole of why the back arrow was
-        // dead. A nested navigate into a tab that has not been opened yet sets
-        // the child stack's state to exactly the screen named — so
-        // CreateListing became the only route in SellStack, with no dashboard
-        // beneath it and nothing for goBack to pop. This keeps the stack's own
-        // initial route underneath, which is what makes the arrow work.
-        initial: false,
-        params: {
-          // So the form's back arrow returns here rather than to the
-          // seller dashboard the Sell tab opens on.
-          originName: rootRouteName(navigation),
-          categoryKey: "services",
-          trade: "electric",
-        },
-      },
+    navigation.navigate("CreateListing", {
+      categoryKey: "services",
+      trade: "electric",
     });
 
   const { remember } = useAccountGateIntent(user, openPostForm);

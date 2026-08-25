@@ -4882,6 +4882,7 @@ export function CreateListingScreen({ route, navigation }) {
                     {vehicleColors.map((option) => (
                       <ScrollChip
                         key={option.key}
+                        basis="30%"
                         selected={color === option.key}
                         onPress={() =>
                           setColor(color === option.key ? null : option.key)
@@ -5787,7 +5788,7 @@ const TradeChip = styled(Pressable)`
   gap: 6px;
   min-height: 40px;
   padding: 0px 13px;
-  border-radius: ${radius.pill}px;
+  border-radius: ${radius.lg}px;
   background-color: ${(props) =>
     props.selected ? props.theme.primary : props.theme.surfaceAlt};
   border-width: 1px;
@@ -5860,10 +5861,10 @@ const SizePill = styled(Pressable)`
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
+  min-height: 44px;
   gap: 6px;
-  padding: 8px 12px;
-  border-radius: ${radius.pill}px;
+  padding: 9px 14px;
+  border-radius: ${radius.lg}px;
   background-color: ${(props) => props.theme.surfaceAlt};
 `;
 
@@ -5909,7 +5910,7 @@ const PickerGrid = styled.View`
 const PickerCard = styled(Pressable)`
   flex-grow: 1;
   flex-basis: ${(props) => props.width ?? "47.5%"};
-  min-height: 52px;
+  min-height: 56px;
   flex-direction: row;
   align-items: center;
   justify-content: ${(props) => (props.full ? "center" : "flex-start")};
@@ -6060,12 +6061,17 @@ const ChipWrap = styled.View`
 // difference is what left a hole at the end of every row.
 const ScrollChip = styled(Pressable)`
   flex-grow: 1;
-  flex-basis: auto;
+  flex-basis: ${(props) => props.basis ?? "auto"};
+  /* A row. Without this React Native's default column stacked the colour
+     swatch ON TOP of its label, which is the shape that looked wrong — the
+     chip was never meant to be two lines tall. */
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
-  padding: 9px 15px;
-  border-radius: ${radius.pill}px;
+  gap: 8px;
+  min-height: 46px;
+  padding: 11px 16px;
+  border-radius: ${radius.lg}px;
   background-color: ${(props) => (props.selected ? EMERALD : props.theme.surface)};
   border-width: 1px;
   border-color: ${(props) => (props.selected ? EMERALD : props.theme.border)};
@@ -6473,10 +6479,9 @@ const LocationErrorText = styled.Text`
 `;
 
 const ColorSwatch = styled.View`
-  width: 14px;
-  height: 14px;
-  border-radius: 7px;
-  margin-right: 7px;
+  width: 18px;
+  height: 18px;
+  border-radius: 9px;
   background-color: ${(props) => props.tone};
   border-width: 1px;
   border-color: rgba(0, 0, 0, 0.14);
@@ -6500,7 +6505,7 @@ const FeatureChip = styled(Pressable)`
   gap: 7px;
   padding: 10px 14px;
   min-height: 40px;
-  border-radius: ${radius.pill}px;
+  border-radius: ${radius.lg}px;
   background-color: ${(props) =>
     props.selected ? props.theme.primary : props.theme.surface};
   border-width: 1px;

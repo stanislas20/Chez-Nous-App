@@ -103,7 +103,10 @@ export const carServicesPrimary = [
   // stocks and whether that stock is new or from a casse.
   { key: "parts", icon: "cog-outline", route: "Parts" },
   { key: "wash", icon: "water-outline", route: "CarWash" },
-  { key: "parking", icon: "location-outline", route: "CarParks" },
+  // Not parking. A "parc auto" here is a roadside lot where used cars are
+  // sold — the Sèkandji and Ekpè market — and the tile said Parking, which
+  // in both languages means somewhere to leave your own car instead.
+  { key: "carParks", icon: "location-outline", route: "CarParks" },
   {
     key: "documents",
     icon: "document-text-outline",

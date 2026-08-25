@@ -967,9 +967,17 @@ export function CreateListingScreen({ route, navigation }) {
 
   // A chauffeur is not a dépanneur, so the roadside pair is dropped for
   // them — unless their own words say they do both, which some do.
+  // Neither a chauffeur nor a parts shop is dispatched to a breakdown, so
+  // "sous quel délai intervenez-vous" and "que pouvez-vous apporter" — a
+  // booster, a compressor, a jack — are asked of the wrong trades. Unless
+  // their own words say they also do roadside work, which some do.
   const showRoadsideFields =
-    !mentionsDriver ||
+    (!mentionsDriver && !mentionsParts) ||
     matchesGarageSpecialty(`${title} ${description}`, "depan");
+
+  // Hidden rather than optional: an unanswerable question left on the page
+  // reads as one more thing the seller has failed to fill in.
+  const showRateField = !mentionsParts;
 
   const tyreSizeValid = isValidTyreSize(tyreWidth, tyreRatio, tyreDiameter);
 
@@ -1260,7 +1268,11 @@ export function CreateListingScreen({ route, navigation }) {
         return;
       }
     } else if (isServices) {
-      if (!serviceRateType) {
+      // A rate is how a service is charged: by the hour, at a fixed price,
+      // on a quote. A parts shop has none of those — every part has its own
+      // price — so requiring one made the form unfinishable for the trade it
+      // was asking. Everything else here still applies to them.
+      if (!serviceRateType && !mentionsParts) {
         Alert.alert(t("sellFormTitle"), t("errorRequiredFields"));
         return;
       }
@@ -3645,83 +3657,105 @@ export function CreateListingScreen({ route, navigation }) {
             </>
           ) : isServices ? (
             <>
-              <Label>{t("sellFieldServiceRate")}</Label>
-              <PickerGrid>
-                {serviceRateTypes.map((option, index) => {
-                  const active = serviceRateType === option.key;
-                  return (
-                    <PickerCard
-                      key={option.key}
-                      width={getPickerCardWidth(index, serviceRateTypes.length)}
-                      full={isPickerCardFull(index, serviceRateTypes.length)}
-                      selected={active}
-                      accent={option.color}
-                      tint={sectorTint(option.color, 0.09)}
-                      onPress={() =>
-                        setServiceRateType(active ? null : option.key)
-                      }
-                    >
-                      <CategoryIconWrap
-                        small
-                        tint={sectorTint(option.color, active ? 0.22 : 0.12)}
-                      >
-                        <Ionicons
-                          name={option.icon}
-                          size={17}
-                          color={option.color}
-                        />
-                      </CategoryIconWrap>
-                      <PickerCardLabel
-                        full={isPickerCardFull(index, serviceRateTypes.length)}
-                        selected={active}
-                        numberOfLines={2}
-                      >
-                        {getServiceRateLabel(option.key, language)}
-                      </PickerCardLabel>
-                    </PickerCard>
-                  );
-                })}
-              </PickerGrid>
+              {showRateField ? (
+                <>
+                  <Label>{t("sellFieldServiceRate")}</Label>
+                  <PickerGrid>
+                    {serviceRateTypes.map((option, index) => {
+                      const active = serviceRateType === option.key;
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            serviceRateTypes.length,
+                          )}
+                          full={isPickerCardFull(
+                            index,
+                            serviceRateTypes.length,
+                          )}
+                          selected={active}
+                          accent={option.color}
+                          tint={sectorTint(option.color, 0.09)}
+                          onPress={() =>
+                            setServiceRateType(active ? null : option.key)
+                          }
+                        >
+                          <CategoryIconWrap
+                            small
+                            tint={sectorTint(
+                              option.color,
+                              active ? 0.22 : 0.12,
+                            )}
+                          >
+                            <Ionicons
+                              name={option.icon}
+                              size={17}
+                              color={option.color}
+                            />
+                          </CategoryIconWrap>
+                          <PickerCardLabel
+                            full={isPickerCardFull(
+                              index,
+                              serviceRateTypes.length,
+                            )}
+                            selected={active}
+                            numberOfLines={2}
+                          >
+                            {getServiceRateLabel(option.key, language)}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
 
-              {/* Only asked for once a rate is chosen, and never for "sur
+                  {/* Only asked for once a rate is chosen, and never for "sur
                   devis" — the whole point of that option is that there is no
                   number yet. */}
-              {serviceRateNeedsAmount(serviceRateType) ? (
-                <>
-                  <Label>{t("sellFieldServiceAmount")}</Label>
-                  <MoneyFieldRow>
-                    <Ionicons
-                      name="cash-outline"
-                      size={20}
-                      color={colors.textMuted}
-                    />
-                    <Input
-                      value={price}
-                      onChangeText={setPrice}
-                      placeholder={t("sellFieldPricePlaceholder")}
-                      placeholderTextColor={colors.textMuted}
-                      keyboardType="numeric"
-                    />
-                    <CurrencyTag>
-                      <CurrencyTagLabel>
-                        {t(`sellRateSuffix_${serviceRateType}`)}
-                      </CurrencyTagLabel>
-                    </CurrencyTag>
-                  </MoneyFieldRow>
-                  {priceEcho ? <PriceEcho>{priceEcho}</PriceEcho> : null}
-                  <NegotiableRow onPress={() => setNegotiable((prev) => !prev)}>
-                    <Checkbox checked={negotiable}>
-                      {negotiable ? (
-                        <Ionicons name="checkmark" size={13} color="#ffffff" />
-                      ) : null}
-                    </Checkbox>
-                    <NegotiableLabel>
-                      {t("sellFieldNegotiable")}
-                    </NegotiableLabel>
-                  </NegotiableRow>
+                  {serviceRateNeedsAmount(serviceRateType) ? (
+                    <>
+                      <Label>{t("sellFieldServiceAmount")}</Label>
+                      <MoneyFieldRow>
+                        <Ionicons
+                          name="cash-outline"
+                          size={20}
+                          color={colors.textMuted}
+                        />
+                        <Input
+                          value={price}
+                          onChangeText={setPrice}
+                          placeholder={t("sellFieldPricePlaceholder")}
+                          placeholderTextColor={colors.textMuted}
+                          keyboardType="numeric"
+                        />
+                        <CurrencyTag>
+                          <CurrencyTagLabel>
+                            {t(`sellRateSuffix_${serviceRateType}`)}
+                          </CurrencyTagLabel>
+                        </CurrencyTag>
+                      </MoneyFieldRow>
+                      {priceEcho ? <PriceEcho>{priceEcho}</PriceEcho> : null}
+                      <NegotiableRow
+                        onPress={() => setNegotiable((prev) => !prev)}
+                      >
+                        <Checkbox checked={negotiable}>
+                          {negotiable ? (
+                            <Ionicons
+                              name="checkmark"
+                              size={13}
+                              color="#ffffff"
+                            />
+                          ) : null}
+                        </Checkbox>
+                        <NegotiableLabel>
+                          {t("sellFieldNegotiable")}
+                        </NegotiableLabel>
+                      </NegotiableRow>
+                    </>
+                  ) : serviceRateType ? (
+                    <FieldNote>{t("sellServiceQuoteHint")}</FieldNote>
+                  ) : null}
                 </>
-              ) : serviceRateType ? (
-                <FieldNote>{t("sellServiceQuoteHint")}</FieldNote>
               ) : null}
 
               {/* Optional, and asked of most services rather than gated on

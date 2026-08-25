@@ -499,7 +499,10 @@ export function DriversScreen({ navigation }) {
           onPress={() =>
             navigation.navigate("MainTabs", {
               screen: "ForYou",
-              params: { chip: "jobs" },
+              // Transport, not every field: this link exists to answer
+              // "where are the driving jobs", and landing on all seventeen
+              // would be the same as not filtering at all.
+              params: { chip: "jobs", jobCategory: "transport" },
             })
           }
         >

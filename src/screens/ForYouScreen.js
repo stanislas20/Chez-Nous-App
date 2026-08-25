@@ -823,14 +823,23 @@ export function ForYouScreen({ navigation, route }) {
   // its own bottom tab — navigation.navigate('MainTabs', { screen: 'ForYou',
   // params: { chip: 'jobs' } }). Clears the param right after applying it so
   // navigating away and back later doesn't keep re-forcing the jobs chip.
+  const [selectedJobCategory, setSelectedJobCategory] = useState(null);
+
   useFocusEffect(
     useCallback(() => {
       if (route?.params?.chip) {
         setSelectedChipKey(route.params.chip);
         navigation.setParams({ chip: undefined });
       }
+      // A field to land on, so a link can open the jobs view already narrowed
+      // — Chauffeurs sends people here for Transport work, and dropping them
+      // into all seventeen fields would undo the point of the link.
+      if (route?.params?.jobCategory) {
+        setSelectedJobCategory(route.params.jobCategory);
+        navigation.setParams({ jobCategory: undefined });
+      }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [route?.params?.chip]),
+    }, [route?.params?.chip, route?.params?.jobCategory]),
   );
 
   const [manualNearCity, setManualNearCity] = useState(null);
@@ -847,7 +856,6 @@ export function ForYouScreen({ navigation, route }) {
   // A separate axis from the chips above: those narrow by shape of work
   // (full-time, gig, no experience), this narrows by field. Tapping the
   // selected card again clears it.
-  const [selectedJobCategory, setSelectedJobCategory] = useState(null);
   const [jobCity, setJobCity] = useState(null);
   const [jobCitySearch, setJobCitySearch] = useState("");
   const [jobCitySheetOpen, setJobCitySheetOpen] = useState(false);

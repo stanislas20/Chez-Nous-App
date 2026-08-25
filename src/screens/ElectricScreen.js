@@ -7,7 +7,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
-import { radius, spacing } from "../theme/colors";
+import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
@@ -268,9 +268,13 @@ export function ElectricScreen({ navigation }) {
             </WireRow>
           </SparkArt>
         </HeroRow>
+      </Hero>
 
-        {/* Cars and motorbikes do not share a fault list, and in Cotonou the
-            second is not a minority case. */}
+      {/* Cars and motorbikes do not share a fault list, and in Cotonou the
+          second is not a minority case. The choice sits astride the banner's
+          edge because it governs every symptom, trade and provider below
+          it. */}
+      <ScopeDock>
         <ScopeRow>
           {electricScopes.map((option) => {
             const active = scope === option.key;
@@ -283,7 +287,7 @@ export function ElectricScreen({ navigation }) {
                 <Ionicons
                   name={option.icon}
                   size={15}
-                  color={active ? EMERALD : "rgba(255,255,255,0.8)"}
+                  color={active ? EMERALD : colors.textMuted}
                 />
                 <ScopeLabel active={active}>
                   {language === "en" ? option.labelEn : option.labelFr}
@@ -292,7 +296,7 @@ export function ElectricScreen({ navigation }) {
             );
           })}
         </ScopeRow>
-      </Hero>
+      </ScopeDock>
 
       <Scroll
         ref={scrollRef}
@@ -656,9 +660,14 @@ const Container = styled(SafeAreaView)`
   background-color: ${(props) => props.theme.background};
 `;
 
+// Curved at the base like every other header in the app, with room at the
+// bottom for the scope row that overlaps it: 54px, of which the card takes
+// back 30.
 const Hero = styled(LinearGradient)`
-  padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px
-    ${spacing.md}px;
+  overflow: hidden;
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
+  padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px 54px;
 `;
 
 const HeroTop = styled.View`
@@ -741,10 +750,23 @@ const Wire = styled.View`
   background-color: rgba(255, 255, 255, 0.28);
 `;
 
+// Pulled up over the banner's curve, so the banner reads as a surface with
+// something resting on it rather than a block with a gap beneath.
+const ScopeDock = styled.View`
+  z-index: 2;
+  margin-top: -30px;
+  padding: 0px ${spacing.md}px;
+`;
+
 const ScopeRow = styled.View`
   flex-direction: row;
-  gap: ${spacing.sm}px;
-  margin-top: ${spacing.md}px;
+  gap: 4px;
+  padding: 5px;
+  border-radius: ${radius.xl}px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+  ${shadow.card}
 `;
 
 const ScopeTab = styled(Pressable)`
@@ -753,19 +775,16 @@ const ScopeTab = styled(Pressable)`
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 40px;
-  border-radius: 14px;
+  min-height: 46px;
+  border-radius: ${radius.lg}px;
   background-color: ${(props) =>
-    props.active ? "#ffffff" : "rgba(255, 255, 255, 0.12)"};
-  border-width: 1px;
-  border-color: ${(props) =>
-    props.active ? "#ffffff" : "rgba(255, 255, 255, 0.2)"};
+    props.active ? props.theme.surfaceAlt : "transparent"};
 `;
 
 const ScopeLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 13px;
-  color: ${(props) => (props.active ? EMERALD : "rgba(255,255,255,0.85)")};
+  color: ${(props) => (props.active ? EMERALD : props.theme.textMuted)};
 `;
 
 const Scroll = styled.ScrollView`

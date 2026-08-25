@@ -12,7 +12,7 @@ const result = spawnSync(
     "firestore",
     "--project",
     "rules-probe",
-    "node scripts/rules-tests/moderation.test.js",
+    "node scripts/rules-tests/moderation.test.js && node scripts/rules-tests/rules.test.js",
   ],
   { stdio: "inherit", cwd: process.cwd() },
 );

@@ -153,10 +153,14 @@ export function CarWashScreen({ navigation }) {
 
         <HeroTitle>{t("washTitle")}</HeroTitle>
         <HeroCopy>{t("washIntro")}</HeroCopy>
+      </Hero>
 
-        {/* Where the work happens, first, because it removes two formulas
-            and changes who can serve you at all. */}
-        <ModeRow>
+      {/* Where the work happens, first, because it removes two formulas and
+          changes who can serve you at all. It sits astride the banner's edge
+          rather than inside it: one control on one card, instead of two pale
+          rectangles floating in a field of teal. */}
+      <ModeDock>
+        <ModeCard>
           {washModes.map((option) => {
             const active = mode === option.key;
             return (
@@ -168,21 +172,23 @@ export function CarWashScreen({ navigation }) {
                 <ModeIcon active={active}>
                   <Ionicons
                     name={option.icon}
-                    size={17}
-                    color={active ? TEAL : "rgba(255,255,255,0.65)"}
+                    size={16}
+                    color={active ? "#ffffff" : colors.textMuted}
                   />
                 </ModeIcon>
-                <ModeLabel active={active}>
-                  {language === "en" ? option.labelEn : option.labelFr}
-                </ModeLabel>
-                <ModeHint active={active}>
-                  {language === "en" ? option.hintEn : option.hintFr}
-                </ModeHint>
+                <ModeCol>
+                  <ModeLabel active={active} numberOfLines={1}>
+                    {language === "en" ? option.labelEn : option.labelFr}
+                  </ModeLabel>
+                  <ModeHint active={active} numberOfLines={1}>
+                    {language === "en" ? option.hintEn : option.hintFr}
+                  </ModeHint>
+                </ModeCol>
               </ModeTab>
             );
           })}
-        </ModeRow>
-      </Hero>
+        </ModeCard>
+      </ModeDock>
 
       <Scroll
         contentContainerStyle={{
@@ -473,10 +479,16 @@ const Container = styled(SafeAreaView)`
   background-color: ${(props) => props.theme.background};
 `;
 
+// Curved at the base, which is the shape every other header in the app
+// already has — ForYou, Local and the seller dashboard all end this way, and
+// a hard rectangle here was the odd one out. The extra bottom padding is
+// room for the selector that overlaps it: 54px of it, of which the card
+// takes back 30, leaving the copy a clear 24 above the card's top edge.
 const Hero = styled(LinearGradient)`
   overflow: hidden;
-  padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px
-    ${spacing.md}px;
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
+  padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px 54px;
 `;
 
 // One soft light source off the corner, larger than the banner so only its
@@ -528,47 +540,69 @@ const HeroCopy = styled.Text`
   line-height: 18px;
   max-width: 300px;
   color: rgba(255, 255, 255, 0.72);
-  margin-bottom: ${spacing.md}px;
 `;
 
-const ModeRow = styled.View`
+// Pulled up over the banner's curve. The negative margin is the whole
+// device: the card breaks the edge, so the banner reads as a surface with
+// something resting on it rather than a block with a gap underneath.
+const ModeDock = styled.View`
+  z-index: 2;
+  margin-top: -30px;
+  padding: 0px ${spacing.md}px;
+`;
+
+const ModeCard = styled.View`
   flex-direction: row;
-  gap: 10px;
+  gap: 4px;
+  padding: 5px;
+  border-radius: ${radius.xl}px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+  shadow-color: #062e3d;
+  shadow-offset: 0px 8px;
+  shadow-opacity: 0.18;
+  shadow-radius: 18px;
+  elevation: 8;
 `;
 
 const ModeTab = styled(Pressable)`
-  flex-grow: 1;
-  flex-basis: 45%;
-  padding: 13px 13px 14px;
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  min-height: 56px;
+  padding: 0px 10px;
   border-radius: ${radius.lg}px;
-  background-color: ${(props) =>
-    props.active ? "#ffffff" : "rgba(255,255,255,0.1)"};
-  border-width: 1px;
-  border-color: ${(props) =>
-    props.active ? "#ffffff" : "rgba(255,255,255,0.18)"};
-  gap: 8px;
+  background-color: ${(props) => (props.active ? TEAL : "transparent")};
 `;
 
 const ModeIcon = styled.View`
-  width: 38px;
-  height: 38px;
-  border-radius: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
   align-items: center;
   justify-content: center;
   background-color: ${(props) =>
-    props.active ? "rgba(14,110,140,0.1)" : "rgba(255,255,255,0.12)"};
+    props.active ? "rgba(255,255,255,0.2)" : props.theme.surfaceAlt};
+`;
+
+const ModeCol = styled.View`
+  flex: 1;
+  gap: 2px;
 `;
 
 const ModeLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
-  font-size: 13.5px;
-  color: ${(props) => (props.active ? "#1C1C1E" : "rgba(255,255,255,0.85)")};
+  font-size: 13px;
+  color: ${(props) => (props.active ? "#ffffff" : props.theme.text)};
 `;
 
 const ModeHint = styled.Text`
   font-family: ${fontFamily.regular};
   font-size: 10.5px;
-  color: ${(props) => (props.active ? TEAL : "rgba(255,255,255,0.6)")};
+  color: ${(props) =>
+    props.active ? "rgba(255,255,255,0.78)" : props.theme.textMuted};
 `;
 
 const Scroll = styled.ScrollView`

@@ -182,6 +182,12 @@ import {
   washVehicles,
 } from "../data/carWash";
 import {
+  formulasFor as insuranceFormulasFor,
+  insurancePriceKey,
+  insuranceVehicles,
+  isInsuranceListing,
+} from "../data/insurance";
+import {
   isPartsSellerListing,
   partCategories,
   partQualities,
@@ -263,6 +269,7 @@ const TRADE_HINT_KEYS = {
   bodywork: "sellTitleHint_bodywork",
   parts: "sellTitleHint_parts",
   driver: "sellTitleHint_driver",
+  insurance: "sellTitleHint_insurance",
 };
 
 // The car trades that have a screen of their own, offered inside the form
@@ -291,6 +298,11 @@ const SERVICE_TRADES = [
     icon: "battery-charging-outline",
     labelKey: "sellTradeBattery",
   },
+  {
+    key: "insurance",
+    icon: "shield-checkmark-outline",
+    labelKey: "sellTradeInsurance",
+  },
 ];
 
 // Under Services these two keys describe a workshop, not a product, so the
@@ -313,6 +325,7 @@ const TRADE_NOTE_KEYS = {
   parts: "sellTitleNote_parts",
   tyres: "sellTitleNote_garage",
   battery: "sellTitleNote_garage",
+  insurance: "sellTitleNote_insurance",
 };
 
 // The description example matters as much as the title one: "ce que vous
@@ -323,6 +336,7 @@ const TRADE_DESC_HINT_KEYS = {
   bodywork: "sellDescHint_bodywork",
   parts: "sellDescHint_parts",
   driver: "sellDescHint_driver",
+  insurance: "sellDescHint_insurance",
 };
 
 // Vehicles covers "cars, motorbikes, parts", and a part is not a car: asking
@@ -665,6 +679,21 @@ export function CreateListingScreen({ route, navigation }) {
     seed("washFormulas", []),
   );
   const [washPrices, setWashPrices] = useState(seed("washPrices", {}));
+  const [insuranceVehicleKeys, setInsuranceVehicleKeys] = useState(
+    seed("insuranceVehicles", []),
+  );
+  const [insuranceFormulaKeys, setInsuranceFormulaKeys] = useState(
+    seed("insuranceFormulas", []),
+  );
+  const [insurancePrices, setInsurancePrices] = useState(
+    seed("insurancePrices", {}),
+  );
+  const [insuranceDelivery, setInsuranceDelivery] = useState(
+    seed("insuranceDelivery", "") ?? "",
+  );
+  const [insuranceMobileMoney, setInsuranceMobileMoney] = useState(
+    seed("insuranceMobileMoney", false) === true,
+  );
   const [washHomeFee, setWashHomeFee] = useState(
     seed("washHomeFee", null) == null ? "" : String(seed("washHomeFee", "")),
   );
@@ -1023,6 +1052,55 @@ export function CreateListingScreen({ route, navigation }) {
     isServices &&
     (trade === "wash" || isWashListing(`${title} ${description}`));
 
+  // And for insurance agencies. Without this the Assurance screen reads
+  // insuranceVehicles / insuranceFormulas / insurancePrices off a listing
+  // that had no way to declare any of them — the filters would never match
+  // and no premium could ever appear.
+  const mentionsInsurance =
+    isServices &&
+    (trade === "insurance" || isInsuranceListing(`${title} ${description}`));
+
+  // Only the formulas that exist for the vehicles they cover: comprehensive
+  // is not written on two-wheelers, so an agency covering only motorbikes is
+  // never asked to price it.
+  const insuranceFormulaOptions = (() => {
+    const keys = insuranceVehicleKeys.length
+      ? insuranceVehicleKeys
+      : insuranceVehicles.map((item) => item.key);
+    const seen = new Set();
+    return keys
+      .flatMap((key) => insuranceFormulasFor(key))
+      .filter((formula) => {
+        if (seen.has(formula.key)) return false;
+        seen.add(formula.key);
+        return true;
+      });
+  })();
+
+  // One cell per combination they actually offer, all optional. An agency
+  // that prices nothing still appears on the screen — silence is not a
+  // refusal — it simply shows "prix sur demande".
+  const insurancePriceCells = insuranceFormulaKeys.flatMap((formula) =>
+    insuranceVehicleKeys.flatMap((vehicle) =>
+      insuranceFormulasFor(vehicle).some((item) => item.key === formula)
+        ? [
+            {
+              key: insurancePriceKey(formula, vehicle, 12),
+              label: `${
+                insuranceFormulaOptions.find((item) => item.key === formula)?.[
+                  language === "en" ? "labelEn" : "labelFr"
+                ] ?? formula
+              } · ${
+                insuranceVehicles.find((item) => item.key === vehicle)?.[
+                  language === "en" ? "labelEn" : "labelFr"
+                ] ?? vehicle
+              }`,
+            },
+          ]
+        : [],
+    ),
+  );
+
   // And once more for chauffeurs, using the same rule: their own words, or
   // the trade they arrived with.
   const mentionsDriver =
@@ -1035,8 +1113,12 @@ export function CreateListingScreen({ route, navigation }) {
   // "sous quel délai intervenez-vous" and "que pouvez-vous apporter" — a
   // booster, a compressor, a jack — are asked of the wrong trades. Unless
   // their own words say they also do roadside work, which some do.
+  //
+  // An insurance agency is the same case and was missed: it sells a policy
+  // over a counter and is never sent to a roadside, so it was being asked
+  // whether it carries a jerrycan.
   const showRoadsideFields =
-    (!mentionsDriver && !mentionsParts) ||
+    (!mentionsDriver && !mentionsParts && !mentionsInsurance) ||
     matchesGarageSpecialty(`${title} ${description}`, "depan");
 
   // Hidden rather than optional: an unanswerable question left on the page
@@ -1612,6 +1694,28 @@ export function CreateListingScreen({ route, navigation }) {
                     washEquipment: washEquipment.trim() || null,
                     washWaterSupply: washWaterSupply.trim() || null,
                     washByAppointment,
+                  }
+                : {}),
+              ...(mentionsInsurance
+                ? {
+                    insuranceVehicles: insuranceVehicleKeys,
+                    insuranceFormulas: insuranceFormulaKeys,
+                    // Only the cells they still offer, and only annual
+                    // premiums: the screen never scales a year into a
+                    // quarter, so a figure it cannot attribute to a term is
+                    // a figure it must not hold.
+                    insurancePrices: Object.fromEntries(
+                      insurancePriceCells
+                        .map((cell) => [
+                          cell.key,
+                          Number(insurancePrices[cell.key]),
+                        ])
+                        .filter(
+                          ([, value]) => Number.isFinite(value) && value > 0,
+                        ),
+                    ),
+                    insuranceDelivery: insuranceDelivery.trim() || null,
+                    insuranceMobileMoney,
                   }
                 : {}),
               ...(mentionsDriver
@@ -4258,6 +4362,139 @@ export function CreateListingScreen({ route, navigation }) {
                     </NegotiableLabel>
                   </NegotiableRow>
                   <FieldNote>{t("sellPartChecksFitHint")}</FieldNote>
+                </>
+              ) : null}
+
+              {mentionsInsurance ? (
+                <>
+                  <Label>{t("sellFieldInsuranceVehicles")}</Label>
+                  <FieldNote>{t("sellInsuranceVehiclesHint")}</FieldNote>
+                  <PickerGrid>
+                    {insuranceVehicles.map((option, index) => {
+                      const active = insuranceVehicleKeys.includes(option.key);
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            insuranceVehicles.length,
+                          )}
+                          full={isPickerCardFull(
+                            index,
+                            insuranceVehicles.length,
+                          )}
+                          selected={active}
+                          onPress={() =>
+                            setInsuranceVehicleKeys((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  <Label>{t("sellFieldInsuranceFormulas")}</Label>
+                  <FieldNote>{t("sellInsuranceFormulasHint")}</FieldNote>
+                  <PickerGrid>
+                    {insuranceFormulaOptions.map((option, index) => {
+                      const active = insuranceFormulaKeys.includes(option.key);
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            insuranceFormulaOptions.length,
+                          )}
+                          full={isPickerCardFull(
+                            index,
+                            insuranceFormulaOptions.length,
+                          )}
+                          selected={active}
+                          onPress={() =>
+                            setInsuranceFormulaKeys((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  {/* Annual premiums only, and every one optional. The
+                      screen shows "prix sur demande" where a cell is blank
+                      rather than inventing one, so leaving the grid empty
+                      costs an agency nothing. */}
+                  {insurancePriceCells.length ? (
+                    <>
+                      <Label>{t("sellFieldInsurancePrices")}</Label>
+                      <FieldNote>{t("sellInsurancePricesHint")}</FieldNote>
+                      {insurancePriceCells.map((cell) => (
+                        <MoneyFieldRow key={cell.key}>
+                          <OccasionPriceLabel numberOfLines={2}>
+                            {cell.label}
+                          </OccasionPriceLabel>
+                          <Input
+                            value={String(insurancePrices[cell.key] ?? "")}
+                            onChangeText={(value) =>
+                              setInsurancePrices((prev) => ({
+                                ...prev,
+                                [cell.key]: value.replace(/[^0-9]/g, ""),
+                              }))
+                            }
+                            keyboardType="number-pad"
+                            placeholder="0"
+                            placeholderTextColor={colors.textMuted}
+                          />
+                          <CurrencyTag>
+                            <CurrencyTagLabel>FCFA</CurrencyTagLabel>
+                          </CurrencyTag>
+                        </MoneyFieldRow>
+                      ))}
+                    </>
+                  ) : null}
+
+                  {/* When the attestation is actually in the buyer's hand
+                      is worth as much as the premium — an agency that is
+                      cheaper and takes a week is not cheaper to somebody
+                      whose cover lapses on Friday. */}
+                  <Label>{t("sellFieldInsuranceDelivery")}</Label>
+                  <FieldNote>{t("sellInsuranceDeliveryHint")}</FieldNote>
+                  <Input
+                    value={insuranceDelivery}
+                    onChangeText={setInsuranceDelivery}
+                    placeholder={t("sellInsuranceDeliveryPlaceholder")}
+                    placeholderTextColor={colors.textMuted}
+                  />
+
+                  <NegotiableRow
+                    onPress={() => setInsuranceMobileMoney((prev) => !prev)}
+                  >
+                    <Checkbox checked={insuranceMobileMoney}>
+                      {insuranceMobileMoney ? (
+                        <Ionicons name="checkmark" size={13} color="#ffffff" />
+                      ) : null}
+                    </Checkbox>
+                    <NegotiableLabel>
+                      {t("sellFieldInsuranceMomo")}
+                    </NegotiableLabel>
+                  </NegotiableRow>
                 </>
               ) : null}
 

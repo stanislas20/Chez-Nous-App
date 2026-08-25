@@ -1132,6 +1132,26 @@ export const translations = {
     sellTradeBodywork: "Bodywork",
     sellTradeElectric: "Auto electrics",
     sellTradeTyres: "Tyre fitting",
+    sellTradeInsurance: "Insurance agency",
+    sellTitleHint_insurance: "e.g. Motor insurance — all companies",
+    sellTitleNote_insurance:
+      "Say “assurance auto” in the title or the description. That is how the Insurance screen finds you, and it is what keeps a health mutuelle off it.",
+    sellDescHint_insurance:
+      "Which companies you represent, how fast the certificate is issued, and whether you handle claims yourself.",
+    sellFieldInsuranceVehicles: "Which vehicles do you cover?",
+    sellInsuranceVehiclesHint:
+      "Only what you actually write. A buyer filtering for a taxi should not reach you if you do not cover passenger transport.",
+    sellFieldInsuranceFormulas: "Which cover do you write?",
+    sellInsuranceFormulasHint:
+      "Comprehensive is only offered where insurers write it — it does not appear for two-wheelers.",
+    sellFieldInsurancePrices: "Annual premium (optional)",
+    sellInsurancePricesHint:
+      "Twelve months, per vehicle and cover. Leave any of them blank and your card says “price on asking” — nothing is estimated for you.",
+    sellFieldInsuranceDelivery: "When is the certificate issued?",
+    sellInsuranceDeliveryHint:
+      "This decides as much as the price. Somebody whose cover lapses on Friday cannot use an agency that takes a week.",
+    sellInsuranceDeliveryPlaceholder: "e.g. Same day, over the counter",
+    sellFieldInsuranceMomo: "I accept Mobile Money",
     sellTradeBattery: "Battery",
     sellTradeOther: "None of these",
     sellTitleHint_tyreShop: "e.g. Pneus Ganhi — fitting, balancing, alignment",
@@ -3413,6 +3433,26 @@ export const translations = {
     sellTradeBodywork: "Carrosserie",
     sellTradeElectric: "Électricité auto",
     sellTradeTyres: "Montage de pneus",
+    sellTradeInsurance: "Agence d’assurance",
+    sellTitleHint_insurance: "ex. Assurance auto — toutes compagnies",
+    sellTitleNote_insurance:
+      "Écrivez « assurance auto » dans le titre ou la description. C’est ainsi que l’écran Assurance vous trouve, et c’est ce qui en écarte les mutuelles de santé.",
+    sellDescHint_insurance:
+      "Les compagnies que vous représentez, le délai de délivrance de l’attestation, et si vous gérez vous-même les sinistres.",
+    sellFieldInsuranceVehicles: "Quels véhicules assurez-vous ?",
+    sellInsuranceVehiclesHint:
+      "Uniquement ce que vous souscrivez réellement. Quelqu’un qui filtre sur taxi ne doit pas vous trouver si vous ne couvrez pas le transport de personnes.",
+    sellFieldInsuranceFormulas: "Quelles formules proposez-vous ?",
+    sellInsuranceFormulasHint:
+      "Le tous risques n’apparaît que là où les assureurs le souscrivent — il ne s’affiche pas pour les deux-roues.",
+    sellFieldInsurancePrices: "Prime annuelle (facultatif)",
+    sellInsurancePricesHint:
+      "Douze mois, par véhicule et par formule. Laissez une case vide et votre fiche indique « prix sur demande » : rien n’est estimé à votre place.",
+    sellFieldInsuranceDelivery: "Quand l’attestation est-elle délivrée ?",
+    sellInsuranceDeliveryHint:
+      "Cela compte autant que le prix. Quelqu’un dont l’attestation expire vendredi ne peut pas attendre une semaine.",
+    sellInsuranceDeliveryPlaceholder: "ex. Le jour même, au guichet",
+    sellFieldInsuranceMomo: "J’accepte le Mobile Money",
     sellTradeBattery: "Batterie",
     sellTradeOther: "Aucun de ceux-ci",
     sellTitleHint_tyreShop: "ex. Pneus Ganhi — montage, équilibrage, géométrie",

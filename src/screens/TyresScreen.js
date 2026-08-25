@@ -17,7 +17,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
-import { radius, spacing } from "../theme/colors";
+import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
@@ -456,14 +456,10 @@ export function TyresScreen({ navigation }) {
           ) : null}
         </Hero>
 
-        <Scroll
-          contentContainerStyle={{
-            padding: spacing.md,
-            paddingBottom: insets.bottom + spacing.xl,
-          }}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-        >
+        {/* Buying, a service or a puncture are three different errands, and
+            the choice sits astride the banner's edge rather than scrolling
+            away with the content it governs. */}
+        <ModeDock>
           <ModeRow>
             {tyreModes.map((option) => {
               const active = mode === option.key;
@@ -483,7 +479,16 @@ export function TyresScreen({ navigation }) {
               );
             })}
           </ModeRow>
+        </ModeDock>
 
+        <Scroll
+          contentContainerStyle={{
+            padding: spacing.md,
+            paddingBottom: insets.bottom + spacing.xl,
+          }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
           {mode === "buy" ? (
             <>
               <VehicleLink onPress={() => setVehicleOpen(true)}>
@@ -1393,9 +1398,14 @@ const Container = styled(SafeAreaView)`
   background-color: ${(props) => props.theme.background};
 `;
 
+// Curved at the base like every other header in the app, with room at the
+// bottom for the mode row that overlaps it: 54px, of which the card takes
+// back 30.
 const Hero = styled(LinearGradient)`
-  padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px
-    ${spacing.lg}px;
+  overflow: hidden;
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
+  padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px 54px;
 `;
 
 const HeroTop = styled.View`
@@ -1489,22 +1499,34 @@ const Scroll = styled.ScrollView`
   flex: 1;
 `;
 
+// Pulled up over the banner's curve, so the banner reads as a surface with
+// something resting on it rather than a block with a gap beneath.
+const ModeDock = styled.View`
+  z-index: 2;
+  margin-top: -30px;
+  padding: 0px ${spacing.md}px;
+`;
+
 const ModeRow = styled.View`
   flex-direction: row;
   gap: 4px;
-  padding: 4px;
-  border-radius: 20px;
-  background-color: ${(props) => props.theme.surfaceAlt};
-  margin-bottom: ${spacing.md}px;
+  padding: 5px;
+  border-radius: ${radius.xl}px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+  ${shadow.card}
 `;
 
 const ModeTab = styled(Pressable)`
   flex: 1;
   align-items: center;
-  padding: 10px 6px 11px;
-  border-radius: 16px;
+  justify-content: center;
+  min-height: 52px;
+  padding: 8px 6px;
+  border-radius: ${radius.lg}px;
   background-color: ${(props) =>
-    props.active ? props.theme.surface : "transparent"};
+    props.active ? props.theme.surfaceAlt : "transparent"};
 `;
 
 const ModeLabel = styled.Text`

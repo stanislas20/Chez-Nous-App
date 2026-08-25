@@ -23,12 +23,15 @@ function savePushToken(uid, token) {
   );
 }
 
-// Requests notification permission and stores the device's push token on the
-// seller's profile so the sendMessagePush Cloud Function can reach them.
-// Returns an unsubscribe for the token-refresh listener, or undefined if
-// permission was denied.
-export async function registerPushToken(uid) {
-  if (!uid) return undefined;
+// Asks for permission and stores a token, answering the one question a
+// caller actually has: can this device be reached at all?
+//
+// Anything that offers to notify somebody later has to know this before it
+// makes the offer. The papers screen learned that the hard way — its
+// reminder switch was on for an account that had never granted permission,
+// so it promised notifications that nothing could deliver.
+export async function ensurePushToken(uid) {
+  if (!uid) return false;
 
   if (Platform.OS === "android" && Platform.Version >= 33) {
     await PermissionsAndroid.request(
@@ -41,12 +44,30 @@ export async function registerPushToken(uid) {
   const enabled =
     authStatus === AuthorizationStatus.AUTHORIZED ||
     authStatus === AuthorizationStatus.PROVISIONAL;
-  if (!enabled) return undefined;
+  if (!enabled) return false;
 
-  const token = await getToken(messaging);
-  await savePushToken(uid, token);
+  try {
+    const token = await getToken(messaging);
+    if (!token) return false;
+    await savePushToken(uid, token);
+    return true;
+  } catch {
+    // No token means no delivery, and the caller must be told so rather
+    // than left to assume it worked.
+    return false;
+  }
+}
 
-  return onTokenRefresh(messaging, (nextToken) =>
+// Requests notification permission and stores the device's push token on the
+// seller's profile so the sendMessagePush Cloud Function can reach them.
+// Returns an unsubscribe for the token-refresh listener, or undefined if
+// permission was denied.
+export async function registerPushToken(uid) {
+  if (!uid) return undefined;
+  const ok = await ensurePushToken(uid);
+  if (!ok) return undefined;
+
+  return onTokenRefresh(getMessaging(getApp()), (nextToken) =>
     savePushToken(uid, nextToken),
   );
 }

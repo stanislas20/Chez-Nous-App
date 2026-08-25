@@ -38,14 +38,19 @@ const admin = require("firebase-admin");
 // Bénin — the one thing this function does need — is exact arithmetic.
 const BENIN_OFFSET_MS = 3600000;
 
-// The three points at which telling somebody is still useful.
+// The four points at which telling somebody is still useful.
 //
 // Thirty days is enough to arrange an insurance renewal or book a test
 // without rearranging a week. Seven is the reminder that catches the person
 // who read the first one and meant to deal with it. One is the last moment
-// it can be acted on at all. A fourth would train people to ignore all of
-// them — the failure mode of every reminder system that fires too often.
-const LEAD_DAYS = [30, 7, 1];
+// it can be acted on in advance. Zero is the day itself — the reminder
+// system would otherwise go quiet on exactly the morning the document stops
+// covering them, which is the one day it must not.
+//
+// Nothing is sent after that. A reminder about a date that has passed is a
+// reproach, not a reminder, and repeating it is how people learn to swipe
+// the whole app away.
+const LEAD_DAYS = [30, 7, 1, 0];
 
 // The renewable papers, mirrored from src/data/vehiclePapers.js.
 //
@@ -109,17 +114,21 @@ function buildMessage(kind, days, isoDate, language) {
   if (language === "en") {
     return {
       title:
-        days === 1
-          ? `${name} expires tomorrow`
-          : `${name} expires in ${days} days`,
+        days === 0
+          ? `${name} expires today`
+          : days === 1
+            ? `${name} expires tomorrow`
+            : `${name} expires in ${days} days`,
       body: `You recorded ${date} in Papers & test. If you have already renewed it, open the screen and correct the date.`,
     };
   }
   return {
     title:
-      days === 1
-        ? `${name} expire demain`
-        : `${name} expire dans ${days} jours`,
+      days === 0
+        ? `${name} expire aujourd’hui`
+        : days === 1
+          ? `${name} expire demain`
+          : `${name} expire dans ${days} jours`,
     body: `Vous avez enregistré le ${date} dans Papiers & contrôle. Si c’est déjà renouvelé, ouvrez l’écran et corrigez la date.`,
   };
 }
@@ -141,11 +150,20 @@ async function sendReminders(now) {
 
   let sent = 0;
   let watched = 0;
+  let unreachable = 0;
 
   for (const docSnap of snapshot.docs) {
     const seller = docSnap.data();
     const dates = seller.paperDates;
     const token = seller.pushToken;
+    // Reminders on, dates stored, and nowhere to send them. The client
+    // refuses to reach this state now, but an account can still arrive here
+    // by revoking notification permission afterwards — and the failure is
+    // silent from the reader's side, so it must not be silent from ours.
+    if (dates && !token) {
+      unreachable += 1;
+      logger.warn("paper reminders: no push token", { uid: docSnap.id });
+    }
     if (!dates || !token) continue;
 
     const language = seller.paperLanguage === "en" ? "en" : "fr";
@@ -202,8 +220,9 @@ async function sendReminders(now) {
     accounts: snapshot.size,
     watched,
     sent,
+    unreachable,
   });
-  return { accounts: snapshot.size, watched, sent };
+  return { accounts: snapshot.size, watched, sent, unreachable };
 }
 
 // Eight in the morning, local. Late enough not to wake anybody, early enough

@@ -1495,11 +1495,15 @@ export const translations = {
     papersRemindOffCopy:
       "Off. This screen counts the days when you open it, and does nothing when you don’t.",
     papersRemindOnCopy:
-      "On. We will send you a notification 30, 7 and 1 day before each date you have entered.",
+      "On. You will get a notification 30 days, 7 days and 1 day before each date, and again on the day itself. An ordinary notification — it does not ring.",
     papersRemindSignedOut:
       "Sign in to turn this on. A reminder has to be sent to an account, and you don’t have one open.",
+    papersRemindAsking: "Checking this phone can receive notifications…",
+    papersRemindBlockedTitle: "Notifications are switched off",
+    papersRemindBlocked:
+      "This phone is not allowing Chez-Nous to send notifications, so a reminder would never arrive. Turn them on for Chez-Nous in your phone's settings, then try again.",
     papersRemindNoDates:
-      "Add a date above first. There is nothing to remind you about yet.",
+      "Add a date first — tap here and we will start with one. There is nothing to remind you about yet.",
     papersNoAlertsNote:
       "Only the dates you type here are watched. Chez-Nous cannot see your actual documents, so it can be wrong about anything except the date you gave it.",
     papersPrivacyNote:
@@ -3741,11 +3745,16 @@ export const translations = {
     papersRemindOffCopy:
       "Désactivé. Cet écran compte les jours quand vous l’ouvrez, et ne fait rien quand vous ne l’ouvrez pas.",
     papersRemindOnCopy:
-      "Activé. Nous vous enverrons une notification 30 jours, 7 jours et 1 jour avant chaque date saisie.",
+      "Activé. Vous recevrez une notification 30 jours, 7 jours et 1 jour avant chaque date, puis le jour même. Une notification ordinaire — elle ne sonne pas.",
     papersRemindSignedOut:
       "Connectez-vous pour activer les rappels. Un rappel doit être envoyé à un compte, et aucun n’est ouvert.",
+    papersRemindAsking:
+      "Vérification que ce téléphone peut recevoir des notifications…",
+    papersRemindBlockedTitle: "Les notifications sont désactivées",
+    papersRemindBlocked:
+      "Ce téléphone n’autorise pas Chez-Nous à envoyer des notifications : un rappel n’arriverait jamais. Activez-les pour Chez-Nous dans les réglages du téléphone, puis réessayez.",
     papersRemindNoDates:
-      "Saisissez d’abord une date ci-dessus. Il n’y a encore rien à vous rappeler.",
+      "Saisissez d’abord une date — touchez ici, nous commençons par une. Il n’y a encore rien à vous rappeler.",
     papersNoAlertsNote:
       "Seules les dates que vous saisissez ici sont surveillées. Chez-Nous ne voit pas vos documents : l’application ne peut se tromper que si la date que vous lui avez donnée est fausse.",
     papersPrivacyNote:

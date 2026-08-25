@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -21,6 +22,7 @@ import { useAuth } from "../auth/AuthContext";
 import { doc, setDoc } from "firebase/firestore";
 import { firestore } from "../config/firebase";
 import { useVehiclePapers } from "../hooks/useVehiclePapers";
+import { ensurePushToken } from "../notifications/pushToken";
 import {
   countNeedingAttention,
   getPaperLabel,
@@ -35,6 +37,10 @@ import {
 // go out and find; this one is a drawer of documents, and it should not feel
 // like shopping.
 const NAVY = "#1F3A5F";
+// The same navy is unreadable as a filled control on a dark surface — it is
+// barely lighter than the card it sits on. The switch gets a raised version
+// so that "on" is legible in both themes.
+const NAVY_LIT = "#4E7FB8";
 const EMERALD = "#0B6E4F";
 const GOLD = "#D9A441";
 const TERRACOTTA = "#C1512D";
@@ -76,7 +82,7 @@ function calendarDate(iso) {
 }
 
 export function PapersScreen({ navigation }) {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const { t, language } = useI18n();
   const insets = useSafeAreaInsets();
 
@@ -84,6 +90,7 @@ export function PapersScreen({ navigation }) {
   const { papers, loaded, remember, rememberVehicle } = useVehiclePapers();
   const [vehicleOpen, setVehicleOpen] = useState(false);
   const [vehicleDraft, setVehicleDraft] = useState("");
+  const [asking, setAsking] = useState(false);
   const [tab, setTab] = useState("papers");
   const [openProcedure, setOpenProcedure] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -181,16 +188,41 @@ export function PapersScreen({ navigation }) {
   }, [loaded, user, remindersOn, wire, syncReminders]);
 
   const toggleReminders = () => {
-    if (!canRemind) return;
+    // A switch that cannot move must still answer the finger. Doing nothing
+    // at all is indistinguishable from being broken — which is exactly how
+    // it read on a handset with no dates on it — so the tap goes to the
+    // thing standing in the way instead: the first paper with no date.
+    if (!canRemind) {
+      if (!user) return;
+      const blank = entries.find(
+        (entry) => entry.kind.renewable && !entry.value,
+      );
+      if (blank) openEditor(blank);
+      return;
+    }
     if (remindersOn) {
       remember("reminders", null);
       sent.current = null;
       syncReminders(false);
       return;
     }
-    // On is left to the effect above, which is the only place that decides
-    // what the server holds.
-    remember("reminders", true);
+    // A reminder needs somewhere to arrive. Asking here rather than
+    // assuming is the difference between a switch that works and one that
+    // sits on for an account the server can never reach — which is what
+    // happened before this check existed.
+    setAsking(true);
+    ensurePushToken(user.uid)
+      .then((reachable) => {
+        setAsking(false);
+        if (reachable) {
+          // On is left to the effect above, which is the only place that
+          // decides what the server holds.
+          remember("reminders", true);
+          return;
+        }
+        Alert.alert(t("papersRemindBlockedTitle"), t("papersRemindBlocked"));
+      })
+      .catch(() => setAsking(false));
   };
 
   // Deleting the last date silently ends the reminders, so the stored choice
@@ -425,21 +457,27 @@ export function PapersScreen({ navigation }) {
             {/* A real switch, wired to a real reminder. It is off by
                 default and it says what it costs: the dates leave the phone
                 so that something on a server can watch the calendar. */}
-            <ToggleRow onPress={toggleReminders} disabled={!canRemind}>
+            <ToggleRow onPress={toggleReminders} disabled={!user}>
               <ToggleCol>
                 <ToggleTitle>{t("papersRemindTitle")}</ToggleTitle>
                 <ToggleCopy>
-                  {!user
-                    ? t("papersRemindSignedOut")
-                    : !hasExpiries
-                      ? t("papersRemindNoDates")
-                      : remindersOn
-                        ? t("papersRemindOnCopy")
-                        : t("papersRemindOffCopy")}
+                  {asking
+                    ? t("papersRemindAsking")
+                    : !user
+                      ? t("papersRemindSignedOut")
+                      : !hasExpiries
+                        ? t("papersRemindNoDates")
+                        : remindersOn
+                          ? t("papersRemindOnCopy")
+                          : t("papersRemindOffCopy")}
                 </ToggleCopy>
               </ToggleCol>
-              <Track on={remindersOn} disabled={!canRemind}>
-                <Knob on={remindersOn} />
+              <Track
+                on={remindersOn}
+                dark={scheme === "dark"}
+                disabled={!canRemind}
+              >
+                <Knob on={remindersOn} disabled={!canRemind} />
               </Track>
             </ToggleRow>
 
@@ -942,14 +980,21 @@ const Track = styled.View`
   padding: 3px;
   flex-direction: row;
   justify-content: ${(props) => (props.on ? "flex-end" : "flex-start")};
-  background-color: ${(props) => (props.on ? NAVY : props.theme.border)};
+  background-color: ${(props) =>
+    props.on ? (props.dark ? NAVY_LIT : NAVY) : props.theme.border};
+  /* Off and unusable are different states and have to look different, or a
+     switch that cannot move reads as a switch that is broken. */
+  border-width: ${(props) => (props.disabled ? 1 : 0)}px;
+  border-color: ${(props) => props.theme.border};
+  opacity: ${(props) => (props.disabled ? 0.55 : 1)};
 `;
 
 const Knob = styled.View`
   width: 22px;
   height: 22px;
   border-radius: 11px;
-  background-color: #ffffff;
+  background-color: ${(props) =>
+    props.disabled ? props.theme.textMuted : "#ffffff"};
 `;
 
 const Card = styled(Pressable)`

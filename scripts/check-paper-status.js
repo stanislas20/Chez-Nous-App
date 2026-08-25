@@ -152,7 +152,30 @@ Object.entries(reminders.PAPER_LABELS).forEach(([key, label]) => {
 
 // The leads the screen's copy names. If these diverge, the app is promising
 // notifications on days nothing is sent.
-check("leads promised on screen", reminders.LEAD_DAYS.join(","), "30,7,1");
+check("leads promised on screen", reminders.LEAD_DAYS.join(","), "30,7,1,0");
+
+// The day itself must be in the list. A reminder system that counts down
+// and then says nothing on the morning the cover lapses has gone quiet at
+// the only moment it was built for.
+check("the expiry day itself warns", reminders.LEAD_DAYS.includes(0), true);
+
+// And nothing after it. Reminders about a date that has passed are a
+// reproach, and they are how somebody learns to ignore the app.
+check(
+  "nothing is sent after expiry",
+  reminders.LEAD_DAYS.some((day) => day < 0),
+  false,
+);
+check(
+  "today reads as today, not 'in 0 days'",
+  reminders.buildMessage("insurance", 0, "2026-08-25", "en").title,
+  "Your insurance expires today",
+);
+check(
+  "et en français",
+  reminders.buildMessage("insurance", 0, "2026-08-25", "fr").title,
+  "Votre assurance expire aujourd’hui",
+);
 
 // ── Calendar dates, not instants ────────────────────────────────────────
 //

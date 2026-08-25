@@ -108,10 +108,14 @@ export const carServicesPrimary = [
   // in both languages means somewhere to leave your own car instead.
   { key: "carParks", icon: "location-outline", route: "CarParks" },
   { key: "documents", icon: "document-text-outline", route: "Papers" },
+  // Its own screen rather than a text search. "Assurance" alone finds
+  // health cover, life cover and every bank's side business, and a motor
+  // premium cannot even be compared until the vehicle, the fiscal
+  // horsepower, the term and the formula are fixed.
   {
     key: "insurance",
     icon: "shield-checkmark-outline",
-    query: "assurance auto",
+    route: "Insurance",
   },
 ];
 

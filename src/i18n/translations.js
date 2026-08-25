@@ -1464,6 +1464,41 @@ export const translations = {
     papersWhereCaveat:
       "Chez-Nous does not hold the addresses or opening hours of public offices, and will not invent them. Each row opens a map search around you instead.",
     papersSearchMap: "Search",
+    insureEyebrow: "Motor insurance",
+    insureTitle: "Compare before you renew",
+    insureIntro:
+      "A premium is not one number. Fix the vehicle, the horsepower, the term and the cover, and two agencies are finally answering the same question.",
+    insureCoverLeft: "Your cover has {days} days left",
+    insureCoverExpired: "Your cover lapsed {days} days ago",
+    insurePowerLabel: "Fiscal horsepower",
+    insurePowerNote:
+      "It is on your registration document, at box P.6. It is the figure the tariff is built on, so a quote given without it is a guess.",
+    insureMotoNote:
+      "Fiscal horsepower does not apply to two-wheelers — the tariff follows engine size, which the insurer confirms from your papers.",
+    insureTermLabel: "How long for",
+    insureTermYearNote:
+      "Twelve months at once is the lowest cost per month. It is also the most to find in one go.",
+    insureTermShortNote:
+      "A short term costs more per month than a year taken at once. That is the price of spreading it, not a discount.",
+    insureFormulaTitle: "Which cover?",
+    insureFormulaCaveat:
+      "What a policy covers is defined by the policy, not by this screen. Read the exclusions before you sign — that is where the differences between two identical-looking quotes usually are.",
+    insureCount: "{count} agency/agencies — {formula}",
+    insurePriceTerm: "for {months} months",
+    insurePriceOnAsking: "Price on asking",
+    insureMobileMoney: "Mobile Money",
+    insureNoneTitle: "No agency has listed motor cover here yet",
+    insureNoneCopy:
+      "Chez-Nous does not keep its own list of insurers. Agencies appear here when they publish, so this page is empty rather than filled with names we cannot stand behind.",
+    insurePost: "List an insurance agency",
+    insureSafety:
+      "Never pay without receiving the certificate and a receipt in the company's name. A forged attestation covers you for nothing, and you only find that out after an accident.",
+    insureQuoteIntro: "Hello, I would like a motor insurance quote.",
+    insureQuoteVehicle: "Vehicle: {vehicle}.",
+    insureQuotePower: "Fiscal horsepower: {band}.",
+    insureQuoteFormula: "Cover: {formula}.",
+    insureQuoteTerm: "Term: {term}.",
+    insureQuoteAsk: "What would the premium be, and what does it exclude?",
     papersEyebrow: "Papers & test",
     papersIntro:
       "The dates that decide whether you may drive. You enter them, this phone keeps them, and it counts the days for you.",
@@ -3715,6 +3750,41 @@ export const translations = {
     papersWhereCaveat:
       "Chez-Nous ne détient ni les adresses ni les horaires des services publics, et ne les inventera pas. Chaque ligne ouvre plutôt une recherche sur la carte autour de vous.",
     papersSearchMap: "Chercher",
+    insureEyebrow: "Assurance auto",
+    insureTitle: "Comparer avant de renouveler",
+    insureIntro:
+      "Une prime n’est pas un seul chiffre. Fixez le véhicule, la puissance, la durée et la formule : deux agences répondent enfin à la même question.",
+    insureCoverLeft: "Votre attestation est valable encore {days} jours",
+    insureCoverExpired: "Votre attestation a expiré il y a {days} jours",
+    insurePowerLabel: "Puissance fiscale",
+    insurePowerNote:
+      "Elle figure sur votre carte grise, case P.6. C’est sur elle que le tarif est construit : un prix donné sans elle est une estimation.",
+    insureMotoNote:
+      "La puissance fiscale ne s’applique pas aux deux-roues — le tarif suit la cylindrée, que l’assureur confirme sur vos papiers.",
+    insureTermLabel: "Pour quelle durée",
+    insureTermYearNote:
+      "Douze mois d’un coup, c’est le mois le moins cher. C’est aussi le plus gros montant à trouver en une fois.",
+    insureTermShortNote:
+      "Une durée courte revient plus cher au mois qu’une année prise d’un coup. C’est le prix de l’étalement, pas une réduction.",
+    insureFormulaTitle: "Quelle formule ?",
+    insureFormulaCaveat:
+      "Ce qu’une police couvre est défini par la police, pas par cet écran. Lisez les exclusions avant de signer — c’est là que se trouve, le plus souvent, la différence entre deux devis qui se ressemblent.",
+    insureCount: "{count} agence(s) — {formula}",
+    insurePriceTerm: "pour {months} mois",
+    insurePriceOnAsking: "Prix sur demande",
+    insureMobileMoney: "Mobile Money",
+    insureNoneTitle: "Aucune agence n’a encore publié d’assurance auto ici",
+    insureNoneCopy:
+      "Chez-Nous ne tient pas sa propre liste d’assureurs. Les agences apparaissent ici quand elles publient : cette page est donc vide plutôt que remplie de noms dont nous ne pourrions pas répondre.",
+    insurePost: "Publier une agence d’assurance",
+    insureSafety:
+      "Ne payez jamais sans recevoir l’attestation et un reçu au nom de la compagnie. Une attestation contrefaite ne couvre rien, et on ne s’en aperçoit qu’après l’accident.",
+    insureQuoteIntro: "Bonjour, je souhaite un devis d’assurance auto.",
+    insureQuoteVehicle: "Véhicule : {vehicle}.",
+    insureQuotePower: "Puissance fiscale : {band}.",
+    insureQuoteFormula: "Formule : {formula}.",
+    insureQuoteTerm: "Durée : {term}.",
+    insureQuoteAsk: "Quelle serait la prime, et qu’est-ce qui en est exclu ?",
     papersEyebrow: "Papiers & contrôle",
     papersIntro:
       "Les dates qui décident si vous pouvez rouler. Vous les saisissez, ce téléphone les garde, et compte les jours pour vous.",

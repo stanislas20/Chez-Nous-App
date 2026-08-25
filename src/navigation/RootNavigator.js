@@ -34,6 +34,7 @@ import { DriversScreen } from "../screens/DriversScreen";
 import { PartsScreen } from "../screens/PartsScreen";
 import { CarWashScreen } from "../screens/CarWashScreen";
 import { PapersScreen } from "../screens/PapersScreen";
+import { InsuranceScreen } from "../screens/InsuranceScreen";
 import { GaragesScreen } from "../screens/GaragesScreen";
 import { BreakdownScreen } from "../screens/BreakdownScreen";
 import { VehicleListScreen } from "../screens/VehicleListScreen";
@@ -193,6 +194,11 @@ export function RootNavigator() {
           <Stack.Screen
             name="Papers"
             component={PapersScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Insurance"
+            component={InsuranceScreen}
             options={{ headerShown: false }}
           />
           {/* Also registered inside the Sell tab, where the dashboard

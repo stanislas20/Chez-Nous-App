@@ -1,4 +1,9 @@
-import { matchesTrade, mentionsAnyWord } from "../utils/wordMatch";
+import {
+  foldText,
+  matchesTrade,
+  mentionsAnyWord,
+  mentionsWord,
+} from "../utils/wordMatch";
 
 // Where to buy a part, and nothing more than that.
 //
@@ -8,10 +13,8 @@ import { matchesTrade, mentionsAnyWord } from "../utils/wordMatch";
 // trap Pneus and Batterie stopped short of, where a size and a capacity are
 // a search box the reader can correct rather than an answer the app gives.
 //
-// So this is a directory of the people who sell parts, split the one way that
-// actually changes who you call: a car or a motorbike. What they stock is
-// what they say they stock, and whether it fits your car is a conversation
-// with them.
+// So the search here looks through what sellers SAY they stock, and the
+// screen says so: a reference is confirmed on the telephone, not by us.
 
 export const partScopes = [
   { key: "car", icon: "car-outline", labelEn: "Car", labelFr: "Voiture" },
@@ -23,86 +26,131 @@ export const partScopes = [
   },
 ];
 
-// What a seller says they carry, by system — which is how a mechanic asks
-// for it. Not a catalogue: a shop ticks what it stocks, and a buyer filters
-// on it to avoid four phone calls.
+// Families of parts, named the way a mechanic asks for them, with the
+// examples that make each one unambiguous. A car and a motorbike get
+// different families: a carénage and a chaîne mean nothing on a saloon, and
+// a boîte de vitesses means nothing on a Bajaj.
 export const partCategories = [
-  {
-    key: "brakes",
-    icon: "aperture-outline",
-    scopes: ["car", "moto"],
-    labelEn: "Brakes",
-    labelFr: "Freinage",
-    detailEn: "Pads, discs, shoes, cables.",
-    detailFr: "Plaquettes, disques, mâchoires, câbles.",
-  },
   {
     key: "engine",
     icon: "cog-outline",
     scopes: ["car", "moto"],
     labelEn: "Engine",
     labelFr: "Moteur",
-    detailEn: "Gaskets, pistons, valves, belts.",
-    detailFr: "Joints, pistons, soupapes, courroies.",
+    exampleEn: "Gasket, piston, pump",
+    exampleFr: "Joint, piston, pompe",
+    motoExampleEn: "Cylinder, piston, head",
+    motoExampleFr: "Cylindre, piston, culasse",
   },
   {
-    key: "filters",
-    icon: "funnel-outline",
+    key: "brakes",
+    icon: "aperture-outline",
     scopes: ["car", "moto"],
-    labelEn: "Filters & oil",
-    labelFr: "Filtres & vidange",
-    detailEn: "Oil, air, fuel, cabin.",
-    detailFr: "Huile, air, carburant, habitacle.",
+    labelEn: "Brakes",
+    labelFr: "Freinage",
+    exampleEn: "Pads, discs",
+    exampleFr: "Plaquettes, disques",
+    motoExampleEn: "Pads, shoes",
+    motoExampleFr: "Plaquettes, mâchoires",
   },
   {
-    key: "clutch",
+    key: "transmission",
     icon: "sync-outline",
     scopes: ["car", "moto"],
-    labelEn: "Clutch & gearbox",
-    labelFr: "Embrayage & boîte",
-    detailEn: "Discs, cables, gearbox parts.",
-    detailFr: "Disques, câbles, pièces de boîte.",
+    labelEn: "Transmission",
+    labelFr: "Transmission",
+    exampleEn: "Clutch, driveshaft",
+    exampleFr: "Embrayage, cardan",
+    motoExampleEn: "Chain, sprocket, crown",
+    motoExampleFr: "Chaîne, pignon, couronne",
   },
   {
     key: "suspension",
     icon: "git-commit-outline",
     scopes: ["car", "moto"],
-    labelEn: "Suspension & steering",
-    labelFr: "Suspension & direction",
-    detailEn: "Shocks, ball joints, bearings.",
-    detailFr: "Amortisseurs, rotules, roulements.",
+    labelEn: "Suspension",
+    labelFr: "Suspension",
+    exampleEn: "Shocks, ball joints",
+    exampleFr: "Amortisseurs, rotules",
+    motoExampleEn: "Fork, shock absorber",
+    motoExampleFr: "Fourche, amortisseur",
+  },
+  {
+    key: "electric",
+    icon: "flash-outline",
+    scopes: ["car", "moto"],
+    labelEn: "Electrical",
+    labelFr: "Électrique",
+    exampleEn: "Alternator, starter",
+    exampleFr: "Alternateur, démarreur",
+    motoExampleEn: "CDI, coil, regulator",
+    motoExampleFr: "CDI, bobine, régulateur",
+  },
+  {
+    key: "filters",
+    icon: "funnel-outline",
+    scopes: ["car"],
+    labelEn: "Filtration",
+    labelFr: "Filtration",
+    exampleEn: "Oil, air, diesel",
+    exampleFr: "Huile, air, gasoil",
+  },
+  {
+    key: "body",
+    icon: "car-sport-outline",
+    scopes: ["car"],
+    labelEn: "Bodywork",
+    labelFr: "Carrosserie",
+    exampleEn: "Wing, bumper, headlight",
+    exampleFr: "Aile, pare-choc, phare",
   },
   {
     key: "cooling",
     icon: "thermometer-outline",
-    scopes: ["car", "moto"],
+    scopes: ["car"],
     labelEn: "Cooling",
     labelFr: "Refroidissement",
-    detailEn: "Radiator, hoses, water pump.",
-    detailFr: "Radiateur, durites, pompe à eau.",
+    exampleEn: "Radiator, water pump",
+    exampleFr: "Radiateur, pompe à eau",
   },
   {
-    key: "exhaust",
-    icon: "cloud-outline",
-    scopes: ["car", "moto"],
-    labelEn: "Exhaust",
-    labelFr: "Échappement",
-    detailEn: "Silencer, manifold, mountings.",
-    detailFr: "Silencieux, collecteur, fixations.",
-  },
-  {
-    key: "chain",
-    icon: "link-outline",
+    key: "fairing",
+    icon: "shield-outline",
     scopes: ["moto"],
-    labelEn: "Chain & sprockets",
-    labelFr: "Chaîne & pignons",
-    detailEn: "Chain, sprockets, kits.",
-    detailFr: "Chaîne, couronne, kits.",
+    labelEn: "Fairing",
+    labelFr: "Carénage",
+    motoExampleEn: "Mudguard, tank",
+    motoExampleFr: "Garde-boue, réservoir",
+  },
+  {
+    key: "wheels",
+    icon: "ellipse-outline",
+    scopes: ["moto"],
+    labelEn: "Wheels",
+    labelFr: "Roues",
+    motoExampleEn: "Rim, spoke, inner tube",
+    motoExampleFr: "Jante, rayon, chambre",
+  },
+  {
+    key: "lighting",
+    icon: "bulb-outline",
+    scopes: ["moto"],
+    labelEn: "Lighting",
+    labelFr: "Éclairage",
+    motoExampleEn: "Headlight, indicator",
+    motoExampleFr: "Phare, clignotant",
   },
 ];
 
 export function partCategoriesFor(scope) {
   return partCategories.filter((item) => item.scopes.includes(scope));
+}
+
+export function getPartCategoryExample(item, scope, language) {
+  if (scope === "moto" && item.motoExampleFr) {
+    return language === "en" ? item.motoExampleEn : item.motoExampleFr;
+  }
+  return language === "en" ? item.exampleEn : item.exampleFr;
 }
 
 export function getPartCategoryLabel(key, language) {
@@ -111,65 +159,145 @@ export function getPartCategoryLabel(key, language) {
   return language === "en" ? item.labelEn : item.labelFr;
 }
 
-// New, used or aftermarket. This is the axis that matters most here and the
-// one a listing most often leaves out: a part from a scrapped import is the
-// larger market in Bénin, and a buyer needs to know which they are being
-// offered before they travel across Cotonou for it.
-export const partConditions = [
+// The quality of the part, which is the axis that decides the price and the
+// one a listing most often leaves out. Each carries the sentence a buyer
+// actually needs, because "adaptable" and "occasion" are not interchangeable
+// and the difference is rarely explained at the counter.
+export const partQualities = [
   {
-    key: "new",
-    icon: "cube-outline",
-    labelEn: "New",
-    labelFr: "Neuf",
-    detailEn: "Boxed, sometimes with a warranty.",
-    detailFr: "En boîte, parfois sous garantie.",
+    key: "all",
+    labelEn: "All",
+    labelFr: "Tous",
+    noteEn:
+      "Original, aftermarket or used — the same part often varies fourfold in price between them.",
+    noteFr:
+      "Origine, adaptable ou occasion — l’écart de prix va souvent de 1 à 4 pour la même pièce.",
   },
   {
-    key: "used",
-    icon: "construct-outline",
-    labelEn: "Used",
-    labelFr: "Occasion",
-    detailEn: "From a breaker — ask what it came off.",
-    detailFr: "De casse — demandez de quoi elle vient.",
+    key: "origine",
+    labelEn: "Original",
+    labelFr: "Origine",
+    noteEn:
+      "The manufacturer's own part, in its box. The dearest, and the only one with a guaranteed reference.",
+    noteFr:
+      "Pièce du constructeur, en emballage d’origine. La plus chère, la seule avec une référence garantie.",
   },
   {
-    key: "aftermarket",
-    icon: "swap-horizontal-outline",
+    key: "adaptable",
     labelEn: "Aftermarket",
     labelFr: "Adaptable",
-    detailEn: "Equivalent, not the original brand.",
-    detailFr: "Équivalent, sans être la marque d’origine.",
+    noteEn:
+      "Made by a third party for this model. Quality varies a great deal by maker — ask for the brand, not only the price.",
+    noteFr:
+      "Fabriquée par un tiers pour ce modèle. Qualité très variable selon le fabricant — demandez la marque, pas seulement le prix.",
+  },
+  {
+    key: "occasion",
+    labelEn: "Used",
+    labelFr: "Occasion",
+    noteEn:
+      "Taken off an imported vehicle. Insist on seeing it fitted or tested before you pay.",
+    noteFr:
+      "Prélevée sur un véhicule importé. Exigez de voir la pièce montée ou testée avant de payer.",
   },
 ];
 
-export function getPartConditionLabel(key, language) {
-  const item = partConditions.find((entry) => entry.key === key);
+export function getPartQualityLabel(key, language) {
+  const item = partQualities.find((entry) => entry.key === key);
   if (!item) return null;
   return language === "en" ? item.labelEn : item.labelFr;
 }
 
-// What the app can honestly tell somebody buying a part it has never seen.
-export const partBuyingTips = [
+export function getPartQualityNote(key, language) {
+  const item = partQualities.find((entry) => entry.key === key);
+  if (!item) return null;
+  return language === "en" ? item.noteEn : item.noteFr;
+}
+
+// What kind of business it is, which changes what you should expect before
+// you travel: a casse sells one of a thing and sells it as seen, a
+// concession orders on a reference and takes a week.
+export const partSellerKinds = [
   {
-    key: "reference",
-    icon: "barcode-outline",
-    labelEn: "Bring the old part, or its reference number",
-    labelFr: "Apportez l’ancienne pièce, ou sa référence",
+    key: "boutique",
+    labelEn: "Shop",
+    labelFr: "Boutique",
+    tint: "neutral",
   },
   {
-    key: "origin",
-    icon: "help-circle-outline",
-    labelEn: "For a used part, ask which vehicle it came off",
-    labelFr: "Pour une pièce d’occasion, demandez de quel véhicule elle vient",
+    key: "grossiste",
+    labelEn: "Wholesaler",
+    labelFr: "Grossiste",
+    tint: "emerald",
   },
   {
-    key: "return",
-    icon: "return-down-back-outline",
-    labelEn:
-      "Agree before paying whether it can be returned if it does not fit",
-    labelFr: "Convenez avant de payer si elle est reprise si elle ne va pas",
+    key: "casse",
+    labelEn: "Breaker",
+    labelFr: "Casse",
+    tint: "gold",
+  },
+  {
+    key: "concession",
+    labelEn: "Dealership",
+    labelFr: "Concession",
+    tint: "blue",
   },
 ];
+
+export function getPartSellerKind(key) {
+  return partSellerKinds.find((entry) => entry.key === key) ?? null;
+}
+
+export function getPartSellerKindLabel(key, language) {
+  const item = getPartSellerKind(key);
+  if (!item) return null;
+  return language === "en" ? item.labelEn : item.labelFr;
+}
+
+// Suggestions offered when a search finds nobody. Deliberately the parts
+// people ask for most, not a random sample — an empty result is the moment a
+// reader is most likely to give up, and a wrong spelling is the commonest
+// reason for one.
+export const commonPartSearches = {
+  car: [
+    "plaquettes de frein",
+    "alternateur",
+    "filtre à huile",
+    "amortisseur",
+    "radiateur",
+  ],
+  moto: ["chaîne", "cdi", "plaquettes de frein", "carburateur", "jante"],
+};
+
+// Searching what sellers say they stock.
+//
+// Matched loosely on purpose, and both ways round: a shop writes "plaquette
+// de frein" and somebody searches "plaquettes", or writes "amortisseurs
+// avant" and somebody searches "amortisseur". A strict match would answer
+// "nobody" to a question four shops could have answered.
+export function stockMatchesQuery(text, query) {
+  const needle = (query ?? "").trim();
+  if (needle.length < 2) return true;
+  const words = needle.split(/\s+/).filter((word) => word.length >= 3);
+  if (!words.length) return matchesEitherWay(text, needle);
+  return words.every((word) => matchesEitherWay(text, word));
+}
+
+// Both directions, and that is the point.
+//
+// mentionsWord allows a text word to run a little longer than the term, so a
+// shop that wrote "plaquettes" is found by somebody typing "plaquette". The
+// reverse is just as common — the shop writes "plaquette de frein avant" and
+// the buyer types the plural — and testing only one direction answers
+// "nobody" to a question four shops could have answered.
+function matchesEitherWay(text, word) {
+  if (mentionsWord(text, word)) return true;
+  return foldText(text)
+    .split(" ")
+    .some(
+      (candidate) => candidate.length >= 4 && mentionsWord(word, candidate),
+    );
+}
 
 // Words that place a listing here.
 //

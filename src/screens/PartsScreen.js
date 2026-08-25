@@ -17,19 +17,32 @@ import { canPublish } from "../utils/canPublish";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useSellerRatings } from "../hooks/useSellerRatings";
-import { usePartsSellers } from "../hooks/usePartsSellers";
+import { filterPartsSellers, usePartsSellers } from "../hooks/usePartsSellers";
 import { buildLinkUrl } from "../data/restaurantLinks";
 import {
+  commonPartSearches,
+  getPartCategoryExample,
   getPartCategoryLabel,
-  getPartConditionLabel,
-  partBuyingTips,
+  getPartQualityLabel,
+  getPartQualityNote,
+  getPartSellerKind,
+  getPartSellerKindLabel,
   partCategoriesFor,
-  partConditions,
+  partQualities,
   partScopes,
 } from "../data/vehicleParts";
 
 const EMERALD = "#0B6E4F";
 const GOLD = "#D9A441";
+
+// Tints for the kind of business, which is a fact about the shop rather than
+// a quality judgement — so they read as labels, not as scores.
+const KIND_TINTS = {
+  emerald: { bg: "rgba(11,110,79,0.09)", fg: EMERALD },
+  gold: { bg: "rgba(217,164,65,0.13)", fg: "#8a6415" },
+  blue: { bg: "rgba(18,60,120,0.08)", fg: "#123A6B" },
+  neutral: { bg: "rgba(0,0,0,0.05)", fg: "#6B6B6E" },
+};
 
 // Where to buy a part. Not which part fits — see vehicleParts.js.
 export function PartsScreen({ navigation }) {
@@ -41,38 +54,32 @@ export function PartsScreen({ navigation }) {
 
   const [scope, setScope] = useState("car");
   const [category, setCategory] = useState(null);
-  const [condition, setCondition] = useState(null);
+  const [quality, setQuality] = useState("all");
+  const [query, setQuery] = useState("");
 
   const sellers = usePartsSellers(coords);
   const ratings = useSellerRatings(sellers.map((item) => item.sellerId));
 
+  const isMoto = scope === "moto";
+  const searching = query.trim().length >= 2;
+
   const title = (item) =>
     (language === "en" ? item.titleEn : item.titleFr) || item.titleFr;
 
-  // An undeclared field never excludes: a shop that wrote a good advert and
-  // skipped the pickers still sells brake pads. Empty means unknown, not no —
-  // the same rule the Chauffeurs filters follow.
-  const matching = useMemo(() => {
-    const keep = (declared, wanted) =>
-      !wanted || declared.length === 0 || declared.includes(wanted);
+  const matching = useMemo(
+    () => filterPartsSellers(sellers, { scope, category, quality, query }),
+    [sellers, scope, category, quality, query],
+  );
 
-    return [...sellers]
-      .filter((item) => keep(item.partScopes, scope))
-      .filter((item) => keep(item.partCategories, category))
-      .filter((item) => keep(item.partConditions, condition))
-      .sort((a, b) => {
-        if (a.distanceKm != null && b.distanceKm != null) {
-          return a.distanceKm - b.distanceKm;
-        }
-        if (a.distanceKm != null) return -1;
-        if (b.distanceKm != null) return 1;
-        return 0;
-      });
-  }, [sellers, scope, category, condition]);
-
-  // Counted from the listings themselves, never asserted.
-  const countFor = (field, key) =>
-    sellers.filter((item) => (item[field] ?? []).includes(key)).length;
+  // Counted from the listings themselves, never asserted — and counted within
+  // the current scope, so a motorbike family never advertises a number that
+  // came from car shops.
+  const inScope = useMemo(
+    () => filterPartsSellers(sellers, { scope, quality: "all", query: "" }),
+    [sellers, scope],
+  );
+  const countFor = (key) =>
+    inScope.filter((item) => (item.partCategories ?? []).includes(key)).length;
 
   const call = (number) => {
     if (!number) return;
@@ -84,14 +91,16 @@ export function PartsScreen({ navigation }) {
     if (!url) return;
     const message = [
       t("partsQuoteOpen"),
-      category
-        ? t("partsQuoteCategory", {
-            category: getPartCategoryLabel(category, language),
-          })
-        : null,
-      condition
-        ? t("partsQuoteCondition", {
-            condition: getPartConditionLabel(condition, language),
+      searching
+        ? t("partsQuoteItem", { item: query.trim() })
+        : category
+          ? t("partsQuoteCategory", {
+              category: getPartCategoryLabel(category, language),
+            })
+          : null,
+      quality !== "all"
+        ? t("partsQuoteQuality", {
+            quality: getPartQualityLabel(quality, language),
           })
         : null,
       t("partsQuoteAsk"),
@@ -104,11 +113,11 @@ export function PartsScreen({ navigation }) {
   };
 
   const openDirections = (item) => {
-    const query = encodeURIComponent(
+    const place = encodeURIComponent(
       [title(item), item.place, item.city].filter(Boolean).join(" "),
     );
     Linking.openURL(
-      `https://www.google.com/maps/search/?api=1&query=${query}`,
+      `https://www.google.com/maps/search/?api=1&query=${place}`,
     ).catch(() => {});
   };
 
@@ -133,15 +142,19 @@ export function PartsScreen({ navigation }) {
   const switchScope = (key) => {
     if (key === scope) return;
     setScope(key);
-    // A chain and sprockets mean nothing on a car, so a filter chosen for one
+    // A chain and sprockets mean nothing on a car, so a family chosen for one
     // must not survive into the other.
     setCategory(null);
   };
 
   return (
     <Container edges={["left", "right"]}>
+      {/* Charcoal rather than the app's emerald.
+          Every other car screen opens green; this one is the workshop shelf,
+          and the darker ground is what makes the search field read as the
+          first thing to use rather than one more banner. */}
       <Hero
-        colors={["#0B6E4F", "#07362A", "#05261D"]}
+        colors={["#2A3038", "#171C22", "#0D1116"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         topInset={insets.top}
@@ -152,36 +165,40 @@ export function PartsScreen({ navigation }) {
           </BackButton>
           <HeroEyebrow>{t("partsEyebrow")}</HeroEyebrow>
         </HeroTop>
-        <HeroRow>
-          <HeroCol>
-            <HeroTitle>{t("partsTitle")}</HeroTitle>
-            <HeroCopy>{t("partsIntro")}</HeroCopy>
-          </HeroCol>
 
-          {/* Drawn, not photographed.
-              A stock photo of somebody else's brake disc on a marketplace
-              banner reads as a claim about stock we do not have — the same
-              reason Batterie draws its cell and Carrosserie draws its panel.
-              These are three real parts in outline: a disc with its vents, a
-              filter, and a cog behind them. */}
-          <PartsArt>
-            <BrakeDisc>
-              <DiscHub />
-              <DiscVent style={{ transform: [{ rotate: "0deg" }] }} />
-              <DiscVent style={{ transform: [{ rotate: "60deg" }] }} />
-              <DiscVent style={{ transform: [{ rotate: "120deg" }] }} />
-            </BrakeDisc>
-            <FilterBody>
-              <FilterPleat />
-              <FilterPleat />
-              <FilterPleat />
-            </FilterBody>
-            <CogBadge>
-              <Ionicons name="cog" size={20} color="#07362A" />
-            </CogBadge>
-          </PartsArt>
-        </HeroRow>
+        <HeroTitle>{isMoto ? t("partsTitleMoto") : t("partsTitle")}</HeroTitle>
+        <HeroCopy>{isMoto ? t("partsIntroMoto") : t("partsIntro")}</HeroCopy>
 
+        <SearchField>
+          <Ionicons name="search" size={17} color="rgba(255,255,255,0.6)" />
+          <SearchInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t("partsSearchPlaceholder")}
+            placeholderTextColor="rgba(255,255,255,0.45)"
+            returnKeyType="search"
+            autoCorrect={false}
+          />
+          {query.length ? (
+            <Pressable onPress={() => setQuery("")} hitSlop={10}>
+              <Ionicons
+                name="close-circle"
+                size={17}
+                color="rgba(255,255,255,0.6)"
+              />
+            </Pressable>
+          ) : null}
+        </SearchField>
+      </Hero>
+
+      <Scroll
+        contentContainerStyle={{
+          padding: spacing.md,
+          paddingBottom: insets.bottom + spacing.xl,
+        }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <ScopeRow>
           {partScopes.map((option) => {
             const active = scope === option.key;
@@ -194,7 +211,7 @@ export function PartsScreen({ navigation }) {
                 <Ionicons
                   name={option.icon}
                   size={15}
-                  color={active ? EMERALD : "rgba(255,255,255,0.8)"}
+                  color={active ? colors.text : colors.textMuted}
                 />
                 <ScopeLabel active={active}>
                   {language === "en" ? option.labelEn : option.labelFr}
@@ -203,20 +220,12 @@ export function PartsScreen({ navigation }) {
             );
           })}
         </ScopeRow>
-      </Hero>
 
-      <Scroll
-        contentContainerStyle={{
-          padding: spacing.md,
-          paddingBottom: insets.bottom + spacing.xl,
-        }}
-        showsVerticalScrollIndicator={false}
-      >
-        <SectionLabel>{t("partsCategoryLabel")}</SectionLabel>
+        <SectionTitle>{t("partsFamiliesLabel")}</SectionTitle>
         <Grid>
           {partCategoriesFor(scope).map((item) => {
             const active = category === item.key;
-            const count = countFor("partCategories", item.key);
+            const count = countFor(item.key);
             return (
               <Tile
                 key={item.key}
@@ -224,111 +233,74 @@ export function PartsScreen({ navigation }) {
                 onPress={() => setCategory(active ? null : item.key)}
               >
                 <TileTop>
-                  <TileIcon active={active}>
-                    <Ionicons
-                      name={item.icon}
-                      size={17}
-                      color={active ? "#ffffff" : EMERALD}
-                    />
-                  </TileIcon>
-                  {count > 0 ? (
-                    <CountPill active={active}>
-                      <CountLabel active={active}>{count}</CountLabel>
-                    </CountPill>
-                  ) : null}
+                  <Ionicons
+                    name={item.icon}
+                    size={17}
+                    color={active ? EMERALD : colors.textMuted}
+                  />
+                  {count > 0 ? <TileCount>{count}</TileCount> : null}
                 </TileTop>
-                <TileLabel active={active} numberOfLines={2}>
+                <TileLabel active={active} numberOfLines={1}>
                   {language === "en" ? item.labelEn : item.labelFr}
                 </TileLabel>
-                <TileDetail active={active} numberOfLines={2}>
-                  {language === "en" ? item.detailEn : item.detailFr}
-                </TileDetail>
+                <TileExample numberOfLines={2}>
+                  {getPartCategoryExample(item, scope, language)}
+                </TileExample>
               </Tile>
             );
           })}
         </Grid>
 
-        <SectionLabel>{t("partsConditionLabel")}</SectionLabel>
-        <Grid>
-          {partConditions.map((item) => {
-            const active = condition === item.key;
-            const count = countFor("partConditions", item.key);
+        <SectionTitle>{t("partsQualityLabel")}</SectionTitle>
+        <SegmentRow>
+          {partQualities.map((item) => {
+            const active = quality === item.key;
             return (
-              <Tile
+              <Segment
                 key={item.key}
                 active={active}
-                onPress={() => setCondition(active ? null : item.key)}
+                onPress={() => setQuality(item.key)}
               >
-                <TileTop>
-                  <TileIcon active={active}>
-                    <Ionicons
-                      name={item.icon}
-                      size={17}
-                      color={active ? "#ffffff" : EMERALD}
-                    />
-                  </TileIcon>
-                  {count > 0 ? (
-                    <CountPill active={active}>
-                      <CountLabel active={active}>{count}</CountLabel>
-                    </CountPill>
-                  ) : null}
-                </TileTop>
-                <TileLabel active={active} numberOfLines={2}>
+                <SegmentLabel active={active}>
                   {language === "en" ? item.labelEn : item.labelFr}
-                </TileLabel>
-                <TileDetail active={active} numberOfLines={2}>
-                  {language === "en" ? item.detailEn : item.detailFr}
-                </TileDetail>
-              </Tile>
+                </SegmentLabel>
+              </Segment>
             );
           })}
-        </Grid>
+        </SegmentRow>
+        {/* The note changes with the choice. "Adaptable" and "occasion" are
+            not interchangeable and the difference is rarely explained at the
+            counter — this is the one place the app can explain it. */}
+        <QualityNote>{getPartQualityNote(quality, language)}</QualityNote>
 
-        {/* Before the list, because it is advice for the moment of choosing.
-            None of it is a check we performed; all of it is one the buyer
-            can make before handing over money for a part we have never
-            seen. */}
-        <SectionLabel>{t("partsTipsLabel")}</SectionLabel>
-        <TipsCard>
-          {partBuyingTips.map((item) => (
-            <TipRow key={item.key}>
-              <Ionicons name={item.icon} size={15} color="#8a6415" />
-              <TipText>
-                {language === "en" ? item.labelEn : item.labelFr}
-              </TipText>
-            </TipRow>
-          ))}
-        </TipsCard>
+        <CountRow>
+          <CountText numberOfLines={2}>
+            {searching
+              ? t("partsCountSearch", {
+                  count: matching.length,
+                  item: query.trim(),
+                })
+              : category
+                ? t("partsCountCategory", {
+                    count: matching.length,
+                    category: getPartCategoryLabel(category, language),
+                  })
+                : t("partsCountAll", {
+                    count: matching.length,
+                    scope: isMoto ? t("partsScopeMoto") : t("partsScopeCar"),
+                  })}
+          </CountText>
+          <SortNote>{t("partsOpenFirst")}</SortNote>
+        </CountRow>
 
-        <SectionLabel>{t("partsSellersLabel")}</SectionLabel>
-        {category || condition ? (
-          <FilterRow>
-            {category ? (
-              <FilterPill onPress={() => setCategory(null)}>
-                <FilterPillLabel>
-                  {getPartCategoryLabel(category, language)}
-                </FilterPillLabel>
-                <Ionicons name="close" size={13} color={EMERALD} />
-              </FilterPill>
-            ) : null}
-            {condition ? (
-              <FilterPill onPress={() => setCondition(null)}>
-                <FilterPillLabel>
-                  {getPartConditionLabel(condition, language)}
-                </FilterPillLabel>
-                <Ionicons name="close" size={13} color={EMERALD} />
-              </FilterPill>
-            ) : null}
-            <FilterCount>
-              {t("partsSellerCount", { count: matching.length })}
-            </FilterCount>
-          </FilterRow>
-        ) : null}
+        {searching ? <SearchNote>{t("partsSearchNote")}</SearchNote> : null}
 
         {matching.map((item) => {
           const score = ratings[item.sellerId];
-          const declared = item.partCategories
-            .map((key) => getPartCategoryLabel(key, language))
+          const kind = getPartSellerKind(item.partSellerKind);
+          const tint = KIND_TINTS[kind?.tint ?? "neutral"];
+          const qualityLine = item.partQualities
+            .map((key) => getPartQualityLabel(key, language))
             .filter(Boolean)
             .join(" · ");
           return (
@@ -371,6 +343,13 @@ export function PartsScreen({ navigation }) {
               </CardTop>
 
               <MetaRow>
+                {kind ? (
+                  <KindPill bg={tint.bg}>
+                    <KindLabel fg={tint.fg}>
+                      {getPartSellerKindLabel(kind.key, language)}
+                    </KindLabel>
+                  </KindPill>
+                ) : null}
                 {item.openNow != null ? (
                   <OpenPill open={item.openNow}>
                     <OpenDot open={item.openNow} />
@@ -397,16 +376,29 @@ export function PartsScreen({ navigation }) {
                     </MetaText>
                   </MetaItem>
                 ) : null}
-                {item.partConditions.map((key) => (
-                  <ConditionPill key={key}>
-                    <ConditionPillLabel>
-                      {getPartConditionLabel(key, language)}
-                    </ConditionPillLabel>
-                  </ConditionPill>
-                ))}
               </MetaRow>
 
-              {declared ? <DeclaredText>{declared}</DeclaredText> : null}
+              {/* Only what the shop actually declared. A blank line is left
+                  out rather than filled with "non précisé", which would read
+                  as a fact about the shop rather than about the form. */}
+              {qualityLine || item.partBrands ? (
+                <QualityTag numberOfLines={2}>
+                  {[qualityLine, item.partBrands].filter(Boolean).join(" · ")}
+                </QualityTag>
+              ) : null}
+              {item.partWarranty ? (
+                <DetailLine numberOfLines={2}>{item.partWarranty}</DetailLine>
+              ) : null}
+              {item.partDelivery ? (
+                <MutedLine numberOfLines={2}>{item.partDelivery}</MutedLine>
+              ) : null}
+
+              {item.partChecksFit ? (
+                <FitPill>
+                  <Ionicons name="checkmark" size={11} color={EMERALD} />
+                  <FitLabel>{t("partsChecksFit")}</FitLabel>
+                </FitPill>
+              ) : null}
 
               <ActionRow>
                 <CallButton
@@ -439,13 +431,41 @@ export function PartsScreen({ navigation }) {
         {matching.length === 0 ? (
           <EmptyCard>
             <EmptyTitle>
-              {category || condition
-                ? t("partsNoneMatching")
-                : t("partsNoSellers")}
+              {searching
+                ? t("partsNoneForSearch", { item: query.trim() })
+                : category || quality !== "all"
+                  ? t("partsNoneMatching")
+                  : t("partsNoSellers")}
             </EmptyTitle>
-            <EmptyCopy>{t("partsNoSellersCopy")}</EmptyCopy>
+            <EmptyCopy>
+              {searching
+                ? t("partsNoneForSearchCopy")
+                : t("partsNoSellersCopy")}
+            </EmptyCopy>
+            {/* Offered on an empty search, because a misspelling is the
+                commonest reason for one and retyping is the last thing
+                somebody wants to do. */}
+            {searching ? (
+              <>
+                <SuggestLabel>{t("partsSuggestLabel")}</SuggestLabel>
+                <SuggestRow>
+                  {commonPartSearches[scope].map((item) => (
+                    <SuggestChip key={item} onPress={() => setQuery(item)}>
+                      <SuggestChipLabel>{item}</SuggestChipLabel>
+                    </SuggestChip>
+                  ))}
+                </SuggestRow>
+              </>
+            ) : null}
           </EmptyCard>
         ) : null}
+
+        {/* The advice the mockup ends on, kept as advice for the moment of
+            buying: none of it is a check we performed. */}
+        <SafetyCard>
+          <Ionicons name="alert-circle-outline" size={15} color="#8a6415" />
+          <SafetyText>{t("partsSafetyNote")}</SafetyText>
+        </SafetyCard>
 
         {mayPublish ? (
           <PostCard onPress={startPosting}>
@@ -491,7 +511,7 @@ const BackButton = styled(Pressable)`
   border-radius: 18px;
   align-items: center;
   justify-content: center;
-  background-color: rgba(255, 255, 255, 0.16);
+  background-color: rgba(255, 255, 255, 0.14);
 `;
 
 const HeroEyebrow = styled.Text`
@@ -499,7 +519,7 @@ const HeroEyebrow = styled.Text`
   font-size: 11px;
   letter-spacing: 1.4px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.7);
 `;
 
 const HeroTitle = styled.Text`
@@ -511,99 +531,43 @@ const HeroTitle = styled.Text`
 
 const HeroCopy = styled.Text`
   font-family: ${fontFamily.regular};
-  font-size: 13px;
-  line-height: 19px;
-  color: rgba(255, 255, 255, 0.72);
+  font-size: 12.5px;
+  line-height: 18px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: ${spacing.md}px;
 `;
 
-const HeroRow = styled.View`
+const SearchField = styled.View`
   flex-direction: row;
   align-items: center;
-  gap: ${spacing.md}px;
-`;
-
-const HeroCol = styled.View`
-  flex: 1;
-  min-width: 0px;
-`;
-
-// Three parts, overlapping the way they would on a counter rather than
-// floating in a row: the disc behind, the filter in front of it, the cog
-// tucked into the corner.
-const PartsArt = styled.View`
-  width: 92px;
-  height: 82px;
-`;
-
-const BrakeDisc = styled.View`
-  position: absolute;
-  top: 0px;
-  right: 4px;
-  width: 62px;
-  height: 62px;
-  border-radius: 31px;
-  align-items: center;
-  justify-content: center;
+  gap: 10px;
+  min-height: 50px;
+  padding: 0px 15px;
+  border-radius: ${radius.lg}px;
   background-color: rgba(255, 255, 255, 0.1);
-  border-width: 2px;
-  border-color: rgba(255, 255, 255, 0.45);
+  border-width: 1px;
+  border-color: rgba(255, 255, 255, 0.16);
 `;
 
-const DiscHub = styled.View`
-  width: 22px;
-  height: 22px;
-  border-radius: 11px;
-  background-color: rgba(255, 255, 255, 0.22);
-  border-width: 1.5px;
-  border-color: rgba(255, 255, 255, 0.5);
+const SearchInput = styled.TextInput`
+  flex: 1;
+  font-family: ${fontFamily.semiBold};
+  font-size: 14px;
+  color: #ffffff;
+  padding: 0px;
 `;
 
-// The slots a vented disc actually has, which is what makes the ring read as
-// a brake disc rather than as a circle.
-const DiscVent = styled.View`
-  position: absolute;
-  width: 2px;
-  height: 44px;
-  border-radius: 1px;
-  background-color: rgba(255, 255, 255, 0.2);
-`;
-
-const FilterBody = styled.View`
-  position: absolute;
-  bottom: 0px;
-  left: 0px;
-  width: 40px;
-  height: 46px;
-  border-radius: 10px;
-  padding: 7px 6px;
-  gap: 5px;
-  background-color: rgba(217, 164, 65, 0.24);
-  border-width: 1.5px;
-  border-color: rgba(217, 164, 65, 0.7);
-`;
-
-const FilterPleat = styled.View`
-  height: 3px;
-  border-radius: 2px;
-  background-color: rgba(255, 255, 255, 0.55);
-`;
-
-const CogBadge = styled.View`
-  position: absolute;
-  bottom: 2px;
-  right: 0px;
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  align-items: center;
-  justify-content: center;
-  background-color: ${GOLD};
+const Scroll = styled.ScrollView`
+  flex: 1;
 `;
 
 const ScopeRow = styled.View`
   flex-direction: row;
-  gap: ${spacing.sm}px;
-  margin-top: ${spacing.md}px;
+  gap: 4px;
+  padding: 4px;
+  border-radius: ${radius.lg}px;
+  background-color: ${(props) => props.theme.surfaceAlt};
+  margin-bottom: ${spacing.md}px;
 `;
 
 const ScopeTab = styled(Pressable)`
@@ -613,32 +577,23 @@ const ScopeTab = styled(Pressable)`
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 44px;
-  border-radius: ${radius.lg}px;
+  min-height: 42px;
+  border-radius: ${radius.md}px;
   background-color: ${(props) =>
-    props.active ? "#ffffff" : "rgba(255, 255, 255, 0.12)"};
-  border-width: 1px;
-  border-color: ${(props) =>
-    props.active ? "#ffffff" : "rgba(255, 255, 255, 0.2)"};
+    props.active ? props.theme.surface : "transparent"};
 `;
 
 const ScopeLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 13.5px;
-  color: ${(props) => (props.active ? EMERALD : "rgba(255,255,255,0.85)")};
+  color: ${(props) => (props.active ? props.theme.text : props.theme.textMuted)};
 `;
 
-const Scroll = styled.ScrollView`
-  flex: 1;
-`;
-
-const SectionLabel = styled.Text`
-  font-family: ${fontFamily.bold};
-  font-size: 10.5px;
-  letter-spacing: 1.4px;
-  text-transform: uppercase;
-  color: ${(props) => props.theme.textMuted};
-  margin-bottom: 10px;
+const SectionTitle = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 16px;
+  color: ${(props) => props.theme.text};
+  margin-bottom: 11px;
   margin-top: ${spacing.sm}px;
 `;
 
@@ -652,115 +607,104 @@ const Grid = styled.View`
 const Tile = styled(Pressable)`
   flex-grow: 1;
   flex-basis: 46%;
-  min-height: 110px;
-  padding: 12px 13px;
+  min-height: 92px;
+  padding: 13px;
   border-radius: ${radius.lg}px;
   background-color: ${(props) =>
-    props.active ? EMERALD : props.theme.surface};
-  border-width: 1px;
-  border-color: ${(props) => (props.active ? EMERALD : props.theme.border)};
+    props.active ? "rgba(11,110,79,0.06)" : props.theme.surface};
+  border-width: 1.5px;
+  border-color: ${(props) =>
+    props.active ? "rgba(11,110,79,0.45)" : props.theme.border};
 `;
 
 const TileTop = styled.View`
   flex-direction: row;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 8px;
-`;
-
-const TileIcon = styled.View`
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
   align-items: center;
-  justify-content: center;
-  background-color: ${(props) =>
-    props.active ? "rgba(255, 255, 255, 0.2)" : props.theme.primaryLight};
+  justify-content: space-between;
+  margin-bottom: 9px;
 `;
 
-const CountPill = styled.View`
-  padding: 3px 8px;
-  border-radius: ${radius.lg}px;
-  background-color: ${(props) =>
-    props.active ? "rgba(255, 255, 255, 0.22)" : props.theme.surfaceAlt};
-`;
-
-const CountLabel = styled.Text`
+const TileCount = styled.Text`
   font-family: ${fontFamily.bold};
-  font-size: 10.5px;
-  color: ${(props) => (props.active ? "#ffffff" : props.theme.textMuted)};
+  font-size: 11px;
+  color: ${(props) => props.theme.textMuted};
 `;
 
 const TileLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 13.5px;
-  color: ${(props) => (props.active ? "#ffffff" : props.theme.text)};
+  color: ${(props) => (props.active ? EMERALD : props.theme.text)};
 `;
 
-const TileDetail = styled.Text`
+const TileExample = styled.Text`
   font-family: ${fontFamily.regular};
   font-size: 11px;
   line-height: 15px;
   margin-top: 3px;
-  color: ${(props) =>
-    props.active ? "rgba(255,255,255,0.75)" : props.theme.textMuted};
+  color: ${(props) => props.theme.textMuted};
 `;
 
-const TipsCard = styled.View`
-  padding: ${spacing.md}px;
+const SegmentRow = styled.View`
+  flex-direction: row;
+  gap: 3px;
+  padding: 4px;
   border-radius: ${radius.lg}px;
-  background-color: rgba(217, 164, 65, 0.1);
-  border-width: 1px;
-  border-color: rgba(217, 164, 65, 0.3);
-  margin-bottom: ${spacing.md}px;
-  gap: 9px;
+  background-color: ${(props) => props.theme.surfaceAlt};
+  margin-bottom: 10px;
 `;
 
-const TipRow = styled.View`
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 8px;
-`;
-
-const TipText = styled.Text`
-  flex: 1;
-  font-family: ${fontFamily.regular};
-  font-size: 12.5px;
-  line-height: 18px;
-  color: ${(props) => props.theme.text};
-`;
-
-const FilterRow = styled.View`
-  flex-direction: row;
+const Segment = styled(Pressable)`
+  flex-grow: 1;
+  flex-basis: 22%;
   align-items: center;
-  flex-wrap: wrap;
-  gap: ${spacing.sm}px;
-  margin-bottom: ${spacing.md}px;
-`;
-
-const FilterPill = styled(Pressable)`
-  flex-direction: row;
-  align-items: center;
-  gap: 7px;
+  justify-content: center;
   min-height: 38px;
-  padding: 0px 12px;
-  border-radius: ${radius.lg}px;
-  background-color: rgba(11, 110, 79, 0.09);
-  border-width: 1px;
-  border-color: rgba(11, 110, 79, 0.25);
+  border-radius: ${radius.md}px;
+  background-color: ${(props) => (props.active ? EMERALD : "transparent")};
 `;
 
-const FilterPillLabel = styled.Text`
+const SegmentLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 12px;
-  color: ${EMERALD};
+  color: ${(props) => (props.active ? "#ffffff" : props.theme.textMuted)};
 `;
 
-const FilterCount = styled.Text`
+const QualityNote = styled.Text`
   font-family: ${fontFamily.regular};
   font-size: 12px;
+  line-height: 18px;
   color: ${(props) => props.theme.textMuted};
-  flex-shrink: 1;
+  margin-bottom: ${spacing.md}px;
+`;
+
+const CountRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${spacing.sm}px;
+  margin-bottom: 10px;
+`;
+
+const CountText = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.semiBold};
+  font-size: 12.5px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+const SortNote = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 11.5px;
+  color: ${(props) => props.theme.textMuted};
+  flex-shrink: 0;
+`;
+
+const SearchNote = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 11.5px;
+  line-height: 17px;
+  color: ${(props) => props.theme.textMuted};
+  margin-bottom: ${spacing.md}px;
 `;
 
 const Card = styled(Pressable)`
@@ -770,8 +714,8 @@ const Card = styled(Pressable)`
   border-width: 1px;
   border-color: ${(props) => props.theme.border};
   margin-bottom: ${spacing.md}px;
-  gap: 10px;
-  opacity: ${(props) => (props.closed ? 0.68 : 1)};
+  gap: 9px;
+  opacity: ${(props) => (props.closed ? 0.66 : 1)};
 `;
 
 const CardTop = styled.View`
@@ -841,21 +785,23 @@ const MetaText = styled.Text`
   flex-shrink: 1;
 `;
 
-const ConditionPill = styled.View`
-  padding: 4px 9px;
-  border-radius: ${radius.lg}px;
-  background-color: ${(props) => props.theme.surfaceAlt};
+const KindPill = styled.View`
+  padding: 5px 10px;
+  border-radius: ${radius.md}px;
+  background-color: ${(props) => props.bg};
 `;
 
-const ConditionPillLabel = styled.Text`
+const KindLabel = styled.Text`
   font-family: ${fontFamily.bold};
-  font-size: 10.5px;
-  color: ${(props) => props.theme.text};
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: ${(props) => props.fg};
 `;
 
 const VerifiedBadge = styled.View`
   padding: 4px 8px;
-  border-radius: ${radius.lg}px;
+  border-radius: ${radius.md}px;
   background-color: rgba(11, 110, 79, 0.1);
 `;
 
@@ -871,10 +817,10 @@ const OpenPill = styled.View`
   flex-direction: row;
   align-items: center;
   gap: 6px;
-  padding: 4px 9px;
-  border-radius: ${radius.lg}px;
+  padding: 5px 10px;
+  border-radius: ${radius.md}px;
   background-color: ${(props) =>
-    props.open ? "rgba(11, 110, 79, 0.1)" : props.theme.surfaceAlt};
+    props.open ? "rgba(11, 110, 79, 0.09)" : props.theme.surfaceAlt};
 `;
 
 const OpenDot = styled.View`
@@ -890,11 +836,40 @@ const OpenLabel = styled.Text`
   color: ${(props) => (props.open ? EMERALD : props.theme.textMuted)};
 `;
 
-const DeclaredText = styled.Text`
+const QualityTag = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 11.5px;
+  color: ${EMERALD};
+`;
+
+const DetailLine = styled.Text`
   font-family: ${fontFamily.regular};
-  font-size: 12px;
+  font-size: 11.5px;
   line-height: 17px;
   color: ${(props) => props.theme.text};
+`;
+
+const MutedLine = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 11.5px;
+  line-height: 17px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+const FitPill = styled.View`
+  flex-direction: row;
+  align-items: center;
+  align-self: flex-start;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: ${radius.md}px;
+  background-color: rgba(11, 110, 79, 0.08);
+`;
+
+const FitLabel = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 10.5px;
+  color: ${EMERALD};
 `;
 
 const ActionRow = styled.View`
@@ -971,6 +946,59 @@ const EmptyCopy = styled.Text`
   font-size: 12.5px;
   line-height: 18px;
   color: ${(props) => props.theme.textMuted};
+`;
+
+const SuggestLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 11.5px;
+  color: ${(props) => props.theme.textMuted};
+  margin-top: ${spacing.md}px;
+  margin-bottom: 8px;
+`;
+
+const SuggestRow = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+
+const SuggestChip = styled(Pressable)`
+  flex-grow: 1;
+  flex-basis: auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0px 13px;
+  border-radius: ${radius.lg}px;
+  background-color: ${(props) => props.theme.surfaceAlt};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+`;
+
+const SuggestChipLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 12px;
+  color: ${(props) => props.theme.text};
+`;
+
+const SafetyCard = styled.View`
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 9px;
+  padding: ${spacing.md}px;
+  border-radius: ${radius.lg}px;
+  background-color: rgba(217, 164, 65, 0.1);
+  border-width: 1px;
+  border-color: rgba(217, 164, 65, 0.28);
+  margin-bottom: ${spacing.md}px;
+`;
+
+const SafetyText = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.regular};
+  font-size: 12px;
+  line-height: 18px;
+  color: ${(props) => props.theme.text};
 `;
 
 const PostCard = styled(Pressable)`

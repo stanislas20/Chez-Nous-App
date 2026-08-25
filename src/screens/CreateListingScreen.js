@@ -175,8 +175,9 @@ import { bodyworkServices } from "../data/bodywork";
 import {
   isPartsSellerListing,
   partCategories,
-  partConditions,
+  partQualities,
   partScopes,
+  partSellerKinds,
 } from "../data/vehicleParts";
 import {
   driverAvailability,
@@ -624,8 +625,22 @@ export function CreateListingScreen({ route, navigation }) {
   const [partCategoryKeys, setPartCategoryKeys] = useState(
     seed("partCategories", []),
   );
-  const [partConditionKeys, setPartConditionKeys] = useState(
-    seed("partConditions", []),
+  const [partQualityKeys, setPartQualityKeys] = useState(
+    seed("partQualities", []),
+  );
+  // Free text on purpose. A parts catalogue is exactly the data we do not
+  // have, so the shop writes what is on its shelf and the search reads that
+  // — a fixed list would silently make a part unfindable because we never
+  // thought of it.
+  const [partStock, setPartStock] = useState(seed("partStock", ""));
+  const [partSellerKind, setPartSellerKind] = useState(
+    seed("partSellerKind", null),
+  );
+  const [partBrands, setPartBrands] = useState(seed("partBrands", ""));
+  const [partWarranty, setPartWarranty] = useState(seed("partWarranty", ""));
+  const [partDelivery, setPartDelivery] = useState(seed("partDelivery", ""));
+  const [partChecksFit, setPartChecksFit] = useState(
+    seed("partChecksFit", false),
   );
 
   const [driverPermits, setDriverPermits] = useState(seed("driverPermits", []));
@@ -933,6 +948,12 @@ export function CreateListingScreen({ route, navigation }) {
     isServices &&
     (trade === "bodywork" ||
       matchesGarageSpecialty(`${title} ${description}`, "carro"));
+
+  // "Tous" is a filter on the browse screen, not something a shop can
+  // stock, so it is never offered as a declaration.
+  const declarablePartQualities = partQualities.filter(
+    (item) => item.key !== "all",
+  );
 
   const mentionsParts =
     isServices &&
@@ -1481,7 +1502,13 @@ export function CreateListingScreen({ route, navigation }) {
                 ? {
                     partScopes: partScopeKeys,
                     partCategories: partCategoryKeys,
-                    partConditions: partConditionKeys,
+                    partQualities: partQualityKeys,
+                    partSellerKind,
+                    partStock: partStock.trim() || null,
+                    partBrands: partBrands.trim() || null,
+                    partWarranty: partWarranty.trim() || null,
+                    partDelivery: partDelivery.trim() || null,
+                    partChecksFit,
                   }
                 : {}),
               ...(mentionsDriver
@@ -3906,6 +3933,33 @@ export function CreateListingScreen({ route, navigation }) {
 
               {mentionsParts ? (
                 <>
+                  <Label>{t("sellFieldPartKind")}</Label>
+                  <PickerGrid>
+                    {partSellerKinds.map((option, index) => {
+                      const active = partSellerKind === option.key;
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            partSellerKinds.length,
+                          )}
+                          full={isPickerCardFull(index, partSellerKinds.length)}
+                          selected={active}
+                          onPress={() =>
+                            setPartSellerKind(active ? null : option.key)
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
                   <Label>{t("sellFieldPartScopes")}</Label>
                   <PickerGrid>
                     {partScopes.map((option, index) => {
@@ -3966,22 +4020,25 @@ export function CreateListingScreen({ route, navigation }) {
                     })}
                   </PickerGrid>
 
-                  <Label>{t("sellFieldPartConditions")}</Label>
-                  <FieldNote>{t("sellPartConditionsHint")}</FieldNote>
+                  <Label>{t("sellFieldPartQualities")}</Label>
+                  <FieldNote>{t("sellPartQualitiesHint")}</FieldNote>
                   <PickerGrid>
-                    {partConditions.map((option, index) => {
-                      const active = partConditionKeys.includes(option.key);
+                    {declarablePartQualities.map((option, index) => {
+                      const active = partQualityKeys.includes(option.key);
                       return (
                         <PickerCard
                           key={option.key}
                           width={getPickerCardWidth(
                             index,
-                            partConditions.length,
+                            declarablePartQualities.length,
                           )}
-                          full={isPickerCardFull(index, partConditions.length)}
+                          full={isPickerCardFull(
+                            index,
+                            declarablePartQualities.length,
+                          )}
                           selected={active}
                           onPress={() =>
-                            setPartConditionKeys((prev) =>
+                            setPartQualityKeys((prev) =>
                               prev.includes(option.key)
                                 ? prev.filter((key) => key !== option.key)
                                 : [...prev, option.key],
@@ -3997,6 +4054,56 @@ export function CreateListingScreen({ route, navigation }) {
                       );
                     })}
                   </PickerGrid>
+
+                  <Label>{t("sellFieldPartStock")}</Label>
+                  <FieldNote>{t("sellPartStockHint")}</FieldNote>
+                  <TextArea
+                    value={partStock}
+                    onChangeText={setPartStock}
+                    placeholder={t("sellPartStockPlaceholder")}
+                    placeholderTextColor={colors.textMuted}
+                    multiline
+                    numberOfLines={4}
+                  />
+
+                  <Label>{t("sellFieldPartBrands")}</Label>
+                  <Input
+                    value={partBrands}
+                    onChangeText={setPartBrands}
+                    placeholder={t("sellPartBrandsPlaceholder")}
+                    placeholderTextColor={colors.textMuted}
+                  />
+
+                  <Label>{t("sellFieldPartWarranty")}</Label>
+                  <FieldNote>{t("sellPartWarrantyHint")}</FieldNote>
+                  <Input
+                    value={partWarranty}
+                    onChangeText={setPartWarranty}
+                    placeholder={t("sellPartWarrantyPlaceholder")}
+                    placeholderTextColor={colors.textMuted}
+                  />
+
+                  <Label>{t("sellFieldPartDelivery")}</Label>
+                  <Input
+                    value={partDelivery}
+                    onChangeText={setPartDelivery}
+                    placeholder={t("sellPartDeliveryPlaceholder")}
+                    placeholderTextColor={colors.textMuted}
+                  />
+
+                  <NegotiableRow
+                    onPress={() => setPartChecksFit((prev) => !prev)}
+                  >
+                    <Checkbox checked={partChecksFit}>
+                      {partChecksFit ? (
+                        <Ionicons name="checkmark" size={13} color="#ffffff" />
+                      ) : null}
+                    </Checkbox>
+                    <NegotiableLabel>
+                      {t("sellFieldPartChecksFit")}
+                    </NegotiableLabel>
+                  </NegotiableRow>
+                  <FieldNote>{t("sellPartChecksFitHint")}</FieldNote>
                 </>
               ) : null}
 

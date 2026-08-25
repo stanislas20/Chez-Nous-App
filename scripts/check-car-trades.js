@@ -415,51 +415,77 @@ D.driverNeeds.forEach((item) => {
 const P = load("src/data/vehicleParts.js", [
   "partScopes",
   "partCategories",
-  "partConditions",
-  "partBuyingTips",
+  "partQualities",
+  "partSellerKinds",
+  "commonPartSearches",
   "partCategoriesFor",
+  "getPartCategoryExample",
   "getPartCategoryLabel",
-  "getPartConditionLabel",
+  "getPartQualityLabel",
+  "getPartQualityNote",
+  "getPartSellerKindLabel",
+  "stockMatchesQuery",
   "isPartsSellerListing",
 ]);
 
 [
   ["partScopes", P.partScopes, ["labelEn", "labelFr", "icon"]],
+  ["partCategories", P.partCategories, ["labelEn", "labelFr", "icon"]],
   [
-    "partCategories",
-    P.partCategories,
-    ["labelEn", "labelFr", "detailEn", "detailFr", "icon"],
+    "partQualities",
+    P.partQualities,
+    ["labelEn", "labelFr", "noteEn", "noteFr"],
   ],
-  [
-    "partConditions",
-    P.partConditions,
-    ["labelEn", "labelFr", "detailEn", "detailFr", "icon"],
-  ],
-  ["partBuyingTips", P.partBuyingTips, ["labelEn", "labelFr", "icon"]],
+  ["partSellerKinds", P.partSellerKinds, ["labelEn", "labelFr"]],
 ].forEach(([name, list, fields]) => {
   bilingual(list, name, fields);
   unique(list, name);
 });
 
-const partScopeKeys = P.partScopes.map((item) => item.key);
+// Every family must belong to a scope that exists, and must carry an example
+// in whichever scope it appears — the example is what makes "Transmission"
+// mean a cardan on a car and a chain on a motorbike.
+const scopeKeys = P.partScopes.map((item) => item.key);
 P.partCategories.forEach((item) => {
-  if (!item.scopes?.length) fail(`part ${item.key}: no scopes`);
+  if (!item.scopes?.length) fail(`part family ${item.key}: no scopes`);
   item.scopes?.forEach((scope) => {
-    if (!partScopeKeys.includes(scope)) {
-      fail(`part ${item.key}: unknown scope ${scope}`);
+    if (!scopeKeys.includes(scope)) {
+      fail(`part family ${item.key}: unknown scope ${scope}`);
     }
+    ["en", "fr"].forEach((language) => {
+      if (!P.getPartCategoryExample(item, scope, language)) {
+        fail(`part family ${item.key}: no ${scope}/${language} example`);
+      }
+    });
   });
 });
 
 // Both scopes must stand on their own, or a toggle position is a dead end.
-partScopeKeys.forEach((scope) => {
+scopeKeys.forEach((scope) => {
   const list = P.partCategoriesFor(scope);
-  if (list.length < 4) fail(`scope ${scope}: only ${list.length} categories`);
+  if (list.length < 5) fail(`scope ${scope}: only ${list.length} families`);
+  if (!P.commonPartSearches[scope]?.length) {
+    fail(`scope ${scope}: no suggested searches for an empty result`);
+  }
+});
+
+// "all" is a filter, never a declaration — and it must carry a note like the
+// rest, because it is the one selected when the screen opens.
+if (!P.partQualities.some((item) => item.key === "all")) {
+  fail("partQualities: no 'all' option for the browse screen");
+}
+P.partQualities.forEach((item) => {
+  ["en", "fr"].forEach((language) => {
+    if (!P.getPartQualityNote(item.key, language)) {
+      fail(`quality ${item.key}: no ${language} note`);
+    }
+  });
 });
 
 [
-  [P.partCategories, P.getPartCategoryLabel, "part category"],
-  [P.partConditions, P.getPartConditionLabel, "part condition"],
+  [P.partCategories, P.getPartCategoryLabel, "part family"],
+  [P.partQualities, P.getPartQualityLabel, "part quality"],
+  [P.partSellerKinds, P.getPartSellerKindLabel, "seller kind"],
 ].forEach(([list, getter, what]) => {
   list.forEach((item) => {
     ["en", "fr"].forEach((language) => {
@@ -469,6 +495,26 @@ partScopeKeys.forEach((scope) => {
   });
   if (getter("nope", "fr") !== null) {
     fail(`${what} getter should return null for an unknown key`);
+  }
+});
+
+// The stock search: loose enough to survive a plural, tight enough to mean
+// something. A shop writes one form of the word and a buyer types another.
+const STOCK =
+  "plaquette de frein avant, amortisseurs, filtre à huile, alternateur";
+[
+  ["plaquettes", true],
+  ["plaquette", true],
+  ["amortisseur", true],
+  ["filtre huile", true],
+  ["ALTERNATEUR", true],
+  ["radiateur", false],
+  ["carburateur", false],
+  ["", true],
+  ["a", true],
+].forEach(([query, expected]) => {
+  if (P.stockMatchesQuery(STOCK, query) !== expected) {
+    fail(`stock search "${query}": expected ${expected}`);
   }
 });
 
@@ -492,8 +538,9 @@ partScopeKeys.forEach((scope) => {
   "Quincaillerie : pièces de rechange pour pompe",
   "Plomberie et pièces de rechange sanitaires",
 ].forEach((text) => {
-  if (P.isPartsSellerListing(text))
+  if (P.isPartsSellerListing(text)) {
     fail(`"${text}" wrongly reads as a parts seller`);
+  }
 });
 
 if (failures.length) {
@@ -508,5 +555,5 @@ console.log(
     `${C.bodyworkServices.length} services, ${C.bodyworkParts.length} parts; ` +
     `drivers — ${D.driverNeeds.length} needs, ${D.permitCategories.length} permits, ` +
     `${D.driverLanguages.length} languages, 14 matcher cases; ` +
-    `parts — ${P.partCategories.length} systems, ${P.partConditions.length} conditions, 12 matcher cases`,
+    `parts — ${P.partCategories.length} families, ${P.partQualities.length} qualities, ${P.partSellerKinds.length} shop kinds, 21 cases`,
 );

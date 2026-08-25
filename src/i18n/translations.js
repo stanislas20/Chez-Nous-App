@@ -932,32 +932,66 @@ export const translations = {
     moderationFailed:
       "That did not go through. If the permission is new, sign out and back in, then try again.",
     moderationDashboardTile: "Review queue",
-    partsEyebrow: "Parts",
-    partsTitle: "Vehicle parts",
+    partsEyebrow: "Parts & accessories",
+    partsTitle: "Which part are you looking for?",
+    partsTitleMoto: "Which motorbike part?",
     partsIntro:
-      "Where to buy one. Whether it fits your vehicle is a question for the seller.",
-    partsCategoryLabel: "What are you looking for?",
-    partsConditionLabel: "New, used or aftermarket",
-    partsTipsLabel: "Before you pay",
-    partsSellersLabel: "Parts sellers near you",
-    partsSellerCount: "{count} seller(s)",
+      "Name the part. We show who says they stock it, in original, aftermarket or used — and who checks it fits before selling.",
+    partsIntroMoto:
+      "On a Bajaj, Haojue or Sanya the same reference exists original and aftermarket. The maker's name counts for more than the price.",
+    partsSearchPlaceholder: "Part name or reference",
+    partsScopeCar: "car",
+    partsScopeMoto: "motorbike",
+    partsFamiliesLabel: "Families of parts",
+    partsQualityLabel: "Quality of the part",
+    partsOpenFirst: "Open first",
+    partsCountAll: "{count} {scope} parts seller(s)",
+    partsCountCategory: "{count} seller(s) — {category}",
+    partsCountSearch: "{count} seller(s) list “{item}”",
+    partsSearchNote:
+      "Searching what sellers say they keep in stock. An exact reference is confirmed on the phone, not here.",
+    partsChecksFit: "Checks fitment before selling",
     partsNoSellers: "No parts seller has published yet",
     partsNoneMatching: "No seller matches those filters",
+    partsNoneForSearch: "Nobody lists “{item}”",
+    partsNoneForSearchCopy:
+      "Nobody has declared it in stock — which is not the same as nobody having it. Try another wording, or call a wholesaler.",
     partsNoSellersCopy:
       "This list fills as shops publish. A shop that left a field blank still appears — an empty answer is treated as unknown, not as no.",
+    partsSuggestLabel: "Commonly asked for:",
+    partsSafetyNote:
+      "Note the reference on the old part before buying, and keep it until the new one is fitted. On a used part, pay after testing: a starter or an alternator is tested in two minutes.",
     partsPostTitle: "Do you sell parts?",
     partsPostCopy: "Publish your shop and appear in this list.",
     partsQuoteOpen: "Hello, I am contacting you through Chez-Nous.",
+    partsQuoteItem: "I am looking for: {item}.",
     partsQuoteCategory: "I am looking for: {category}.",
-    partsQuoteCondition: "Condition: {condition}.",
+    partsQuoteQuality: "Quality: {quality}.",
     partsQuoteAsk: "Do you have it, and at what price?",
     sellTradeParts: "Parts seller",
+    sellPartStockPlaceholder:
+      "plaquettes de frein, alternateur, filtre à huile, radiateur…",
+    sellPartBrandsPlaceholder: "e.g. Toyota, Hyundai, Peugeot",
+    sellPartWarrantyPlaceholder: "e.g. 3 months on original parts",
+    sellPartDeliveryPlaceholder: "e.g. Delivery in Cotonou, 1 500 FCFA",
+    sellFieldPartKind: "What kind of business",
+    sellFieldPartStock: "Parts you keep in stock",
+    sellPartStockHint:
+      "One per line or separated by commas. This is what buyers search — a part you do not list will not be found.",
+    sellFieldPartBrands: "Makes you supply",
+    sellFieldPartWarranty: "Warranty or exchange",
+    sellPartWarrantyHint:
+      "e.g. 3 months on original parts. Leave blank if none.",
+    sellFieldPartDelivery: "Delivery or collection",
+    sellFieldPartChecksFit: "I check the part fits before selling",
+    sellPartChecksFitHint:
+      "Only tick this if you actually check. Buyers choose on it.",
     sellFieldPartScopes: "Vehicles you supply",
-    sellFieldPartCategories: "Systems you stock",
+    sellFieldPartCategories: "Families you stock",
     sellPartCategoriesHint:
       "Only what you actually keep. This is what buyers filter on before calling.",
-    sellFieldPartConditions: "New, used or aftermarket",
-    sellPartConditionsHint:
+    sellFieldPartQualities: "Original, aftermarket or used",
+    sellPartQualitiesHint:
       "The answer buyers most want and listings most often leave out.",
     sellTitleHint_parts: "e.g. Pièces auto Ganhi — new and used",
     sellTitleNote_parts:
@@ -3020,32 +3054,66 @@ export const translations = {
     moderationFailed:
       "Cela n’a pas fonctionné. Si le droit vient d’être accordé, déconnectez-vous puis reconnectez-vous avant de réessayer.",
     moderationDashboardTile: "File de validation",
-    partsEyebrow: "Pièces",
-    partsTitle: "Pièces détachées",
+    partsEyebrow: "Pièces & accessoires",
+    partsTitle: "Quelle pièce cherchez-vous ?",
+    partsTitleMoto: "Quelle pièce de moto ?",
     partsIntro:
-      "Où en acheter une. Si elle va sur votre véhicule, c’est au vendeur de le dire.",
-    partsCategoryLabel: "Que cherchez-vous ?",
-    partsConditionLabel: "Neuf, occasion ou adaptable",
-    partsTipsLabel: "Avant de payer",
-    partsSellersLabel: "Vendeurs de pièces près de vous",
-    partsSellerCount: "{count} vendeur(s)",
+      "Donnez la pièce. Nous montrons qui la déclare en stock, en origine, en adaptable ou en occasion, et qui vérifie la compatibilité avant de vendre.",
+    partsIntroMoto:
+      "Sur les Bajaj, Haojue et Sanya, la même référence existe en origine et en adaptable. Le nom du fabricant compte plus que le prix affiché.",
+    partsSearchPlaceholder: "Référence ou nom de la pièce",
+    partsScopeCar: "auto",
+    partsScopeMoto: "moto",
+    partsFamiliesLabel: "Familles de pièces",
+    partsQualityLabel: "Qualité de la pièce",
+    partsOpenFirst: "Ouverts d’abord",
+    partsCountAll: "{count} vendeur(s) de pièces {scope}",
+    partsCountCategory: "{count} vendeur(s) — {category}",
+    partsCountSearch: "{count} vendeur(s) déclarent « {item} »",
+    partsSearchNote:
+      "Recherche sur les pièces déclarées en stock. Une référence exacte se confirme au téléphone, pas ici.",
+    partsChecksFit: "Vérifie la compatibilité avant vente",
     partsNoSellers: "Aucun vendeur de pièces n’a encore publié",
     partsNoneMatching: "Aucun vendeur ne correspond à ces filtres",
+    partsNoneForSearch: "Personne ne déclare « {item} »",
+    partsNoneForSearchCopy:
+      "Personne ne l’a déclarée en stock — ce qui ne veut pas dire que personne ne l’a. Essayez une autre formulation, ou appelez un grossiste.",
     partsNoSellersCopy:
       "Cette liste se remplit au fur et à mesure des publications. Un magasin qui a laissé un champ vide apparaît quand même : une réponse absente est traitée comme inconnue, pas comme un non.",
+    partsSuggestLabel: "Pièces couramment demandées :",
+    partsSafetyNote:
+      "Notez la référence inscrite sur l’ancienne pièce avant d’acheter, et gardez-la jusqu’au montage. Sur une pièce d’occasion, payez après essai : un démarreur ou un alternateur se teste en deux minutes.",
     partsPostTitle: "Vous vendez des pièces ?",
     partsPostCopy: "Publiez votre magasin et apparaissez dans cette liste.",
     partsQuoteOpen: "Bonjour, je vous contacte via Chez-Nous.",
+    partsQuoteItem: "Je cherche : {item}.",
     partsQuoteCategory: "Je cherche : {category}.",
-    partsQuoteCondition: "État : {condition}.",
+    partsQuoteQuality: "Qualité : {quality}.",
     partsQuoteAsk: "L’avez-vous, et à quel prix ?",
     sellTradeParts: "Vendeur de pièces",
+    sellPartStockPlaceholder:
+      "plaquettes de frein, alternateur, filtre à huile, radiateur…",
+    sellPartBrandsPlaceholder: "ex. Toyota, Hyundai, Peugeot",
+    sellPartWarrantyPlaceholder: "ex. Garantie 3 mois sur pièces origine",
+    sellPartDeliveryPlaceholder: "ex. Livraison Cotonou, 1 500 FCFA",
+    sellFieldPartKind: "Type d’établissement",
+    sellFieldPartStock: "Pièces que vous avez en stock",
+    sellPartStockHint:
+      "Une par ligne ou séparées par des virgules. C’est là-dessus que les clients cherchent — une pièce non listée ne sera pas trouvée.",
+    sellFieldPartBrands: "Marques que vous fournissez",
+    sellFieldPartWarranty: "Garantie ou échange",
+    sellPartWarrantyHint:
+      "ex. Garantie 3 mois sur pièces origine. Laissez vide si aucune.",
+    sellFieldPartDelivery: "Livraison ou retrait",
+    sellFieldPartChecksFit: "Je vérifie la compatibilité avant de vendre",
+    sellPartChecksFitHint:
+      "Ne cochez que si vous le faites vraiment. Les acheteurs choisissent là-dessus.",
     sellFieldPartScopes: "Véhicules que vous fournissez",
-    sellFieldPartCategories: "Systèmes que vous avez en stock",
+    sellFieldPartCategories: "Familles que vous avez en stock",
     sellPartCategoriesHint:
       "Uniquement ce que vous avez vraiment. C’est là-dessus que les clients filtrent avant d’appeler.",
-    sellFieldPartConditions: "Neuf, occasion ou adaptable",
-    sellPartConditionsHint:
+    sellFieldPartQualities: "Origine, adaptable ou occasion",
+    sellPartQualitiesHint:
       "La réponse que les acheteurs cherchent le plus et que les annonces oublient le plus souvent.",
     sellTitleHint_parts: "ex. Pièces auto Ganhi — neuf et occasion",
     sellTitleNote_parts:

@@ -209,7 +209,14 @@ const Container = styled(SafeAreaView)`
   background-color: ${(props) => props.theme.background};
 `;
 
+// Curved at the base like every other header in the app. Nothing straddles
+// this one: what follows is the map, and the map is content to scroll
+// through rather than a control to set. Lifting it onto the seam would mean
+// pinning it out of the scroll, which costs a real thing to gain a shape.
 const Hero = styled(LinearGradient)`
+  overflow: hidden;
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
   padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px
     ${spacing.lg}px;
 `;

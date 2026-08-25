@@ -65,7 +65,6 @@ export function DriversScreen({ navigation }) {
 
   const drivers = useDrivers(coords);
   const ratings = useSellerRatings(drivers.map((item) => item.sellerId));
-
   const matching = useMemo(
     () => driversForOccasion(drivers, occasion),
     [drivers, occasion],

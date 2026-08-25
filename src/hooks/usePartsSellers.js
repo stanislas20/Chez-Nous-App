@@ -56,10 +56,16 @@ export function usePartsSellers(userCoords) {
               listing.closeTime,
             ),
             place: listing.quartier || listing.area || listing.city || null,
-            // The shop's own first photo — a shopfront, a counter, a shelf.
-            // Nothing fetched or invented, and the monogram stays as the
-            // fallback so a shop without one is not a grey silhouette.
-            photoUrl: listing.mediaUrl ?? listing.media?.[0]?.mediaUrl ?? null,
+            // The shop's own first photo — a shopfront, a counter, a shelf —
+            // then the picture on the account, which the listing already
+            // carries a copy of. Nothing fetched or invented, and the
+            // monogram stays last so a shop without either is not a grey
+            // silhouette.
+            photoUrl:
+              listing.mediaUrl ??
+              listing.media?.[0]?.mediaUrl ??
+              listing.sellerPhotoUrl ??
+              null,
           };
         }),
     );

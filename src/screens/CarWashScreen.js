@@ -7,7 +7,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
-import { radius, spacing } from "../theme/colors";
+import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
@@ -559,11 +559,7 @@ const ModeCard = styled.View`
   background-color: ${(props) => props.theme.surface};
   border-width: 1px;
   border-color: ${(props) => props.theme.border};
-  shadow-color: #062e3d;
-  shadow-offset: 0px 8px;
-  shadow-opacity: 0.18;
-  shadow-radius: 18px;
-  elevation: 8;
+  ${shadow.card}
 `;
 
 const ModeTab = styled(Pressable)`

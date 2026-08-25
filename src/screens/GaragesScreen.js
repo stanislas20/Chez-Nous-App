@@ -337,14 +337,20 @@ export function GaragesScreen({ navigation, route }) {
         </HeroTop>
         <HeroTitle>{t("garagesTitle")}</HeroTitle>
         <HeroCopy>{t("garagesIntro")}</HeroCopy>
+      </Hero>
 
-        <HeroSearch>
-          <Ionicons name="search" size={16} color="rgba(255,255,255,0.75)" />
+      {/* Still the first thing on the screen, and now sitting astride the
+          banner's edge rather than sunk into it. Translucent white on a dark
+          gradient reads as a label; on its own card it reads as a field, and
+          the difference is whether anybody types in it. */}
+      <SearchDock>
+        <SearchCard>
+          <Ionicons name="search" size={17} color={colors.textMuted} />
           <HeroInput
             value={search}
             onChangeText={setSearch}
             placeholder={t("garagesSearchPlaceholder")}
-            placeholderTextColor="rgba(255,255,255,0.6)"
+            placeholderTextColor={colors.textMuted}
             returnKeyType="search"
           />
           {search.length > 0 ? (
@@ -352,12 +358,12 @@ export function GaragesScreen({ navigation, route }) {
               <Ionicons
                 name="close-circle"
                 size={17}
-                color="rgba(255,255,255,0.7)"
+                color={colors.textMuted}
               />
             </Pressable>
           ) : null}
-        </HeroSearch>
-      </Hero>
+        </SearchCard>
+      </SearchDock>
 
       <ScrollView
         ref={scrollRef}
@@ -944,9 +950,14 @@ const Container = styled(SafeAreaView)`
   background-color: ${(props) => props.theme.background};
 `;
 
+// Curved at the base like every other header in the app, with room at the
+// bottom for the search field that overlaps it: 54px, of which the card
+// takes back 30.
 const Hero = styled(LinearGradient)`
-  padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px
-    ${spacing.lg}px;
+  overflow: hidden;
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
+  padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px 54px;
 `;
 
 const HeroTop = styled.View`
@@ -989,26 +1000,32 @@ const HeroCopy = styled.Text`
   max-width: 310px;
 `;
 
-// Sits inside the hero rather than below it, so the first thing on the
-// screen is a way to say what you are looking for.
-const HeroSearch = styled.View`
+// Pulled up over the banner's curve, so the banner reads as a surface with
+// something resting on it rather than a block with a gap beneath.
+const SearchDock = styled.View`
+  z-index: 2;
+  margin-top: -30px;
+  padding: 0px ${spacing.md}px;
+`;
+
+const SearchCard = styled.View`
   flex-direction: row;
   align-items: center;
   gap: ${spacing.sm}px;
-  margin-top: ${spacing.md}px;
-  padding: 0 14px;
-  height: 46px;
-  border-radius: 16px;
-  background-color: rgba(255, 255, 255, 0.13);
+  padding: 0px 16px;
+  height: 56px;
+  border-radius: ${radius.xl}px;
+  background-color: ${(props) => props.theme.surface};
   border-width: 1px;
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: ${(props) => props.theme.border};
+  ${shadow.card}
 `;
 
 const HeroInput = styled(TextInput)`
   flex: 1;
   font-family: ${fontFamily.regular};
   font-size: 14px;
-  color: #ffffff;
+  color: ${(props) => props.theme.text};
   padding: 0px;
 `;
 

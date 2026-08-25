@@ -744,9 +744,8 @@ export function CreateListingScreen({ route, navigation }) {
   // Carrosserie, the Voitures tiles) already arrives with a category, and
   // those must not be interrupted; nor must editing, where the category is
   // already settled.
-  const [categorySheetOpen, setCategorySheetOpen] = useState(
-    !initialCategoryKey && !editing,
-  );
+  const openedOnCategory = !initialCategoryKey && !editing;
+  const [categorySheetOpen, setCategorySheetOpen] = useState(openedOnCategory);
   const [locationSheetOpen, setLocationSheetOpen] = useState(false);
   const [citySearch, setCitySearch] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -852,14 +851,27 @@ export function CreateListingScreen({ route, navigation }) {
         : accountCountry(user)?.nameFr))
     : null;
 
-  // The header follows the category actually chosen, not the one the route
-  // arrived with. Without this, picking Services from the sheet left
-  // "Vendre un article" above a form about a service.
-  useEffect(() => {
-    navigation.setOptions({
-      title: t(postingTitleKey(selectedCategory, { isPromoted })),
-    });
-  }, [navigation, selectedCategory, isPromoted, t]);
+  // Dismissing the sheet the form opened itself leaves the form.
+  //
+  // A Modal draws above the navigator header, so while this sheet is up the
+  // back arrow is visible, dimmed and untappable — somebody trying to leave
+  // taps it and nothing happens. When the sheet is the first thing on screen
+  // it is not a detail of the form, it IS the first step, so backing out of
+  // it has to back out of the form. Reopened later by tapping the category
+  // row, it is just a picker again and closes to the form as before.
+  const dismissCategorySheet = () => {
+    setCategorySheetOpen(false);
+    if (openedOnCategory && !selectedCategory && navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  };
+
+  // Follows the category actually chosen, not the one the route arrived
+  // with — picking Services from the sheet used to leave "Vendre un article"
+  // above a form about a service.
+  const formTitle = editing
+    ? t("editFormTitle")
+    : t(postingTitleKey(selectedCategory, { isPromoted }));
 
   const serviceText = `${title} ${description}`;
   const serviceTrades = isServices ? garageSpecialtiesFor(serviceText) : [];
@@ -1913,7 +1925,7 @@ export function CreateListingScreen({ route, navigation }) {
           <BackButton onPress={() => navigation.goBack()} hitSlop={8}>
             <Ionicons name="arrow-back" size={20} color={colors.text} />
           </BackButton>
-          <HeaderTitle numberOfLines={1}>{t("sellFormTitle")}</HeaderTitle>
+          <HeaderTitle numberOfLines={1}>{formTitle}</HeaderTitle>
         </HeaderRow>
 
         <BlockedWrap>
@@ -1965,9 +1977,7 @@ export function CreateListingScreen({ route, navigation }) {
           <BackButton onPress={() => navigation.goBack()} hitSlop={8}>
             <Ionicons name="arrow-back" size={20} color={colors.text} />
           </BackButton>
-          <HeaderTitle numberOfLines={1}>
-            {t(editing ? "editFormTitle" : "sellFormTitle")}
-          </HeaderTitle>
+          <HeaderTitle numberOfLines={1}>{formTitle}</HeaderTitle>
           <DraftLabel>{t("sellDraftLabel")}</DraftLabel>
         </HeaderRow>
 
@@ -5171,9 +5181,9 @@ export function CreateListingScreen({ route, navigation }) {
         visible={categorySheetOpen}
         animationType="slide"
         transparent
-        onRequestClose={() => setCategorySheetOpen(false)}
+        onRequestClose={dismissCategorySheet}
       >
-        <SheetBackdrop onPress={() => setCategorySheetOpen(false)}>
+        <SheetBackdrop onPress={dismissCategorySheet}>
           <Sheet onStartShouldSetResponder={() => true}>
             <SheetHandle />
             <SheetTitle>{t("sellChooseCategoryTitle")}</SheetTitle>

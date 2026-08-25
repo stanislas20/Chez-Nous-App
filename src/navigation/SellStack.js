@@ -19,7 +19,6 @@ import { MyListingsScreen } from "../screens/MyListingsScreen";
 import { ParkInventoryScreen } from "../screens/ParkInventoryScreen";
 import { SellerInsightsScreen } from "../screens/SellerInsightsScreen";
 import { categories } from "../data/categories";
-import { postingTitleKey } from "../data/postingTitles";
 
 const Stack = createNativeStackNavigator();
 
@@ -134,15 +133,11 @@ export function SellStack() {
           <Stack.Screen
             name="CreateListing"
             component={CreateListingScreen}
-            options={({ route }) => ({
-              // Only the first paint. Once a category is chosen inside the
-              // form, the screen sets this itself — see CreateListingScreen.
-              title: t(
-                postingTitleKey(route.params?.categoryKey, {
-                  isPromoted: route.params?.isPromoted,
-                }),
-              ),
-            })}
+            // The screen draws its own header row, so the navigator's would
+            // be a second title bar with a second back arrow above it. Two
+            // arrows is one too many to explain, and the screen's own can
+            // follow the category as it changes.
+            options={{ headerShown: false }}
           />
           <Stack.Screen
             name="MyListings"

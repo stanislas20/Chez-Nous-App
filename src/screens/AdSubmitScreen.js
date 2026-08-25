@@ -24,7 +24,9 @@ function VideoPreview({ uri }) {
     p.muted = true;
     p.play();
   });
-  return <PreviewVideo player={player} contentFit="cover" nativeControls={false} />;
+  return (
+    <PreviewVideo player={player} contentFit="cover" nativeControls={false} />
+  );
 }
 
 export function AdSubmitScreen() {
@@ -83,13 +85,17 @@ export function AdSubmitScreen() {
       const storageRef = ref(storage, mediaPath);
       // storage.rules gates on contentType; an RN blob has none.
       const uploadTask = uploadBytesResumable(storageRef, blob, {
-        contentType: guessContentType(asset.uri, asset.type === "video" ? "video" : "image"),
+        contentType: guessContentType(
+          asset.uri,
+          asset.type === "video" ? "video" : "image",
+        ),
       });
 
       await new Promise((resolve, reject) => {
         uploadTask.on(
           "state_changed",
-          (snapshot) => setProgress(snapshot.bytesTransferred / snapshot.totalBytes),
+          (snapshot) =>
+            setProgress(snapshot.bytesTransferred / snapshot.totalBytes),
           reject,
           resolve,
         );
@@ -125,7 +131,9 @@ export function AdSubmitScreen() {
       <Content>
         <AdvertiserBanner>
           <AdvertiserBannerLabel>{t("advertisingAs")}</AdvertiserBannerLabel>
-          <AdvertiserBannerName>{advertiserProfile?.businessName}</AdvertiserBannerName>
+          <AdvertiserBannerName>
+            {advertiserProfile?.businessName}
+          </AdvertiserBannerName>
         </AdvertiserBanner>
 
         <SectionTitle>{t("adSubmitFormTitle")}</SectionTitle>
@@ -140,7 +148,11 @@ export function AdSubmitScreen() {
             )
           ) : (
             <MediaPickerPlaceholder>
-              <Ionicons name="cloud-upload-outline" size={28} color={colors.primary} />
+              <Ionicons
+                name="cloud-upload-outline"
+                size={28}
+                color={colors.primary}
+              />
               <MediaPickerLabel>{t("adPickImageButton")}</MediaPickerLabel>
             </MediaPickerPlaceholder>
           )}

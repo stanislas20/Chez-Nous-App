@@ -1,13 +1,13 @@
-import { useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import styled from 'styled-components/native';
-import { radius, spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { type } from '../theme/typography';
-import { useI18n } from '../i18n/I18nContext';
-import { useAuth } from '../auth/AuthContext';
-import { isValidPhone, mapAuthErrorToKey } from '../auth/phoneAuth';
+import { useState } from "react";
+import { ActivityIndicator, Alert, Platform, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import styled from "styled-components/native";
+import { radius, spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { type } from "../theme/typography";
+import { useI18n } from "../i18n/I18nContext";
+import { useAuth } from "../auth/AuthContext";
+import { isValidPhone, mapAuthErrorToKey } from "../auth/phoneAuth";
 
 const contentContainerStyle = { padding: spacing.lg };
 
@@ -15,17 +15,17 @@ export function AdvertiseLoginScreen({ navigation }) {
   const { colors } = useTheme();
   const { t } = useI18n();
   const { logInAdvertiser } = useAuth();
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     if (!phone.trim() || !password) {
-      Alert.alert(t('advertiserLoginTitle'), t('errorRequiredFields'));
+      Alert.alert(t("advertiserLoginTitle"), t("errorRequiredFields"));
       return;
     }
     if (!isValidPhone(phone)) {
-      Alert.alert(t('advertiserLoginTitle'), t('errorInvalidPhone'));
+      Alert.alert(t("advertiserLoginTitle"), t("errorInvalidPhone"));
       return;
     }
 
@@ -33,39 +33,39 @@ export function AdvertiseLoginScreen({ navigation }) {
     try {
       await logInAdvertiser({ phone, password });
     } catch (error) {
-      Alert.alert(t('advertiserLoginTitle'), t(mapAuthErrorToKey(error)));
+      Alert.alert(t("advertiserLoginTitle"), t(mapAuthErrorToKey(error)));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Flex behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Container edges={['left', 'right', 'bottom']}>
+    <Flex behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <Container edges={["left", "right", "bottom"]}>
         <Content
           contentContainerStyle={contentContainerStyle}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Title>{t('advertiserLoginTitle')}</Title>
-          <Subtitle>{t('advertiserLoginSubtitle')}</Subtitle>
+          <Title>{t("advertiserLoginTitle")}</Title>
+          <Subtitle>{t("advertiserLoginSubtitle")}</Subtitle>
 
-          <Label>{t('fieldPhone')}</Label>
+          <Label>{t("fieldPhone")}</Label>
           <Input
             value={phone}
             onChangeText={setPhone}
-            placeholder={t('fieldPhonePlaceholder')}
+            placeholder={t("fieldPhonePlaceholder")}
             placeholderTextColor={colors.textMuted}
             keyboardType="phone-pad"
             maxLength={10}
             autoCapitalize="none"
           />
 
-          <Label>{t('fieldPassword')}</Label>
+          <Label>{t("fieldPassword")}</Label>
           <Input
             value={password}
             onChangeText={setPassword}
-            placeholder={t('fieldPasswordPlaceholder')}
+            placeholder={t("fieldPasswordPlaceholder")}
             placeholderTextColor={colors.textMuted}
             secureTextEntry
             autoCapitalize="none"
@@ -75,14 +75,14 @@ export function AdvertiseLoginScreen({ navigation }) {
             {isSubmitting ? (
               <ActivityIndicator color={colors.textInverse} />
             ) : (
-              <SubmitLabel>{t('loginButton')}</SubmitLabel>
+              <SubmitLabel>{t("loginButton")}</SubmitLabel>
             )}
           </SubmitButton>
 
           <FooterRow>
-            <FooterText>{t('noAccountYet')} </FooterText>
-            <Pressable onPress={() => navigation.navigate('AdvertiseSignUp')}>
-              <FooterLink>{t('goToSignUp')}</FooterLink>
+            <FooterText>{t("noAccountYet")} </FooterText>
+            <Pressable onPress={() => navigation.navigate("AdvertiseSignUp")}>
+              <FooterLink>{t("goToSignUp")}</FooterLink>
             </Pressable>
           </FooterRow>
         </Content>

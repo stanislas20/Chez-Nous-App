@@ -1,11 +1,11 @@
-import { Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import styled from 'styled-components/native';
-import { radius, spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { type } from '../theme/typography';
-import { useI18n } from '../i18n/I18nContext';
+import { Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import styled from "styled-components/native";
+import { radius, spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { type } from "../theme/typography";
+import { useI18n } from "../i18n/I18nContext";
 
 export function AdvertiseGateScreen({ navigation }) {
   const { colors } = useTheme();
@@ -16,15 +16,19 @@ export function AdvertiseGateScreen({ navigation }) {
       <IconWrap>
         <Ionicons name="megaphone-outline" size={40} color={colors.primary} />
       </IconWrap>
-      <Title>{t('advertiseGateTitle')}</Title>
-      <Subtitle>{t('advertiseGateSubtitle')}</Subtitle>
+      <Title>{t("advertiseGateTitle")}</Title>
+      <Subtitle>{t("advertiseGateSubtitle")}</Subtitle>
 
-      <PrimaryButton onPress={() => navigation.navigate('AdvertiseSignUp')}>
-        <PrimaryButtonLabel>{t('advertiseGateSignUpButton')}</PrimaryButtonLabel>
+      <PrimaryButton onPress={() => navigation.navigate("AdvertiseSignUp")}>
+        <PrimaryButtonLabel>
+          {t("advertiseGateSignUpButton")}
+        </PrimaryButtonLabel>
       </PrimaryButton>
 
-      <SecondaryButton onPress={() => navigation.navigate('AdvertiseLogin')}>
-        <SecondaryButtonLabel>{t('advertiseGateLoginButton')}</SecondaryButtonLabel>
+      <SecondaryButton onPress={() => navigation.navigate("AdvertiseLogin")}>
+        <SecondaryButtonLabel>
+          {t("advertiseGateLoginButton")}
+        </SecondaryButtonLabel>
       </SecondaryButton>
     </Container>
   );

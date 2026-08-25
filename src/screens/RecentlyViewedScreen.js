@@ -1,18 +1,22 @@
-import { FlatList } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
-import { Ionicons } from '@expo/vector-icons';
-import styled from 'styled-components/native';
-import { spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { type } from '../theme/typography';
-import { ListingCard } from '../components/ListingCard';
-import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
-import { useI18n } from '../i18n/I18nContext';
+import { FlatList } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import styled from "styled-components/native";
+import { spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { type } from "../theme/typography";
+import { ListingCard } from "../components/ListingCard";
+import { useRecentlyViewed } from "../hooks/useRecentlyViewed";
+import { useI18n } from "../i18n/I18nContext";
 
-const listContentStyle = { paddingHorizontal: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.md };
-const rowStyle = { justifyContent: 'space-between' };
+const listContentStyle = {
+  paddingHorizontal: spacing.md,
+  paddingTop: spacing.lg,
+  paddingBottom: spacing.md,
+};
+const rowStyle = { justifyContent: "space-between" };
 
 export function RecentlyViewedScreen() {
   const { colors } = useTheme();
@@ -29,18 +33,18 @@ export function RecentlyViewedScreen() {
 
   if (listings !== null && listings.length === 0) {
     return (
-      <Container edges={['left', 'right', 'bottom']}>
+      <Container edges={["left", "right", "bottom"]}>
         <EmptyState>
           <Ionicons name="time-outline" size={40} color={colors.textMuted} />
-          <EmptyTitle>{t('recentlyViewedEmptyTitle')}</EmptyTitle>
-          <EmptySubtitle>{t('recentlyViewedEmptySubtitle')}</EmptySubtitle>
+          <EmptyTitle>{t("recentlyViewedEmptyTitle")}</EmptyTitle>
+          <EmptySubtitle>{t("recentlyViewedEmptySubtitle")}</EmptySubtitle>
         </EmptyState>
       </Container>
     );
   }
 
   return (
-    <Container edges={['left', 'right', 'bottom']}>
+    <Container edges={["left", "right", "bottom"]}>
       <FlatList
         data={listings ?? []}
         keyExtractor={(item) => item.id}

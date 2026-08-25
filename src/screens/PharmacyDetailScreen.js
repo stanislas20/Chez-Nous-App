@@ -1,18 +1,18 @@
-import { Linking, Platform, Pressable, Share } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Circle } from 'react-native-maps';
-import { Ionicons } from '@expo/vector-icons';
-import styled from 'styled-components/native';
-import { radius, spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { fontFamily, type } from '../theme/typography';
-import { useI18n } from '../i18n/I18nContext';
-import { cityCoordinates } from '../data/cityCoordinates';
-import { getDutyLabel } from '../utils/pharmacyDuty';
-import { splitPhoneNumbers } from '../components/PhoneCallButtons';
+import { Linking, Platform, Pressable, Share } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import MapView, { Circle } from "react-native-maps";
+import { Ionicons } from "@expo/vector-icons";
+import styled from "styled-components/native";
+import { radius, spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { fontFamily, type } from "../theme/typography";
+import { useI18n } from "../i18n/I18nContext";
+import { cityCoordinates } from "../data/cityCoordinates";
+import { getDutyLabel } from "../utils/pharmacyDuty";
+import { splitPhoneNumbers } from "../components/PhoneCallButtons";
 
-const EMERALD = '#0B6E4F';
-const GOLD = '#8a6415';
+const EMERALD = "#0B6E4F";
+const GOLD = "#8a6415";
 
 // The screen someone opens at 2am needing a fact: a phone number, whether
 // the pharmacy is on duty, and roughly where it is. Rounded cards matching
@@ -23,7 +23,7 @@ export function PharmacyDetailScreen({ route, navigation }) {
   const { colors } = useTheme();
   const { language, t } = useI18n();
 
-  const title = language === 'en' ? listing.titleEn : listing.titleFr;
+  const title = language === "en" ? listing.titleEn : listing.titleFr;
   const duty = getDutyLabel(listing, language, t);
   const numbers = splitPhoneNumbers(listing.phone);
   const coords = {
@@ -33,7 +33,7 @@ export function PharmacyDetailScreen({ route, navigation }) {
   const hasCoords = coords.latitude != null && coords.longitude != null;
 
   const call = (number) => {
-    if (Platform.OS !== 'android') {
+    if (Platform.OS !== "android") {
       Linking.openURL(`tel:${number}`);
       return;
     }
@@ -44,37 +44,42 @@ export function PharmacyDetailScreen({ route, navigation }) {
     const destination = hasCoords
       ? `${coords.latitude},${coords.longitude}`
       : encodeURIComponent(`${title} ${listing.city} Bénin`);
-    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${destination}`);
+    Linking.openURL(
+      `https://www.google.com/maps/dir/?api=1&destination=${destination}`,
+    );
   };
 
   const share = () => {
     Share.share({
       message: `${title} — ${duty.text} · ${listing.city}${
-        numbers.length ? `\n${numbers.join(' / ')}` : ''
+        numbers.length ? `\n${numbers.join(" / ")}` : ""
       }`,
     });
   };
 
   const specs = [
-    { key: 'type', value: t('pharmacyDetailTypeValue') },
-    { key: 'locality', value: listing.city },
-    { key: 'duty', value: duty.text },
-    { key: 'source', value: t('pharmacyDetailSourceValue') },
+    { key: "type", value: t("pharmacyDetailTypeValue") },
+    { key: "locality", value: listing.city },
+    { key: "duty", value: duty.text },
+    { key: "source", value: t("pharmacyDetailSourceValue") },
   ];
 
   return (
-    <Container edges={['top', 'left', 'right', 'bottom']}>
+    <Container edges={["top", "left", "right", "bottom"]}>
       <Header>
         <HeaderButton onPress={() => navigation.goBack()} hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={colors.text} />
         </HeaderButton>
-        <HeaderTitle numberOfLines={1}>{t('pharmacyDetailTitle')}</HeaderTitle>
+        <HeaderTitle numberOfLines={1}>{t("pharmacyDetailTitle")}</HeaderTitle>
         <HeaderButton onPress={share} hitSlop={8}>
           <Ionicons name="share-social-outline" size={18} color={colors.text} />
         </HeaderButton>
       </Header>
 
-      <Body showsVerticalScrollIndicator={false} contentContainerStyle={bodyContentStyle}>
+      <Body
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={bodyContentStyle}
+      >
         {/* Corner brackets rather than a rounded card — the plate reads as a
             stamped record, and the duty state is the first thing on it. */}
         <Plate stale={duty.isStale}>
@@ -82,31 +87,47 @@ export function PharmacyDetailScreen({ route, navigation }) {
             <DutyTag stale={duty.isStale}>
               <DutyDot />
               <DutyTagLabel>
-                {t(duty.isStale ? 'pharmacyDetailToConfirm' : 'pharmacyDetailOnDuty')}
+                {t(
+                  duty.isStale
+                    ? "pharmacyDetailToConfirm"
+                    : "pharmacyDetailOnDuty",
+                )}
               </DutyTagLabel>
             </DutyTag>
           </PlateTopRow>
           <PlateName>{title}</PlateName>
           <PlateSubRow>
-            <Ionicons name="location-outline" size={12} color={colors.textMuted} />
+            <Ionicons
+              name="location-outline"
+              size={12}
+              color={colors.textMuted}
+            />
             <PlateSubText numberOfLines={1}>
               {listing.city}
-              {duty.text ? ` · ${duty.text}` : ''}
+              {duty.text ? ` · ${duty.text}` : ""}
             </PlateSubText>
           </PlateSubRow>
         </Plate>
 
         {numbers.length > 0 ? (
           <>
-            <SectionLabel>{t('pharmacyDetailCallFirst')}</SectionLabel>
+            <SectionLabel>{t("pharmacyDetailCallFirst")}</SectionLabel>
             <Box>
               {numbers.map((number, index) => (
-                <PhoneRow key={number} first={index === 0} onPress={() => call(number)}>
-                  <PhoneIndex>{String(index + 1).padStart(2, '0')}</PhoneIndex>
+                <PhoneRow
+                  key={number}
+                  first={index === 0}
+                  onPress={() => call(number)}
+                >
+                  <PhoneIndex>{String(index + 1).padStart(2, "0")}</PhoneIndex>
                   <PhoneCol>
                     <PhoneNumber>{number}</PhoneNumber>
                     <PhoneLabel>
-                      {t(index === 0 ? 'pharmacyDetailMainLine' : 'pharmacyDetailOtherLine')}
+                      {t(
+                        index === 0
+                          ? "pharmacyDetailMainLine"
+                          : "pharmacyDetailOtherLine",
+                      )}
                     </PhoneLabel>
                   </PhoneCol>
                   <PhoneCallSquare>
@@ -121,12 +142,14 @@ export function PharmacyDetailScreen({ route, navigation }) {
                 confirmation. */}
             <ConfirmNote>
               <Ionicons name="time-outline" size={14} color={GOLD} />
-              <ConfirmNoteText>{t('pharmacyDetailConfirmNote')}</ConfirmNoteText>
+              <ConfirmNoteText>
+                {t("pharmacyDetailConfirmNote")}
+              </ConfirmNoteText>
             </ConfirmNote>
           </>
         ) : null}
 
-        <SectionLabel>{t('pharmacyDetailInformation')}</SectionLabel>
+        <SectionLabel>{t("pharmacyDetailInformation")}</SectionLabel>
         <Box>
           {specs.map((spec, index) => (
             <SpecRow key={spec.key} first={index === 0}>
@@ -136,7 +159,7 @@ export function PharmacyDetailScreen({ route, navigation }) {
           ))}
         </Box>
 
-        <SectionLabel>{t('pharmacyDetailLocation')}</SectionLabel>
+        <SectionLabel>{t("pharmacyDetailLocation")}</SectionLabel>
         {/* A circle, not a pin. The stored coordinates come from the city,
             not the pharmacy's address, so a needle-point marker would claim
             a precision we don't have — it would send someone to a spot that
@@ -146,7 +169,11 @@ export function PharmacyDetailScreen({ route, navigation }) {
           {hasCoords ? (
             <MapView
               style={mapStyle}
-              initialRegion={{ ...coords, latitudeDelta: 0.06, longitudeDelta: 0.06 }}
+              initialRegion={{
+                ...coords,
+                latitudeDelta: 0.06,
+                longitudeDelta: 0.06,
+              }}
               pointerEvents="none"
               liteMode
             >
@@ -161,32 +188,32 @@ export function PharmacyDetailScreen({ route, navigation }) {
           ) : (
             <MapFallback>
               <Ionicons name="map-outline" size={26} color={colors.textMuted} />
-              <MapFallbackLabel>{t('pharmacyDetailNoMap')}</MapFallbackLabel>
+              <MapFallbackLabel>{t("pharmacyDetailNoMap")}</MapFallbackLabel>
             </MapFallback>
           )}
           <MapTag>
-            <MapTagLabel>{t('pharmacyDetailApproximate')}</MapTagLabel>
+            <MapTagLabel>{t("pharmacyDetailApproximate")}</MapTagLabel>
           </MapTag>
         </MapBox>
         <OutlineButton onPress={openDirections}>
           <Ionicons name="navigate-outline" size={14} color={EMERALD} />
-          <OutlineButtonLabel>{t('getDirectionsButton')}</OutlineButtonLabel>
+          <OutlineButtonLabel>{t("getDirectionsButton")}</OutlineButtonLabel>
         </OutlineButton>
 
-        <SectionLabel>{t('pharmacyDetailOfficialSource')}</SectionLabel>
+        <SectionLabel>{t("pharmacyDetailOfficialSource")}</SectionLabel>
         <AuthCard>
           <AuthMark>
             <AuthMarkLabel numberOfLines={1}>ONPB</AuthMarkLabel>
           </AuthMark>
           <AuthCol>
-            <AuthName>{t('pharmacyDetailAuthorityName')}</AuthName>
-            <AuthSub>{t('pharmacyDetailAuthoritySub')}</AuthSub>
+            <AuthName>{t("pharmacyDetailAuthorityName")}</AuthName>
+            <AuthSub>{t("pharmacyDetailAuthoritySub")}</AuthSub>
           </AuthCol>
         </AuthCard>
 
         <SafetyBox>
-          <SafetyTitle>{t('pharmacyDetailGoodToKnow')}</SafetyTitle>
-          {['prescription', 'noPayment', 'emergency'].map((key) => (
+          <SafetyTitle>{t("pharmacyDetailGoodToKnow")}</SafetyTitle>
+          {["prescription", "noPayment", "emergency"].map((key) => (
             <SafetyRow key={key}>
               <SafetyDash>—</SafetyDash>
               <SafetyText>{t(`pharmacyDetailTip_${key}`)}</SafetyText>
@@ -198,12 +225,14 @@ export function PharmacyDetailScreen({ route, navigation }) {
       <Dock>
         <DockDirections onPress={openDirections}>
           <Ionicons name="navigate-outline" size={14} color={EMERALD} />
-          <DockDirectionsLabel>{t('pharmacyDetailDirectionsShort')}</DockDirectionsLabel>
+          <DockDirectionsLabel>
+            {t("pharmacyDetailDirectionsShort")}
+          </DockDirectionsLabel>
         </DockDirections>
         {numbers.length > 0 ? (
           <DockCall onPress={() => call(numbers[0])}>
             <Ionicons name="call" size={17} color="#ffffff" />
-            <DockCallLabel>{t('pharmacyDetailCallPharmacy')}</DockCallLabel>
+            <DockCallLabel>{t("pharmacyDetailCallPharmacy")}</DockCallLabel>
           </DockCall>
         ) : null}
       </Dock>
@@ -327,7 +356,7 @@ const PhoneRow = styled(Pressable)`
   align-items: center;
   gap: ${spacing.sm}px;
   padding: 13px 14px;
-  border-top-width: ${(props) => (props.first ? '0px' : '1px')};
+  border-top-width: ${(props) => (props.first ? "0px" : "1px")};
   border-top-color: ${(props) => props.theme.border};
 `;
 
@@ -393,7 +422,7 @@ const SpecRow = styled.View`
   justify-content: space-between;
   gap: 14px;
   padding: 11px 15px;
-  border-top-width: ${(props) => (props.first ? '0px' : '1px')};
+  border-top-width: ${(props) => (props.first ? "0px" : "1px")};
   border-top-color: ${(props) => props.theme.border};
 `;
 

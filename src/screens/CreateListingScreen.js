@@ -859,11 +859,21 @@ export function CreateListingScreen({ route, navigation }) {
   // it is not a detail of the form, it IS the first step, so backing out of
   // it has to back out of the form. Reopened later by tapping the category
   // row, it is just a picker again and closes to the form as before.
+  // The arrow must always move. initial:false fixes the push, but a deep
+  // link or a notification can still land this screen with an empty stack,
+  // and an arrow that silently does nothing is worse than one that goes
+  // somewhere sensible.
+  const leaveForm = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    navigation.navigate("MainTabs");
+  };
+
   const dismissCategorySheet = () => {
     setCategorySheetOpen(false);
-    if (openedOnCategory && !selectedCategory && navigation.canGoBack()) {
-      navigation.goBack();
-    }
+    if (openedOnCategory && !selectedCategory) leaveForm();
   };
 
   // Follows the category actually chosen, not the one the route arrived
@@ -1922,7 +1932,7 @@ export function CreateListingScreen({ route, navigation }) {
     return (
       <Container edges={["top", "left", "right", "bottom"]}>
         <HeaderRow>
-          <BackButton onPress={() => navigation.goBack()} hitSlop={8}>
+          <BackButton onPress={leaveForm} hitSlop={8}>
             <Ionicons name="arrow-back" size={20} color={colors.text} />
           </BackButton>
           <HeaderTitle numberOfLines={1}>{formTitle}</HeaderTitle>
@@ -1974,7 +1984,7 @@ export function CreateListingScreen({ route, navigation }) {
     <Flex behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Container edges={["top", "left", "right", "bottom"]}>
         <HeaderRow>
-          <BackButton onPress={() => navigation.goBack()} hitSlop={8}>
+          <BackButton onPress={leaveForm} hitSlop={8}>
             <Ionicons name="arrow-back" size={20} color={colors.text} />
           </BackButton>
           <HeaderTitle numberOfLines={1}>{formTitle}</HeaderTitle>

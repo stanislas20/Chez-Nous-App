@@ -1,27 +1,33 @@
-import { useCallback } from 'react';
-import { FlatList, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import styled from 'styled-components/native';
-import { radius, shadow, spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { type } from '../theme/typography';
-import { useI18n } from '../i18n/I18nContext';
-import { useAuth } from '../auth/AuthContext';
-import { useNotificationCenter } from '../hooks/useNotificationCenter';
-import { openListing } from '../utils/openListing';
+import { useCallback } from "react";
+import { FlatList, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
+import styled from "styled-components/native";
+import { radius, shadow, spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { type } from "../theme/typography";
+import { useI18n } from "../i18n/I18nContext";
+import { useAuth } from "../auth/AuthContext";
+import { useNotificationCenter } from "../hooks/useNotificationCenter";
+import { openListing } from "../utils/openListing";
 
 const listContentStyle = { padding: spacing.md, flexGrow: 1 };
 
 function formatTimestamp(date, language) {
-  if (!date) return '';
+  if (!date) return "";
   const now = new Date();
-  const locale = language === 'en' ? 'en-US' : 'fr-FR';
+  const locale = language === "en" ? "en-US" : "fr-FR";
   if (date.toDateString() === now.toDateString()) {
-    return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(date);
+    return new Intl.DateTimeFormat(locale, {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
   }
-  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(date);
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+  }).format(date);
 }
 
 // Three kinds of real, non-fabricated activity feed this bell: unread
@@ -36,7 +42,8 @@ export function NotificationsScreen() {
   const { language, t } = useI18n();
   const { user } = useAuth();
   const navigation = useNavigation();
-  const { conversations, newListings, newJobApplications, markSeen } = useNotificationCenter(user?.uid);
+  const { conversations, newListings, newJobApplications, markSeen } =
+    useNotificationCenter(user?.uid);
 
   // Marked seen on the way OUT of this tab, not on the way in — marking on
   // focus would flip newListings' filter live while the user is still
@@ -51,10 +58,14 @@ export function NotificationsScreen() {
 
   if (!user) {
     return (
-      <Container edges={['left', 'right', 'bottom']}>
-        <Ionicons name="notifications-outline" size={40} color={colors.textMuted} />
-        <Title>{t('notificationsEmptyTitle')}</Title>
-        <Subtitle>{t('chatListSignInPrompt')}</Subtitle>
+      <Container edges={["left", "right", "bottom"]}>
+        <Ionicons
+          name="notifications-outline"
+          size={40}
+          color={colors.textMuted}
+        />
+        <Title>{t("notificationsEmptyTitle")}</Title>
+        <Subtitle>{t("chatListSignInPrompt")}</Subtitle>
       </Container>
     );
   }
@@ -64,15 +75,30 @@ export function NotificationsScreen() {
   );
 
   const feed = [
-    ...unreadConversations.map((item) => ({ kind: 'message', id: `m-${item.id}`, item, time: item.lastMessageAt?.toDate?.() })),
-    ...newListings.map((item) => ({ kind: 'listing', id: `l-${item.id}`, item, time: item.approvedAt?.toDate?.() })),
-    ...newJobApplications.map((item) => ({ kind: 'application', id: `a-${item.id}`, item, time: item.createdAt?.toDate?.() })),
+    ...unreadConversations.map((item) => ({
+      kind: "message",
+      id: `m-${item.id}`,
+      item,
+      time: item.lastMessageAt?.toDate?.(),
+    })),
+    ...newListings.map((item) => ({
+      kind: "listing",
+      id: `l-${item.id}`,
+      item,
+      time: item.approvedAt?.toDate?.(),
+    })),
+    ...newJobApplications.map((item) => ({
+      kind: "application",
+      id: `a-${item.id}`,
+      item,
+      time: item.createdAt?.toDate?.(),
+    })),
   ].sort((a, b) => (b.time?.getTime() ?? 0) - (a.time?.getTime() ?? 0));
 
   const isLoading = conversations === null;
 
   return (
-    <Container edges={['left', 'right', 'bottom']}>
+    <Container edges={["left", "right", "bottom"]}>
       <FlatList
         data={feed}
         keyExtractor={(entry) => entry.id}
@@ -81,26 +107,37 @@ export function NotificationsScreen() {
         ListEmptyComponent={
           !isLoading ? (
             <EmptyState>
-              <Ionicons name="notifications-outline" size={40} color={colors.textMuted} />
-              <Title>{t('notificationsEmptyTitle')}</Title>
-              <Subtitle>{t('notificationsEmptySubtitle')}</Subtitle>
+              <Ionicons
+                name="notifications-outline"
+                size={40}
+                color={colors.textMuted}
+              />
+              <Title>{t("notificationsEmptyTitle")}</Title>
+              <Subtitle>{t("notificationsEmptySubtitle")}</Subtitle>
             </EmptyState>
           ) : null
         }
         renderItem={({ item: entry }) => {
-          if (entry.kind === 'application') {
+          if (entry.kind === "application") {
             const application = entry.item;
             return (
-              <Row onPress={() => navigation.navigate('JobApplications')}>
+              <Row onPress={() => navigation.navigate("JobApplications")}>
                 <IconThumb>
-                  <Ionicons name="mail-open-outline" size={20} color={colors.primary} />
+                  <Ionicons
+                    name="mail-open-outline"
+                    size={20}
+                    color={colors.primary}
+                  />
                 </IconThumb>
                 <RowBody>
                   <RowTitle numberOfLines={1}>
-                    {t('notificationNewApplicationLabel', { title: application.jobTitle ?? '' })}
+                    {t("notificationNewApplicationLabel", {
+                      title: application.jobTitle ?? "",
+                    })}
                   </RowTitle>
                   <RowPreview numberOfLines={1}>
-                    {application.applicantName?.trim() || t('jobApplicationsAnonymousApplicant')}
+                    {application.applicantName?.trim() ||
+                      t("jobApplicationsAnonymousApplicant")}
                   </RowPreview>
                 </RowBody>
                 <RowMeta>
@@ -110,19 +147,31 @@ export function NotificationsScreen() {
             );
           }
 
-          if (entry.kind === 'listing') {
+          if (entry.kind === "listing") {
             const listing = entry.item;
-            const title = language === 'en' ? listing.titleEn : listing.titleFr;
+            const title = language === "en" ? listing.titleEn : listing.titleFr;
             return (
               <Row
                 onPress={() =>
-                  openListing(navigation, { ...listing, createdAt: null, approvedAt: null }, t, language)
+                  openListing(
+                    navigation,
+                    { ...listing, createdAt: null, approvedAt: null },
+                    t,
+                    language,
+                  )
                 }
               >
-                <Thumbnail source={{ uri: listing.mediaUrl }} resizeMode="cover" />
+                <Thumbnail
+                  source={{ uri: listing.mediaUrl }}
+                  resizeMode="cover"
+                />
                 <RowBody>
-                  <RowTitle numberOfLines={1}>{t('notificationNewListingLabel', { title })}</RowTitle>
-                  <RowPreview numberOfLines={1}>{listing.city ?? ''}</RowPreview>
+                  <RowTitle numberOfLines={1}>
+                    {t("notificationNewListingLabel", { title })}
+                  </RowTitle>
+                  <RowPreview numberOfLines={1}>
+                    {listing.city ?? ""}
+                  </RowPreview>
                 </RowBody>
                 <RowMeta>
                   <RowTime>{formatTimestamp(entry.time, language)}</RowTime>
@@ -134,21 +183,29 @@ export function NotificationsScreen() {
           const item = entry.item;
           const unread = item.unreadCount?.[user.uid] ?? 0;
           const previewText =
-            item.lastMessageType === 'image'
-              ? t('chatPhotoMessagePreview')
-              : item.lastMessageType === 'audio'
-                ? t('chatVoiceMessagePreview')
-                : (item.lastMessage ?? '');
+            item.lastMessageType === "image"
+              ? t("chatPhotoMessagePreview")
+              : item.lastMessageType === "audio"
+                ? t("chatVoiceMessagePreview")
+                : (item.lastMessage ?? "");
           return (
             <Row
               onPress={() =>
-                navigation.navigate('Chat', { conversationId: item.id, listingTitle: item.listingTitle })
+                navigation.navigate("Chat", {
+                  conversationId: item.id,
+                  listingTitle: item.listingTitle,
+                })
               }
             >
-              <Thumbnail source={{ uri: item.listingThumbnail }} resizeMode="cover" />
+              <Thumbnail
+                source={{ uri: item.listingThumbnail }}
+                resizeMode="cover"
+              />
               <RowBody>
                 <RowTitle numberOfLines={1}>
-                  {t('notificationNewMessageLabel', { title: item.listingTitle })}
+                  {t("notificationNewMessageLabel", {
+                    title: item.listingTitle,
+                  })}
                 </RowTitle>
                 <RowPreview numberOfLines={1}>{previewText}</RowPreview>
               </RowBody>

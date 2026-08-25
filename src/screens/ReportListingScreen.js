@@ -15,10 +15,26 @@ import { firestore } from "../config/firebase";
 // detail screens each carried their own copy of a report sheet, which is
 // how they drifted apart: the job one was wired to nothing at all.
 const REPORT_REASONS = [
-  { key: "spam", icon: "megaphone-outline", labelKey: "productDetailReportReasonSpam" },
-  { key: "prohibited", icon: "ban-outline", labelKey: "productDetailReportReasonProhibited" },
-  { key: "scam", icon: "warning-outline", labelKey: "productDetailReportReasonScam" },
-  { key: "other", icon: "ellipsis-horizontal-outline", labelKey: "productDetailReportReasonOther" },
+  {
+    key: "spam",
+    icon: "megaphone-outline",
+    labelKey: "productDetailReportReasonSpam",
+  },
+  {
+    key: "prohibited",
+    icon: "ban-outline",
+    labelKey: "productDetailReportReasonProhibited",
+  },
+  {
+    key: "scam",
+    icon: "warning-outline",
+    labelKey: "productDetailReportReasonScam",
+  },
+  {
+    key: "other",
+    icon: "ellipsis-horizontal-outline",
+    labelKey: "productDetailReportReasonOther",
+  },
 ];
 
 const scrollStyle = { padding: spacing.md, paddingBottom: spacing.xl };
@@ -54,9 +70,11 @@ export function ReportListingScreen({ route, navigation }) {
         },
         { merge: true },
       );
-      Alert.alert(t("productDetailReportLink"), t("productDetailReportSuccessMessage"), [
-        { text: t("ok"), onPress: () => navigation.goBack() },
-      ]);
+      Alert.alert(
+        t("productDetailReportLink"),
+        t("productDetailReportSuccessMessage"),
+        [{ text: t("ok"), onPress: () => navigation.goBack() }],
+      );
     } catch (error) {
       Alert.alert(t("productDetailReportLink"), t("errorGeneric"));
     } finally {
@@ -70,18 +88,29 @@ export function ReportListingScreen({ route, navigation }) {
         <BackButton onPress={() => navigation.goBack()} hitSlop={10}>
           <Ionicons name="chevron-back" size={22} color={colors.text} />
         </BackButton>
-        <HeaderTitle numberOfLines={1}>{t("productDetailReportLink")}</HeaderTitle>
+        <HeaderTitle numberOfLines={1}>
+          {t("productDetailReportLink")}
+        </HeaderTitle>
       </Header>
 
-      <ScrollView contentContainerStyle={scrollStyle} showsVerticalScrollIndicator={false}>
-        {listingTitle ? <ListingTitle numberOfLines={2}>{listingTitle}</ListingTitle> : null}
+      <ScrollView
+        contentContainerStyle={scrollStyle}
+        showsVerticalScrollIndicator={false}
+      >
+        {listingTitle ? (
+          <ListingTitle numberOfLines={2}>{listingTitle}</ListingTitle>
+        ) : null}
         <Intro>{t("productDetailReportConfirmMessage")}</Intro>
 
         <FieldLabel>{t("productDetailReportConfirmTitle")}</FieldLabel>
         {REPORT_REASONS.map((item) => {
           const active = reason === item.key;
           return (
-            <ReasonCard key={item.key} active={active} onPress={() => setReason(item.key)}>
+            <ReasonCard
+              key={item.key}
+              active={active}
+              onPress={() => setReason(item.key)}
+            >
               <ReasonIcon active={active}>
                 <Ionicons
                   name={item.icon}
@@ -90,7 +119,9 @@ export function ReportListingScreen({ route, navigation }) {
                 />
               </ReasonIcon>
               <ReasonLabel active={active}>{t(item.labelKey)}</ReasonLabel>
-              {active ? <Ionicons name="checkmark-circle" size={20} color={EMERALD} /> : null}
+              {active ? (
+                <Ionicons name="checkmark-circle" size={20} color={EMERALD} />
+              ) : null}
             </ReasonCard>
           );
         })}

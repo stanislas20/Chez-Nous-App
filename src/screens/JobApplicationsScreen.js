@@ -1,31 +1,34 @@
-import { FlatList, Linking, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import styled from 'styled-components/native';
-import { radius, shadow, spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { fontFamily, type } from '../theme/typography';
-import { useI18n } from '../i18n/I18nContext';
-import { useAuth } from '../auth/AuthContext';
-import { useJobApplications } from '../hooks/useJobApplications';
-import { PhoneCallButtons } from '../components/PhoneCallButtons';
-import { doc, updateDoc } from 'firebase/firestore';
-import { firestore } from '../config/firebase';
+import { FlatList, Linking, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import styled from "styled-components/native";
+import { radius, shadow, spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { fontFamily, type } from "../theme/typography";
+import { useI18n } from "../i18n/I18nContext";
+import { useAuth } from "../auth/AuthContext";
+import { useJobApplications } from "../hooks/useJobApplications";
+import { PhoneCallButtons } from "../components/PhoneCallButtons";
+import { doc, updateDoc } from "firebase/firestore";
+import { firestore } from "../config/firebase";
 import {
   applicationStatuses,
   getApplicationStatusColor,
   getApplicationStatusLabel,
   getApplicationStatusTint,
-} from '../data/applicationStatuses';
+} from "../data/applicationStatuses";
 
-const EMERALD = '#0B6E4F';
+const EMERALD = "#0B6E4F";
 
 function formatTimestamp(date, language) {
-  if (!date) return '';
-  const locale = language === 'en' ? 'en-US' : 'fr-FR';
-  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(
-    date,
-  );
+  if (!date) return "";
+  const locale = language === "en" ? "en-US" : "fr-FR";
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
 // Where a seller actually sees who applied to their real job postings —
@@ -43,16 +46,18 @@ export function JobApplicationsScreen({ navigation }) {
   // deliberately: the list is driven by a live snapshot, so a rejected
   // write simply leaves the pill where it was rather than desyncing.
   const setApplicationStatus = (applicationId, status) => {
-    updateDoc(doc(firestore, 'jobApplications', applicationId), { status }).catch(() => {});
+    updateDoc(doc(firestore, "jobApplications", applicationId), {
+      status,
+    }).catch(() => {});
   };
 
   return (
-    <Container edges={['top', 'left', 'right', 'bottom']}>
+    <Container edges={["top", "left", "right", "bottom"]}>
       <Header>
         <BackButton onPress={() => navigation.goBack()} hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={colors.text} />
         </BackButton>
-        <HeaderTitle>{t('jobApplicationsTitle')}</HeaderTitle>
+        <HeaderTitle>{t("jobApplicationsTitle")}</HeaderTitle>
       </Header>
 
       <FlatList
@@ -63,9 +68,13 @@ export function JobApplicationsScreen({ navigation }) {
         ListEmptyComponent={
           applications !== null ? (
             <EmptyState>
-              <Ionicons name="mail-open-outline" size={40} color={colors.textMuted} />
-              <EmptyTitle>{t('jobApplicationsEmptyTitle')}</EmptyTitle>
-              <EmptySubtitle>{t('jobApplicationsEmptySubtitle')}</EmptySubtitle>
+              <Ionicons
+                name="mail-open-outline"
+                size={40}
+                color={colors.textMuted}
+              />
+              <EmptyTitle>{t("jobApplicationsEmptyTitle")}</EmptyTitle>
+              <EmptySubtitle>{t("jobApplicationsEmptySubtitle")}</EmptySubtitle>
             </EmptyState>
           ) : null
         }
@@ -73,59 +82,93 @@ export function JobApplicationsScreen({ navigation }) {
           <ApplicationCard>
             <CardTopRow>
               <ApplicantName numberOfLines={1}>
-                {item.applicantName?.trim() || t('jobApplicationsAnonymousApplicant')}
+                {item.applicantName?.trim() ||
+                  t("jobApplicationsAnonymousApplicant")}
               </ApplicantName>
               <StatusPill tint={getApplicationStatusTint(item.status, colors)}>
-                <StatusPillLabel accent={getApplicationStatusColor(item.status, colors)}>
+                <StatusPillLabel
+                  accent={getApplicationStatusColor(item.status, colors)}
+                >
                   {getApplicationStatusLabel(item.status, language)}
                 </StatusPillLabel>
               </StatusPill>
             </CardTopRow>
             <JobLabel numberOfLines={1}>
-              {t('jobApplicationsForLabel', { title: item.jobTitle ?? '' })}
+              {t("jobApplicationsForLabel", { title: item.jobTitle ?? "" })}
             </JobLabel>
             <MetaRow>
-              <Ionicons name="time-outline" size={12} color={colors.textMuted} />
-              <MetaText>{formatTimestamp(item.createdAt?.toDate?.(), language)}</MetaText>
+              <Ionicons
+                name="time-outline"
+                size={12}
+                color={colors.textMuted}
+              />
+              <MetaText>
+                {formatTimestamp(item.createdAt?.toDate?.(), language)}
+              </MetaText>
               {item.hasCv && !item.cvUrl ? (
                 <>
                   <MetaDot>·</MetaDot>
-                  <Ionicons name="document-attach-outline" size={12} color={EMERALD} />
-                  <MetaTextAccent>{t('jobApplicationsCvIncluded')}</MetaTextAccent>
+                  <Ionicons
+                    name="document-attach-outline"
+                    size={12}
+                    color={EMERALD}
+                  />
+                  <MetaTextAccent>
+                    {t("jobApplicationsCvIncluded")}
+                  </MetaTextAccent>
                 </>
               ) : null}
             </MetaRow>
             <MessageText numberOfLines={4}>
-              {item.applicantMessage?.trim() || t('jobApplicationsNoMessage')}
+              {item.applicantMessage?.trim() || t("jobApplicationsNoMessage")}
             </MessageText>
             {item.cvUrl ? (
               <CvLinkRow onPress={() => Linking.openURL(item.cvUrl)}>
-                <Ionicons name="document-attach-outline" size={14} color={EMERALD} />
-                <CvLinkText numberOfLines={1}>{item.cvFileName || t('jobApplicationsCvIncluded')}</CvLinkText>
+                <Ionicons
+                  name="document-attach-outline"
+                  size={14}
+                  color={EMERALD}
+                />
+                <CvLinkText numberOfLines={1}>
+                  {item.cvFileName || t("jobApplicationsCvIncluded")}
+                </CvLinkText>
                 <Ionicons name="open-outline" size={14} color={EMERALD} />
               </CvLinkRow>
             ) : null}
             {item.applicantPhone ? (
-              <PhoneCallButtons phone={item.applicantPhone} size="sm" style={callButtonsStyle} />
+              <PhoneCallButtons
+                phone={item.applicantPhone}
+                size="sm"
+                style={callButtonsStyle}
+              />
             ) : null}
 
             <StatusRow>
               {applicationStatuses
-                .filter((status) => status.key !== 'new')
+                .filter((status) => status.key !== "new")
                 .map((status) => {
-                  const active = (item.status ?? 'new') === status.key;
+                  const active = (item.status ?? "new") === status.key;
                   return (
                     <StatusButton
                       key={status.key}
                       active={active}
                       accent={getApplicationStatusColor(status.key, colors)}
                       tint={getApplicationStatusTint(status.key, colors)}
-                      onPress={() => setApplicationStatus(item.id, active ? 'new' : status.key)}
+                      onPress={() =>
+                        setApplicationStatus(
+                          item.id,
+                          active ? "new" : status.key,
+                        )
+                      }
                     >
                       <Ionicons
                         name={status.icon}
                         size={14}
-                        color={active ? getApplicationStatusColor(status.key, colors) : colors.textMuted}
+                        color={
+                          active
+                            ? getApplicationStatusColor(status.key, colors)
+                            : colors.textMuted
+                        }
                       />
                       <StatusButtonLabel
                         active={active}
@@ -187,7 +230,7 @@ const StatusButton = styled(Pressable)`
   border-radius: ${radius.md}px;
   background-color: ${(props) => (props.active ? props.tint : props.theme.surfaceAlt)};
   border-width: 1px;
-  border-color: ${(props) => (props.active ? props.accent : 'transparent')};
+  border-color: ${(props) => (props.active ? props.accent : "transparent")};
 `;
 
 const StatusButtonLabel = styled.Text`

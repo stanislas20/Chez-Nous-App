@@ -11,7 +11,10 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { PinchGestureHandler, State } from "react-native-gesture-handler";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
@@ -44,7 +47,9 @@ const scrollContentStyle = { padding: spacing.md, paddingBottom: spacing.xl };
 function ZoomableImage({ uri }) {
   const scale = useRef(new Animated.Value(1)).current;
 
-  const onPinch = Animated.event([{ nativeEvent: { scale } }], { useNativeDriver: true });
+  const onPinch = Animated.event([{ nativeEvent: { scale } }], {
+    useNativeDriver: true,
+  });
 
   const onStateChange = (event) => {
     if (event.nativeEvent.oldState === State.ACTIVE) {
@@ -53,11 +58,18 @@ function ZoomableImage({ uri }) {
   };
 
   return (
-    <PinchGestureHandler onGestureEvent={onPinch} onHandlerStateChange={onStateChange}>
+    <PinchGestureHandler
+      onGestureEvent={onPinch}
+      onHandlerStateChange={onStateChange}
+    >
       <Animated.Image
         source={{ uri }}
         resizeMode="contain"
-        style={{ width: WINDOW.width, height: WINDOW.height * 0.8, transform: [{ scale }] }}
+        style={{
+          width: WINDOW.width,
+          height: WINDOW.height * 0.8,
+          transform: [{ scale }],
+        }}
       />
     </PinchGestureHandler>
   );
@@ -72,7 +84,9 @@ export function RealEstateDetailScreen({ route, navigation }) {
   // Your own listing offers no contact actions: openChat would build a
   // conversation whose two participants are the same person, and the phone
   // sheet would offer to ring yourself.
-  const isOwner = Boolean(user?.uid && listing.sellerId && user.uid === listing.sellerId);
+  const isOwner = Boolean(
+    user?.uid && listing.sellerId && user.uid === listing.sellerId,
+  );
   const [contactOpen, setContactOpen] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -85,7 +99,10 @@ export function RealEstateDetailScreen({ route, navigation }) {
   // Clamped, unlike ProductDetail: a phone screenshot is about 9:19.5, and
   // honouring that literally would make one photo more than two screens
   // tall to scroll past.
-  const slideHeight = Math.min(windowWidth / galleryRatio, WINDOW.height * 0.62);
+  const slideHeight = Math.min(
+    windowWidth / galleryRatio,
+    WINDOW.height * 0.62,
+  );
 
   const view = buildPropertyView(listing, language, t);
 
@@ -130,23 +147,41 @@ export function RealEstateDetailScreen({ route, navigation }) {
         }
       : null,
     listing.rooms && !isLand
-      ? { key: "rooms", label: t("realEstateSpecRooms"), value: String(listing.rooms) }
+      ? {
+          key: "rooms",
+          label: t("realEstateSpecRooms"),
+          value: String(listing.rooms),
+        }
       : null,
     listing.bathrooms && !isLand
-      ? { key: "bathrooms", label: t("realEstateSpecBathrooms"), value: String(listing.bathrooms) }
+      ? {
+          key: "bathrooms",
+          label: t("realEstateSpecBathrooms"),
+          value: String(listing.bathrooms),
+        }
       : null,
     listing.surface
-      ? { key: "surface", label: t("realEstateSpecSurface"), value: `${listing.surface} m²` }
+      ? {
+          key: "surface",
+          label: t("realEstateSpecSurface"),
+          value: `${listing.surface} m²`,
+        }
       : null,
     isLand
       ? {
           key: "lotti",
           label: t("realEstateSpecLotti"),
-          value: listing.isLotti ? t("realEstateLotti") : t("realEstateNotLotti"),
+          value: listing.isLotti
+            ? t("realEstateLotti")
+            : t("realEstateNotLotti"),
         }
       : null,
     isRent
-      ? { key: "rent", label: t("realEstateSpecRent"), value: `${fcfa(listing.price)} FCFA` }
+      ? {
+          key: "rent",
+          label: t("realEstateSpecRent"),
+          value: `${fcfa(listing.price)} FCFA`,
+        }
       : null,
     isRent && Number.isFinite(Number(listing.avanceMonths))
       ? {
@@ -159,7 +194,9 @@ export function RealEstateDetailScreen({ route, navigation }) {
       ? {
           key: "caution",
           label: t("realEstateSpecCaution"),
-          value: t("realEstateMonths", { count: Number(listing.depositMonths) }),
+          value: t("realEstateMonths", {
+            count: Number(listing.depositMonths),
+          }),
         }
       : null,
     // The line the whole rental screen exists to surface, repeated here in
@@ -182,7 +219,9 @@ export function RealEstateDetailScreen({ route, navigation }) {
               : view.document.labelFr,
         }
       : null,
-    view.place ? { key: "place", label: t("realEstateSpecPlace"), value: view.place } : null,
+    view.place
+      ? { key: "place", label: t("realEstateSpecPlace"), value: view.place }
+      : null,
   ].filter(Boolean);
 
   return (
@@ -191,10 +230,15 @@ export function RealEstateDetailScreen({ route, navigation }) {
         <BackButton onPress={() => navigation.goBack()} hitSlop={10}>
           <Feather name="chevron-left" size={21} color={colors.text} />
         </BackButton>
-        <HeaderTitle numberOfLines={1}>{t("realEstateDetailTitle")}</HeaderTitle>
+        <HeaderTitle numberOfLines={1}>
+          {t("realEstateDetailTitle")}
+        </HeaderTitle>
       </Header>
 
-      <ScrollView contentContainerStyle={scrollContentStyle} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={scrollContentStyle}
+        showsVerticalScrollIndicator={false}
+      >
         {media.length > 1 ? (
           // Swipeable, because a property is judged on more than one room.
           <GalleryWrap style={{ width: windowWidth, height: slideHeight }}>
@@ -205,7 +249,9 @@ export function RealEstateDetailScreen({ route, navigation }) {
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               onMomentumScrollEnd={(event) =>
-                setPhotoIndex(Math.round(event.nativeEvent.contentOffset.x / windowWidth))
+                setPhotoIndex(
+                  Math.round(event.nativeEvent.contentOffset.x / windowWidth),
+                )
               }
               renderItem={({ item, index }) => (
                 <Pressable
@@ -237,7 +283,9 @@ export function RealEstateDetailScreen({ route, navigation }) {
             colors={HERO_TINT}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={cover ? { width: windowWidth, height: slideHeight } : undefined}
+            style={
+              cover ? { width: windowWidth, height: slideHeight } : undefined
+            }
           >
             {cover ? (
               <Pressable
@@ -252,7 +300,9 @@ export function RealEstateDetailScreen({ route, navigation }) {
             {cover ? (
               <GalleryHint>
                 <Feather name="maximize-2" size={11} color="#ffffff" />
-                <GalleryHintLabel>{t("realEstateTapToEnlarge")}</GalleryHintLabel>
+                <GalleryHintLabel>
+                  {t("realEstateTapToEnlarge")}
+                </GalleryHintLabel>
               </GalleryHint>
             ) : null}
           </Hero>
@@ -268,8 +318,14 @@ export function RealEstateDetailScreen({ route, navigation }) {
         <BadgeRow>
           {view.document ? (
             <DocBadge tint={view.tier.color}>
-              <Feather name={view.document.feather} size={11} color={view.tier.color} />
-              <DocBadgeLabel tint={view.tier.color}>{view.documentBadge}</DocBadgeLabel>
+              <Feather
+                name={view.document.feather}
+                size={11}
+                color={view.tier.color}
+              />
+              <DocBadgeLabel tint={view.tier.color}>
+                {view.documentBadge}
+              </DocBadgeLabel>
             </DocBadge>
           ) : null}
           {view.listerLabel ? (
@@ -305,8 +361,12 @@ export function RealEstateDetailScreen({ route, navigation }) {
               </AdvertiserInitial>
             </AdvertiserAvatar>
             <AdvertiserCol>
-              <AdvertiserName numberOfLines={1}>{listing.sellerName}</AdvertiserName>
-              <AdvertiserMeta>{view.listerLabel ?? t("realEstateSpecPlace")}</AdvertiserMeta>
+              <AdvertiserName numberOfLines={1}>
+                {listing.sellerName}
+              </AdvertiserName>
+              <AdvertiserMeta>
+                {view.listerLabel ?? t("realEstateSpecPlace")}
+              </AdvertiserMeta>
             </AdvertiserCol>
             <Feather name="chevron-right" size={18} color={colors.textMuted} />
           </AdvertiserRow>
@@ -372,7 +432,15 @@ export function RealEstateDetailScreen({ route, navigation }) {
             and it is the only one that works when the advertiser has
             published no number. */}
           <MessageButton
-            onPress={() => openChat({ listing, listingTitle: listing.title, user, navigation, t })}
+            onPress={() =>
+              openChat({
+                listing,
+                listingTitle: listing.title,
+                user,
+                navigation,
+                t,
+              })
+            }
           >
             <Feather name="message-circle" size={17} color={EMERALD} />
             <MessageLabel>{t("realEstateMessageCta")}</MessageLabel>
@@ -384,7 +452,11 @@ export function RealEstateDetailScreen({ route, navigation }) {
         </Dock>
       )}
 
-      <Modal visible={viewerOpen} animationType="fade" onRequestClose={() => setViewerOpen(false)}>
+      <Modal
+        visible={viewerOpen}
+        animationType="fade"
+        onRequestClose={() => setViewerOpen(false)}
+      >
         <Viewer>
           <FlatList
             data={media.length ? media : [{ mediaUrl: cover }]}
@@ -399,7 +471,9 @@ export function RealEstateDetailScreen({ route, navigation }) {
             })}
             showsHorizontalScrollIndicator={false}
             onMomentumScrollEnd={(event) =>
-              setViewerIndex(Math.round(event.nativeEvent.contentOffset.x / WINDOW.width))
+              setViewerIndex(
+                Math.round(event.nativeEvent.contentOffset.x / WINDOW.width),
+              )
             }
             renderItem={({ item }) => (
               <ViewerPage>
@@ -439,13 +513,23 @@ export function RealEstateDetailScreen({ route, navigation }) {
                   </ContactCol>
                 </ContactRow>
                 {buildLinkUrl("whatsapp", phone) ? (
-                  <ContactRow onPress={() => Linking.openURL(buildLinkUrl("whatsapp", phone))}>
+                  <ContactRow
+                    onPress={() =>
+                      Linking.openURL(buildLinkUrl("whatsapp", phone))
+                    }
+                  >
                     <ContactIcon>
-                      <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
+                      <Ionicons
+                        name="logo-whatsapp"
+                        size={16}
+                        color="#25D366"
+                      />
                     </ContactIcon>
                     <ContactCol>
                       <ContactValue>WhatsApp</ContactValue>
-                      <ContactHint>{t("realEstateContactWhatsappHint")}</ContactHint>
+                      <ContactHint>
+                        {t("realEstateContactWhatsappHint")}
+                      </ContactHint>
                     </ContactCol>
                   </ContactRow>
                 ) : null}

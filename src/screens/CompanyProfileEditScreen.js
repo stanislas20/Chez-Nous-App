@@ -1,20 +1,20 @@
-import { useState } from 'react';
-import { Alert, Pressable, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
-import { doc, setDoc } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { Ionicons } from '@expo/vector-icons';
-import styled from 'styled-components/native';
-import { radius, spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { fontFamily, type } from '../theme/typography';
-import { useI18n } from '../i18n/I18nContext';
-import { useAuth } from '../auth/AuthContext';
-import { firestore, storage } from '../config/firebase';
-import { companySectors, getCompanySectorLabel } from '../data/companySectors';
-import { restaurantLinkKinds } from '../data/restaurantLinks';
-import { cities } from '../data/cities';
+import { useState } from "react";
+import { Alert, Pressable, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
+import { doc, setDoc } from "firebase/firestore";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { Ionicons } from "@expo/vector-icons";
+import styled from "styled-components/native";
+import { radius, spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { fontFamily, type } from "../theme/typography";
+import { useI18n } from "../i18n/I18nContext";
+import { useAuth } from "../auth/AuthContext";
+import { firestore, storage } from "../config/firebase";
+import { companySectors, getCompanySectorLabel } from "../data/companySectors";
+import { restaurantLinkKinds } from "../data/restaurantLinks";
+import { cities } from "../data/cities";
 
 // Everything a company can correct after signup. Before this screen existed
 // the only editable field in the whole profile was the logo — a business
@@ -32,21 +32,23 @@ export function CompanyProfileEditScreen({ navigation }) {
 
   const [sectorKey, setSectorKey] = useState(sellerProfile?.sector ?? null);
   const [city, setCity] = useState(sellerProfile?.companyCity ?? null);
-  const [phone, setPhone] = useState(sellerProfile?.phone ?? '');
+  const [phone, setPhone] = useState(sellerProfile?.phone ?? "");
   const [links, setLinks] = useState(() =>
-    Object.fromEntries(restaurantLinkKinds.map((k) => [k.key, sellerProfile?.[k.key] ?? ''])),
+    Object.fromEntries(
+      restaurantLinkKinds.map((k) => [k.key, sellerProfile?.[k.key] ?? ""]),
+    ),
   );
   const [photoUrl, setPhotoUrl] = useState(sellerProfile?.photoUrl ?? null);
   const [isSaving, setIsSaving] = useState(false);
   const [sectorOpen, setSectorOpen] = useState(false);
   const [cityOpen, setCityOpen] = useState(false);
 
-  const isVerified = sellerProfile?.verificationStatus === 'verified';
+  const isVerified = sellerProfile?.verificationStatus === "verified";
 
   const pickLogo = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ["images"],
         // No forced crop: a wide logo squared off at pick time loses its
         // sides permanently. Kept whole and fitted with `contain` on display.
         allowsEditing: false,
@@ -55,16 +57,21 @@ export function CompanyProfileEditScreen({ navigation }) {
       if (result.canceled) return;
       const asset = result.assets?.[0];
       if (!asset) return;
-      const storageRef = ref(storage, `sellers/${user.uid}/logo-${Date.now()}.jpg`);
+      const storageRef = ref(
+        storage,
+        `sellers/${user.uid}/logo-${Date.now()}.jpg`,
+      );
       const response = await fetch(asset.uri);
       const blob = await response.blob();
       await new Promise((resolve, reject) => {
-        const task = uploadBytesResumable(storageRef, blob, { contentType: 'image/jpeg' });
-        task.on('state_changed', null, reject, resolve);
+        const task = uploadBytesResumable(storageRef, blob, {
+          contentType: "image/jpeg",
+        });
+        task.on("state_changed", null, reject, resolve);
       });
       setPhotoUrl(await getDownloadURL(storageRef));
     } catch {
-      Alert.alert(t('companyEditTitle'), t('errorUploadFailed'));
+      Alert.alert(t("companyEditTitle"), t("errorUploadFailed"));
     }
   };
 
@@ -75,36 +82,42 @@ export function CompanyProfileEditScreen({ navigation }) {
       // the verification documents and the representative's details are not
       // editable here and must survive untouched.
       await setDoc(
-        doc(firestore, 'sellers', user.uid),
+        doc(firestore, "sellers", user.uid),
         {
           sector: sectorKey,
           companyCity: city,
           phone: phone.trim(),
           photoUrl,
           ...Object.fromEntries(
-            restaurantLinkKinds.map((k) => [k.key, links[k.key]?.trim() || null]),
+            restaurantLinkKinds.map((k) => [
+              k.key,
+              links[k.key]?.trim() || null,
+            ]),
           ),
         },
         { merge: true },
       );
       navigation.goBack();
     } catch {
-      Alert.alert(t('companyEditTitle'), t('errorPermissionDenied'));
+      Alert.alert(t("companyEditTitle"), t("errorPermissionDenied"));
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <Container edges={['top', 'left', 'right', 'bottom']}>
+    <Container edges={["top", "left", "right", "bottom"]}>
       <Header>
         <BackButton onPress={() => navigation.goBack()} hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={colors.text} />
         </BackButton>
-        <HeaderTitle numberOfLines={1}>{t('companyEditTitle')}</HeaderTitle>
+        <HeaderTitle numberOfLines={1}>{t("companyEditTitle")}</HeaderTitle>
       </Header>
 
-      <Body showsVerticalScrollIndicator={false} contentContainerStyle={bodyContentStyle}>
+      <Body
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={bodyContentStyle}
+      >
         <LogoRow onPress={pickLogo}>
           {photoUrl ? (
             <LogoPreview source={{ uri: photoUrl }} resizeMode="contain" />
@@ -114,8 +127,10 @@ export function CompanyProfileEditScreen({ navigation }) {
             </LogoPlaceholder>
           )}
           <LogoTextCol>
-            <RowTitle>{t('companyFieldLogo')}</RowTitle>
-            <RowHint>{photoUrl ? t('companyLogoChange') : t('companyFieldLogoHint')}</RowHint>
+            <RowTitle>{t("companyFieldLogo")}</RowTitle>
+            <RowHint>
+              {photoUrl ? t("companyLogoChange") : t("companyFieldLogoHint")}
+            </RowHint>
           </LogoTextCol>
           <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
         </LogoRow>
@@ -125,12 +140,18 @@ export function CompanyProfileEditScreen({ navigation }) {
         {isVerified ? (
           <LockedBox>
             <LockedHeader>
-              <Ionicons name="lock-closed-outline" size={14} color={colors.textMuted} />
-              <LockedTitle>{t('companyEditLockedTitle')}</LockedTitle>
+              <Ionicons
+                name="lock-closed-outline"
+                size={14}
+                color={colors.textMuted}
+              />
+              <LockedTitle>{t("companyEditLockedTitle")}</LockedTitle>
             </LockedHeader>
             <LockedRow>
-              <LockedKey>{t('companyFieldName')}</LockedKey>
-              <LockedValue numberOfLines={1}>{sellerProfile?.companyName}</LockedValue>
+              <LockedKey>{t("companyFieldName")}</LockedKey>
+              <LockedValue numberOfLines={1}>
+                {sellerProfile?.companyName}
+              </LockedValue>
             </LockedRow>
             <LockedRow>
               <LockedKey>RCCM</LockedKey>
@@ -140,19 +161,19 @@ export function CompanyProfileEditScreen({ navigation }) {
               <LockedKey>IFU</LockedKey>
               <LockedValue numberOfLines={1}>{sellerProfile?.ifu}</LockedValue>
             </LockedRow>
-            <LockedHint>{t('companyEditLockedHint')}</LockedHint>
+            <LockedHint>{t("companyEditLockedHint")}</LockedHint>
           </LockedBox>
         ) : null}
 
-        <Label>{t('companyFieldSector')}</Label>
+        <Label>{t("companyFieldSector")}</Label>
         <Selector onPress={() => setSectorOpen((v) => !v)}>
           <SelectorText>
             {sectorKey
               ? getCompanySectorLabel(sectorKey, language)
-              : t('companyFieldSectorPlaceholder')}
+              : t("companyFieldSectorPlaceholder")}
           </SelectorText>
           <Ionicons
-            name={sectorOpen ? 'chevron-up' : 'chevron-down'}
+            name={sectorOpen ? "chevron-up" : "chevron-down"}
             size={16}
             color={colors.textMuted}
           />
@@ -178,11 +199,13 @@ export function CompanyProfileEditScreen({ navigation }) {
           </OptionBox>
         ) : null}
 
-        <Label>{t('companyFieldCity')}</Label>
+        <Label>{t("companyFieldCity")}</Label>
         <Selector onPress={() => setCityOpen((v) => !v)}>
-          <SelectorText>{city ?? t('companyFieldCityPlaceholder')}</SelectorText>
+          <SelectorText>
+            {city ?? t("companyFieldCityPlaceholder")}
+          </SelectorText>
           <Ionicons
-            name={cityOpen ? 'chevron-up' : 'chevron-down'}
+            name={cityOpen ? "chevron-up" : "chevron-down"}
             size={16}
             color={colors.textMuted}
           />
@@ -198,13 +221,15 @@ export function CompanyProfileEditScreen({ navigation }) {
                 }}
               >
                 <OptionLabel selected={city === c}>{c}</OptionLabel>
-                {city === c ? <Ionicons name="checkmark" size={16} color={colors.primary} /> : null}
+                {city === c ? (
+                  <Ionicons name="checkmark" size={16} color={colors.primary} />
+                ) : null}
               </OptionRow>
             ))}
           </OptionBox>
         ) : null}
 
-        <Label>{t('sellFieldPhone')}</Label>
+        <Label>{t("sellFieldPhone")}</Label>
         <InputRow>
           <Ionicons name="call-outline" size={19} color={colors.textMuted} />
           <Input
@@ -215,20 +240,24 @@ export function CompanyProfileEditScreen({ navigation }) {
             keyboardType="phone-pad"
           />
         </InputRow>
-        <FieldNote>{t('companyEditPhoneHint')}</FieldNote>
+        <FieldNote>{t("companyEditPhoneHint")}</FieldNote>
 
-        <Label>{t('sellFieldLinks')}</Label>
-        <FieldNote>{t('sellLinksHint')}</FieldNote>
+        <Label>{t("sellFieldLinks")}</Label>
+        <FieldNote>{t("sellLinksHint")}</FieldNote>
         {restaurantLinkKinds.map((kind) => (
           <LinkRow key={kind.key}>
             <LinkIconWrap tint={`${kind.color}22`}>
               <Ionicons name={kind.icon} size={18} color={kind.color} />
             </LinkIconWrap>
             <LinkCol>
-              <LinkLabel>{language === 'en' ? kind.labelEn : kind.labelFr}</LinkLabel>
+              <LinkLabel>
+                {language === "en" ? kind.labelEn : kind.labelFr}
+              </LinkLabel>
               <Input
-                value={links[kind.key] ?? ''}
-                onChangeText={(value) => setLinks((prev) => ({ ...prev, [kind.key]: value }))}
+                value={links[kind.key] ?? ""}
+                onChangeText={(value) =>
+                  setLinks((prev) => ({ ...prev, [kind.key]: value }))
+                }
                 placeholder={kind.placeholder}
                 placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
@@ -241,7 +270,7 @@ export function CompanyProfileEditScreen({ navigation }) {
 
       <Dock>
         <SaveButton onPress={save} disabled={isSaving}>
-          <SaveLabel>{isSaving ? t('savingLabel') : t('saveButton')}</SaveLabel>
+          <SaveLabel>{isSaving ? t("savingLabel") : t("saveButton")}</SaveLabel>
         </SaveButton>
       </Dock>
     </Container>

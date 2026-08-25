@@ -23,9 +23,15 @@ function formatTimestamp(date, language) {
   const now = new Date();
   const locale = language === "en" ? "en-US" : "fr-FR";
   if (date.toDateString() === now.toDateString()) {
-    return new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(date);
+    return new Intl.DateTimeFormat(locale, {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
   }
-  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(date);
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+  }).format(date);
 }
 
 export function ChatListScreen({ navigation }) {
@@ -38,7 +44,11 @@ export function ChatListScreen({ navigation }) {
     return (
       <Container edges={["left", "right", "bottom"]}>
         <SignInPrompt>
-          <Ionicons name="chatbubbles-outline" size={40} color={colors.primary} />
+          <Ionicons
+            name="chatbubbles-outline"
+            size={40}
+            color={colors.primary}
+          />
           <SignInPromptText>{t("chatListSignInPrompt")}</SignInPromptText>
           <SignInButton onPress={() => openAccountGate(navigation)}>
             <SignInButtonLabel>{t("signUpButton")}</SignInButtonLabel>
@@ -56,7 +66,9 @@ export function ChatListScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={listContentStyle}
         ListEmptyComponent={
-          conversations !== null ? <EmptyMessage>{t("chatListEmptyMessage")}</EmptyMessage> : null
+          conversations !== null ? (
+            <EmptyMessage>{t("chatListEmptyMessage")}</EmptyMessage>
+          ) : null
         }
         renderItem={({ item }) => {
           const unread = item.unreadCount?.[user.uid] ?? 0;
@@ -76,7 +88,10 @@ export function ChatListScreen({ navigation }) {
               }
             >
               {item.listingThumbnail ? (
-                <Thumbnail source={{ uri: item.listingThumbnail }} resizeMode="cover" />
+                <Thumbnail
+                  source={{ uri: item.listingThumbnail }}
+                  resizeMode="cover"
+                />
               ) : (
                 <ThumbnailFallback
                   colors={[EMERALD, GOLD]}
@@ -84,7 +99,8 @@ export function ChatListScreen({ navigation }) {
                   end={{ x: 1, y: 1 }}
                 >
                   <ThumbnailFallbackLabel>
-                    {(item.listingTitle ?? "").trim().charAt(0).toUpperCase() || "?"}
+                    {(item.listingTitle ?? "").trim().charAt(0).toUpperCase() ||
+                      "?"}
                   </ThumbnailFallbackLabel>
                 </ThumbnailFallback>
               )}
@@ -95,7 +111,9 @@ export function ChatListScreen({ navigation }) {
                 </RowMessage>
               </RowBody>
               <RowMeta>
-                <RowTime>{formatTimestamp(item.lastMessageAt?.toDate?.(), language)}</RowTime>
+                <RowTime>
+                  {formatTimestamp(item.lastMessageAt?.toDate?.(), language)}
+                </RowTime>
                 {unread > 0 ? (
                   <UnreadBadge>
                     <UnreadBadgeLabel>{unread}</UnreadBadgeLabel>

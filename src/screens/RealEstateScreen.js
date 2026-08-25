@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, FlatList, Linking, Modal, Pressable, ScrollView } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  Animated,
+  FlatList,
+  Linking,
+  Modal,
+  Pressable,
+  ScrollView,
+} from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import MapView, { Circle } from "react-native-maps";
@@ -17,7 +27,11 @@ import { useFavorites } from "../hooks/useFavorites";
 import { queryMatches } from "../utils/search";
 import { cities } from "../data/cities";
 import { cityCoordinates } from "../data/cityCoordinates";
-import { propertyTypes, getPropertyTypeLabel, ROOM_COUNTS } from "../data/realEstate";
+import {
+  propertyTypes,
+  getPropertyTypeLabel,
+  ROOM_COUNTS,
+} from "../data/realEstate";
 import {
   commercialTypes,
   getCommercialTypeLabel,
@@ -51,17 +65,35 @@ const THUMB_TINT = ["rgba(11, 110, 79, 0.12)", "rgba(217, 164, 65, 0.16)"];
 const BUDGET_BANDS = {
   rent: [
     { key: "a", max: 50000, labelEn: "≤ 50k / month", labelFr: "≤ 50k / mois" },
-    { key: "b", min: 50000, max: 100000, labelEn: "50–100k", labelFr: "50–100k" },
+    {
+      key: "b",
+      min: 50000,
+      max: 100000,
+      labelEn: "50–100k",
+      labelFr: "50–100k",
+    },
     { key: "c", min: 100000, labelEn: "> 100k", labelFr: "> 100k" },
   ],
   sale: [
     { key: "a", max: 15000000, labelEn: "≤ 15M", labelFr: "≤ 15M" },
-    { key: "b", min: 15000000, max: 40000000, labelEn: "15–40M", labelFr: "15–40M" },
+    {
+      key: "b",
+      min: 15000000,
+      max: 40000000,
+      labelEn: "15–40M",
+      labelFr: "15–40M",
+    },
     { key: "c", min: 40000000, labelEn: "> 40M", labelFr: "> 40M" },
   ],
   land: [
     { key: "a", max: 5000000, labelEn: "≤ 5M", labelFr: "≤ 5M" },
-    { key: "b", min: 5000000, max: 15000000, labelEn: "5–15M", labelFr: "5–15M" },
+    {
+      key: "b",
+      min: 5000000,
+      max: 15000000,
+      labelEn: "5–15M",
+      labelFr: "5–15M",
+    },
     { key: "c", min: 15000000, labelEn: "> 15M", labelFr: "> 15M" },
   ],
   shortStay: [
@@ -75,7 +107,13 @@ const BUDGET_BANDS = {
   // someone scanning.
   commercial: [
     { key: "a", max: 100000, labelEn: "≤ 100k", labelFr: "≤ 100k" },
-    { key: "b", min: 100000, max: 500000, labelEn: "100–500k", labelFr: "100–500k" },
+    {
+      key: "b",
+      min: 100000,
+      max: 500000,
+      labelEn: "100–500k",
+      labelFr: "100–500k",
+    },
     { key: "c", min: 500000, labelEn: "> 500k", labelFr: "> 500k" },
   ],
 };
@@ -128,22 +166,34 @@ export function RealEstateScreen({ navigation }) {
   const results = useMemo(() => {
     const selectedBand = bands.find((item) => item.key === band);
     const matched = (listings ?? [])
-      .filter((item) => item.categoryKey === "realEstate" && item.realEstateDeal === deal)
+      .filter(
+        (item) =>
+          item.categoryKey === "realEstate" && item.realEstateDeal === deal,
+      )
       .filter((item) => {
         if (city && item.city !== city) return false;
         if (quartier && item.quartier !== quartier) return false;
         if (
           search.trim() &&
-          !queryMatches(search, item.title, item.description, item.quartier, item.city)
+          !queryMatches(
+            search,
+            item.title,
+            item.description,
+            item.quartier,
+            item.city,
+          )
         ) {
           return false;
         }
         if (selectedBand) {
           const price = Number(item.price) || 0;
-          if (selectedBand.min != null && price < selectedBand.min) return false;
-          if (selectedBand.max != null && price >= selectedBand.max) return false;
+          if (selectedBand.min != null && price < selectedBand.min)
+            return false;
+          if (selectedBand.max != null && price >= selectedBand.max)
+            return false;
         }
-        if (commercialType && item.commercialType !== commercialType) return false;
+        if (commercialType && item.commercialType !== commercialType)
+          return false;
         // Property type and room count were being collected by the filter
         // sheet, counted in its badge, and then never applied.
         if (propertyType && item.propertyType !== propertyType) return false;
@@ -152,9 +202,12 @@ export function RealEstateScreen({ navigation }) {
       });
 
     const sorted = [...matched];
-    if (sort === "priceAsc") sorted.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-    if (sort === "priceDesc") sorted.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
-    if (sort === "surface") sorted.sort((a, b) => (b.surface ?? 0) - (a.surface ?? 0));
+    if (sort === "priceAsc")
+      sorted.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+    if (sort === "priceDesc")
+      sorted.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+    if (sort === "surface")
+      sorted.sort((a, b) => (b.surface ?? 0) - (a.surface ?? 0));
     // 'recent' keeps the query's own createdAt-desc order.
     return sorted;
   }, [
@@ -218,8 +271,12 @@ export function RealEstateScreen({ navigation }) {
     // A tab off the right edge would otherwise be selected but invisible.
     if (dealTrackWidth > 0) {
       const step = DEAL_TAB_WIDTH + DEAL_GAP;
-      const centred = dealIndex * step - dealTrackWidth / 2 + DEAL_TAB_WIDTH / 2;
-      dealScrollRef.current?.scrollTo({ x: Math.max(0, centred), animated: true });
+      const centred =
+        dealIndex * step - dealTrackWidth / 2 + DEAL_TAB_WIDTH / 2;
+      dealScrollRef.current?.scrollTo({
+        x: Math.max(0, centred),
+        animated: true,
+      });
     }
   }, [dealIndex, dealPos, dealTrackWidth, DEAL_GAP, DEAL_TAB_WIDTH]);
 
@@ -232,7 +289,12 @@ export function RealEstateScreen({ navigation }) {
   const mapRegion =
     city && cityCoordinates[city]
       ? { ...cityCoordinates[city], latitudeDelta: 0.14, longitudeDelta: 0.14 }
-      : { latitude: 9.3, longitude: 2.3, latitudeDelta: 6.2, longitudeDelta: 6.2 };
+      : {
+          latitude: 9.3,
+          longitude: 2.3,
+          latitudeDelta: 6.2,
+          longitudeDelta: 6.2,
+        };
   // One circle per city that actually has results, sized by how many.
   // Circles come from every property listing, not the filtered results.
   //
@@ -248,7 +310,8 @@ export function RealEstateScreen({ navigation }) {
     const counts = {};
     for (const item of listings ?? []) {
       if (item.categoryKey !== "realEstate") continue;
-      if (cityCoordinates[item.city]) counts[item.city] = (counts[item.city] ?? 0) + 1;
+      if (cityCoordinates[item.city])
+        counts[item.city] = (counts[item.city] ?? 0) + 1;
     }
     return Object.entries(counts).map(([name, count]) => ({
       name,
@@ -320,10 +383,17 @@ export function RealEstateScreen({ navigation }) {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={dealTrackContentStyle}
-          onLayout={(event) => setDealTrackWidth(event.nativeEvent.layout.width)}
+          onLayout={(event) =>
+            setDealTrackWidth(event.nativeEvent.layout.width)
+          }
         >
           {dealThumbWidth > 0 ? (
-            <DealThumb style={{ width: dealThumbWidth, transform: [{ translateX: dealThumbX }] }} />
+            <DealThumb
+              style={{
+                width: dealThumbWidth,
+                transform: [{ translateX: dealThumbX }],
+              }}
+            />
           ) : null}
           {realEstateDeals.map((item, index) => (
             <DealTab key={item.key} onPress={() => selectDeal(item.key)}>
@@ -372,7 +442,11 @@ export function RealEstateScreen({ navigation }) {
                 >
                   <TypeChipDisc
                     active={active}
-                    tint={active ? "rgba(255,255,255,0.22)" : sectorTint(option.color, 0.14)}
+                    tint={
+                      active
+                        ? "rgba(255,255,255,0.22)"
+                        : sectorTint(option.color, 0.14)
+                    }
                   >
                     <TypeChipGlyph>{option.glyph}</TypeChipGlyph>
                   </TypeChipDisc>
@@ -395,14 +469,25 @@ export function RealEstateScreen({ navigation }) {
 
         <FilterBar>
           <FilterPill active={!!city} onPress={() => setCityPickerOpen(true)}>
-            <Feather name="map-pin" size={13} color={city ? "#ffffff" : colors.textMuted} />
+            <Feather
+              name="map-pin"
+              size={13}
+              color={city ? "#ffffff" : colors.textMuted}
+            />
             <FilterPillLabel active={!!city} numberOfLines={1}>
               {city ?? t("realEstateFilterCity")}
             </FilterPillLabel>
-            <Feather name="chevron-down" size={13} color={city ? "#ffffff" : colors.textMuted} />
+            <Feather
+              name="chevron-down"
+              size={13}
+              color={city ? "#ffffff" : colors.textMuted}
+            />
           </FilterPill>
 
-          <FilterPill active={!!quartier} onPress={() => setQuartierPickerOpen(true)}>
+          <FilterPill
+            active={!!quartier}
+            onPress={() => setQuartierPickerOpen(true)}
+          >
             <FilterPillLabel active={!!quartier} numberOfLines={1}>
               {quartier ?? t("realEstateFilterQuartier")}
             </FilterPillLabel>
@@ -417,11 +502,18 @@ export function RealEstateScreen({ navigation }) {
             <FilterPillLabel active={!!band} numberOfLines={1}>
               {activeBandLabel ?? t("realEstateFilterBudget")}
             </FilterPillLabel>
-            <Feather name="chevron-down" size={13} color={band ? "#ffffff" : colors.textMuted} />
+            <Feather
+              name="chevron-down"
+              size={13}
+              color={band ? "#ffffff" : colors.textMuted}
+            />
           </FilterPill>
 
           {showMoreFilters ? (
-            <FilterPill active={moreCount > 0} onPress={() => setMorePickerOpen(true)}>
+            <FilterPill
+              active={moreCount > 0}
+              onPress={() => setMorePickerOpen(true)}
+            >
               <Feather
                 name="sliders"
                 size={13}
@@ -468,11 +560,19 @@ export function RealEstateScreen({ navigation }) {
                 would claim a precision the data does not have. */}
             {!isLoading ? (
               <MapCard>
-                <MapView style={mapStyle} region={mapRegion} liteMode pointerEvents="none">
+                <MapView
+                  style={mapStyle}
+                  region={mapRegion}
+                  liteMode
+                  pointerEvents="none"
+                >
                   {mapPoints.map((point) => (
                     <Circle
                       key={point.name}
-                      center={{ latitude: point.latitude, longitude: point.longitude }}
+                      center={{
+                        latitude: point.latitude,
+                        longitude: point.longitude,
+                      }}
                       radius={1200 + point.count * 400}
                       strokeColor="rgba(11, 110, 79, 0.85)"
                       fillColor="rgba(11, 110, 79, 0.22)"
@@ -484,7 +584,9 @@ export function RealEstateScreen({ navigation }) {
                     still answers "where am I searching", and gating it on
                     results meant it never appeared at all. */}
                 <MapNote>
-                  {mapPoints.length ? t("realEstateMapNote") : t("realEstateMapEmptyNote")}
+                  {mapPoints.length
+                    ? t("realEstateMapNote")
+                    : t("realEstateMapEmptyNote")}
                 </MapNote>
               </MapCard>
             ) : null}
@@ -520,7 +622,9 @@ export function RealEstateScreen({ navigation }) {
               <EmptyCopy>{t("realEstateEmptyCopy")}</EmptyCopy>
               {hasFilters ? (
                 <EmptyAction onPress={clearFilters}>
-                  <EmptyActionLabel>{t("realEstateClearFilters")}</EmptyActionLabel>
+                  <EmptyActionLabel>
+                    {t("realEstateClearFilters")}
+                  </EmptyActionLabel>
                 </EmptyAction>
               ) : null}
             </EmptyWrap>
@@ -571,8 +675,12 @@ export function RealEstateScreen({ navigation }) {
                   setCityPickerOpen(false);
                 }}
               >
-                <SheetOptionLabel selected={!city}>{t("realEstateAllCities")}</SheetOptionLabel>
-                {!city ? <Feather name="check" size={17} color={EMERALD} /> : null}
+                <SheetOptionLabel selected={!city}>
+                  {t("realEstateAllCities")}
+                </SheetOptionLabel>
+                {!city ? (
+                  <Feather name="check" size={17} color={EMERALD} />
+                ) : null}
               </SheetOption>
               {cities.map((name) => (
                 <SheetOption
@@ -584,8 +692,12 @@ export function RealEstateScreen({ navigation }) {
                     setCityPickerOpen(false);
                   }}
                 >
-                  <SheetOptionLabel selected={city === name}>{name}</SheetOptionLabel>
-                  {city === name ? <Feather name="check" size={17} color={EMERALD} /> : null}
+                  <SheetOptionLabel selected={city === name}>
+                    {name}
+                  </SheetOptionLabel>
+                  {city === name ? (
+                    <Feather name="check" size={17} color={EMERALD} />
+                  ) : null}
                 </SheetOption>
               ))}
             </ScrollView>
@@ -620,7 +732,9 @@ export function RealEstateScreen({ navigation }) {
                 <SheetOptionLabel selected={!quartier}>
                   {t("realEstateAllQuartiers")}
                 </SheetOptionLabel>
-                {!quartier ? <Feather name="check" size={17} color={EMERALD} /> : null}
+                {!quartier ? (
+                  <Feather name="check" size={17} color={EMERALD} />
+                ) : null}
               </SheetOption>
               {quartiers.map((name) => (
                 <SheetOption
@@ -630,8 +744,12 @@ export function RealEstateScreen({ navigation }) {
                     setQuartierPickerOpen(false);
                   }}
                 >
-                  <SheetOptionLabel selected={quartier === name}>{name}</SheetOptionLabel>
-                  {quartier === name ? <Feather name="check" size={17} color={EMERALD} /> : null}
+                  <SheetOptionLabel selected={quartier === name}>
+                    {name}
+                  </SheetOptionLabel>
+                  {quartier === name ? (
+                    <Feather name="check" size={17} color={EMERALD} />
+                  ) : null}
                 </SheetOption>
               ))}
             </ScrollView>
@@ -658,8 +776,12 @@ export function RealEstateScreen({ navigation }) {
                 setBudgetPickerOpen(false);
               }}
             >
-              <SheetOptionLabel selected={!band}>{t("realEstateAllBudgets")}</SheetOptionLabel>
-              {!band ? <Feather name="check" size={17} color={EMERALD} /> : null}
+              <SheetOptionLabel selected={!band}>
+                {t("realEstateAllBudgets")}
+              </SheetOptionLabel>
+              {!band ? (
+                <Feather name="check" size={17} color={EMERALD} />
+              ) : null}
             </SheetOption>
             {bands.map((item) => (
               <SheetOption
@@ -672,7 +794,9 @@ export function RealEstateScreen({ navigation }) {
                 <SheetOptionLabel selected={band === item.key}>
                   {language === "en" ? item.labelEn : item.labelFr}
                 </SheetOptionLabel>
-                {band === item.key ? <Feather name="check" size={17} color={EMERALD} /> : null}
+                {band === item.key ? (
+                  <Feather name="check" size={17} color={EMERALD} />
+                ) : null}
               </SheetOption>
             ))}
           </Sheet>
@@ -693,7 +817,9 @@ export function RealEstateScreen({ navigation }) {
             <SheetHandle />
             <SheetTitle>{t("realEstateMoreFilters")}</SheetTitle>
 
-            <SheetSectionLabel>{t("realEstateSpecPropertyType")}</SheetSectionLabel>
+            <SheetSectionLabel>
+              {t("realEstateSpecPropertyType")}
+            </SheetSectionLabel>
             <OptionWrap>
               {propertyTypes.map((option) => {
                 const active = propertyType === option.key;
@@ -729,7 +855,9 @@ export function RealEstateScreen({ navigation }) {
 
             <SheetActions>
               <ApplyButton onPress={() => setMorePickerOpen(false)}>
-                <ApplyLabel>{t("realEstateSortApply", { count: results.length })}</ApplyLabel>
+                <ApplyLabel>
+                  {t("realEstateSortApply", { count: results.length })}
+                </ApplyLabel>
               </ApplyButton>
             </SheetActions>
           </Sheet>
@@ -753,14 +881,20 @@ export function RealEstateScreen({ navigation }) {
               const active = sort === item.key;
               return (
                 <SortRow key={item.key} onPress={() => setSort(item.key)}>
-                  <SortRowLabel selected={active}>{t(item.labelKey)}</SortRowLabel>
-                  <RadioOuter selected={active}>{active ? <RadioInner /> : null}</RadioOuter>
+                  <SortRowLabel selected={active}>
+                    {t(item.labelKey)}
+                  </SortRowLabel>
+                  <RadioOuter selected={active}>
+                    {active ? <RadioInner /> : null}
+                  </RadioOuter>
                 </SortRow>
               );
             })}
             <SheetActions>
               <ApplyButton onPress={() => setSortOpen(false)}>
-                <ApplyLabel>{t("realEstateSortApply", { count: results.length })}</ApplyLabel>
+                <ApplyLabel>
+                  {t("realEstateSortApply", { count: results.length })}
+                </ApplyLabel>
               </ApplyButton>
             </SheetActions>
           </Sheet>
@@ -782,7 +916,9 @@ export function RealEstateScreen({ navigation }) {
             <SheetTitle>{t("realEstateContactTitle")}</SheetTitle>
             {contactPhone ? (
               <>
-                <ContactRow onPress={() => Linking.openURL(`tel:${contactPhone}`)}>
+                <ContactRow
+                  onPress={() => Linking.openURL(`tel:${contactPhone}`)}
+                >
                   <ContactIcon>
                     <Feather name="phone" size={16} color={EMERALD} />
                   </ContactIcon>
@@ -793,14 +929,22 @@ export function RealEstateScreen({ navigation }) {
                 </ContactRow>
                 {buildLinkUrl("whatsapp", contactPhone) ? (
                   <ContactRow
-                    onPress={() => Linking.openURL(buildLinkUrl("whatsapp", contactPhone))}
+                    onPress={() =>
+                      Linking.openURL(buildLinkUrl("whatsapp", contactPhone))
+                    }
                   >
                     <ContactIcon>
-                      <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
+                      <Ionicons
+                        name="logo-whatsapp"
+                        size={16}
+                        color="#25D366"
+                      />
                     </ContactIcon>
                     <ContactCol>
                       <ContactValue>WhatsApp</ContactValue>
-                      <ContactHint>{t("realEstateContactWhatsappHint")}</ContactHint>
+                      <ContactHint>
+                        {t("realEstateContactWhatsappHint")}
+                      </ContactHint>
                     </ContactCol>
                   </ContactRow>
                 ) : null}
@@ -829,8 +973,16 @@ function SkeletonCard() {
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0.4, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0.4,
+          duration: 700,
+          useNativeDriver: true,
+        }),
       ]),
     );
     loop.start();
@@ -859,7 +1011,8 @@ export function buildPropertyView(listing, language, t) {
   const deal = listing.realEstateDeal;
   const price = Number(listing.price) || 0;
   const moveIn = getMoveInCost(listing);
-  const document = deal === "land" ? getLandDocument(listing.landDocument) : null;
+  const document =
+    deal === "land" ? getLandDocument(listing.landDocument) : null;
   const tier = document ? getLandDocumentTier(listing.landDocument) : null;
 
   // For a rental the headline is the move-in total, not the rent: the rent
@@ -888,21 +1041,29 @@ export function buildPropertyView(listing, language, t) {
   if (isHall) {
     const parts = [];
     if (Number(listing.capacity) > 0) {
-      parts.push(t("realEstateCapacityGuests", { count: Number(listing.capacity) }));
+      parts.push(
+        t("realEstateCapacityGuests", { count: Number(listing.capacity) }),
+      );
     }
     if (Number(listing.surface) > 0) parts.push(`${listing.surface} m²`);
     subPrice = parts.length ? parts.join(" · ") : null;
   } else if (deal === "rent" || isCommercialLease) {
     const parts = [t("realEstateRentPerMonth", { amount: fcfa(price) })];
     if (Number.isFinite(Number(listing.avanceMonths))) {
-      parts.push(t("realEstateAvanceMonths", { count: Number(listing.avanceMonths) }));
+      parts.push(
+        t("realEstateAvanceMonths", { count: Number(listing.avanceMonths) }),
+      );
     }
     if (Number.isFinite(Number(listing.depositMonths))) {
-      parts.push(t("realEstateCautionMonths", { count: Number(listing.depositMonths) }));
+      parts.push(
+        t("realEstateCautionMonths", { count: Number(listing.depositMonths) }),
+      );
     }
     subPrice = parts.join(" · ");
   } else if (deal === "land" && Number(listing.surface) > 0) {
-    subPrice = t("realEstatePerSquareMetre", { amount: fcfa(price / Number(listing.surface)) });
+    subPrice = t("realEstatePerSquareMetre", {
+      amount: fcfa(price / Number(listing.surface)),
+    });
   } else if (listing.rooms && listing.surface) {
     subPrice = `${t("realEstateFactRooms", { count: listing.rooms })} · ${listing.surface} m²`;
   }
@@ -914,10 +1075,17 @@ export function buildPropertyView(listing, language, t) {
     subPrice,
     document,
     tier,
-    documentBadge: document ? getLandDocumentBadge(listing.landDocument, language) : null,
-    documentNote: document ? getLandDocumentNote(listing.landDocument, language) : null,
-    listerLabel: listing.listerKind ? getListerKindLabel(listing.listerKind, language) : null,
-    isVerifiedLister: listing.listerKind === "agency" && !!listing.sellerVerified,
+    documentBadge: document
+      ? getLandDocumentBadge(listing.landDocument, language)
+      : null,
+    documentNote: document
+      ? getLandDocumentNote(listing.landDocument, language)
+      : null,
+    listerLabel: listing.listerKind
+      ? getListerKindLabel(listing.listerKind, language)
+      : null,
+    isVerifiedLister:
+      listing.listerKind === "agency" && !!listing.sellerVerified,
     place: [listing.quartier, listing.city].filter(Boolean).join(", "),
   };
 }
@@ -937,13 +1105,16 @@ function PropertyCard({
   const view = buildPropertyView(listing, language, t);
   const isLand = view.deal === "land";
   const phone = listing.phone ?? listing.sellerPhone ?? null;
-  const isOwner = Boolean(user?.uid && listing.sellerId && user.uid === listing.sellerId);
+  const isOwner = Boolean(
+    user?.uid && listing.sellerId && user.uid === listing.sellerId,
+  );
   // Listings store media as `media: [{ mediaType, mediaUrl }]` with the
   // cover mirrored to a top-level `mediaUrl`. There is no photoUrls field —
   // reading one meant no property photo ever rendered.
   const photo =
     listing.mediaUrl ??
-    (listing.media ?? []).find((item) => item.mediaType !== "video")?.mediaUrl ??
+    (listing.media ?? []).find((item) => item.mediaType !== "video")
+      ?.mediaUrl ??
     null;
   // Each deal already carried a hue in the data and nothing used it.
   const dealColor = getRealEstateDeal(view.deal)?.color ?? EMERALD;
@@ -975,7 +1146,9 @@ function PropertyCard({
         {!isLand && listing.rooms ? (
           <Fact>
             <Feather name="layout" size={13} color={dealColor} />
-            <FactLabel>{t("realEstateFactRooms", { count: listing.rooms })}</FactLabel>
+            <FactLabel>
+              {t("realEstateFactRooms", { count: listing.rooms })}
+            </FactLabel>
           </Fact>
         ) : null}
         {listing.surface ? (
@@ -1004,8 +1177,14 @@ function PropertyCard({
       <BadgeRow>
         {view.document ? (
           <DocBadge tint={view.tier.color}>
-            <Feather name={view.document.feather} size={10} color={view.tier.color} />
-            <DocBadgeLabel tint={view.tier.color}>{view.documentBadge}</DocBadgeLabel>
+            <Feather
+              name={view.document.feather}
+              size={10}
+              color={view.tier.color}
+            />
+            <DocBadgeLabel tint={view.tier.color}>
+              {view.documentBadge}
+            </DocBadgeLabel>
           </DocBadge>
         ) : null}
         {view.listerLabel ? (
@@ -1013,7 +1192,9 @@ function PropertyCard({
             {view.isVerifiedLister ? (
               <Feather name="check-circle" size={10} color={EMERALD} />
             ) : null}
-            <ListerBadgeLabel verified={view.isVerifiedLister}>{view.listerLabel}</ListerBadgeLabel>
+            <ListerBadgeLabel verified={view.isVerifiedLister}>
+              {view.listerLabel}
+            </ListerBadgeLabel>
           </ListerBadge>
         ) : null}
       </BadgeRow>
@@ -1028,7 +1209,15 @@ function PropertyCard({
             reachable this way, and a Call button on its own would open a
             sheet that can only say "no number". */}
           <MessageButton
-            onPress={() => openChat({ listing, listingTitle: listing.title, user, navigation, t })}
+            onPress={() =>
+              openChat({
+                listing,
+                listingTitle: listing.title,
+                user,
+                navigation,
+                t,
+              })
+            }
           >
             <Feather name="message-circle" size={14} color={EMERALD} />
             <MessageLabel>{t("realEstateMessageCta")}</MessageLabel>
@@ -1042,7 +1231,11 @@ function PropertyCard({
           <SaveButton onPress={onToggleSave} hitSlop={6}>
             {/* Feather is stroke-only, so "saved" reads through colour rather
               than a filled variant. */}
-            <Feather name="bookmark" size={15} color={saved ? EMERALD : colors.textMuted} />
+            <Feather
+              name="bookmark"
+              size={15}
+              color={saved ? EMERALD : colors.textMuted}
+            />
           </SaveButton>
         </ActionRow>
       )}

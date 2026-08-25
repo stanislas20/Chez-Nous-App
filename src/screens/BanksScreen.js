@@ -1,24 +1,26 @@
-import { useState } from 'react';
-import { Linking, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import styled from 'styled-components/native';
-import { radius, shadow, spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { fontFamily, type } from '../theme/typography';
-import { SearchBar } from '../components/SearchBar';
-import { mockBanks } from '../data/mockBanks';
-import { queryMatches } from '../utils/search';
-import { useI18n } from '../i18n/I18nContext';
+import { useState } from "react";
+import { Linking, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import styled from "styled-components/native";
+import { radius, shadow, spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { fontFamily, type } from "../theme/typography";
+import { SearchBar } from "../components/SearchBar";
+import { mockBanks } from "../data/mockBanks";
+import { queryMatches } from "../utils/search";
+import { useI18n } from "../i18n/I18nContext";
 
-const EMERALD = '#0B6E4F';
+const EMERALD = "#0B6E4F";
 
 export function BanksScreen({ navigation }) {
   const { colors } = useTheme();
   const { t } = useI18n();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
 
-  const banks = mockBanks.filter((bank) => queryMatches(query, bank.name, bank.city));
+  const banks = mockBanks.filter((bank) =>
+    queryMatches(query, bank.name, bank.city),
+  );
 
   // No verified street address/coordinates for these branches, so this
   // opens a Maps *search* for the name + city rather than pretending to
@@ -29,20 +31,27 @@ export function BanksScreen({ navigation }) {
   };
 
   return (
-    <Container edges={['top', 'left', 'right', 'bottom']}>
+    <Container edges={["top", "left", "right", "bottom"]}>
       <Header>
         <BackButton onPress={() => navigation.goBack()} hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={colors.text} />
         </BackButton>
-        <HeaderTitle>{t('menuBanksRow')}</HeaderTitle>
+        <HeaderTitle>{t("menuBanksRow")}</HeaderTitle>
       </Header>
 
-      <Body showsVerticalScrollIndicator={false} contentContainerStyle={bodyContentStyle}>
-        <SearchBar value={query} onChangeText={setQuery} placeholder={t('banksSearchPlaceholder')} />
+      <Body
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={bodyContentStyle}
+      >
+        <SearchBar
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t("banksSearchPlaceholder")}
+        />
 
-        <SectionTitle>{t('banksSectionTitle')}</SectionTitle>
+        <SectionTitle>{t("banksSectionTitle")}</SectionTitle>
         {banks.length === 0 ? (
-          <EmptyText>{t('banksEmptyResults')}</EmptyText>
+          <EmptyText>{t("banksEmptyResults")}</EmptyText>
         ) : (
           banks.map((bank) => (
             <Row key={bank.id}>
@@ -54,7 +63,9 @@ export function BanksScreen({ navigation }) {
                 <RowCity numberOfLines={1}>{bank.city}</RowCity>
               </RowBody>
               <DirectionsButton onPress={() => openInMaps(bank)}>
-                <RowDirectionsLabel>{t('getDirectionsButton')}</RowDirectionsLabel>
+                <RowDirectionsLabel>
+                  {t("getDirectionsButton")}
+                </RowDirectionsLabel>
               </DirectionsButton>
             </Row>
           ))

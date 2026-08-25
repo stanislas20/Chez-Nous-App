@@ -457,6 +457,13 @@ export function CarsScreen({ navigation, route }) {
       screen: "Sell",
       params: {
         screen: "CreateListing",
+        // initial: false, and this is the whole of why the back arrow was
+        // dead. A nested navigate into a tab that has not been opened yet sets
+        // the child stack's state to exactly the screen named — so
+        // CreateListing became the only route in SellStack, with no dashboard
+        // beneath it and nothing for goBack to pop. This keeps the stack's own
+        // initial route underneath, which is what makes the arrow work.
+        initial: false,
         // Arriving from Vendre, so the form opens on the sale side and never
         // offers a rental deal to someone selling their car.
         params: {

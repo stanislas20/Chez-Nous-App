@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import styled from 'styled-components/native';
-import { radius, spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { type } from '../theme/typography';
-import { useI18n } from '../i18n/I18nContext';
-import { useAuth } from '../auth/AuthContext';
+import { useState } from "react";
+import { ActivityIndicator, Alert, Platform, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import styled from "styled-components/native";
+import { radius, spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { type } from "../theme/typography";
+import { useI18n } from "../i18n/I18nContext";
+import { useAuth } from "../auth/AuthContext";
 
 const contentContainerStyle = { padding: spacing.lg };
 
@@ -14,12 +14,12 @@ export function AdvertiserOnboardingScreen() {
   const { colors } = useTheme();
   const { t } = useI18n();
   const { completeAdvertiserOnboarding } = useAuth();
-  const [businessName, setBusinessName] = useState('');
+  const [businessName, setBusinessName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     if (!businessName.trim()) {
-      Alert.alert(t('advertiserSignUpTitle'), t('errorRequiredFields'));
+      Alert.alert(t("advertiserSignUpTitle"), t("errorRequiredFields"));
       return;
     }
 
@@ -27,28 +27,28 @@ export function AdvertiserOnboardingScreen() {
     try {
       await completeAdvertiserOnboarding({ businessName: businessName.trim() });
     } catch (error) {
-      Alert.alert(t('advertiserSignUpTitle'), t('errorGeneric'));
+      Alert.alert(t("advertiserSignUpTitle"), t("errorGeneric"));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Flex behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Container edges={['left', 'right', 'bottom']}>
+    <Flex behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <Container edges={["left", "right", "bottom"]}>
         <Content
           contentContainerStyle={contentContainerStyle}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Title>{t('advertiserSignUpTitle')}</Title>
-          <Subtitle>{t('advertiserSignUpSubtitle')}</Subtitle>
+          <Title>{t("advertiserSignUpTitle")}</Title>
+          <Subtitle>{t("advertiserSignUpSubtitle")}</Subtitle>
 
-          <Label>{t('fieldBusinessName')}</Label>
+          <Label>{t("fieldBusinessName")}</Label>
           <Input
             value={businessName}
             onChangeText={setBusinessName}
-            placeholder={t('fieldBusinessNamePlaceholder')}
+            placeholder={t("fieldBusinessNamePlaceholder")}
             placeholderTextColor={colors.textMuted}
           />
 
@@ -56,7 +56,7 @@ export function AdvertiserOnboardingScreen() {
             {isSubmitting ? (
               <ActivityIndicator color={colors.textInverse} />
             ) : (
-              <SubmitLabel>{t('advertiserSignUpButton')}</SubmitLabel>
+              <SubmitLabel>{t("advertiserSignUpButton")}</SubmitLabel>
             )}
           </SubmitButton>
         </Content>

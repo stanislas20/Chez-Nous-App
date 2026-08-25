@@ -1,11 +1,11 @@
-import { Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import styled from 'styled-components/native';
-import { spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { fontFamily, type } from '../theme/typography';
-import { useI18n } from '../i18n/I18nContext';
+import { Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import styled from "styled-components/native";
+import { spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { fontFamily, type } from "../theme/typography";
+import { useI18n } from "../i18n/I18nContext";
 
 // Deliberately no mock event listings here (unlike Banks/Tourism, which use
 // real, verifiable institution/landmark names) — a fabricated concert or
@@ -17,19 +17,19 @@ export function EventsScreen({ navigation }) {
   const { t } = useI18n();
 
   return (
-    <Container edges={['top', 'left', 'right', 'bottom']}>
+    <Container edges={["top", "left", "right", "bottom"]}>
       <Header>
         <BackButton onPress={() => navigation.goBack()} hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={colors.text} />
         </BackButton>
-        <HeaderTitle>{t('menuEventsRow')}</HeaderTitle>
+        <HeaderTitle>{t("menuEventsRow")}</HeaderTitle>
       </Header>
 
       <Body>
         <EmptyState>
           <Ionicons name="ticket-outline" size={40} color={colors.textMuted} />
-          <EmptyTitle>{t('eventsEmptyTitle')}</EmptyTitle>
-          <EmptySubtitle>{t('eventsEmptySubtitle')}</EmptySubtitle>
+          <EmptyTitle>{t("eventsEmptyTitle")}</EmptyTitle>
+          <EmptySubtitle>{t("eventsEmptySubtitle")}</EmptySubtitle>
         </EmptyState>
       </Body>
     </Container>

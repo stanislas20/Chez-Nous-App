@@ -1,23 +1,27 @@
-import { useMemo, useState } from 'react';
-import { Pressable, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import styled from 'styled-components/native';
-import { radius, shadow, spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { type } from '../theme/typography';
-import { useI18n } from '../i18n/I18nContext';
-import { useAuth } from '../auth/AuthContext';
-import { useMyListings } from '../hooks/useMyListings';
-import { openListing } from '../utils/openListing';
+import { useMemo, useState } from "react";
+import { Pressable, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import styled from "styled-components/native";
+import { radius, shadow, spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { type } from "../theme/typography";
+import { useI18n } from "../i18n/I18nContext";
+import { useAuth } from "../auth/AuthContext";
+import { useMyListings } from "../hooks/useMyListings";
+import { openListing } from "../utils/openListing";
 
 const WEEKS_TO_SHOW = 8;
 const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-const FALLBACK_TIP_KEYS = ['insightsTipGoodPhotos', 'insightsTipCompetitivePricing', 'insightsTipRespondQuickly'];
+const FALLBACK_TIP_KEYS = [
+  "insightsTipGoodPhotos",
+  "insightsTipCompetitivePricing",
+  "insightsTipRespondQuickly",
+];
 
 function toDateKey(date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function startOfWeek(date) {
@@ -60,7 +64,9 @@ export function SellerInsightsScreen({ navigation }) {
   const listings = useMyListings(user?.uid);
 
   const today = useMemo(() => new Date(), []);
-  const [monthCursor, setMonthCursor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+  const [monthCursor, setMonthCursor] = useState(
+    () => new Date(today.getFullYear(), today.getMonth(), 1),
+  );
   const [selectedDate, setSelectedDate] = useState(() => toDateKey(today));
 
   const eventsByDay = useMemo(() => {
@@ -73,7 +79,7 @@ export function SellerInsightsScreen({ navigation }) {
         entry.posted.push(item);
         map.set(key, entry);
       }
-      if (item.saleStatus === 'sold') {
+      if (item.saleStatus === "sold") {
         const soldDate = item.soldAt?.toDate?.();
         if (soldDate) {
           const key = toDateKey(soldDate);
@@ -95,7 +101,7 @@ export function SellerInsightsScreen({ navigation }) {
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekEnd.getDate() + 7);
       const count = (listings ?? []).filter((item) => {
-        if (item.saleStatus !== 'sold') return false;
+        if (item.saleStatus !== "sold") return false;
         const soldDate = item.soldAt?.toDate?.();
         return soldDate && soldDate >= weekStart && soldDate < weekEnd;
       }).length;
@@ -107,12 +113,12 @@ export function SellerInsightsScreen({ navigation }) {
   const trend = useMemo(() => {
     const last = weeklySoldCounts[weeklySoldCounts.length - 1]?.count ?? 0;
     const prev = weeklySoldCounts[weeklySoldCounts.length - 2]?.count ?? 0;
-    if (prev === 0 && last === 0) return { direction: 'flat', percent: 0 };
-    if (prev === 0) return { direction: 'up', percent: 100 };
+    if (prev === 0 && last === 0) return { direction: "flat", percent: 0 };
+    if (prev === 0) return { direction: "up", percent: 100 };
     const percent = Math.round(((last - prev) / prev) * 100);
-    if (percent > 0) return { direction: 'up', percent };
-    if (percent < 0) return { direction: 'down', percent: Math.abs(percent) };
-    return { direction: 'flat', percent: 0 };
+    if (percent > 0) return { direction: "up", percent };
+    if (percent < 0) return { direction: "down", percent: Math.abs(percent) };
+    return { direction: "flat", percent: 0 };
   }, [weeklySoldCounts]);
 
   const tips = useMemo(() => {
@@ -121,21 +127,26 @@ export function SellerInsightsScreen({ navigation }) {
     const result = [];
 
     const lowPhotoListing = items.find(
-      (item) => item.saleStatus !== 'sold' && (item.media?.length ?? (item.mediaUrl ? 1 : 0)) <= 1,
+      (item) =>
+        item.saleStatus !== "sold" &&
+        (item.media?.length ?? (item.mediaUrl ? 1 : 0)) <= 1,
     );
     if (lowPhotoListing) {
-      const title = language === 'en' ? lowPhotoListing.titleEn : lowPhotoListing.titleFr;
-      result.push({ key: 'insightsTipMorePhotos', params: { title } });
+      const title =
+        language === "en" ? lowPhotoListing.titleEn : lowPhotoListing.titleFr;
+      result.push({ key: "insightsTipMorePhotos", params: { title } });
     }
 
     const staleListing = items.find((item) => {
-      if (item.saleStatus === 'sold' || item.status !== 'approved') return false;
+      if (item.saleStatus === "sold" || item.status !== "approved")
+        return false;
       const createdDate = item.createdAt?.toDate?.();
       return createdDate && now - createdDate.getTime() > FOURTEEN_DAYS_MS;
     });
     if (staleListing) {
-      const title = language === 'en' ? staleListing.titleEn : staleListing.titleFr;
-      result.push({ key: 'insightsTipStaleListing', params: { title } });
+      const title =
+        language === "en" ? staleListing.titleEn : staleListing.titleFr;
+      result.push({ key: "insightsTipStaleListing", params: { title } });
     }
 
     const postedRecently = items.some((item) => {
@@ -143,7 +154,7 @@ export function SellerInsightsScreen({ navigation }) {
       return createdDate && now - createdDate.getTime() < SEVEN_DAYS_MS;
     });
     if (!postedRecently) {
-      result.push({ key: 'insightsTipPostRegularly', params: {} });
+      result.push({ key: "insightsTipPostRegularly", params: {} });
     }
 
     let fallbackIndex = 0;
@@ -160,38 +171,62 @@ export function SellerInsightsScreen({ navigation }) {
     [monthCursor],
   );
   const monthLabel = capitalize(
-    monthCursor.toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR', { month: 'long', year: 'numeric' }),
+    monthCursor.toLocaleDateString(language === "en" ? "en-US" : "fr-FR", {
+      month: "long",
+      year: "numeric",
+    }),
   );
   const weekdayLabels =
-    language === 'en' ? ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'] : ['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'];
+    language === "en"
+      ? ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+      : ["Lu", "Ma", "Me", "Je", "Ve", "Sa", "Di"];
 
-  const selectedEvents = eventsByDay.get(selectedDate) ?? { posted: [], sold: [] };
+  const selectedEvents = eventsByDay.get(selectedDate) ?? {
+    posted: [],
+    sold: [],
+  };
   const agendaItems = [
-    ...selectedEvents.posted.map((item) => ({ item, kind: 'posted' })),
-    ...selectedEvents.sold.map((item) => ({ item, kind: 'sold' })),
+    ...selectedEvents.posted.map((item) => ({ item, kind: "posted" })),
+    ...selectedEvents.sold.map((item) => ({ item, kind: "sold" })),
   ];
 
-  const maxWeekCount = Math.max(1, ...weeklySoldCounts.map((week) => week.count));
-  const shortDateFormatter = new Intl.DateTimeFormat(language === 'en' ? 'en-US' : 'fr-FR', {
-    day: 'numeric',
-    month: 'short',
-  });
+  const maxWeekCount = Math.max(
+    1,
+    ...weeklySoldCounts.map((week) => week.count),
+  );
+  const shortDateFormatter = new Intl.DateTimeFormat(
+    language === "en" ? "en-US" : "fr-FR",
+    {
+      day: "numeric",
+      month: "short",
+    },
+  );
 
   const goToListing = (item) => {
     openListing(navigation, item, t, language);
   };
 
   return (
-    <Container edges={['left', 'right', 'bottom']}>
+    <Container edges={["left", "right", "bottom"]}>
       <Content>
         <Card>
           <CalendarHeader>
-            <Pressable onPress={() => setMonthCursor((prev) => addMonths(prev, -1))} hitSlop={8}>
+            <Pressable
+              onPress={() => setMonthCursor((prev) => addMonths(prev, -1))}
+              hitSlop={8}
+            >
               <Ionicons name="chevron-back" size={20} color={colors.primary} />
             </Pressable>
             <CalendarMonthLabel>{monthLabel}</CalendarMonthLabel>
-            <Pressable onPress={() => setMonthCursor((prev) => addMonths(prev, 1))} hitSlop={8}>
-              <Ionicons name="chevron-forward" size={20} color={colors.primary} />
+            <Pressable
+              onPress={() => setMonthCursor((prev) => addMonths(prev, 1))}
+              hitSlop={8}
+            >
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={colors.primary}
+              />
             </Pressable>
           </CalendarHeader>
 
@@ -210,10 +245,16 @@ export function SellerInsightsScreen({ navigation }) {
               const events = eventsByDay.get(key);
               const isSelected = key === selectedDate;
               return (
-                <DayCell key={index} onPress={() => setSelectedDate(key)} selected={isSelected}>
+                <DayCell
+                  key={index}
+                  onPress={() => setSelectedDate(key)}
+                  selected={isSelected}
+                >
                   <DayNumber selected={isSelected}>{date.getDate()}</DayNumber>
                   <DotRow>
-                    {events?.posted.length ? <Dot color={colors.primary} /> : null}
+                    {events?.posted.length ? (
+                      <Dot color={colors.primary} />
+                    ) : null}
                     {events?.sold.length ? <Dot color={colors.error} /> : null}
                   </DotRow>
                 </DayCell>
@@ -224,33 +265,45 @@ export function SellerInsightsScreen({ navigation }) {
           <LegendRow>
             <LegendItem>
               <Dot color={colors.primary} />
-              <LegendLabel>{t('insightsCalendarPostedLabel')}</LegendLabel>
+              <LegendLabel>{t("insightsCalendarPostedLabel")}</LegendLabel>
             </LegendItem>
             <LegendItem>
               <Dot color={colors.error} />
-              <LegendLabel>{t('insightsCalendarSoldLabel')}</LegendLabel>
+              <LegendLabel>{t("insightsCalendarSoldLabel")}</LegendLabel>
             </LegendItem>
           </LegendRow>
 
           <Divider />
 
           {agendaItems.length === 0 ? (
-            <EmptyAgendaText>{t('insightsCalendarEmptyDay')}</EmptyAgendaText>
+            <EmptyAgendaText>{t("insightsCalendarEmptyDay")}</EmptyAgendaText>
           ) : (
             agendaItems.map(({ item, kind }) => (
-              <AgendaRow key={`${kind}-${item.id}`} onPress={() => goToListing(item)}>
-                <AgendaThumb source={{ uri: item.mediaUrl ?? item.image }} resizeMode="cover" />
+              <AgendaRow
+                key={`${kind}-${item.id}`}
+                onPress={() => goToListing(item)}
+              >
+                <AgendaThumb
+                  source={{ uri: item.mediaUrl ?? item.image }}
+                  resizeMode="cover"
+                />
                 <AgendaBody>
                   <AgendaTitle numberOfLines={1}>
-                    {language === 'en' ? item.titleEn : item.titleFr}
+                    {language === "en" ? item.titleEn : item.titleFr}
                   </AgendaTitle>
-                  <AgendaTag sold={kind === 'sold'}>
-                    <AgendaTagLabel sold={kind === 'sold'}>
-                      {kind === 'sold' ? t('insightsCalendarSoldLabel') : t('insightsCalendarPostedLabel')}
+                  <AgendaTag sold={kind === "sold"}>
+                    <AgendaTagLabel sold={kind === "sold"}>
+                      {kind === "sold"
+                        ? t("insightsCalendarSoldLabel")
+                        : t("insightsCalendarPostedLabel")}
                     </AgendaTagLabel>
                   </AgendaTag>
                 </AgendaBody>
-                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={colors.textMuted}
+                />
               </AgendaRow>
             ))
           )}
@@ -260,37 +313,41 @@ export function SellerInsightsScreen({ navigation }) {
           <TrendBanner direction={trend.direction}>
             <Ionicons
               name={
-                trend.direction === 'up'
-                  ? 'trending-up'
-                  : trend.direction === 'down'
-                    ? 'trending-down'
-                    : 'remove-outline'
+                trend.direction === "up"
+                  ? "trending-up"
+                  : trend.direction === "down"
+                    ? "trending-down"
+                    : "remove-outline"
               }
               size={18}
               color={
-                trend.direction === 'up'
+                trend.direction === "up"
                   ? colors.primary
-                  : trend.direction === 'down'
+                  : trend.direction === "down"
                     ? colors.error
                     : colors.textMuted
               }
             />
             <TrendLabel direction={trend.direction}>
-              {trend.direction === 'up'
-                ? t('insightsTrendUp', { percent: trend.percent })
-                : trend.direction === 'down'
-                  ? t('insightsTrendDown', { percent: trend.percent })
-                  : t('insightsTrendFlat')}
+              {trend.direction === "up"
+                ? t("insightsTrendUp", { percent: trend.percent })
+                : trend.direction === "down"
+                  ? t("insightsTrendDown", { percent: trend.percent })
+                  : t("insightsTrendFlat")}
             </TrendLabel>
           </TrendBanner>
 
-          <SectionSubtitle>{t('insightsGraphTitle')}</SectionSubtitle>
+          <SectionSubtitle>{t("insightsGraphTitle")}</SectionSubtitle>
           <GraphRow>
             {weeklySoldCounts.map((week, index) => (
               <BarColumn key={index}>
                 <BarCount>{week.count}</BarCount>
                 <BarTrack>
-                  <Bar style={{ height: `${Math.max(6, (week.count / maxWeekCount) * 100)}%` }} />
+                  <Bar
+                    style={{
+                      height: `${Math.max(6, (week.count / maxWeekCount) * 100)}%`,
+                    }}
+                  />
                 </BarTrack>
                 <BarLabel>{shortDateFormatter.format(week.weekStart)}</BarLabel>
               </BarColumn>
@@ -299,10 +356,14 @@ export function SellerInsightsScreen({ navigation }) {
         </Card>
 
         <Card>
-          <SectionSubtitle>{t('insightsTipsTitle')}</SectionSubtitle>
+          <SectionSubtitle>{t("insightsTipsTitle")}</SectionSubtitle>
           {tips.map((tip, index) => (
             <TipRow key={index} last={index === tips.length - 1}>
-              <Ionicons name="bulb-outline" size={18} color={colors.accentDark} />
+              <Ionicons
+                name="bulb-outline"
+                size={18}
+                color={colors.accentDark}
+              />
               <TipText>{t(tip.key, tip.params)}</TipText>
             </TipRow>
           ))}
@@ -364,7 +425,7 @@ const DayCell = styled(Pressable)`
   align-items: center;
   justify-content: center;
   border-radius: ${radius.sm}px;
-  background-color: ${(props) => (props.selected ? props.theme.primary : 'transparent')};
+  background-color: ${(props) => (props.selected ? props.theme.primary : "transparent")};
 `;
 
 const DayNumber = styled.Text`
@@ -463,7 +524,11 @@ const TrendBanner = styled.View`
 const TrendLabel = styled.Text`
   ${type.bodyMedium}
   color: ${(props) =>
-    props.direction === 'up' ? props.theme.primary : props.direction === 'down' ? props.theme.error : props.theme.textMuted};
+    props.direction === "up"
+      ? props.theme.primary
+      : props.direction === "down"
+        ? props.theme.error
+        : props.theme.textMuted};
 `;
 
 const SectionSubtitle = styled.Text`
@@ -521,7 +586,7 @@ const TipRow = styled.View`
   align-items: flex-start;
   gap: ${spacing.sm}px;
   padding-vertical: ${spacing.sm}px;
-  border-bottom-width: ${(props) => (props.last ? '0px' : '1px')};
+  border-bottom-width: ${(props) => (props.last ? "0px" : "1px")};
   border-bottom-color: ${(props) => props.theme.border};
 `;
 

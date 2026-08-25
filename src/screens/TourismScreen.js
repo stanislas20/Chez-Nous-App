@@ -1,64 +1,82 @@
-import { useState } from 'react';
-import { FlatList, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import styled from 'styled-components/native';
-import { radius, shadow, spacing } from '../theme/colors';
-import { useTheme } from '../theme/ThemeContext';
-import { fontFamily, type } from '../theme/typography';
-import { SearchBar } from '../components/SearchBar';
-import { mockAttractions, mockHotels } from '../data/mockAttractions';
-import { queryMatches } from '../utils/search';
-import { useI18n } from '../i18n/I18nContext';
+import { useState } from "react";
+import { FlatList, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import styled from "styled-components/native";
+import { radius, shadow, spacing } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
+import { fontFamily, type } from "../theme/typography";
+import { SearchBar } from "../components/SearchBar";
+import { mockAttractions, mockHotels } from "../data/mockAttractions";
+import { queryMatches } from "../utils/search";
+import { useI18n } from "../i18n/I18nContext";
 
-const EMERALD = '#0B6E4F';
-const GOLD = '#D9A441';
-const hScrollContentStyle = { paddingRight: spacing.md, paddingVertical: spacing.md };
+const EMERALD = "#0B6E4F";
+const GOLD = "#D9A441";
+const hScrollContentStyle = {
+  paddingRight: spacing.md,
+  paddingVertical: spacing.md,
+};
 
 export function TourismScreen({ navigation }) {
   const { colors } = useTheme();
   const { language, t } = useI18n();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
 
   const attractions = mockAttractions.filter((item) => {
-    const name = language === 'en' ? item.nameEn : item.nameFr;
+    const name = language === "en" ? item.nameEn : item.nameFr;
     return queryMatches(query, name, item.city);
   });
-  const hotels = mockHotels.filter((hotel) => queryMatches(query, hotel.name, hotel.city));
+  const hotels = mockHotels.filter((hotel) =>
+    queryMatches(query, hotel.name, hotel.city),
+  );
 
   return (
-    <Container edges={['top', 'left', 'right', 'bottom']}>
+    <Container edges={["top", "left", "right", "bottom"]}>
       <Header>
         <BackButton onPress={() => navigation.goBack()} hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={colors.text} />
         </BackButton>
-        <HeaderTitle>{t('menuTourismRow')}</HeaderTitle>
+        <HeaderTitle>{t("menuTourismRow")}</HeaderTitle>
       </Header>
 
-      <Body showsVerticalScrollIndicator={false} contentContainerStyle={bodyContentStyle}>
-        <SearchBar value={query} onChangeText={setQuery} placeholder={t('tourismSearchPlaceholder')} />
+      <Body
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={bodyContentStyle}
+      >
+        <SearchBar
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t("tourismSearchPlaceholder")}
+        />
 
-        <SectionTitle>{t('tourismAttractionsSectionTitle')}</SectionTitle>
+        <SectionTitle>{t("tourismAttractionsSectionTitle")}</SectionTitle>
         {attractions.length === 0 ? (
-          <EmptyText>{t('tourismEmptyResults')}</EmptyText>
+          <EmptyText>{t("tourismEmptyResults")}</EmptyText>
         ) : (
           attractions.map((item, index) => (
             <AttractionCard key={item.id}>
-              <AttractionImg colors={[TAG_COLORS[index % TAG_COLORS.length], '#1d3a52']}>
-                <AttractionTag numberOfLines={1}>{language === 'en' ? item.tagEn : item.tagFr}</AttractionTag>
+              <AttractionImg
+                colors={[TAG_COLORS[index % TAG_COLORS.length], "#1d3a52"]}
+              >
+                <AttractionTag numberOfLines={1}>
+                  {language === "en" ? item.tagEn : item.tagFr}
+                </AttractionTag>
               </AttractionImg>
               <AttractionBody>
-                <AttractionName numberOfLines={1}>{language === 'en' ? item.nameEn : item.nameFr}</AttractionName>
+                <AttractionName numberOfLines={1}>
+                  {language === "en" ? item.nameEn : item.nameFr}
+                </AttractionName>
                 <AttractionCity>{item.city}</AttractionCity>
               </AttractionBody>
             </AttractionCard>
           ))
         )}
 
-        <SectionTitle>{t('tourismHotelsSectionTitle')}</SectionTitle>
+        <SectionTitle>{t("tourismHotelsSectionTitle")}</SectionTitle>
         {hotels.length === 0 ? (
-          <EmptyText>{t('tourismEmptyResults')}</EmptyText>
+          <EmptyText>{t("tourismEmptyResults")}</EmptyText>
         ) : (
           <FlatList
             horizontal
@@ -79,7 +97,7 @@ export function TourismScreen({ navigation }) {
   );
 }
 
-const TAG_COLORS = [EMERALD, GOLD, '#C1512D', '#5a7fa6'];
+const TAG_COLORS = [EMERALD, GOLD, "#C1512D", "#5a7fa6"];
 const bodyContentStyle = { padding: spacing.md, paddingBottom: spacing.xl };
 
 const Container = styled(SafeAreaView)`

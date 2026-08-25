@@ -1,19 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable } from 'react-native';
-import styled from 'styled-components/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { radius, spacing } from '../theme/colors';
-import { fontFamily, type } from '../theme/typography';
-import { useI18n } from '../i18n/I18nContext';
+import { useEffect, useRef, useState } from "react";
+import { Animated, Easing, Pressable } from "react-native";
+import styled from "styled-components/native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+import { radius, spacing } from "../theme/colors";
+import { fontFamily, type } from "../theme/typography";
+import { useI18n } from "../i18n/I18nContext";
 
-const GREEN = '#008751';
-const YELLOW = '#FCD116';
-const RED = '#E8112D';
-const INK = '#1C1C1E';
-const MUTED = '#6B7280';
+const GREEN = "#008751";
+const YELLOW = "#FCD116";
+const RED = "#E8112D";
+const INK = "#1C1C1E";
+const MUTED = "#6B7280";
 
 const WAVE_BARS = [
   { height: 46, color: GREEN, delay: 0 },
@@ -32,8 +32,18 @@ function useFloatLoop({ dx, dy, scale, duration }) {
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(anim, { toValue: 1, duration: duration / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 0, duration: duration / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: duration / 2,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(anim, {
+          toValue: 0,
+          duration: duration / 2,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
       ]),
     );
     loop.start();
@@ -42,9 +52,24 @@ function useFloatLoop({ dx, dy, scale, duration }) {
 
   return {
     transform: [
-      { translateX: anim.interpolate({ inputRange: [0, 1], outputRange: [0, dx] }) },
-      { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [0, dy] }) },
-      { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [1, scale] }) },
+      {
+        translateX: anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, dx],
+        }),
+      },
+      {
+        translateY: anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, dy],
+        }),
+      },
+      {
+        scale: anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [1, scale],
+        }),
+      },
     ],
   };
 }
@@ -64,7 +89,14 @@ function useFadeUp(delay) {
 
   return {
     opacity: anim,
-    transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
+    transform: [
+      {
+        translateY: anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [14, 0],
+        }),
+      },
+    ],
   };
 }
 
@@ -74,8 +106,19 @@ function WaveBar({ height, color, delay }) {
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(anim, { toValue: 1, duration: 1300, delay, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 0, duration: 1300, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: 1300,
+          delay,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(anim, {
+          toValue: 0,
+          duration: 1300,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
       ]),
     );
     loop.start();
@@ -87,7 +130,14 @@ function WaveBar({ height, color, delay }) {
       style={{
         height,
         backgroundColor: color,
-        transform: [{ scaleY: anim.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] }) }],
+        transform: [
+          {
+            scaleY: anim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.55, 1],
+            }),
+          },
+        ],
       }}
     />
   );
@@ -97,7 +147,11 @@ function LanguageCard({ flag, label, selected, onPress, style }) {
   return (
     <AnimatedCardWrap style={style}>
       <CardPressable onPress={onPress}>
-        <CardBlur intensity={selected ? 0 : 40} tint="light" selected={selected}>
+        <CardBlur
+          intensity={selected ? 0 : 40}
+          tint="light"
+          selected={selected}
+        >
           <CardInner selected={selected}>
             <FlagEmoji>{flag}</FlagEmoji>
             <CardLabel>{label}</CardLabel>
@@ -140,26 +194,79 @@ export function LanguageSelectScreen() {
 
   const logoStyle = {
     opacity: logoAnim,
-    transform: [{ scale: logoAnim.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }) }],
+    transform: [
+      {
+        scale: logoAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.82, 1],
+        }),
+      },
+    ],
   };
 
   const pressIn = () => {
-    Animated.spring(ctaScale, { toValue: 0.97, speed: 40, bounciness: 6, useNativeDriver: true }).start();
+    Animated.spring(ctaScale, {
+      toValue: 0.97,
+      speed: 40,
+      bounciness: 6,
+      useNativeDriver: true,
+    }).start();
   };
   const pressOut = () => {
-    Animated.spring(ctaScale, { toValue: 1, speed: 40, bounciness: 6, useNativeDriver: true }).start();
+    Animated.spring(ctaScale, {
+      toValue: 1,
+      speed: 40,
+      bounciness: 6,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handleContinue = () => {
     if (selected) setLanguage(selected);
   };
-  const handleSkip = () => setLanguage(selected || 'fr');
+  const handleSkip = () => setLanguage(selected || "fr");
 
   return (
-    <Scene edges={['top', 'bottom']}>
-      <Blob style={[{ top: -60, left: -50, width: 220, height: 220, backgroundColor: GREEN, opacity: 0.22 }, blob1]} />
-      <Blob style={[{ top: -30, right: -60, width: 240, height: 240, backgroundColor: YELLOW, opacity: 0.28 }, blob2]} />
-      <Blob style={[{ bottom: -80, left: '30%', width: 260, height: 260, backgroundColor: RED, opacity: 0.18 }, blob3]} />
+    <Scene edges={["top", "bottom"]}>
+      <Blob
+        style={[
+          {
+            top: -60,
+            left: -50,
+            width: 220,
+            height: 220,
+            backgroundColor: GREEN,
+            opacity: 0.22,
+          },
+          blob1,
+        ]}
+      />
+      <Blob
+        style={[
+          {
+            top: -30,
+            right: -60,
+            width: 240,
+            height: 240,
+            backgroundColor: YELLOW,
+            opacity: 0.28,
+          },
+          blob2,
+        ]}
+      />
+      <Blob
+        style={[
+          {
+            bottom: -80,
+            left: "30%",
+            width: 260,
+            height: 260,
+            backgroundColor: RED,
+            opacity: 0.18,
+          },
+          blob3,
+        ]}
+      />
 
       <Content>
         <AnimatedLogoWrap style={logoStyle}>
@@ -174,33 +281,38 @@ export function LanguageSelectScreen() {
 
         <AnimatedHeading style={headingStyle}>
           <Brand>Chez-Nous</Brand>
-          <Tagline>{t('onboardingTagline')}</Tagline>
-          <Subcopy>{t('onboardingSubcopy')}</Subcopy>
+          <Tagline>{t("onboardingTagline")}</Tagline>
+          <Subcopy>{t("onboardingSubcopy")}</Subcopy>
         </AnimatedHeading>
 
         <AnimatedWaveWrap style={waveStyle}>
           {WAVE_BARS.map((bar, index) => (
-            <WaveBar key={index} height={bar.height} color={bar.color} delay={bar.delay} />
+            <WaveBar
+              key={index}
+              height={bar.height}
+              color={bar.color}
+              delay={bar.delay}
+            />
           ))}
         </AnimatedWaveWrap>
 
         <AnimatedLangSection style={langStyle}>
           <LangLabel>
             <Ionicons name="globe-outline" size={15} color={MUTED} />
-            <LangLabelText>{t('languagePickerTitle')}</LangLabelText>
+            <LangLabelText>{t("languagePickerTitle")}</LangLabelText>
           </LangLabel>
 
           <LanguageCard
             flag="🇫🇷"
-            label={t('languageFrench')}
-            selected={selected === 'fr'}
-            onPress={() => setSelected('fr')}
+            label={t("languageFrench")}
+            selected={selected === "fr"}
+            onPress={() => setSelected("fr")}
           />
           <LanguageCard
             flag="🇬🇧"
-            label={t('languageEnglish')}
-            selected={selected === 'en'}
-            onPress={() => setSelected('en')}
+            label={t("languageEnglish")}
+            selected={selected === "en"}
+            onPress={() => setSelected("en")}
           />
         </AnimatedLangSection>
 
@@ -213,13 +325,19 @@ export function LanguageSelectScreen() {
               onPressOut={pressOut}
             >
               {selected ? (
-                <ContinueGradient colors={[GREEN, '#00A85C']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                  <ContinueLabel active>{t('onboardingContinueButton')}</ContinueLabel>
+                <ContinueGradient
+                  colors={[GREEN, "#00A85C"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <ContinueLabel active>
+                    {t("onboardingContinueButton")}
+                  </ContinueLabel>
                   <Ionicons name="arrow-forward" size={16} color="#fff" />
                 </ContinueGradient>
               ) : (
                 <ContinueDisabled>
-                  <ContinueLabel>{t('onboardingContinueButton')}</ContinueLabel>
+                  <ContinueLabel>{t("onboardingContinueButton")}</ContinueLabel>
                   <Ionicons name="arrow-forward" size={16} color="#9CA3AF" />
                 </ContinueDisabled>
               )}
@@ -227,7 +345,7 @@ export function LanguageSelectScreen() {
           </Animated.View>
 
           <SkipLink onPress={handleSkip} hitSlop={8}>
-            <SkipLabel>{t('onboardingSkipButton')}</SkipLabel>
+            <SkipLabel>{t("onboardingSkipButton")}</SkipLabel>
           </SkipLink>
         </AnimatedCtaWrap>
       </Content>
@@ -355,8 +473,8 @@ const CardPressable = styled(Pressable)``;
 const CardBlur = styled(BlurView)`
   border-radius: 20px;
   overflow: hidden;
-  border-width: ${(props) => (props.selected ? '2px' : '1px')};
-  border-color: ${(props) => (props.selected ? GREEN : 'rgba(255,255,255,0.7)')};
+  border-width: ${(props) => (props.selected ? "2px" : "1px")};
+  border-color: ${(props) => (props.selected ? GREEN : "rgba(255,255,255,0.7)")};
 `;
 
 const CardInner = styled.View`
@@ -365,7 +483,7 @@ const CardInner = styled.View`
   gap: 12px;
   min-height: 56px;
   padding: ${spacing.md}px ${spacing.md + 2}px;
-  background-color: ${(props) => (props.selected ? '#FFFFFF' : 'rgba(255,255,255,0.55)')};
+  background-color: ${(props) => (props.selected ? "#FFFFFF" : "rgba(255,255,255,0.55)")};
 `;
 
 const FlagEmoji = styled.Text`
@@ -424,7 +542,7 @@ const ContinueDisabled = styled.View`
 const ContinueLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 16px;
-  color: ${(props) => (props.active ? '#fff' : '#9CA3AF')};
+  color: ${(props) => (props.active ? "#fff" : "#9CA3AF")};
 `;
 
 const SkipLink = styled(Pressable)`

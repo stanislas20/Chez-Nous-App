@@ -21,7 +21,9 @@ const THEME_OPTIONS = [
   { key: "dark", labelKey: "themeDark" },
 ];
 
-const NON_PHARMACY_CATEGORIES = categories.filter((category) => category.key !== "pharmacyOnDuty");
+const NON_PHARMACY_CATEGORIES = categories.filter(
+  (category) => category.key !== "pharmacyOnDuty",
+);
 const CATEGORY_EMOJI = {
   vehicles: "🚗",
   realEstate: "🏠",
@@ -45,7 +47,10 @@ export function MoreScreen({ navigation }) {
   const { user, sellerProfile, advertiserProfile, logOut } = useAuth();
   const [showAllCategories, setShowAllCategories] = useState(false);
 
-  const name = sellerProfile?.fullName || advertiserProfile?.businessName || user?.displayName;
+  const name =
+    sellerProfile?.fullName ||
+    advertiserProfile?.businessName ||
+    user?.displayName;
   const initial = name ? name.trim().charAt(0).toUpperCase() : null;
 
   const goToProfile = () => {
@@ -64,7 +69,8 @@ export function MoreScreen({ navigation }) {
     });
   };
 
-  const showComingSoon = (labelKey) => Alert.alert(t(labelKey), t("dashboardHelpComingSoon"));
+  const showComingSoon = (labelKey) =>
+    Alert.alert(t(labelKey), t("dashboardHelpComingSoon"));
 
   const handleLogout = () => {
     Alert.alert(t("logoutConfirmTitle"), t("logoutConfirmMessage"), [
@@ -81,8 +87,12 @@ export function MoreScreen({ navigation }) {
   };
 
   const jobsCategory = categories.find((category) => category.key === "jobs");
-  const communityCategory = categories.find((category) => category.key === "community");
-  const pharmacyCategory = categories.find((category) => category.key === "pharmacyOnDuty");
+  const communityCategory = categories.find(
+    (category) => category.key === "community",
+  );
+  const pharmacyCategory = categories.find(
+    (category) => category.key === "pharmacyOnDuty",
+  );
 
   return (
     <Container edges={["top", "left", "right", "bottom"]}>
@@ -96,10 +106,17 @@ export function MoreScreen({ navigation }) {
         </LangPill>
       </HeaderRow>
 
-      <ScrollView contentContainerStyle={scrollContentStyle} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={scrollContentStyle}
+        showsVerticalScrollIndicator={false}
+      >
         {user ? (
           <AccountRow onPress={goToProfile}>
-            <AvatarGradient colors={[EMERALD, GOLD]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+            <AvatarGradient
+              colors={[EMERALD, GOLD]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
               <AvatarLabel>
                 {initial ?? <Ionicons name="person" size={18} color="#fff" />}
               </AvatarLabel>
@@ -108,14 +125,26 @@ export function MoreScreen({ navigation }) {
               <AccountName numberOfLines={1}>{name}</AccountName>
               <AccountLink>{t("menuViewProfileLink")}</AccountLink>
             </AccountCol>
-            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={colors.textMuted}
+            />
           </AccountRow>
         ) : (
           <SignInRow onPress={() => openAccountGate(navigation)}>
-            <Ionicons name="person-circle-outline" size={34} color={colors.primary} />
+            <Ionicons
+              name="person-circle-outline"
+              size={34}
+              color={colors.primary}
+            />
             <AccountCol>
-              <AccountName numberOfLines={1}>{t("favoritesSignInTitle")}</AccountName>
-              <AccountSub numberOfLines={2}>{t("favoritesSignInMessage")}</AccountSub>
+              <AccountName numberOfLines={1}>
+                {t("favoritesSignInTitle")}
+              </AccountName>
+              <AccountSub numberOfLines={2}>
+                {t("favoritesSignInMessage")}
+              </AccountSub>
             </AccountCol>
           </SignInRow>
         )}
@@ -134,32 +163,51 @@ export function MoreScreen({ navigation }) {
         <SectionLabel>{t("menuExploreSectionTitle")}</SectionLabel>
         <RowList>
           {TOP_CATEGORIES.map((category) => (
-            <CategoryRow key={category.key} onPress={() => goToCategory(category)}>
+            <CategoryRow
+              key={category.key}
+              onPress={() => goToCategory(category)}
+            >
               <CategoryIconBadge>
                 <CategoryEmoji>{CATEGORY_EMOJI[category.key]}</CategoryEmoji>
               </CategoryIconBadge>
               <CategoryRowLabel>
                 {language === "en" ? category.labelEn : category.labelFr}
               </CategoryRowLabel>
-              <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+              <Ionicons
+                name="chevron-forward"
+                size={14}
+                color={colors.textMuted}
+              />
             </CategoryRow>
           ))}
           {showAllCategories
             ? REMAINING_CATEGORIES.map((category) => (
-                <CategoryRow key={category.key} onPress={() => goToCategory(category)}>
+                <CategoryRow
+                  key={category.key}
+                  onPress={() => goToCategory(category)}
+                >
                   <CategoryIconBadge>
-                    <CategoryEmoji>{CATEGORY_EMOJI[category.key]}</CategoryEmoji>
+                    <CategoryEmoji>
+                      {CATEGORY_EMOJI[category.key]}
+                    </CategoryEmoji>
                   </CategoryIconBadge>
                   <CategoryRowLabel>
                     {language === "en" ? category.labelEn : category.labelFr}
                   </CategoryRowLabel>
-                  <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+                  <Ionicons
+                    name="chevron-forward"
+                    size={14}
+                    color={colors.textMuted}
+                  />
                 </CategoryRow>
               ))
             : null}
         </RowList>
         <SeeAllLink onPress={() => setShowAllCategories((value) => !value)}>
-          {showAllCategories ? t("menuSeeLessCategoriesLink") : t("menuSeeAllCategoriesLink")} →
+          {showAllCategories
+            ? t("menuSeeLessCategoriesLink")
+            : t("menuSeeAllCategoriesLink")}{" "}
+          →
         </SeeAllLink>
 
         <SectionLabel>{t("menuUsefulServicesSectionTitle")}</SectionLabel>
@@ -168,51 +216,88 @@ export function MoreScreen({ navigation }) {
             <CategoryRow onPress={() => goToCategory(pharmacyCategory)}>
               <CategoryEmoji>💊</CategoryEmoji>
               <CategoryRowLabel>
-                {language === "en" ? pharmacyCategory.labelEn : pharmacyCategory.labelFr}
+                {language === "en"
+                  ? pharmacyCategory.labelEn
+                  : pharmacyCategory.labelFr}
               </CategoryRowLabel>
-              <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+              <Ionicons
+                name="chevron-forward"
+                size={14}
+                color={colors.textMuted}
+              />
             </CategoryRow>
           ) : null}
           {jobsCategory ? (
             <CategoryRow
               onPress={() =>
-                navigation.navigate("MainTabs", { screen: "ForYou", params: { chip: "jobs" } })
+                navigation.navigate("MainTabs", {
+                  screen: "ForYou",
+                  params: { chip: "jobs" },
+                })
               }
             >
               <CategoryEmoji>💼</CategoryEmoji>
               <CategoryRowLabel>
-                {language === "en" ? jobsCategory.labelEn : jobsCategory.labelFr}
+                {language === "en"
+                  ? jobsCategory.labelEn
+                  : jobsCategory.labelFr}
               </CategoryRowLabel>
-              <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+              <Ionicons
+                name="chevron-forward"
+                size={14}
+                color={colors.textMuted}
+              />
             </CategoryRow>
           ) : null}
           <CategoryRow onPress={() => navigation.navigate("Restaurants")}>
             <CategoryEmoji>🍽️</CategoryEmoji>
             <CategoryRowLabel>{t("menuRestaurantsRow")}</CategoryRowLabel>
-            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.textMuted}
+            />
           </CategoryRow>
           <CategoryRow onPress={() => navigation.navigate("Banks")}>
             <CategoryEmoji>🏦</CategoryEmoji>
             <CategoryRowLabel>{t("menuBanksRow")}</CategoryRowLabel>
-            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.textMuted}
+            />
           </CategoryRow>
           <CategoryRow onPress={() => navigation.navigate("Tourism")}>
             <CategoryEmoji>🏝️</CategoryEmoji>
             <CategoryRowLabel>{t("menuTourismRow")}</CategoryRowLabel>
-            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.textMuted}
+            />
           </CategoryRow>
           <CategoryRow onPress={() => navigation.navigate("Events")}>
             <CategoryEmoji>🎟️</CategoryEmoji>
             <CategoryRowLabel>{t("menuEventsRow")}</CategoryRowLabel>
-            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.textMuted}
+            />
           </CategoryRow>
           {communityCategory ? (
             <CategoryRow onPress={() => goToCategory(communityCategory)} last>
               <CategoryEmoji>👥</CategoryEmoji>
               <CategoryRowLabel>
-                {language === "en" ? communityCategory.labelEn : communityCategory.labelFr}
+                {language === "en"
+                  ? communityCategory.labelEn
+                  : communityCategory.labelFr}
               </CategoryRowLabel>
-              <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+              <Ionicons
+                name="chevron-forward"
+                size={14}
+                color={colors.textMuted}
+              />
             </CategoryRow>
           ) : null}
         </RowList>
@@ -232,10 +317,16 @@ export function MoreScreen({ navigation }) {
 
         <SectionLabel>{t("menuPreferencesSectionTitle")}</SectionLabel>
         <RowList>
-          <CategoryRow onPress={() => setLanguage(language === "en" ? "fr" : "en")}>
+          <CategoryRow
+            onPress={() => setLanguage(language === "en" ? "fr" : "en")}
+          >
             <CategoryRowLabel>{t("menuLanguageRow")}</CategoryRowLabel>
             <PrefValue>{language === "en" ? "EN" : "FR"}</PrefValue>
-            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.textMuted}
+            />
           </CategoryRow>
           <AppearanceRow>
             <CategoryRowLabel>{t("themeSectionTitle")}</CategoryRowLabel>
@@ -248,18 +339,26 @@ export function MoreScreen({ navigation }) {
                     selected={selected}
                     onPress={() => setPreference(option.key)}
                   >
-                    <SegOptionLabel selected={selected}>{t(option.labelKey)}</SegOptionLabel>
+                    <SegOptionLabel selected={selected}>
+                      {t(option.labelKey)}
+                    </SegOptionLabel>
                   </SegOption>
                 );
               })}
             </SegControl>
           </AppearanceRow>
           <CategoryRow
-            onPress={() => navigation.navigate("MainTabs", { screen: "Notifications" })}
+            onPress={() =>
+              navigation.navigate("MainTabs", { screen: "Notifications" })
+            }
             last
           >
             <CategoryRowLabel>{t("notificationsTitle")}</CategoryRowLabel>
-            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.textMuted}
+            />
           </CategoryRow>
         </RowList>
 
@@ -267,19 +366,35 @@ export function MoreScreen({ navigation }) {
         <RowList>
           <CategoryRow onPress={() => showComingSoon("menuHelpCenterRow")}>
             <CategoryRowLabel>{t("menuHelpCenterRow")}</CategoryRowLabel>
-            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.textMuted}
+            />
           </CategoryRow>
           <CategoryRow onPress={() => showComingSoon("menuSafetyTipsRow")}>
             <CategoryRowLabel>{t("menuSafetyTipsRow")}</CategoryRowLabel>
-            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.textMuted}
+            />
           </CategoryRow>
           <CategoryRow onPress={() => showComingSoon("menuPrivacyRow")}>
             <CategoryRowLabel>{t("menuPrivacyRow")}</CategoryRowLabel>
-            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.textMuted}
+            />
           </CategoryRow>
           <CategoryRow onPress={() => showComingSoon("menuAboutRow")} last>
             <CategoryRowLabel>{t("menuAboutRow")}</CategoryRowLabel>
-            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.textMuted}
+            />
           </CategoryRow>
         </RowList>
 
@@ -293,7 +408,10 @@ export function MoreScreen({ navigation }) {
   );
 }
 
-const scrollContentStyle = { paddingHorizontal: spacing.md, paddingBottom: spacing.xl };
+const scrollContentStyle = {
+  paddingHorizontal: spacing.md,
+  paddingBottom: spacing.xl,
+};
 
 const Container = styled(SafeAreaView)`
   flex: 1;

@@ -1456,6 +1456,14 @@ export const translations = {
     carsService_driver: "Driver",
     carsService_towing: "Breakdown",
     carsService_carParks: "Car parks",
+    papersTabMine: "My papers",
+    papersTabSteps: "Procedures",
+    papersTabWhere: "Where to go",
+    papersStepsCaveat:
+      "Preparation lists, not the official requirement. The pieces and the fees are set by the administration and change — confirm them at the counter before you travel.",
+    papersWhereCaveat:
+      "Chez-Nous does not hold the addresses or opening hours of public offices, and will not invent them. Each row opens a map search around you instead.",
+    papersSearchMap: "Search",
     papersEyebrow: "Papers & test",
     papersIntro:
       "The dates that decide whether you may drive. You enter them, this phone keeps them, and nothing is sent anywhere.",
@@ -3674,6 +3682,14 @@ export const translations = {
     carsService_driver: "Chauffeur",
     carsService_towing: "Dépannage",
     carsService_carParks: "Parc auto",
+    papersTabMine: "Mes papiers",
+    papersTabSteps: "Démarches",
+    papersTabWhere: "Où aller",
+    papersStepsCaveat:
+      "Listes de préparation, pas l’exigence officielle. Les pièces et les frais sont fixés par l’administration et changent — confirmez-les au guichet avant de vous déplacer.",
+    papersWhereCaveat:
+      "Chez-Nous ne détient ni les adresses ni les horaires des services publics, et ne les inventera pas. Chaque ligne ouvre plutôt une recherche sur la carte autour de vous.",
+    papersSearchMap: "Chercher",
     papersEyebrow: "Papiers & contrôle",
     papersIntro:
       "Les dates qui décident si vous pouvez rouler. Vous les saisissez, ce téléphone les garde, et rien n’est envoyé nulle part.",

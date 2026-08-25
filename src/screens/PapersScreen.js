@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Modal, Pressable } from "react-native";
+import { Linking, Modal, Pressable } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -16,6 +16,8 @@ import {
   countNeedingAttention,
   getPaperLabel,
   paperKinds,
+  paperPlaces,
+  paperProcedures,
   paperStatus,
   sortPapers,
 } from "../data/vehiclePapers";
@@ -40,6 +42,12 @@ const STATE_TINTS = {
   missing: { bg: "rgba(0,0,0,0.04)", fg: "#8A8A8E", dot: "#B0B0B4" },
 };
 
+const TABS = [
+  { key: "papers", labelKey: "papersTabMine" },
+  { key: "steps", labelKey: "papersTabSteps" },
+  { key: "where", labelKey: "papersTabWhere" },
+];
+
 // Papers & contrôle.
 //
 // A drawer for the dates that decide whether somebody may legally drive, and
@@ -52,6 +60,8 @@ export function PapersScreen({ navigation }) {
   const insets = useSafeAreaInsets();
 
   const { papers, loaded, remember } = useVehiclePapers();
+  const [tab, setTab] = useState("papers");
+  const [openProcedure, setOpenProcedure] = useState(null);
   const [editing, setEditing] = useState(null);
   const [draft, setDraft] = useState({ day: "", month: "", year: "" });
 
@@ -91,6 +101,15 @@ export function PapersScreen({ navigation }) {
     if (state === "held") return t("papersHeld");
     if (state === "missing") return t("papersNotHeld");
     return t("papersNoDate");
+  };
+
+  // Handed to the phone's map rather than answered here. The app does not
+  // know where the nearest testing centre is; Maps does, and it searches
+  // around wherever the reader actually is.
+  const openMapsFor = (place) => {
+    Linking.openURL(
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.query)}`,
+    ).catch(() => {});
   };
 
   const openEditor = (entry) => {
@@ -163,6 +182,28 @@ export function PapersScreen({ navigation }) {
         <HeroCopy>{t("papersIntro")}</HeroCopy>
       </Hero>
 
+      {/* Three different errands — what I hold, what to prepare, where to go
+          — so the choice sits astride the banner's edge like every other
+          governing control in the app. */}
+      <TabDock>
+        <TabRow>
+          {TABS.map((option) => {
+            const active = tab === option.key;
+            return (
+              <Tab
+                key={option.key}
+                active={active}
+                onPress={() => setTab(option.key)}
+              >
+                <TabLabel active={active} numberOfLines={1}>
+                  {t(option.labelKey)}
+                </TabLabel>
+              </Tab>
+            );
+          })}
+        </TabRow>
+      </TabDock>
+
       <Scroll
         contentContainerStyle={{
           padding: spacing.md,
@@ -171,69 +212,178 @@ export function PapersScreen({ navigation }) {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {entries.map((entry) => {
-          const tint = STATE_TINTS[entry.status.state];
-          const actionable =
-            entry.status.state === "expired" || entry.status.state === "soon";
-          return (
-            <Card
-              key={entry.kind.key}
-              urgent={entry.status.state === "expired"}
-              onPress={() => openEditor(entry)}
-            >
-              <CardIcon bg={tint.bg}>
-                <Ionicons name={entry.kind.icon} size={20} color={tint.fg} />
-              </CardIcon>
+        {tab === "papers"
+          ? entries.map((entry) => {
+              const tint = STATE_TINTS[entry.status.state];
+              const actionable =
+                entry.status.state === "expired" ||
+                entry.status.state === "soon";
+              return (
+                <Card
+                  key={entry.kind.key}
+                  urgent={entry.status.state === "expired"}
+                  onPress={() => openEditor(entry)}
+                >
+                  <CardIcon bg={tint.bg}>
+                    <Ionicons
+                      name={entry.kind.icon}
+                      size={20}
+                      color={tint.fg}
+                    />
+                  </CardIcon>
 
-              <CardCol>
-                <CardTitle>
-                  {language === "en" ? entry.kind.labelEn : entry.kind.labelFr}
-                </CardTitle>
-                <StatusPill bg={tint.bg}>
-                  <StatusDot color={tint.dot} />
-                  <StatusLabel fg={tint.fg}>{statusLine(entry)}</StatusLabel>
-                </StatusPill>
-                <CardMeta numberOfLines={2}>
-                  {entry.kind.renewable
-                    ? entry.value
-                      ? t("papersUntil", { date: formatDate(entry.value) })
-                      : t("papersAddPrompt")
-                    : language === "en"
-                      ? entry.kind.subEn
-                      : entry.kind.subFr}
-                </CardMeta>
-              </CardCol>
+                  <CardCol>
+                    <CardTitle>
+                      {language === "en"
+                        ? entry.kind.labelEn
+                        : entry.kind.labelFr}
+                    </CardTitle>
+                    <StatusPill bg={tint.bg}>
+                      <StatusDot color={tint.dot} />
+                      <StatusLabel fg={tint.fg}>
+                        {statusLine(entry)}
+                      </StatusLabel>
+                    </StatusPill>
+                    <CardMeta numberOfLines={2}>
+                      {entry.kind.renewable
+                        ? entry.value
+                          ? t("papersUntil", { date: formatDate(entry.value) })
+                          : t("papersAddPrompt")
+                        : language === "en"
+                          ? entry.kind.subEn
+                          : entry.kind.subFr}
+                    </CardMeta>
+                  </CardCol>
 
-              <Action urgent={actionable}>
-                <ActionLabel urgent={actionable}>
-                  {entry.kind.renewable
-                    ? entry.value
-                      ? t("papersChange")
-                      : t("papersAdd")
-                    : entry.value === true
-                      ? t("papersHeldShort")
-                      : t("papersMark")}
-                </ActionLabel>
-              </Action>
-            </Card>
-          );
-        })}
+                  <Action urgent={actionable}>
+                    <ActionLabel urgent={actionable}>
+                      {entry.kind.renewable
+                        ? entry.value
+                          ? t("papersChange")
+                          : t("papersAdd")
+                        : entry.value === true
+                          ? t("papersHeldShort")
+                          : t("papersMark")}
+                    </ActionLabel>
+                  </Action>
+                </Card>
+              );
+            })
+          : null}
 
-        {/* Said once, plainly, because a reader is entitled to know why a
-            screen full of deadlines never rings. */}
-        <Note>
-          <Ionicons
-            name="information-circle-outline"
-            size={15}
-            color={colors.textMuted}
-          />
-          <NoteText>{t("papersNoAlertsNote")}</NoteText>
-        </Note>
+        {tab === "papers" ? (
+          <>
+            <Note>
+              <Ionicons
+                name="information-circle-outline"
+                size={15}
+                color={colors.textMuted}
+              />
+              <NoteText>{t("papersNoAlertsNote")}</NoteText>
+            </Note>
+            <PrivacyNote>
+              <Ionicons name="lock-closed-outline" size={15} color={NAVY} />
+              <PrivacyText>{t("papersPrivacyNote")}</PrivacyText>
+            </PrivacyNote>
+          </>
+        ) : null}
 
-        <PrivacyNote>
-          <Ionicons name="lock-closed-outline" size={15} color={NAVY} />
-          <PrivacyText>{t("papersPrivacyNote")}</PrivacyText>
-        </PrivacyNote>
+        {tab === "steps" ? (
+          <>
+            {/* The caveat goes above the lists, not below. Underneath, it is
+                a footnote nobody reaches until after they have already
+                treated the list as official. */}
+            <Caveat>
+              <Ionicons name="alert-circle-outline" size={15} color="#8a6415" />
+              <CaveatText>{t("papersStepsCaveat")}</CaveatText>
+            </Caveat>
+
+            {paperProcedures.map((item) => {
+              const open = openProcedure === item.key;
+              const warn = language === "en" ? item.warnEn : item.warnFr;
+              return (
+                <Procedure
+                  key={item.key}
+                  open={open}
+                  onPress={() => setOpenProcedure(open ? null : item.key)}
+                >
+                  <ProcedureTop>
+                    <CardIcon bg="rgba(31,58,95,0.07)">
+                      <Ionicons name={item.icon} size={20} color={NAVY} />
+                    </CardIcon>
+                    <CardCol>
+                      <CardTitle>
+                        {language === "en" ? item.labelEn : item.labelFr}
+                      </CardTitle>
+                      <CardMeta numberOfLines={2}>
+                        {language === "en" ? item.whyEn : item.whyFr}
+                      </CardMeta>
+                    </CardCol>
+                    <Ionicons
+                      name={open ? "chevron-down" : "chevron-forward"}
+                      size={18}
+                      color={open ? NAVY : colors.textMuted}
+                    />
+                  </ProcedureTop>
+
+                  {open ? (
+                    <ProcedureBody>
+                      {(language === "en" ? item.itemsEn : item.itemsFr).map(
+                        (line) => (
+                          <ItemRow key={line}>
+                            <Ionicons name="checkmark" size={14} color={NAVY} />
+                            <ItemText>{line}</ItemText>
+                          </ItemRow>
+                        ),
+                      )}
+                      {warn ? (
+                        <ProcedureWarn>
+                          <Ionicons
+                            name="alert-circle-outline"
+                            size={14}
+                            color="#8a6415"
+                          />
+                          <ProcedureWarnText>{warn}</ProcedureWarnText>
+                        </ProcedureWarn>
+                      ) : null}
+                    </ProcedureBody>
+                  ) : null}
+                </Procedure>
+              );
+            })}
+          </>
+        ) : null}
+
+        {tab === "where" ? (
+          <>
+            {/* Kinds of place, and a search handed to the map. Naming
+                offices would mean inventing their hours, and somebody
+                drives across town on those. */}
+            <Caveat>
+              <Ionicons name="map-outline" size={15} color="#8a6415" />
+              <CaveatText>{t("papersWhereCaveat")}</CaveatText>
+            </Caveat>
+
+            {paperPlaces.map((place) => (
+              <Card key={place.key} onPress={() => openMapsFor(place)}>
+                <CardIcon bg="rgba(31,58,95,0.07)">
+                  <Ionicons name={place.icon} size={20} color={NAVY} />
+                </CardIcon>
+                <CardCol>
+                  <CardTitle>
+                    {language === "en" ? place.labelEn : place.labelFr}
+                  </CardTitle>
+                  <CardMeta numberOfLines={3}>
+                    {language === "en" ? place.forEn : place.forFr}
+                  </CardMeta>
+                </CardCol>
+                <Action urgent>
+                  <ActionLabel urgent>{t("papersSearchMap")}</ActionLabel>
+                </Action>
+              </Card>
+            ))}
+          </>
+        ) : null}
       </Scroll>
 
       <Modal
@@ -390,6 +540,118 @@ const HeroCopy = styled.Text`
 
 const Scroll = styled.ScrollView`
   flex: 1;
+`;
+
+const TabDock = styled.View`
+  z-index: 2;
+  margin-top: -30px;
+  padding: 0px ${spacing.md}px;
+`;
+
+const TabRow = styled.View`
+  flex-direction: row;
+  gap: 4px;
+  padding: 5px;
+  border-radius: ${radius.xl}px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+  ${shadow.card}
+`;
+
+const Tab = styled(Pressable)`
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 8px 6px;
+  border-radius: ${radius.lg}px;
+  background-color: ${(props) => (props.active ? NAVY : "transparent")};
+`;
+
+const TabLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 12.5px;
+  color: ${(props) => (props.active ? "#ffffff" : props.theme.textMuted)};
+`;
+
+const Caveat = styled.View`
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 14px 15px;
+  border-radius: ${radius.lg}px;
+  background-color: rgba(217, 164, 65, 0.1);
+  border-width: 1px;
+  border-color: rgba(217, 164, 65, 0.28);
+  margin-bottom: 13px;
+`;
+
+const CaveatText = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.regular};
+  font-size: 11.5px;
+  line-height: 17px;
+  color: #6b5a2e;
+`;
+
+const Procedure = styled(Pressable)`
+  padding: ${spacing.md}px;
+  border-radius: ${radius.xl}px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: ${(props) => (props.open ? 1.5 : 1)}px;
+  border-color: ${(props) =>
+    props.open ? "rgba(31,58,95,0.3)" : props.theme.border};
+  margin-bottom: 11px;
+  ${shadow.card}
+`;
+
+const ProcedureTop = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 13px;
+`;
+
+const ProcedureBody = styled.View`
+  gap: 9px;
+  margin-top: 13px;
+  padding-top: 13px;
+  border-top-width: 1px;
+  border-top-color: ${(props) => props.theme.border};
+`;
+
+const ItemRow = styled.View`
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 9px;
+`;
+
+const ItemText = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.regular};
+  font-size: 12.5px;
+  line-height: 18px;
+  color: ${(props) => props.theme.text};
+`;
+
+const ProcedureWarn = styled.View`
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 4px;
+  padding: 12px 13px;
+  border-radius: ${radius.lg}px;
+  background-color: rgba(217, 164, 65, 0.09);
+  border-width: 1px;
+  border-color: rgba(217, 164, 65, 0.26);
+`;
+
+const ProcedureWarnText = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.regular};
+  font-size: 11.5px;
+  line-height: 17px;
+  color: #7a5a12;
 `;
 
 const Card = styled(Pressable)`

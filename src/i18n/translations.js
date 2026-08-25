@@ -1502,6 +1502,8 @@ export const translations = {
     papersRemindBlockedTitle: "Notifications are switched off",
     papersRemindBlocked:
       "This phone is not allowing Chez-Nous to send notifications, so a reminder would never arrive. Turn them on for Chez-Nous in your phone's settings, then try again.",
+    papersRemindUnavailable:
+      "This phone will not give Chez-Nous an address to send to, so a reminder cannot reach you here. Nothing you can change in settings fixes it — it is ours to fix. Reminders are left off rather than promised.",
     papersRemindNoDates:
       "Add a date first — tap here and we will start with one. There is nothing to remind you about yet.",
     papersNoAlertsNote:
@@ -3753,6 +3755,8 @@ export const translations = {
     papersRemindBlockedTitle: "Les notifications sont désactivées",
     papersRemindBlocked:
       "Ce téléphone n’autorise pas Chez-Nous à envoyer des notifications : un rappel n’arriverait jamais. Activez-les pour Chez-Nous dans les réglages du téléphone, puis réessayez.",
+    papersRemindUnavailable:
+      "Ce téléphone ne donne à Chez-Nous aucune adresse d’envoi : un rappel ne peut pas vous atteindre ici. Rien dans les réglages n’y changera quoi que ce soit — c’est à nous de le corriger. Les rappels restent désactivés plutôt que promis.",
     papersRemindNoDates:
       "Saisissez d’abord une date — touchez ici, nous commençons par une. Il n’y a encore rien à vous rappeler.",
     papersNoAlertsNote:

@@ -22,7 +22,11 @@ import { useAuth } from "../auth/AuthContext";
 import { doc, setDoc } from "firebase/firestore";
 import { firestore } from "../config/firebase";
 import { useVehiclePapers } from "../hooks/useVehiclePapers";
-import { ensurePushToken } from "../notifications/pushToken";
+import {
+  ensurePushToken,
+  PUSH_DENIED,
+  PUSH_OK,
+} from "../notifications/pushToken";
 import {
   countNeedingAttention,
   getPaperLabel,
@@ -212,15 +216,20 @@ export function PapersScreen({ navigation }) {
     // happened before this check existed.
     setAsking(true);
     ensurePushToken(user.uid)
-      .then((reachable) => {
+      .then((result) => {
         setAsking(false);
-        if (reachable) {
+        if (result === PUSH_OK) {
           // On is left to the effect above, which is the only place that
           // decides what the server holds.
           remember("reminders", true);
           return;
         }
-        Alert.alert(t("papersRemindBlockedTitle"), t("papersRemindBlocked"));
+        Alert.alert(
+          t("papersRemindBlockedTitle"),
+          result === PUSH_DENIED
+            ? t("papersRemindBlocked")
+            : t("papersRemindUnavailable"),
+        );
       })
       .catch(() => setAsking(false));
   };

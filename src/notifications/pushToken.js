@@ -30,8 +30,17 @@ function savePushToken(uid, token) {
 // makes the offer. The papers screen learned that the hard way — its
 // reminder switch was on for an account that had never granted permission,
 // so it promised notifications that nothing could deliver.
+//
+// Three answers, not two, because "denied" and "unavailable" need opposite
+// advice. A reader who has already granted permission and is still told to
+// go and grant it in Settings concludes the app is broken — and on that
+// occasion they are right, just not about the part they were shown.
+export const PUSH_OK = "ok";
+export const PUSH_DENIED = "denied";
+export const PUSH_UNAVAILABLE = "unavailable";
+
 export async function ensurePushToken(uid) {
-  if (!uid) return false;
+  if (!uid) return PUSH_UNAVAILABLE;
 
   if (Platform.OS === "android" && Platform.Version >= 33) {
     await PermissionsAndroid.request(
@@ -44,17 +53,19 @@ export async function ensurePushToken(uid) {
   const enabled =
     authStatus === AuthorizationStatus.AUTHORIZED ||
     authStatus === AuthorizationStatus.PROVISIONAL;
-  if (!enabled) return false;
+  if (!enabled) return PUSH_DENIED;
 
   try {
     const token = await getToken(messaging);
-    if (!token) return false;
+    if (!token) return PUSH_UNAVAILABLE;
     await savePushToken(uid, token);
-    return true;
+    return PUSH_OK;
   } catch {
-    // No token means no delivery, and the caller must be told so rather
-    // than left to assume it worked.
-    return false;
+    // Permission is granted and there is still no token. On iOS this is
+    // what a build with no aps-environment entitlement looks like from in
+    // here: the OS never issues an APNs token, so getToken can never
+    // succeed however many times the reader visits Settings.
+    return PUSH_UNAVAILABLE;
   }
 }
 
@@ -64,8 +75,8 @@ export async function ensurePushToken(uid) {
 // permission was denied.
 export async function registerPushToken(uid) {
   if (!uid) return undefined;
-  const ok = await ensurePushToken(uid);
-  if (!ok) return undefined;
+  const result = await ensurePushToken(uid);
+  if (result !== PUSH_OK) return undefined;
 
   return onTokenRefresh(getMessaging(getApp()), (nextToken) =>
     savePushToken(uid, nextToken),

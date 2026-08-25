@@ -56,6 +56,14 @@ export function ModerationScreen({ navigation }) {
     return language === "en" ? found.labelEn : found.labelFr;
   };
 
+  const goBackSafely = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    navigation.navigate("MainTabs");
+  };
+
   const decide = async (item, status) => {
     setBusyId(item.id);
     try {
@@ -203,7 +211,12 @@ export function ModerationScreen({ navigation }) {
         topInset={insets.top}
       >
         <HeroTop>
-          <BackButton onPress={() => navigation.goBack()} hitSlop={12}>
+          {/* This screen is reachable from a push notification, which on a
+              cold start can leave it with nothing beneath it — and goBack on
+              an empty stack does nothing at all while logging a warning
+              nobody sees in production. Falls through to the tabs, so the
+              arrow always moves. */}
+          <BackButton onPress={goBackSafely} hitSlop={12}>
             <Ionicons name="chevron-back" size={20} color="#ffffff" />
           </BackButton>
           <HeroEyebrow>{t("moderationEyebrow")}</HeroEyebrow>

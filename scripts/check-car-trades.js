@@ -318,34 +318,29 @@ C.bodyworkServices.forEach((item) => {
   },
 );
 
-// --- Chauffeurs. The matcher here has no garageSpecialties to lean on, so
-// its own false positives are the whole risk: a driving school, a site
-// manager ("conducteur de travaux") and a plumber fitting a chauffe-eau all
-// sit one careless term away from this screen.
+// --- Chauffeurs. Five arrangements, five prices, and copy that changes with
+// the choice — so every occasion has to carry a complete set or the hero
+// renders a blank where the explanation should be.
 const D = load("src/data/drivers.js", [
-  "driverNeeds",
+  "driverOccasions",
   "permitCategories",
-  "driverAvailability",
   "driverVehicleModes",
   "driverLanguages",
   "driverExperience",
   "driverSafetyChecks",
   "isDriverListing",
+  "getOccasionLabel",
+  "getOccasionUnit",
+  "getOccasionCopy",
   "getPermitLabel",
-  "getAvailabilityLabel",
   "getLanguageLabel",
   "getVehicleModeLabel",
   "getExperienceLabel",
 ]);
 
 [
-  [
-    "driverNeeds",
-    D.driverNeeds,
-    ["labelEn", "labelFr", "hintEn", "hintFr", "icon"],
-  ],
+  ["driverOccasions", D.driverOccasions, ["labelEn", "labelFr", "icon"]],
   ["permitCategories", D.permitCategories, ["labelEn", "labelFr", "icon"]],
-  ["driverAvailability", D.driverAvailability, ["labelEn", "labelFr", "icon"]],
   ["driverVehicleModes", D.driverVehicleModes, ["labelEn", "labelFr", "icon"]],
   ["driverLanguages", D.driverLanguages, ["labelEn", "labelFr"]],
   ["driverExperience", D.driverExperience, ["labelEn", "labelFr"]],
@@ -355,28 +350,38 @@ const D = load("src/data/drivers.js", [
   unique(list, name);
 });
 
-// Every need must select an availability a driver can actually declare, or
-// the tile filters the list to something nobody can ever match.
-const availabilityKeys = new Set(D.driverAvailability.map((item) => item.key));
-D.driverNeeds.forEach((item) => {
-  if (!availabilityKeys.has(item.availability)) {
-    fail(`driver need ${item.key}: unknown availability ${item.availability}`);
+// The hero is entirely per-occasion. A missing kicker, title, copy or unit
+// leaves a hole in the one part of this screen that does the explaining.
+D.driverOccasions.forEach((item) => {
+  ["en", "fr"].forEach((language) => {
+    const copy = D.getOccasionCopy(item.key, language);
+    if (!copy?.kicker || !copy?.title || !copy?.copy) {
+      fail(`occasion ${item.key}: incomplete ${language} hero copy`);
+    }
+    if (!D.getOccasionUnit(item.key, language)) {
+      fail(`occasion ${item.key}: no ${language} price unit`);
+    }
+    if (!D.getOccasionLabel(item.key, language)) {
+      fail(`occasion ${item.key}: no ${language} label`);
+    }
+  });
+  // The copy exists to name the thing that goes wrong with THIS arrangement,
+  // so a paragraph short enough to be generic is a paragraph doing nothing.
+  if (D.getOccasionCopy(item.key, "fr").copy.length < 80) {
+    fail(`occasion ${item.key}: French copy too short to say anything useful`);
   }
 });
 
-// Labels resolve, since the cards print them.
 [
   [D.permitCategories, D.getPermitLabel, "permit"],
-  [D.driverAvailability, D.getAvailabilityLabel, "availability"],
   [D.driverLanguages, D.getLanguageLabel, "language"],
   [D.driverVehicleModes, D.getVehicleModeLabel, "vehicle mode"],
   [D.driverExperience, D.getExperienceLabel, "experience"],
 ].forEach(([list, getter, what]) => {
   list.forEach((item) => {
     ["en", "fr"].forEach((language) => {
-      if (!getter(item.key, language)) {
-        fail(`${what} ${item.key}: no ${language} label`);
-      }
+      if (!getter(item.key, language))
+        fail(`${what} ${item.key}: no ${language}`);
     });
   });
   if (getter("nope", "fr") !== null) {
@@ -384,7 +389,15 @@ D.driverNeeds.forEach((item) => {
   }
 });
 
-// The matcher, both ways round.
+// Nothing on this screen may claim a check nobody performed. The safety card
+// tells the hirer to do the checking, so its own words must stay in the
+// imperative rather than drifting into "vérifié".
+D.driverSafetyChecks.forEach((item) => {
+  if (/vérifié|verified/i.test(item.labelFr + item.labelEn)) {
+    fail(`safety check ${item.key}: claims a verification the app never does`);
+  }
+});
+
 [
   "Chauffeur privé disponible, permis B, 8 ans d’expérience",
   "Chauffeur-livreur avec sa propre moto",
@@ -553,7 +566,7 @@ console.log(
     `${E.electricLighting.length + E.electricAccessories.length + E.electricSolar.length} search chips ` +
     `across ${scopes.length} scopes; bodywork — ${C.bodyworkProblems.length} damages, ` +
     `${C.bodyworkServices.length} services, ${C.bodyworkParts.length} parts; ` +
-    `drivers — ${D.driverNeeds.length} needs, ${D.permitCategories.length} permits, ` +
+    `drivers — ${D.driverOccasions.length} arrangements, ${D.permitCategories.length} permits, ` +
     `${D.driverLanguages.length} languages, 14 matcher cases; ` +
     `parts — ${P.partCategories.length} families, ${P.partQualities.length} qualities, ${P.partSellerKinds.length} shop kinds, 21 cases`,
 );

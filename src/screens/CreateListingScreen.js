@@ -180,10 +180,11 @@ import {
   partSellerKinds,
 } from "../data/vehicleParts";
 import {
-  driverAvailability,
   driverExperience,
   driverLanguages,
+  driverOccasions,
   driverVehicleModes,
+  getOccasionUnit,
   isDriverListing,
   permitCategories,
 } from "../data/drivers";
@@ -644,9 +645,22 @@ export function CreateListingScreen({ route, navigation }) {
   );
 
   const [driverPermits, setDriverPermits] = useState(seed("driverPermits", []));
-  const [driverAvailabilityKeys, setDriverAvailabilityKeys] = useState(
-    seed("driverAvailability", []),
+  const [driverOccasionKeys, setDriverOccasionKeys] = useState(
+    seed("driverOccasions", []),
   );
+  // Keyed by arrangement, because they are five different prices. A blank
+  // one is not zero and not cheap — the card says "prix à convenir" and
+  // sorts last, which is the honest reading of an unanswered field.
+  const [driverPrices, setDriverPrices] = useState(seed("driverPrices", {}));
+  const [driverIncluded, setDriverIncluded] = useState(
+    seed("driverIncluded", ""),
+  );
+  const [driverExcluded, setDriverExcluded] = useState(
+    seed("driverExcluded", ""),
+  );
+  const [driverVehicle, setDriverVehicle] = useState(seed("driverVehicle", ""));
+  const [driverSeats, setDriverSeats] = useState(seed("driverSeats", ""));
+  const [driverAc, setDriverAc] = useState(seed("driverAc", false));
   const [driverLanguageKeys, setDriverLanguageKeys] = useState(
     seed("driverLanguages", []),
   );
@@ -1526,7 +1540,22 @@ export function CreateListingScreen({ route, navigation }) {
               ...(mentionsDriver
                 ? {
                     driverPermits,
-                    driverAvailability: driverAvailabilityKeys,
+                    driverOccasions: driverOccasionKeys,
+                    // Only the arrangements they actually offer, so a price
+                    // left behind by an untick never reappears on the card.
+                    driverPrices: Object.fromEntries(
+                      driverOccasionKeys
+                        .map((key) => [key, Number(driverPrices[key])])
+                        .filter(
+                          ([, value]) => Number.isFinite(value) && value > 0,
+                        ),
+                    ),
+                    driverIncluded: driverIncluded.trim() || null,
+                    driverExcluded: driverExcluded.trim() || null,
+                    driverVehicle: driverVehicle.trim() || null,
+                    driverSeats:
+                      Number(driverSeats) > 0 ? Number(driverSeats) : null,
+                    driverAc,
                     driverLanguages: driverLanguageKeys,
                     driverVehicleMode,
                     driverExperience: driverExperienceKey,
@@ -4143,6 +4172,93 @@ export function CreateListingScreen({ route, navigation }) {
 
               {mentionsDriver ? (
                 <>
+                  <Label>{t("sellFieldDriverOccasions")}</Label>
+                  <FieldNote>{t("sellDriverOccasionsHint")}</FieldNote>
+                  <PickerGrid>
+                    {driverOccasions.map((option, index) => {
+                      const active = driverOccasionKeys.includes(option.key);
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            driverOccasions.length,
+                          )}
+                          full={isPickerCardFull(index, driverOccasions.length)}
+                          selected={active}
+                          onPress={() =>
+                            setDriverOccasionKeys((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+
+                  {driverOccasionKeys.length ? (
+                    <>
+                      <Label>{t("sellFieldDriverPrices")}</Label>
+                      <FieldNote>{t("sellDriverPricesHint")}</FieldNote>
+                      {driverOccasions
+                        .filter((option) =>
+                          driverOccasionKeys.includes(option.key),
+                        )
+                        .map((option) => (
+                          <MoneyFieldRow key={option.key}>
+                            <OccasionPriceLabel numberOfLines={1}>
+                              {language === "en"
+                                ? option.labelEn
+                                : option.labelFr}
+                            </OccasionPriceLabel>
+                            <Input
+                              value={String(driverPrices[option.key] ?? "")}
+                              onChangeText={(value) =>
+                                setDriverPrices((prev) => ({
+                                  ...prev,
+                                  [option.key]: value.replace(/[^0-9]/g, ""),
+                                }))
+                              }
+                              keyboardType="number-pad"
+                              placeholder="0"
+                              placeholderTextColor={colors.textMuted}
+                            />
+                            <CurrencyTag>
+                              <CurrencyTagLabel>
+                                {getOccasionUnit(option.key, language)}
+                              </CurrencyTagLabel>
+                            </CurrencyTag>
+                          </MoneyFieldRow>
+                        ))}
+                    </>
+                  ) : null}
+
+                  <Label>{t("sellFieldDriverIncluded")}</Label>
+                  <FieldNote>{t("sellDriverIncludedHint")}</FieldNote>
+                  <TextArea
+                    value={driverIncluded}
+                    onChangeText={setDriverIncluded}
+                    multiline
+                    numberOfLines={3}
+                  />
+
+                  <Label>{t("sellFieldDriverExcluded")}</Label>
+                  <FieldNote>{t("sellDriverExcludedHint")}</FieldNote>
+                  <TextArea
+                    value={driverExcluded}
+                    onChangeText={setDriverExcluded}
+                    multiline
+                    numberOfLines={3}
+                  />
+
                   <Label>{t("sellFieldDriverPermits")}</Label>
                   <FieldNote>{t("sellDriverPermitsHint")}</FieldNote>
                   <PickerGrid>
@@ -4178,7 +4294,7 @@ export function CreateListingScreen({ route, navigation }) {
                     })}
                   </PickerGrid>
 
-                  <Label>{t("sellFieldDriverVehicle")}</Label>
+                  <Label>{t("sellFieldDriverVehicleMode")}</Label>
                   <PickerGrid>
                     {driverVehicleModes.map((option, index) => {
                       const active = driverVehicleMode === option.key;
@@ -4208,41 +4324,33 @@ export function CreateListingScreen({ route, navigation }) {
                     })}
                   </PickerGrid>
 
-                  <Label>{t("sellFieldDriverAvailability")}</Label>
-                  <PickerGrid>
-                    {driverAvailability.map((option, index) => {
-                      const active = driverAvailabilityKeys.includes(
-                        option.key,
-                      );
-                      return (
-                        <PickerCard
-                          key={option.key}
-                          width={getPickerCardWidth(
-                            index,
-                            driverAvailability.length,
-                          )}
-                          full={isPickerCardFull(
-                            index,
-                            driverAvailability.length,
-                          )}
-                          selected={active}
-                          onPress={() =>
-                            setDriverAvailabilityKeys((prev) =>
-                              prev.includes(option.key)
-                                ? prev.filter((key) => key !== option.key)
-                                : [...prev, option.key],
-                            )
-                          }
-                        >
-                          <PickerCardLabel selected={active} numberOfLines={2}>
-                            {language === "en"
-                              ? option.labelEn
-                              : option.labelFr}
-                          </PickerCardLabel>
-                        </PickerCard>
-                      );
-                    })}
-                  </PickerGrid>
+                  <Label>{t("sellFieldDriverVehicle")}</Label>
+                  <Input
+                    value={driverVehicle}
+                    onChangeText={setDriverVehicle}
+                    placeholder={t("sellDriverVehiclePlaceholder")}
+                    placeholderTextColor={colors.textMuted}
+                  />
+
+                  <Label>{t("sellFieldDriverSeats")}</Label>
+                  <Input
+                    value={String(driverSeats ?? "")}
+                    onChangeText={(value) =>
+                      setDriverSeats(value.replace(/[^0-9]/g, ""))
+                    }
+                    keyboardType="number-pad"
+                    placeholder="0"
+                    placeholderTextColor={colors.textMuted}
+                  />
+
+                  <NegotiableRow onPress={() => setDriverAc((prev) => !prev)}>
+                    <Checkbox checked={driverAc}>
+                      {driverAc ? (
+                        <Ionicons name="checkmark" size={13} color="#ffffff" />
+                      ) : null}
+                    </Checkbox>
+                    <NegotiableLabel>{t("sellFieldDriverAc")}</NegotiableLabel>
+                  </NegotiableRow>
 
                   <Label>{t("sellFieldDriverLanguages")}</Label>
                   <FieldNote>{t("sellDriverLanguagesHint")}</FieldNote>
@@ -5858,6 +5966,16 @@ const PriceFieldRow = styled(InputRow)``;
 // taller box, a tinted border and numerals big enough to re-read before
 // publishing — the generic PriceFieldRow above stays plain because it is
 // also used for mileage, surface area and a phone number.
+// The arrangement's name sits inside the money row, because five unlabelled
+// price boxes in a column are indistinguishable from each other.
+const OccasionPriceLabel = styled.Text`
+  flex-shrink: 0;
+  width: 108px;
+  font-family: ${fontFamily.semiBold};
+  font-size: 12px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
 const MoneyFieldRow = styled(InputRow)`
   min-height: 62px;
   border-color: rgba(11, 110, 79, 0.4);

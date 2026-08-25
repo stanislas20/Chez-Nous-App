@@ -21,45 +21,115 @@ import { matchesTrade, mentionsAnyWord } from "../utils/wordMatch";
 // hirer to ask for the physical permit, in the same spirit as the DOT-age
 // warning on a used tyre.
 
-// What somebody actually needs, which is four different people.
-export const driverNeeds = [
+// The five arrangements, which are five different prices.
+//
+// This is the strongest idea in the design and the reason the screen is not
+// just a list: an airport transfer is a fixed fare, a day is a number of
+// hours and kilometres, and a run to Parakou is priced on the empty return
+// nobody thinks to ask about. The copy changes with the choice because the
+// question you should ask changes with it.
+export const driverOccasions = [
   {
-    key: "private",
-    icon: "person-outline",
-    availability: "monthly",
-    labelEn: "A private driver",
-    labelFr: "Un chauffeur privé",
-    hintEn: "Monthly, drives your own car",
-    hintFr: "Au mois, conduit votre voiture",
+    key: "airport",
+    unitEn: "/ trip",
+    unitFr: "/ trajet",
+    icon: "airplane-outline",
+    labelEn: "Airport transfer",
+    labelFr: "Transfert aéroport",
+    kickerEn: "Airport transfer",
+    kickerFr: "Transfert aéroport",
+    titleEn: "Who is waiting when you land?",
+    titleFr: "Qui vous attend à l’arrivée ?",
+    copyEn:
+      "A fixed fare, not a meter. Agree the waiting time before you fly: a delayed flight is the commonest reason a transfer costs more than the price agreed.",
+    copyFr:
+      "Prix au forfait, pas au compteur. Convenez du temps d’attente avant de partir : un vol retardé est la première raison pour laquelle un transfert coûte plus que le prix annoncé.",
   },
   {
     key: "day",
+    unitEn: "/ day",
+    unitFr: "/ jour",
     icon: "calendar-outline",
-    availability: "daily",
-    labelEn: "For a day",
-    labelFr: "Pour une journée",
-    hintEn: "An event, a funeral, an airport run",
-    hintFr: "Un événement, des obsèques, l’aéroport",
+    labelEn: "By the day",
+    labelFr: "Mise à disposition",
+    kickerEn: "By the day",
+    kickerFr: "Mise à disposition",
+    titleEn: "A car and its driver",
+    titleFr: "Une voiture et son chauffeur",
+    copyEn:
+      "A day covers a set number of hours and kilometres. Ask what happens beyond them — every provider charges differently, and that is where a day turns expensive.",
+    copyFr:
+      "La journée couvre un nombre d’heures et de kilomètres précis. Demandez ce qui se passe au-delà — chaque prestataire applique son propre supplément, et c’est là qu’une journée devient chère.",
   },
   {
-    key: "distance",
+    key: "trip",
+    unitEn: "/ trip",
+    unitFr: "/ trajet",
     icon: "map-outline",
-    availability: "distance",
     labelEn: "Long distance",
-    labelFr: "Longue distance",
-    hintEn: "Cotonou–Parakou and beyond",
-    hintFr: "Cotonou–Parakou et au-delà",
+    labelFr: "Voyage intérieur",
+    kickerEn: "Long distance",
+    kickerFr: "Voyage intérieur",
+    titleEn: "Cotonou to the interior",
+    titleFr: "Cotonou vers l’intérieur",
+    copyEn:
+      "On a run to Parakou, Natitingou or Nikki the empty return, the tolls and the driver’s night away change the whole price. Ask who pays each one.",
+    copyFr:
+      "Sur un trajet vers Parakou, Natitingou ou Nikki, le retour à vide, les péages et la nuitée du chauffeur changent tout le prix. Demandez qui paie chacun.",
   },
   {
-    key: "delivery",
-    icon: "cube-outline",
-    availability: "delivery",
-    labelEn: "Delivery & transport",
-    labelFr: "Livraison & transport",
-    hintEn: "Has their own vehicle, moves goods",
-    hintFr: "A son véhicule, transporte des marchandises",
+    key: "event",
+    unitEn: "/ day",
+    unitFr: "/ journée",
+    icon: "sparkles-outline",
+    labelEn: "Ceremony",
+    labelFr: "Cérémonie",
+    kickerEn: "Ceremony",
+    kickerFr: "Cérémonie",
+    titleEn: "Wedding, dowry, funeral",
+    titleFr: "Mariage, dot, funérailles",
+    copyEn:
+      "A day rate with the car prepared. A convoy of several vehicles is negotiated directly with the provider — it is rarely a multiple of one car.",
+    copyFr:
+      "Forfait à la journée avec véhicule préparé. Un cortège de plusieurs voitures se négocie directement avec le prestataire — c’est rarement le prix d’une voiture multiplié.",
+  },
+  {
+    key: "month",
+    unitEn: "/ month",
+    unitFr: "/ mois",
+    icon: "briefcase-outline",
+    labelEn: "Monthly driver",
+    labelFr: "Chauffeur mensuel",
+    kickerEn: "Monthly driver",
+    kickerFr: "Chauffeur mensuel",
+    titleEn: "A driver by the year",
+    titleFr: "Un chauffeur à l’année",
+    copyEn:
+      "For a household or a company. A monthly rate usually assumes your hours and your vehicle unless the listing says otherwise — check which, before the first day.",
+    copyFr:
+      "Pour un particulier ou une entreprise. Le tarif mensuel suppose en général vos horaires et votre véhicule, sauf mention contraire — vérifiez lequel avant le premier jour.",
   },
 ];
+
+export function getOccasionLabel(key, language) {
+  const item = driverOccasions.find((entry) => entry.key === key);
+  if (!item) return null;
+  return language === "en" ? item.labelEn : item.labelFr;
+}
+
+export function getOccasionUnit(key, language) {
+  const item = driverOccasions.find((entry) => entry.key === key);
+  if (!item) return null;
+  return language === "en" ? item.unitEn : item.unitFr;
+}
+
+export function getOccasionCopy(key, language) {
+  const item = driverOccasions.find((entry) => entry.key === key);
+  if (!item) return null;
+  return language === "en"
+    ? { kicker: item.kickerEn, title: item.titleEn, copy: item.copyEn }
+    : { kicker: item.kickerFr, title: item.titleFr, copy: item.copyFr };
+}
 
 // Permit categories as they are written on a Béninese licence. Declared, and
 // the screen never treats them as verified.
@@ -98,54 +168,6 @@ export const permitCategories = [
 
 export function getPermitLabel(key, language) {
   const item = permitCategories.find((entry) => entry.key === key);
-  if (!item) return null;
-  return language === "en" ? item.labelEn : item.labelFr;
-}
-
-// How they work. A driver available at the month is a different arrangement
-// from one who takes a wedding on Saturday, and asking one for the other
-// wastes both their time.
-export const driverAvailability = [
-  {
-    key: "monthly",
-    icon: "briefcase-outline",
-    labelEn: "Monthly",
-    labelFr: "Au mois",
-  },
-  {
-    key: "daily",
-    icon: "calendar-outline",
-    labelEn: "By the day",
-    labelFr: "À la journée",
-  },
-  {
-    key: "distance",
-    icon: "map-outline",
-    labelEn: "Long distance",
-    labelFr: "Longue distance",
-  },
-  {
-    key: "delivery",
-    icon: "cube-outline",
-    labelEn: "Delivery",
-    labelFr: "Livraison",
-  },
-  {
-    key: "nights",
-    icon: "moon-outline",
-    labelEn: "Nights",
-    labelFr: "La nuit",
-  },
-  {
-    key: "weekends",
-    icon: "sunny-outline",
-    labelEn: "Weekends",
-    labelFr: "Week-ends",
-  },
-];
-
-export function getAvailabilityLabel(key, language) {
-  const item = driverAvailability.find((entry) => entry.key === key);
   if (!item) return null;
   return language === "en" ? item.labelEn : item.labelFr;
 }

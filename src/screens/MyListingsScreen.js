@@ -1,10 +1,14 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Alert, FlatList, Modal, Pressable, Share } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 import { deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { deleteObject, ref } from "firebase/storage";
 import { Ionicons } from "@expo/vector-icons";
@@ -81,6 +85,22 @@ export function MyListingsScreen() {
   const insets = useSafeAreaInsets();
   const listings = useMyListings(user?.uid);
   const [filter, setFilter] = useState(route.params?.filter ?? "all");
+
+  // The param has to be applied on every arrival, not only the first.
+  //
+  // useState reads it once, at mount. Anybody who had opened Mes annonces
+  // earlier in the session then tapped "1 annonce en attente de validation"
+  // arrived at a screen still showing whatever filter they left it on — the
+  // row promised a filtered list and delivered the last one.
+  useFocusEffect(
+    useCallback(() => {
+      const wanted = route.params?.filter;
+      if (!wanted) return;
+      setFilter(wanted);
+      navigation.setParams({ filter: undefined });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [route.params?.filter]),
+  );
   const [menuItem, setMenuItem] = useState(null);
   const [availabilityItem, setAvailabilityItem] = useState(null);
   const [statusMenuItem, setStatusMenuItem] = useState(null);

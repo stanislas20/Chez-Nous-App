@@ -5858,9 +5858,15 @@ const AddSizeLabel = styled.Text`
   color: #ffffff;
 `;
 
+// Sizes wrap in the same grid as the pickers, so they fill their rows too —
+// "195/65 R15" and "17" are very different widths and left a ragged edge.
 const SizePill = styled(Pressable)`
+  flex-grow: 1;
+  flex-basis: auto;
   flex-direction: row;
   align-items: center;
+  justify-content: center;
+  min-height: 40px;
   gap: 6px;
   padding: 8px 12px;
   border-radius: ${radius.pill}px;
@@ -5898,8 +5904,18 @@ const PickerGrid = styled.View`
 // A full-width card centres its contents. Left-aligned, the icon and label
 // sit in the corner of a row-wide card with dead space trailing off to the
 // right, which reads as a layout mistake rather than a deliberate span.
+// The width the caller computes is a starting size, not a cap.
+//
+// Every picker on this form uses this — part type, deal, condition, gearbox,
+// fuel, doors, permits, services — and each list is a different length. A
+// fixed 47.5% meant two per row and a gap wherever the arithmetic said 100%
+// but the label was short. Growing from that basis lets each row divide what
+// it actually has, so a three-item row fills, a five-item row fills, and the
+// odd one out still takes the whole width instead of half of it.
 const PickerCard = styled(Pressable)`
-  width: ${(props) => props.width ?? "47.5%"};
+  flex-grow: 1;
+  flex-basis: ${(props) => props.width ?? "47.5%"};
+  min-height: 52px;
   flex-direction: row;
   align-items: center;
   justify-content: ${(props) => (props.full ? "center" : "flex-start")};

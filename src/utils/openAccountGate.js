@@ -26,6 +26,18 @@ function getRootNavigation(navigation) {
   return current;
 }
 
+// The key of the screen the user is actually looking at, at the root.
+//
+// Navigating to a key returns to that exact screen from anywhere, however
+// many navigators are in between — which is what the posting form needs.
+// Reaching it lives in the Sell tab, so "back" would otherwise pop to the
+// seller dashboard: correct for the stack, wrong for the person, who came
+// from Chauffeurs or Pneus and expects to land back there.
+export function rootRouteKey(navigation) {
+  const state = getRootNavigation(navigation).getState();
+  return state?.routes?.[state.index]?.key ?? null;
+}
+
 export function openAccountGate(navigation, { accountType } = {}) {
   const root = getRootNavigation(navigation);
   const state = root.getState();

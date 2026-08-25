@@ -12,7 +12,7 @@ import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
-import { openAccountGate } from "../utils/openAccountGate";
+import { openAccountGate, rootRouteKey } from "../utils/openAccountGate";
 import { canPublish } from "../utils/canPublish";
 import { openChat } from "../utils/openChat";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
@@ -163,7 +163,13 @@ export function BodyworkScreen({ navigation }) {
         // beneath it and nothing for goBack to pop. This keeps the stack's own
         // initial route underneath, which is what makes the arrow work.
         initial: false,
-        params: { categoryKey: "services", trade: "bodywork" },
+        params: {
+          // So the form's back arrow returns here rather than to the
+          // seller dashboard the Sell tab opens on.
+          originKey: rootRouteKey(navigation),
+          categoryKey: "services",
+          trade: "bodywork",
+        },
       },
     });
 

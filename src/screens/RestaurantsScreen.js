@@ -31,7 +31,7 @@ import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useApprovedListings } from "../hooks/useApprovedListings";
 import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
-import { openAccountGate } from "../utils/openAccountGate";
+import { openAccountGate, rootRouteKey } from "../utils/openAccountGate";
 import { canPublish } from "../utils/canPublish";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
 
@@ -69,7 +69,12 @@ export function RestaurantsScreen({ navigation }) {
         // beneath it and nothing for goBack to pop. This keeps the stack's own
         // initial route underneath, which is what makes the arrow work.
         initial: false,
-        params: { categoryKey: "restaurants" },
+        params: {
+          // So the form's back arrow returns here rather than to the
+          // seller dashboard the Sell tab opens on.
+          originKey: rootRouteKey(navigation),
+          categoryKey: "restaurants",
+        },
       },
     });
   // Picks the form back up after a visitor creates an account, so signing

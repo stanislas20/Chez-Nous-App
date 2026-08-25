@@ -23,7 +23,7 @@ import { SearchBar } from "../components/SearchBar";
 import { sectorTint } from "../data/companySectors";
 import { selectionTick } from "../utils/haptics";
 import { useAuth } from "../auth/AuthContext";
-import { openAccountGate } from "../utils/openAccountGate";
+import { openAccountGate, rootRouteKey } from "../utils/openAccountGate";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
 import { canPublish } from "../utils/canPublish";
 import { useFavorites } from "../hooks/useFavorites";
@@ -154,7 +154,12 @@ export function RealEstateScreen({ navigation }) {
         screen: "CreateListing",
         // Keeps SellerDashboard beneath the form so its back arrow works.
         initial: false,
-        params: { categoryKey: "realEstate" },
+        params: {
+          // So the form's back arrow returns here rather than to the
+          // seller dashboard the Sell tab opens on.
+          originKey: rootRouteKey(navigation),
+          categoryKey: "realEstate",
+        },
       },
     });
 

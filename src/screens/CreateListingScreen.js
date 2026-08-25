@@ -464,6 +464,7 @@ export function CreateListingScreen({ route, navigation }) {
     isPromoted,
     trade: initialTrade,
     listing: editing,
+    originKey,
   } = route.params ?? {};
 
   // Editing runs the real posting form rather than a second cut-down one.
@@ -863,7 +864,19 @@ export function CreateListingScreen({ route, navigation }) {
   // link or a notification can still land this screen with an empty stack,
   // and an arrow that silently does nothing is worse than one that goes
   // somewhere sensible.
+  // Back to where they actually came from.
+  //
+  // This screen lives in the Sell tab, so popping the stack lands on the
+  // seller dashboard — correct for the stack, wrong for the person, who
+  // tapped "Vous êtes chauffeur ?" on Chauffeurs and expects Chauffeurs
+  // back. Every entry point now sends the key of the screen it was on, and
+  // navigating to a key returns there from anywhere, however many navigators
+  // are in between. Same mechanism the account gate already used.
   const leaveForm = () => {
+    if (originKey) {
+      navigation.navigate({ key: originKey });
+      return;
+    }
     if (navigation.canGoBack()) {
       navigation.goBack();
       return;

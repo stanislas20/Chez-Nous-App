@@ -51,7 +51,7 @@ import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useFavorites } from "../hooks/useFavorites";
 import { useJobFavorites } from "../hooks/useJobFavorites";
 import { useAuth } from "../auth/AuthContext";
-import { openAccountGate } from "../utils/openAccountGate";
+import { openAccountGate, rootRouteKey } from "../utils/openAccountGate";
 import { canPublish } from "../utils/canPublish";
 import { useI18n } from "../i18n/I18nContext";
 import { distanceInKm } from "../utils/geo";
@@ -1279,7 +1279,12 @@ export function ForYouScreen({ navigation, route }) {
         // beneath it and nothing for goBack to pop. This keeps the stack's own
         // initial route underneath, which is what makes the arrow work.
         initial: false,
-        params: { categoryKey: "jobs" },
+        params: {
+          // So the form's back arrow returns here rather than to the
+          // seller dashboard the Sell tab opens on.
+          originKey: rootRouteKey(navigation),
+          categoryKey: "jobs",
+        },
       },
     });
   };

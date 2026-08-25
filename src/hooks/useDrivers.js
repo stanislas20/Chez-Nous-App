@@ -43,7 +43,7 @@ export function useDrivers(userCoords) {
             // themselves should be shown as themselves — this is the trade
             // where a face is most of the reassurance — and the monogram
             // stays as the fallback rather than a grey silhouette.
-            photoUrl: listing.mediaUrl ?? listing.media?.[0]?.url ?? null,
+            photoUrl: listing.mediaUrl ?? listing.media?.[0]?.mediaUrl ?? null,
             distanceKm:
               userCoords && cityCoord
                 ? distanceInKm(userCoords, cityCoord)

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Linking, Pressable } from "react-native";
+import { Image, Linking, Pressable } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -302,11 +302,18 @@ export function PartsScreen({ navigation }) {
               }
             >
               <CardTop>
-                <Monogram>
-                  <MonogramLabel>
-                    {(title(item) || "?").slice(0, 2).toUpperCase()}
-                  </MonogramLabel>
-                </Monogram>
+                {item.photoUrl ? (
+                  <Storefront
+                    source={{ uri: item.photoUrl }}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Monogram>
+                    <MonogramLabel>
+                      {(title(item) || "?").slice(0, 2).toUpperCase()}
+                    </MonogramLabel>
+                  </Monogram>
+                )}
                 <CardTitleCol>
                   <ShopName numberOfLines={1}>{title(item)}</ShopName>
                   <RatingRow>
@@ -709,6 +716,15 @@ const CardTop = styled.View`
 const CardTitleCol = styled.View`
   flex: 1;
   min-width: 0px;
+`;
+
+// The same box as the monogram beside it, so a card does not shift by a
+// pixel when the image finishes loading.
+const Storefront = styled(Image)`
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  background-color: ${(props) => props.theme.surfaceAlt};
 `;
 
 const Monogram = styled.View`

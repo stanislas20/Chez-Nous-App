@@ -323,6 +323,8 @@ export const translations = {
       "Shoot the car in landscape, filling the middle of the frame. The first photo is shown cropped to 4:3 in the listings.",
     sellMediaFramingParts:
       "Photograph the shop itself — the shelves, the counter, the stock on them. A buyer is deciding whether the journey across town is worth making, and one part held in a hand does not answer that.",
+    sellMediaFramingDriver:
+      "Make the first photo you, face clear and taken in daylight. Someone is deciding whether to hand over their keys, and often their children — a person they have seen is easier to trust than a photograph of a bonnet. Add the vehicle afterwards if it is yours.",
     sellMediaTip: "Tip: use clear photos taken from multiple angles.",
     sellPrimaryBadge: "Cover",
     sellDraftLabel: "Draft",
@@ -2434,6 +2436,8 @@ export const translations = {
       "Photographiez la voiture en paysage, bien au centre du cadre. La première photo est recadrée en 4:3 dans les annonces.",
     sellMediaFramingParts:
       "Photographiez la boutique elle-même — les rayons, le comptoir, le stock qui s’y trouve. L’acheteur décide si le déplacement à travers la ville en vaut la peine, et une pièce tenue à la main ne répond pas à cette question.",
+    sellMediaFramingDriver:
+      "Que la première photo soit vous, le visage net et en plein jour. On s’apprête à vous confier ses clés, et souvent ses enfants — on fait plus volontiers confiance à une personne que l’on a vue qu’à une photo de capot. Ajoutez le véhicule ensuite s’il est à vous.",
     sellMediaTip:
       "Conseil : utilisez des photos claires prises sous plusieurs angles.",
     sellPrimaryBadge: "Couverture",

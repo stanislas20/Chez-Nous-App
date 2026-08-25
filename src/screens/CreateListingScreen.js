@@ -2178,13 +2178,15 @@ export function CreateListingScreen({ route, navigation }) {
               A landscape shot from a phone camera is already 4:3, so a car
               framed this way is never cut — which is the whole reason the
               hint exists here rather than a warning appearing later. */}
-          {isVehicle || mentionsParts ? (
+          {isVehicle || mentionsParts || mentionsDriver ? (
             <FramingHint>
               <Ionicons
                 name={
                   mentionsParts
                     ? "storefront-outline"
-                    : "phone-landscape-outline"
+                    : mentionsDriver
+                      ? "person-circle-outline"
+                      : "phone-landscape-outline"
                 }
                 size={16}
                 color={EMERALD}
@@ -2195,15 +2197,17 @@ export function CreateListingScreen({ route, navigation }) {
                     and neither is visible in a photo of the tread. */}
                 {mentionsParts
                   ? t("sellMediaFramingParts")
-                  : isBatteryOffer
-                    ? t("sellMediaFramingBattery")
-                    : isTyreOffer
-                      ? t(
-                          tyreCondition === "used"
-                            ? "sellMediaFramingTyreUsed"
-                            : "sellMediaFramingTyre",
-                        )
-                      : t("sellMediaFramingCars")}
+                  : mentionsDriver
+                    ? t("sellMediaFramingDriver")
+                    : isBatteryOffer
+                      ? t("sellMediaFramingBattery")
+                      : isTyreOffer
+                        ? t(
+                            tyreCondition === "used"
+                              ? "sellMediaFramingTyreUsed"
+                              : "sellMediaFramingTyre",
+                          )
+                        : t("sellMediaFramingCars")}
               </FramingHintText>
             </FramingHint>
           ) : null}

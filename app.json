@@ -12,6 +12,9 @@
       "bundleIdentifier": "com.stanislas20.cheznous",
       "googleServicesFile": "./GoogleService-Info.plist",
       "appleTeamId": "MY9Y7Y46Q7",
+      "entitlements": {
+        "aps-environment": "development"
+      },
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
         "UIRequiresFullScreen": true

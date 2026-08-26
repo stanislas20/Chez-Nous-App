@@ -2334,7 +2334,13 @@ const HireBar = styled(Tappable)`
   flex-direction: row;
   align-items: center;
   gap: 10px;
-  margin: 0px ${spacing.md}px ${spacing.sm}px;
+  /* The chip row above ends flush against this, so it needs its own air —
+     the two read as one stuck-together block otherwise.
+     
+     20px horizontal, not 16: HeaderRow, the search field and the chip row
+     all sit at 20, and this was the last thing in the banner still at the
+     old 16. Invisible while the header was white; a visible step in now. */
+  margin: 12px 20px ${spacing.sm}px;
   padding: 7px 7px 7px 9px;
   border-radius: ${radius.pill}px;
   background-color: ${(props) => props.theme.surface};

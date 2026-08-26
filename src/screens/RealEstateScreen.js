@@ -396,6 +396,22 @@ export function RealEstateScreen({ navigation, route }) {
   // empty array, which means the query ran and genuinely matched nothing.
   const isLoading = listings === null;
 
+  // Counted from what is published, never declared. Three facts a reader
+  // can check against the list below: how much is on the market, and how
+  // far across the country and inside a city it reaches. A market that
+  // covers one quartier of one city should look like one on its own banner
+  // rather than being dressed up.
+  const marketStats = useMemo(() => {
+    const all = (listings ?? []).filter(
+      (item) => item.categoryKey === "realEstate",
+    );
+    return {
+      total: all.length,
+      cities: new Set(all.map((item) => item.city).filter(Boolean)).size,
+      quartiers: new Set(all.map((item) => item.quartier).filter(Boolean)).size,
+    };
+  }, [listings]);
+
   const clearFilters = () => {
     setCity(null);
     setQuartier(null);
@@ -416,6 +432,12 @@ export function RealEstateScreen({ navigation, route }) {
         end={{ x: 1, y: 1 }}
         style={{ paddingTop: insets.top + spacing.sm }}
       >
+        {/* Two very faint discs, catching the light off the top-right
+            corner. A gradient this large with nothing on it reads as a
+            coloured rectangle; these give it a surface. Behind everything,
+            clipped by the banner's own corners. */}
+        <BannerGlowLarge pointerEvents="none" />
+        <BannerGlowSmall pointerEvents="none" />
         <BannerTopRow>
           <BannerBack onPress={() => navigation.goBack()} hitSlop={10}>
             <Feather name="chevron-left" size={21} color="#ffffff" />
@@ -424,6 +446,49 @@ export function RealEstateScreen({ navigation, route }) {
         </BannerTopRow>
         <BannerTitle>{t("realEstateTitle")}</BannerTitle>
         <BannerCopy>{t("realEstateSubtitle")}</BannerCopy>
+
+        {/* Counted, never declared. Hidden until the first snapshot lands —
+            "0 biens en ligne" while the query is still in flight says the
+            market is empty when nobody knows yet. */}
+        {isLoading ? null : (
+          <StatRow>
+            <StatCol>
+              <StatValue>{marketStats.total}</StatValue>
+              {/* French takes the singular after 0 and 1, so a fixed plural
+                  reads as a typo on exactly the counts a young market
+                  spends most of its time showing. Same rule as Véhicules. */}
+              <StatLabel>
+                {t(
+                  marketStats.total > 1
+                    ? "realEstateStatOnline"
+                    : "realEstateStatOnlineOne",
+                )}
+              </StatLabel>
+            </StatCol>
+            <StatDivider />
+            <StatCol>
+              <StatValue>{marketStats.cities}</StatValue>
+              <StatLabel>
+                {t(
+                  marketStats.cities > 1
+                    ? "realEstateStatCities"
+                    : "realEstateStatCitiesOne",
+                )}
+              </StatLabel>
+            </StatCol>
+            <StatDivider />
+            <StatCol>
+              <StatValue>{marketStats.quartiers}</StatValue>
+              <StatLabel>
+                {t(
+                  marketStats.quartiers > 1
+                    ? "realEstateStatQuartiers"
+                    : "realEstateStatQuartiersOne",
+                )}
+              </StatLabel>
+            </StatCol>
+          </StatRow>
+        )}
         {/* In the banner, which does not scroll. This one was the
             ListFooterComponent of a long property list — literally the last
             thing on the screen. See HeroPostBar. */}
@@ -1339,8 +1404,71 @@ const Container = styled(SafeAreaView)`
   background-color: ${(props) => props.theme.background};
 `;
 
+// Rounded at the foot like every other hero in the app — Local, Véhicules,
+// Climatisation, the seller dashboard. This one was a square-bottomed block
+// running edge to edge, which is why it read as a coloured strip rather
+// than as the card the rest of them are.
+//
+// overflow: hidden so the glow discs are cut by those corners. Safe with a
+// gradient because it is opaque; the artifact that bit the job cards needed
+// a translucent background.
 const Banner = styled(LinearGradient)`
   padding: ${spacing.sm}px ${spacing.md}px ${spacing.lg}px;
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
+  overflow: hidden;
+`;
+
+const BannerGlowLarge = styled.View`
+  position: absolute;
+  top: -110px;
+  right: -80px;
+  width: 250px;
+  height: 250px;
+  border-radius: 125px;
+  background-color: rgba(255, 255, 255, 0.05);
+`;
+
+const BannerGlowSmall = styled.View`
+  position: absolute;
+  top: 60px;
+  right: 110px;
+  width: 140px;
+  height: 140px;
+  border-radius: 70px;
+  background-color: rgba(255, 255, 255, 0.032);
+`;
+
+const StatRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  margin-top: ${spacing.lg}px;
+`;
+
+const StatCol = styled.View`
+  flex: 1;
+`;
+
+const StatDivider = styled.View`
+  width: 1px;
+  height: 32px;
+  margin-horizontal: ${spacing.md}px;
+  background-color: rgba(255, 255, 255, 0.18);
+`;
+
+const StatValue = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 19px;
+  line-height: 24px;
+  color: #ffffff;
+`;
+
+const StatLabel = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 11px;
+  line-height: 15px;
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.66);
 `;
 
 const BannerTopRow = styled.View`

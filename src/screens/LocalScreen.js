@@ -279,8 +279,31 @@ export function LocalScreen({ navigation }) {
   return (
     <Container edges={["top", "left", "right", "bottom"]}>
       <Header>
+        {/* Depth, not decoration for its own sake: a flat gradient this
+            large reads as a coloured rectangle, and two very faint discs
+            catching the light off the top-right corner give it a surface.
+            They sit behind everything and are clipped by the banner's own
+            rounded corners. */}
+        <HeaderGlowLarge pointerEvents="none" />
+        <HeaderGlowSmall pointerEvents="none" />
         <HeaderRow>
-          <ScreenTitle>{t("localTitle")}</ScreenTitle>
+          <TitleGroup>
+            <ScreenTitle>{t("localTitle")}</ScreenTitle>
+            {/* Drawn rather than shipped as an image: three rectangles is
+                less than a PNG costs, and it stays sharp at any density.
+                Proportions are the real ones — 3:2 overall, the green hoist
+                band two fifths of the length — because a national flag
+                drawn approximately is worse than no flag. */}
+            <FlagPlate>
+              <Flag>
+                <FlagGreen />
+                <FlagFly>
+                  <FlagYellow />
+                  <FlagRed />
+                </FlagFly>
+              </Flag>
+            </FlagPlate>
+          </TitleGroup>
           <LangPill
             onPress={() => setLanguage(language === "en" ? "fr" : "en")}
           >
@@ -722,7 +745,31 @@ const Header = styled(LinearGradient).attrs({
   border-bottom-right-radius: 28px;
   padding-top: ${spacing.lg}px;
   padding-bottom: ${spacing.lg}px;
+  /* So the glow discs are cut by the banner's corners rather than hanging
+     past them. Safe with elevation here because the gradient is opaque —
+     the artifact that bit the job cards needed a translucent background. */
+  overflow: hidden;
   ${shadow.card}
+`;
+
+const HeaderGlowLarge = styled.View`
+  position: absolute;
+  top: -96px;
+  right: -70px;
+  width: 240px;
+  height: 240px;
+  border-radius: 120px;
+  background-color: rgba(255, 255, 255, 0.06);
+`;
+
+const HeaderGlowSmall = styled.View`
+  position: absolute;
+  top: 30px;
+  right: 96px;
+  width: 130px;
+  height: 130px;
+  border-radius: 65px;
+  background-color: rgba(255, 255, 255, 0.04);
 `;
 
 const HeaderRow = styled.View`
@@ -733,9 +780,62 @@ const HeaderRow = styled.View`
   margin-bottom: 10px;
 `;
 
+const TitleGroup = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+`;
+
 const ScreenTitle = styled.Text`
   ${type.h2}
   color: #ffffff;
+`;
+
+// The flag of Bénin: a green hoist band, then yellow over red.
+//
+// 27x18 is 3:2, the official ratio. The green band is flex 2 against the
+// fly's 3, so it lands on the specified two fifths at whatever size this is
+// ever set to.
+//
+// The plate is not styling: the flag's green (#008751) and this banner's
+// (#0B6E4F) are close enough that a hairline was not enough to separate
+// them — the hoist band sank into the background and the flag read as two
+// stripes floating in space. White behind it, the way a real flag sits
+// against its pole rather than against the sky.
+const FlagPlate = styled.View`
+  padding: 2.5px;
+  border-radius: 6px;
+  background-color: #ffffff;
+`;
+
+// 42x28 — still 3:2. At 30px the three bands were each under ten pixels
+// wide and the flag read as a coloured smudge next to the title rather than
+// as a flag.
+const Flag = styled.View`
+  flex-direction: row;
+  width: 42px;
+  height: 28px;
+  border-radius: 3.5px;
+  overflow: hidden;
+`;
+
+const FlagGreen = styled.View`
+  flex: 2;
+  background-color: #008751;
+`;
+
+const FlagFly = styled.View`
+  flex: 3;
+`;
+
+const FlagYellow = styled.View`
+  flex: 1;
+  background-color: #fcd116;
+`;
+
+const FlagRed = styled.View`
+  flex: 1;
+  background-color: #e8112d;
 `;
 
 const LangPill = styled(Tappable)`
@@ -761,11 +861,21 @@ const ROW_ICON_SLOT = 16;
 // The whole row is the control that opens the city sheet, so it springs as
 // one — a chevron that moves while the label it belongs to sits still reads
 // as two separate things.
+//
+// It is a filled pill spanning the banner rather than a bare line of text.
+// As text it took only the width of "All cities" and left two thirds of the
+// banner empty beside it, which is what made the header look half-finished;
+// it also gave no sign it was tappable at all. Full width puts the chevron
+// out at the right edge where a disclosure belongs, and matches the search
+// field directly below.
 const LocationRow = styled(Tappable)`
   flex-direction: row;
   align-items: center;
-  padding-horizontal: ${spacing.md}px;
+  margin-horizontal: ${spacing.md}px;
   margin-bottom: 4px;
+  padding: 11px 14px;
+  border-radius: ${radius.lg}px;
+  background-color: rgba(255, 255, 255, 0.12);
 `;
 
 const RowIconSlot = styled.View`
@@ -777,7 +887,7 @@ const RowIconSlot = styled.View`
 const LocationLabel = styled.Text`
   ${type.bodyMedium}
   color: #ffffff;
-  flex-shrink: 1;
+  flex: 1;
 `;
 
 // Two lines used to sit between the city row and the search field and

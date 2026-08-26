@@ -1665,9 +1665,15 @@ export function ForYouScreen({ navigation, route }) {
                             {item.city}
                           </FeedJobMeta>
                         </FeedJobTopGroup>
+                        {/* Two lines. "80 000 – 120 000 FCFA / mois" does
+                            not fit across 168px and was being cut to
+                            "80 000 – 120 000 FC…", which is the one number
+                            somebody scans this rail for. The card is a fixed
+                            190px with empty middle, so the second line costs
+                            nothing. */}
                         <FeedJobSalary
                           onRequest={!feedJobSalary}
-                          numberOfLines={1}
+                          numberOfLines={2}
                         >
                           {feedJobSalary ?? t("jobsFeedSalaryOnRequest")}
                         </FeedJobSalary>
@@ -1882,7 +1888,13 @@ export function ForYouScreen({ navigation, route }) {
                       )}
                       <JobInfoCol>
                         <JobTitleRow>
-                          <JobTitleText numberOfLines={1}>
+                          {/* Two lines. Real job titles in Bénin are long
+                              — "Assistant(e) administratif(ve)",
+                              "Technicien(ne) de maintenance industrielle" —
+                              and on one line they were cut mid-word, which
+                              is the one field on the card a candidate
+                              cannot afford to guess at. */}
+                          <JobTitleText numberOfLines={2}>
                             {jobTitle}
                           </JobTitleText>
                           <Pressable
@@ -1935,11 +1947,7 @@ export function ForYouScreen({ navigation, route }) {
                           : ""}
                       </JobLocText>
                     </JobLocRow>
-                    <JobTagsRow
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={jobTagsRowContentStyle}
-                    >
+                    <JobTagsRow>
                       {/* Every band gets a badge, not only the beginner
                           one. "Sans expérience" alone told a candidate
                           nothing about the cards that lacked it — they could
@@ -3525,15 +3533,24 @@ const JobLocText = styled.Text`
 // (new/full-time/category/no-experience) keeps them all on one line,
 // scrollable within the card, rather than wrapping to a second line that
 // pushes the rest of the card's content down unevenly between listings.
-const JobTagsRow = styled.ScrollView`
+// Wraps rather than scrolls sideways.
+//
+// As a horizontal ScrollView the tags past the card's edge were simply cut,
+// with nothing to say more existed — no fade, no chevron, and a swipe
+// gesture that competes with the vertical list it lives inside. On a
+// four-tag card the last one was routinely half a word.
+//
+// Wrapping costs a second row on the busiest cards and shows everything,
+// which is the trade to make: these are the job's type, sector and
+// experience band, and a candidate scanning for "Temps plein" cannot scan
+// for what is not drawn.
+const JobTagsRow = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 8px;
 `;
-
-const jobTagsRowContentStyle = {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 6,
-};
 
 const JobTag = styled.Text`
   ${type.caption}

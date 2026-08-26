@@ -289,7 +289,7 @@ const scrollContentStyle = {
   paddingBottom: spacing.md,
 };
 // 10 rather than 14: the content padding above now carries part of the gap.
-const chipsListStyle = { flexGrow: 0, marginTop: 10 };
+const chipsListStyle = { flexGrow: 0, marginTop: 16 };
 
 const jobsBodyContentStyle = {
   paddingHorizontal: spacing.md,
@@ -1376,7 +1376,7 @@ export function ForYouScreen({ navigation, route }) {
           </GreetingBlock>
           <HeaderActions>
             <IconButton onPress={() => navigation.navigate("More")} hitSlop={8}>
-              <Ionicons name="menu-outline" size={19} color={colors.text} />
+              <Ionicons name="menu-outline" size={19} color="#ffffff" />
             </IconButton>
             <LangPill
               onPress={() => setLanguage(language === "en" ? "fr" : "en")}
@@ -1386,13 +1386,28 @@ export function ForYouScreen({ navigation, route }) {
           </HeaderActions>
         </HeaderRow>
 
-        <SearchBar
-          value={query}
-          onChangeText={setQuery}
-          placeholder={
-            selectedChipKey === "jobs" ? t("jobsSearchPlaceholder") : undefined
-          }
-        />
+        {/* onDark only here. The other two SearchBars on this screen live
+            inside bottom sheets, which are still white.
+            
+            The wrapper is not decoration: onDark zeroes the field's own
+            horizontal margin, on the principle that a banner owns its
+            spacing, so without a parent supplying it the field runs to both
+            edges while everything else in the header is inset. 20px, which
+            is what HeaderRow and the chip row already use — the field used
+            to sit at 16 and nobody could see the 4px it was out by against
+            a white ground. */}
+        <SearchWrap>
+          <SearchBar
+            onDark
+            value={query}
+            onChangeText={setQuery}
+            placeholder={
+              selectedChipKey === "jobs"
+                ? t("jobsSearchPlaceholder")
+                : undefined
+            }
+          />
+        </SearchWrap>
 
         <FlatList
           data={HOME_CATEGORIES}
@@ -1417,7 +1432,7 @@ export function ForYouScreen({ navigation, route }) {
                 <Ionicons
                   name={item.icon}
                   size={17}
-                  color={isSelected ? colors.textInverse : colors.text}
+                  color={isSelected ? EMERALD : "#ffffff"}
                 />
                 <ChipLabel selected={isSelected}>{label}</ChipLabel>
               </CategoryChip>
@@ -2355,13 +2370,30 @@ const HireCtaLabel = styled.Text`
   color: #ffffff;
 `;
 
-const HeaderCard = styled.View`
-  background-color: ${(props) => props.theme.surface};
+// The same banner the seller dashboard and Local open with — one gradient,
+// one corner radius, on all three screens that lead with a full-width
+// header.
+//
+// Every control inside it inverts. That is the part that is not a colour
+// swap: a greeting, two round buttons, a search field and the chip row that
+// decides what this whole screen shows were all drawn for white, and the
+// selected chip is the one that actually breaks — it fills with
+// theme.primary, which on this ground is emerald on emerald.
+const HeaderCard = styled(LinearGradient).attrs({
+  colors: ["#0B6E4F", "#07362A", "#05261D"],
+  start: { x: 0, y: 0 },
+  end: { x: 1, y: 1 },
+})`
   border-bottom-left-radius: 28px;
   border-bottom-right-radius: 28px;
   padding-top: ${spacing.lg}px;
   padding-bottom: 14px;
   ${shadow.card}
+`;
+
+const SearchWrap = styled.View`
+  padding-horizontal: 20px;
+  margin-top: 10px;
 `;
 
 const HeaderRow = styled.View`
@@ -2405,12 +2437,12 @@ const GreetingBlock = styled.View`
 
 const GreetingText = styled.Text`
   ${type.h3}
-  color: ${(props) => props.theme.text};
+  color: #ffffff;
 `;
 
 const WelcomeText = styled.Text`
   ${type.caption}
-  color: ${(props) => props.theme.textMuted};
+  color: rgba(255, 255, 255, 0.72);
   margin-top: 1px;
 `;
 
@@ -2426,11 +2458,11 @@ const IconButton = styled(Tappable)`
   border-radius: ${radius.pill}px;
   align-items: center;
   justify-content: center;
-  background-color: ${(props) => props.theme.surfaceAlt};
+  background-color: rgba(255, 255, 255, 0.16);
 `;
 
 const LangPill = styled(Tappable)`
-  background-color: rgba(11, 110, 79, 0.1);
+  background-color: rgba(255, 255, 255, 0.16);
   padding-horizontal: 11px;
   padding-vertical: 7px;
   border-radius: ${radius.pill}px;
@@ -2439,7 +2471,7 @@ const LangPill = styled(Tappable)`
 const LangPillLabel = styled.Text`
   font-family: ${fontFamily.bold};
   font-size: 12px;
-  color: ${EMERALD};
+  color: #ffffff;
 `;
 
 // This row decides what the whole screen shows, so it has to read as a set of
@@ -2462,7 +2494,8 @@ const CategoryChip = styled(Tappable)`
   padding-horizontal: 16px;
   padding-vertical: 12px;
   border-radius: ${radius.pill}px;
-  background-color: ${(props) => (props.selected ? props.theme.primary : props.theme.primaryLight)};
+  background-color: ${(props) =>
+    props.selected ? "#ffffff" : "rgba(255, 255, 255, 0.14)"};
   ${(props) => (props.selected ? shadow.card : "")}
 `;
 
@@ -2473,7 +2506,7 @@ const ChipLabel = styled.Text`
   font-family: ${(props) => (props.selected ? fontFamily.semiBold : fontFamily.medium)};
   font-size: 14px;
   line-height: 20px;
-  color: ${(props) => (props.selected ? props.theme.textInverse : props.theme.text)};
+  color: ${(props) => (props.selected ? EMERALD : "#ffffff")};
 `;
 
 const Section = styled.View`

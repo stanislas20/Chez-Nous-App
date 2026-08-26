@@ -18,6 +18,7 @@ import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { SearchBar } from "../components/SearchBar";
 import { SectionHeading } from "../components/SectionHeading";
+import { Tappable } from "../components/Tappable";
 import { ListingCard } from "../components/ListingCard";
 import { mockListings } from "../data/mockListings";
 import { cities } from "../data/cities";
@@ -55,7 +56,6 @@ const listContentStyle = {
   paddingBottom: spacing.md,
 };
 const rowStyle = { justifyContent: "space-between" };
-const chipRowContentStyle = { paddingHorizontal: spacing.md };
 const sheetScrollContentStyle = { paddingHorizontal: spacing.md };
 
 export function LocalScreen({ navigation }) {
@@ -290,10 +290,14 @@ export function LocalScreen({ navigation }) {
 
         <LocationRow onPress={() => setLocationSheetOpen(true)}>
           <RowIconSlot>
-            <Ionicons name="location" size={16} color={EMERALD} />
+            <Ionicons name="location" size={16} color="#ffffff" />
           </RowIconSlot>
           <LocationLabel numberOfLines={1}>{locationLabel}</LocationLabel>
-          <Ionicons name="chevron-down" size={14} color={colors.textMuted} />
+          <Ionicons
+            name="chevron-down"
+            size={14}
+            color="rgba(255, 255, 255, 0.7)"
+          />
         </LocationRow>
         <SearchBarWrap>
           <SearchBar
@@ -303,6 +307,7 @@ export function LocalScreen({ navigation }) {
                is not a sentence. The placeholder names a place only when
                there is a place to name; with no city chosen it asks the
                plain question. */
+            onDark
             placeholder={
               selectedCity
                 ? t("localSearchPlaceholder", { city: selectedCity })
@@ -311,16 +316,12 @@ export function LocalScreen({ navigation }) {
           />
         </SearchBarWrap>
 
-        <ChipRow
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={chipRowContentStyle}
-        >
+        <ChipRow>
           <Chip selected={distanceKm != null} onPress={handleDistanceChipPress}>
             {locationStatus === "locating" ? (
               <ActivityIndicator
                 size="small"
-                color={distanceKm != null ? colors.textInverse : colors.text}
+                color={distanceKm != null ? EMERALD : "#ffffff"}
               />
             ) : (
               <ChipLabel selected={distanceKm != null}>
@@ -346,7 +347,7 @@ export function LocalScreen({ navigation }) {
               name="chevron-down"
               size={12}
               color={
-                selectedCategoryKey ? colors.textInverse : colors.textMuted
+                selectedCategoryKey ? EMERALD : "rgba(255, 255, 255, 0.75)"
               }
             />
           </Chip>
@@ -374,7 +375,7 @@ export function LocalScreen({ navigation }) {
 
           {activeFilterCount > 0 ? (
             <ClearChip onPress={clearFilters}>
-              <Ionicons name="close" size={13} color={colors.text} />
+              <Ionicons name="close" size={13} color="#ffffff" />
               <ChipLabel>{t("localFilterClear")}</ChipLabel>
             </ClearChip>
           ) : null}
@@ -703,12 +704,24 @@ const Container = styled(SafeAreaView)`
   background-color: ${(props) => props.theme.background};
 `;
 
-const Header = styled.View`
-  background-color: ${(props) => props.theme.surface};
+// The same banner the seller dashboard opens with — identical gradient,
+// identical corner radius — so the two tabs that lead with a full-width
+// header lead with the same one.
+//
+// Everything inside it inverts, which is the part that is not cosmetic: a
+// title, a city row, a search field and four filter chips were all drawn
+// for a white surface, and left alone on this ground they range from low
+// contrast to invisible. The selected chip was the worst of them — it fills
+// with theme.primary, which on emerald is emerald on emerald.
+const Header = styled(LinearGradient).attrs({
+  colors: ["#0B6E4F", "#07362A", "#05261D"],
+  start: { x: 0, y: 0 },
+  end: { x: 1, y: 1 },
+})`
   border-bottom-left-radius: 28px;
   border-bottom-right-radius: 28px;
-  padding-top: ${spacing.md}px;
-  padding-bottom: ${spacing.md}px;
+  padding-top: ${spacing.lg}px;
+  padding-bottom: ${spacing.lg}px;
   ${shadow.card}
 `;
 
@@ -717,16 +730,16 @@ const HeaderRow = styled.View`
   align-items: center;
   justify-content: space-between;
   padding-horizontal: ${spacing.md}px;
-  margin-bottom: ${spacing.sm}px;
+  margin-bottom: 10px;
 `;
 
 const ScreenTitle = styled.Text`
   ${type.h2}
-  color: ${(props) => props.theme.text};
+  color: #ffffff;
 `;
 
-const LangPill = styled(Pressable)`
-  background-color: rgba(11, 110, 79, 0.1);
+const LangPill = styled(Tappable)`
+  background-color: rgba(255, 255, 255, 0.16);
   padding-horizontal: 11px;
   padding-vertical: 7px;
   border-radius: ${radius.pill}px;
@@ -735,7 +748,7 @@ const LangPill = styled(Pressable)`
 const LangPillLabel = styled.Text`
   font-family: ${fontFamily.bold};
   font-size: 12px;
-  color: ${EMERALD};
+  color: #ffffff;
 `;
 
 // Location row and refresh hint each lead with an icon of a different
@@ -745,11 +758,14 @@ const LangPillLabel = styled.Text`
 // stair-step instead of lining up on the same left edge.
 const ROW_ICON_SLOT = 16;
 
-const LocationRow = styled(Pressable)`
+// The whole row is the control that opens the city sheet, so it springs as
+// one — a chevron that moves while the label it belongs to sits still reads
+// as two separate things.
+const LocationRow = styled(Tappable)`
   flex-direction: row;
   align-items: center;
   padding-horizontal: ${spacing.md}px;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 `;
 
 const RowIconSlot = styled.View`
@@ -760,7 +776,7 @@ const RowIconSlot = styled.View`
 
 const LocationLabel = styled.Text`
   ${type.bodyMedium}
-  color: ${(props) => props.theme.text};
+  color: #ffffff;
   flex-shrink: 1;
 `;
 
@@ -775,46 +791,80 @@ const LocationLabel = styled.Text`
 // a layout accident rather than a hint. RefreshControl demonstrates the
 // gesture the moment anybody pulls — it does not need a permanent line of
 // sticky chrome, and certainly not a misaligned one.
+// SearchBar's onDark variant zeroes its own horizontal margin on purpose —
+// on a banner the parent owns the spacing — so the parent has to supply it.
+// Without this the field runs to both edges of the banner while the title,
+// the city row and the chips are all inset 16px. On the old white header
+// that misalignment was invisible; on the gradient it is the first thing
+// you see.
 const SearchBarWrap = styled.View`
-  margin-top: ${spacing.sm}px;
-`;
-
-const ChipRow = styled.ScrollView`
+  padding-horizontal: ${spacing.md}px;
   margin-top: ${spacing.md}px;
 `;
 
-const Chip = styled(Pressable)`
+// Fills the row instead of scrolling inside it.
+//
+// As a horizontal ScrollView the three chips took only the width their
+// labels needed and left a third of the banner empty to their right, which
+// on a white header read as breathing room and on the gradient reads as a
+// row that stopped early.
+//
+// flex-grow with the default basis is what makes that work without the
+// usual cost: each chip grows to share whatever is left over, so the row is
+// always full, but none of them can be squeezed below its own label. A
+// fourth chip appears when filters are active — "Effacer" — and the three
+// simply give up a share to it. If the labels ever do outgrow one line
+// (a long category name, "Prix décroissant"), they wrap to a second row
+// rather than truncating, which is the failure mode to prefer on a control
+// whose label IS its state.
+const ChipRow = styled.View`
   flex-direction: row;
-  align-items: center;
-  gap: 4px;
-  background-color: ${(props) => (props.selected ? props.theme.primary : props.theme.surfaceAlt)};
-  border-radius: ${radius.pill}px;
+  flex-wrap: wrap;
+  gap: ${spacing.sm}px;
   padding-horizontal: ${spacing.md}px;
-  padding-vertical: ${spacing.xs}px;
-  margin-right: ${spacing.sm}px;
+  margin-top: 18px;
 `;
 
-const ClearChip = styled(Pressable)`
+// Selected is white on the banner rather than theme.primary — the filled
+// chip has to be the thing that stands out, and primary against this
+// gradient is emerald on emerald.
+const Chip = styled(Tappable)`
+  flex-grow: 1;
   flex-direction: row;
   align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background-color: ${(props) =>
+    props.selected ? "#ffffff" : "rgba(255, 255, 255, 0.14)"};
+  border-radius: ${radius.pill}px;
+  padding-horizontal: ${spacing.md}px;
+  padding-vertical: 9px;
+`;
+
+const ClearChip = styled(Tappable)`
+  flex-grow: 1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
   gap: 4px;
   background-color: transparent;
   border-width: 1px;
-  border-color: ${(props) => props.theme.border};
+  border-color: rgba(255, 255, 255, 0.35);
   border-radius: ${radius.pill}px;
   padding-horizontal: ${spacing.md}px;
-  padding-vertical: ${spacing.xs}px;
-  margin-right: ${spacing.sm}px;
+  padding-vertical: 9px;
 `;
 
 const ChipLabel = styled.Text`
   ${(props) => (props.selected ? type.captionMedium : type.caption)}
-  color: ${(props) => (props.selected ? props.theme.textInverse : props.theme.text)};
+  color: ${(props) => (props.selected ? EMERALD : "#ffffff")};
 `;
 
+// theme.error is a red chosen to sit on a white page; on the banner it goes
+// muddy. This is the same warning at a lightness the ground can carry.
 const LocationHintText = styled.Text`
   ${type.caption}
-  color: ${(props) => props.theme.error};
+  color: #FFC9C4;
   padding-horizontal: ${spacing.md}px;
   margin-top: ${spacing.sm}px;
 `;

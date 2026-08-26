@@ -17,6 +17,7 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { SearchBar } from "../components/SearchBar";
+import { BeninFlag } from "../components/BeninFlag";
 import { SectionHeading } from "../components/SectionHeading";
 import { Tappable } from "../components/Tappable";
 import { ListingCard } from "../components/ListingCard";
@@ -294,15 +295,7 @@ export function LocalScreen({ navigation }) {
                 Proportions are the real ones — 3:2 overall, the green hoist
                 band two fifths of the length — because a national flag
                 drawn approximately is worse than no flag. */}
-            <FlagPlate>
-              <Flag>
-                <FlagGreen />
-                <FlagFly>
-                  <FlagYellow />
-                  <FlagRed />
-                </FlagFly>
-              </Flag>
-            </FlagPlate>
+            <BeninFlag width={42} />
           </TitleGroup>
           <LangPill
             onPress={() => setLanguage(language === "en" ? "fr" : "en")}
@@ -789,53 +782,6 @@ const TitleGroup = styled.View`
 const ScreenTitle = styled.Text`
   ${type.h2}
   color: #ffffff;
-`;
-
-// The flag of Bénin: a green hoist band, then yellow over red.
-//
-// 27x18 is 3:2, the official ratio. The green band is flex 2 against the
-// fly's 3, so it lands on the specified two fifths at whatever size this is
-// ever set to.
-//
-// The plate is not styling: the flag's green (#008751) and this banner's
-// (#0B6E4F) are close enough that a hairline was not enough to separate
-// them — the hoist band sank into the background and the flag read as two
-// stripes floating in space. White behind it, the way a real flag sits
-// against its pole rather than against the sky.
-const FlagPlate = styled.View`
-  padding: 2.5px;
-  border-radius: 6px;
-  background-color: #ffffff;
-`;
-
-// 42x28 — still 3:2. At 30px the three bands were each under ten pixels
-// wide and the flag read as a coloured smudge next to the title rather than
-// as a flag.
-const Flag = styled.View`
-  flex-direction: row;
-  width: 42px;
-  height: 28px;
-  border-radius: 3.5px;
-  overflow: hidden;
-`;
-
-const FlagGreen = styled.View`
-  flex: 2;
-  background-color: #008751;
-`;
-
-const FlagFly = styled.View`
-  flex: 3;
-`;
-
-const FlagYellow = styled.View`
-  flex: 1;
-  background-color: #fcd116;
-`;
-
-const FlagRed = styled.View`
-  flex: 1;
-  background-color: #e8112d;
 `;
 
 const LangPill = styled(Tappable)`

@@ -15,6 +15,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import MapView, { Circle } from "react-native-maps";
 import styled from "styled-components/native";
+import { BeninFlag } from "../components/BeninFlag";
 import { HeroPostBar } from "../components/HeroPostBar";
 import { realEstateHasCarOption } from "../data/realEstate";
 import { radius, shadow, spacing } from "../theme/colors";
@@ -462,6 +463,7 @@ export function RealEstateScreen({ navigation, route }) {
                   <BannerBack onPress={() => navigation.goBack()} hitSlop={10}>
                     <Feather name="chevron-left" size={21} color="#ffffff" />
                   </BannerBack>
+                  <BeninFlag width={26} />
                   <BannerKicker>{t("realEstateKicker")}</BannerKicker>
                 </BannerTopRow>
                 <BannerTitle>{t("realEstateTitle")}</BannerTitle>

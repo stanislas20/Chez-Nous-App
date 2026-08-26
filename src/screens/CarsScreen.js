@@ -15,6 +15,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
+import { BeninFlag } from "../components/BeninFlag";
 import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
@@ -936,6 +937,7 @@ export function CarsScreen({ navigation, route }) {
         <BackButton onPress={() => navigation.goBack()} hitSlop={12}>
           <Ionicons name="chevron-back" size={20} color="#ffffff" />
         </BackButton>
+        <BeninFlag width={26} />
         <HeroEyebrow>{t("carsEyebrow")}</HeroEyebrow>
       </HeroTop>
       <CityPill onPress={() => setActiveSheet("city")} hitSlop={6}>

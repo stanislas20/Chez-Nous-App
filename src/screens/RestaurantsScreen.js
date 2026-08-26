@@ -8,6 +8,7 @@ import MapView, { Marker } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
+import { BeninFlag } from "../components/BeninFlag";
 import { HeroPostBar } from "../components/HeroPostBar";
 import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
@@ -355,13 +356,7 @@ export function RestaurantsScreen({ navigation }) {
           <HeroBack onPress={() => navigation.goBack()} hitSlop={8}>
             <Ionicons name="chevron-back" size={20} color="#ffffff" />
           </HeroBack>
-          <HeroFlag>
-            <FlagGreen />
-            <FlagRightCol>
-              <FlagYellow />
-              <FlagRed />
-            </FlagRightCol>
-          </HeroFlag>
+          <BeninFlag width={26} />
           <HeroKicker>{t("restoHeroKicker")}</HeroKicker>
         </HeroTopRow>
         <HeroTitle>{t("menuRestaurantsRow")}</HeroTitle>
@@ -850,38 +845,6 @@ const HeroBack = styled(Pressable)`
   justify-content: center;
   border-radius: ${radius.md}px;
   background-color: rgba(255, 255, 255, 0.16);
-`;
-
-// The same flag chip the sell and signup screens carry, so this reads as
-// part of the app rather than a screen borrowed from somewhere else.
-const HeroFlag = styled.View`
-  flex-direction: row;
-  width: 24px;
-  height: 16px;
-  border-radius: 3px;
-  overflow: hidden;
-`;
-
-// Bénin, not Mali. Three equal vertical stripes of green/yellow/red is the
-// Malian flag; Bénin is a green vertical band on the hoist with yellow over
-// red stacked on the fly. Matches the BeninFlag already in CreateListing.
-const FlagGreen = styled.View`
-  width: 38%;
-  background-color: #008751;
-`;
-
-const FlagRightCol = styled.View`
-  flex: 1;
-`;
-
-const FlagYellow = styled.View`
-  flex: 1;
-  background-color: #fcd116;
-`;
-
-const FlagRed = styled.View`
-  flex: 1;
-  background-color: #e8112d;
 `;
 
 const HeroKicker = styled.Text`

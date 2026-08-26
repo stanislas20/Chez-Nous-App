@@ -1698,13 +1698,19 @@ const QuickActionCard = styled(Pressable)`
   min-height: 96px;
   padding: ${spacing.md}px ${spacing.xs}px;
   border-radius: ${radius.lg}px;
-  /* The card carries a wash of its own colour and the badge carries it at
-     full strength. The wash is what makes the grid read as colour from
-     across the room; keeping it weak is what stops six saturated tiles from
-     fighting each other. */
-  background-color: ${(props) => props.tint ?? props.theme.surface};
+  /* One coloured thing per tile, and it is the badge.
+     
+     The card used to carry a wash of its hue, the badge carried it solid and
+     the label was tinted too — three coloured elements, nine times over, so
+     the grid read as a paint chart rather than a set of controls. The colour
+     was doing real work (identical white cards with identical green badges
+     meant the icons said nothing and every label had to be read), so it
+     stays — but on the badge alone, which is a small saturated shape against
+     a calm ground. That is enough to find "Messages" by colour and not
+     enough to shout. */
+  background-color: ${(props) => props.theme.surface};
   border-width: 1px;
-  border-color: ${(props) => props.edge ?? props.theme.border};
+  border-color: ${(props) => props.theme.border};
 `;
 
 const QuickActionIconBadge = styled.View`
@@ -1720,12 +1726,10 @@ const QuickActionIconBadge = styled.View`
 
 const QuickActionLabel = styled.Text`
   ${type.captionMedium}
-  /* The hue only on the light theme. On the dark one these colours sit too
-     close to the tinted ground behind them, and a label you have to lean in
-     to read is a worse outcome than a plain one. The flag is passed in
-     rather than sniffed from the theme's hex values, which change. */
-  color: ${(props) =>
-    props.dark ? props.theme.text : (props.hue ?? props.theme.text)};
+  /* Ink, in every theme. Nine labels in nine hues was the least professional
+     thing on the screen and the least legible: tan on tan and gold on cream
+     both failed to carry. Body text is not where a palette belongs. */
+  color: ${(props) => props.theme.text};
   text-align: center;
 `;
 

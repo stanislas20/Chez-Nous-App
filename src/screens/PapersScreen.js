@@ -575,6 +575,28 @@ export function PapersScreen({ navigation }) {
                           <ProcedureWarnText>{warn}</ProcedureWarnText>
                         </ProcedureWarn>
                       ) : null}
+
+                      {/* The list above is preparation; this is the source.
+                          Renewing an insurance policy has no state procedure
+                          behind it, so that one carries no link rather than
+                          a plausible-looking one. */}
+                      {item.site ? (
+                        <SourceRow onPress={() => openSite(item.site)}>
+                          <Ionicons
+                            name="globe-outline"
+                            size={14}
+                            color={NAVY}
+                          />
+                          <SourceLabel numberOfLines={1}>
+                            {language === "en" ? item.siteEn : item.siteFr}
+                          </SourceLabel>
+                          <Ionicons
+                            name="open-outline"
+                            size={13}
+                            color={NAVY}
+                          />
+                        </SourceRow>
+                      ) : null}
                     </ProcedureBody>
                   ) : null}
                 </Procedure>
@@ -1149,6 +1171,23 @@ const PrivacyText = styled.Text`
 
 const PlaceGroup = styled.View`
   margin-bottom: ${spacing.md}px;
+`;
+
+const SourceRow = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: ${radius.lg}px;
+  background-color: rgba(31, 58, 95, 0.06);
+`;
+
+const SourceLabel = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.semiBold};
+  font-size: 11.5px;
+  color: ${NAVY};
 `;
 
 const SiteRow = styled(Pressable)`

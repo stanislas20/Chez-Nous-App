@@ -134,6 +134,26 @@ export function countNeedingAttention(entries) {
 // administration and change, and the screen says so above every one of them.
 // The value is in not arriving at a guichet having forgotten the obvious —
 // which is what actually costs people a morning.
+// `site` is that procedure's page on the national portal, and it is here
+// because the lists below are the honest limit of what this app knows.
+//
+// They are preparation lists — the things people forget and lose a morning
+// over — not the legal requirement. The pièces exigées and the fees are set
+// by the administration and change, and the catalogue does not publish the
+// document list in a form that can be quoted. So rather than dress up
+// general knowledge as an official checklist, each procedure now carries a
+// link to the page that IS authoritative, and the caveat above them says
+// which is which.
+//
+// Every id was checked against both the procedure title and its delivering
+// agency before being written down:
+//
+//   mutation   PS00903, ANaTT — Re-immatriculation véhicule 4 roues et plus
+//   technical  PS00156, CNSR  — Contrôle Technique Automobile périodique
+//   duplicate  PS00878, ANaTT — Remplacement ou duplicata de Carte Grise
+//
+// Insurance has none and should not gain one: renewing a policy is a matter
+// between a driver and a private insurer, with no state procedure behind it.
 export const paperProcedures = [
   {
     key: "mutation",
@@ -142,6 +162,9 @@ export const paperProcedures = [
     labelFr: "Mutation après achat",
     whyEn: "You have just bought a used vehicle",
     whyFr: "Vous venez d’acheter un véhicule d’occasion",
+    site: "https://service-public.bj/public/services/service/PS00903",
+    siteEn: "Official page — ANaTT",
+    siteFr: "La page officielle — ANaTT",
     itemsEn: [
       "The seller's registration document",
       "The signed bill of sale",
@@ -166,6 +189,9 @@ export const paperProcedures = [
     labelFr: "Renouveler la visite technique",
     whyEn: "Your inspection is running out",
     whyFr: "Votre contrôle arrive à échéance",
+    site: "https://service-public.bj/public/services/service/PS00156",
+    siteEn: "Official page — CNSR",
+    siteFr: "La page officielle — CNSR",
     itemsEn: [
       "The registration document",
       "The insurance certificate",
@@ -190,6 +216,12 @@ export const paperProcedures = [
     labelFr: "Renouveler l’assurance",
     whyEn: "Compulsory to be on the road at all",
     whyFr: "Obligatoire pour circuler, tout simplement",
+    // Explicitly none, not merely absent: renewing a policy is a matter
+    // between a driver and a private insurer, with no state procedure behind
+    // it. Writing the null says we looked.
+    site: null,
+    siteEn: null,
+    siteFr: null,
     itemsEn: [
       "The registration document",
       "The expiring certificate",
@@ -212,6 +244,9 @@ export const paperProcedures = [
     labelFr: "Duplicata de carte grise",
     whyEn: "Lost, stolen or damaged",
     whyFr: "Perdue, volée ou détériorée",
+    site: "https://service-public.bj/public/services/service/PS00878",
+    siteEn: "Official page — ANaTT",
+    siteFr: "La page officielle — ANaTT",
     itemsEn: [
       "A declaration of loss or theft",
       "Your identity document",

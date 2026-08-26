@@ -55,7 +55,19 @@ async function openListingById(listingId) {
 }
 
 export async function openNotification(data) {
-  if (!data) return;
+  // A tap with nothing attached still has to go somewhere.
+  //
+  // This used to `return`, which is the one behaviour the rule above forbids
+  // and the exact symptom somebody reports as "I press Voir and nothing
+  // happens": a notification composed without a data payload, or one whose
+  // custom keys did not survive the trip, produced a button that did
+  // literally nothing. The notification centre is where the same message is
+  // listed in full, so it is the honest destination when we cannot be more
+  // specific.
+  if (!data || Object.keys(data).length === 0) {
+    openNotificationCentre();
+    return;
+  }
 
   // A message push is the only one that carries a conversation, and it is
   // also the most time-sensitive, so it is checked first.

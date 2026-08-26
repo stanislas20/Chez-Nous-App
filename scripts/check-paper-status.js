@@ -330,6 +330,40 @@ paperPlaces.forEach((place) => {
   );
 });
 
+// ── The Démarches links ─────────────────────────────────────────────────
+//
+// The checklists on that tab are preparation lists, not the legal
+// requirement — the catalogue does not publish the pièces exigées in a form
+// anyone can quote. Each procedure therefore carries the page that IS
+// authoritative, and the same shape rules apply as on Où aller.
+const { paperProcedures } = loadEsm("src/data/vehiclePapers.js");
+
+paperProcedures.forEach((item) => {
+  if (!item.site) {
+    check(`${item.key} has no orphan label`, Boolean(item.siteEn), false);
+    return;
+  }
+  check(`${item.key} source is https`, item.site.startsWith("https://"), true);
+  check(
+    `${item.key} source is labelled in both languages`,
+    Boolean(item.siteEn && item.siteFr),
+    true,
+  );
+  check(
+    `${item.key} source names the body`,
+    /CNSR|ANaTT/.test(item.siteEn) && /CNSR|ANaTT/.test(item.siteFr),
+    true,
+  );
+});
+
+// Renewing a policy is a matter between a driver and a private insurer, with
+// no state procedure behind it. A link here would have to be invented.
+check(
+  "renewing insurance has no official page",
+  paperProcedures.find((item) => item.key === "insurance").site,
+  null,
+);
+
 // Insurance is the row that must NOT gain a link: the agencies are private
 // and numerous, so any single one is an advert wearing an official coat.
 check(
@@ -347,5 +381,7 @@ const linked = paperPlaces.filter((place) => place.site).length;
 console.log(
   `clean: paper status — ${paperKinds.length} kinds, boundaries at 0 and ` +
     `${EXPIRY_WARNING_DAYS} days, reminders at ${reminders.LEAD_DAYS.join("/")}, ` +
-    `${linked}/${paperPlaces.length} places carry an official link`,
+    `${linked}/${paperPlaces.length} places and ` +
+    `${paperProcedures.filter((p) => p.site).length}/${paperProcedures.length} ` +
+    `procedures carry an official link`,
 );

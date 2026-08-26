@@ -171,6 +171,33 @@ export function AirconScreen({ navigation }) {
         </HeroTop>
         <HeroTitle>{t("airconTitle")}</HeroTitle>
         <HeroCopy>{t("airconIntro")}</HeroCopy>
+
+        {/* In the hero, which does not scroll.
+        
+            The only way to list a workshop used to be a button inside the
+            empty state, which meant it appeared exactly when no workshop
+            matched the current filters and vanished the moment one did — so
+            the more workshops this screen found, the harder it was for the
+            next one to join. That is backwards, and it is not a placement
+            problem: a workshop owner arriving at a busy screen had no door
+            at all.
+        
+            Here it is always reachable, on the one part of the screen that
+            stays put while somebody reads through the triage. Same pattern
+            as Emplois, which had the same gap. */}
+        {mayPublish ? (
+          <HeroPostBar onPress={startPosting}>
+            <HeroPostDisc>
+              <Ionicons name="build" size={15} color={DEEP} />
+            </HeroPostDisc>
+            <HeroPostLabel numberOfLines={1}>
+              {t("airconPostPrompt")}
+            </HeroPostLabel>
+            <HeroPostCta>
+              <HeroPostCtaLabel>{t("airconPost")}</HeroPostCtaLabel>
+            </HeroPostCta>
+          </HeroPostBar>
+        ) : null}
       </Hero>
 
       <Scroll
@@ -414,13 +441,10 @@ export function AirconScreen({ navigation }) {
         {matching.length === 0 ? (
           <EmptyCard>
             <EmptyTitle>{t("airconNoneTitle")}</EmptyTitle>
+            {/* No second button here. The one in the hero is on screen
+                already, and two ways into the same form a thumb apart is
+                one too many. */}
             <EmptyCopy>{t("airconNoneCopy")}</EmptyCopy>
-            {mayPublish ? (
-              <PostButton onPress={startPosting}>
-                <Ionicons name="add" size={16} color="#ffffff" />
-                <PostLabel>{t("airconPost")}</PostLabel>
-              </PostButton>
-            ) : null}
           </EmptyCard>
         ) : null}
 
@@ -494,6 +518,47 @@ const HeroCopy = styled.Text`
   line-height: 19px;
   max-width: 300px;
   color: rgba(255, 255, 255, 0.7);
+`;
+
+// White on the gradient, the way HireBar sits on the emerald header: the
+// hero's own palette is three blues, and a fourth blue button on it would
+// be the least visible thing in the block.
+const HeroPostBar = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin-top: ${spacing.md}px;
+  padding: 7px 7px 7px 9px;
+  border-radius: 999px;
+  background-color: #ffffff;
+`;
+
+const HeroPostDisc = styled.View`
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(19, 78, 102, 0.12);
+`;
+
+const HeroPostLabel = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.semiBold};
+  font-size: 13px;
+  color: ${DEEP};
+`;
+
+const HeroPostCta = styled.View`
+  padding: 7px 14px;
+  border-radius: 999px;
+  background-color: ${DEEP};
+`;
+
+const HeroPostCtaLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 12.5px;
+  color: #ffffff;
 `;
 
 const Scroll = styled.ScrollView`
@@ -959,22 +1024,6 @@ const EmptyCopy = styled.Text`
   line-height: 18px;
   text-align: center;
   color: ${(props) => props.theme.textMuted};
-`;
-
-const PostButton = styled(Pressable)`
-  flex-direction: row;
-  align-items: center;
-  gap: 7px;
-  margin-top: 6px;
-  padding: 12px 18px;
-  border-radius: 999px;
-  background-color: ${ICE};
-`;
-
-const PostLabel = styled.Text`
-  font-family: ${fontFamily.semiBold};
-  font-size: 13px;
-  color: #ffffff;
 `;
 
 const Safety = styled.View`

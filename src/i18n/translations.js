@@ -1521,6 +1521,7 @@ export const translations = {
     airconNoneCopy:
       "Workshops appear here when they publish and say they do it. Nothing is listed on their behalf.",
     airconPost: "List a workshop",
+    airconPostPrompt: "You repair car A/C?",
     airconSafety:
       "Agree what is being done before it starts. “Recharge” and “find the leak” are two different jobs at two different prices, and only the second one lasts.",
     airconQuoteIntro: "Hello, I have an air conditioning problem.",
@@ -3868,6 +3869,7 @@ export const translations = {
     airconNoneCopy:
       "Les ateliers apparaissent ici quand ils publient et qu’ils le disent. Rien n’est inscrit à leur place.",
     airconPost: "Publier un atelier",
+    airconPostPrompt: "Vous réparez la clim ?",
     airconSafety:
       "Mettez-vous d’accord sur la prestation avant qu’elle commence. « Recharge » et « recherche de fuite » sont deux travaux différents à deux prix différents, et seul le second tient.",
     airconQuoteIntro: "Bonjour, j’ai un problème de climatisation.",

@@ -45,6 +45,7 @@ import {
   getExperienceLabel,
   getExperienceLevel,
   getExperienceAccent,
+  getExperienceMark,
   getExperienceTint,
 } from "../data/jobExperience";
 import { useApprovedListingsState } from "../hooks/useApprovedListings";
@@ -1642,7 +1643,7 @@ export function ForYouScreen({ navigation, route }) {
                       <FeedJobCardInner
                         accent={
                           experienceKey
-                            ? getExperienceAccent(experienceKey, colors)
+                            ? getExperienceMark(experienceKey, colors)
                             : null
                         }
                       >
@@ -1804,14 +1805,14 @@ export function ForYouScreen({ navigation, route }) {
             <JobLegendItems>
               {experienceLevels.map((level) => (
                 <JobLegendItem key={level.key}>
-                  {/* A miniature of the badge on the card: the same fill
-                      inside the same ink border. It could not be that while
-                      the band lived on the card's own background — that
-                      value is invisible at 14px — which is how a legend and
-                      the thing it explains came to be drawn differently. */}
+                  {/* Solid ink, not the badge's fill. The fill is a wash
+                      built to sit behind text, and at 14px across three
+                      washes read as one colour — which is exactly what a
+                      legend must not do. This is the dot from the middle of
+                      the badge, scaled up. */}
                   <JobLegendSwatch
-                    tint={getExperienceTint(level.key, colors)}
-                    accent={getExperienceAccent(level.key, colors)}
+                    tint={getExperienceMark(level.key, colors)}
+                    accent={getExperienceMark(level.key, colors)}
                   />
                   <JobLegendLabel>
                     {getExperienceLabel(level.key, language)}
@@ -1951,10 +1952,10 @@ export function ForYouScreen({ navigation, route }) {
                       {experienceLabel ? (
                         <JobExpTag
                           tint={getExperienceTint(experienceKey, colors)}
-                          accent={getExperienceAccent(experienceKey, colors)}
+                          accent={getExperienceMark(experienceKey, colors)}
                         >
                           <JobExpDot
-                            accent={getExperienceAccent(experienceKey, colors)}
+                            accent={getExperienceMark(experienceKey, colors)}
                           />
                           <JobExpLabel
                             accent={getExperienceAccent(experienceKey, colors)}

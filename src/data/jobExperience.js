@@ -29,55 +29,95 @@ export function getExperienceLabel(key, language) {
   return language === "en" ? level.labelEn : level.labelFr;
 }
 
-// One hue at three strengths, carried on a badge rather than the whole card.
+// Green, amber and red, carried on a badge rather than the whole card.
 //
-// These bands were primaryLight / accentLight / errorLight to begin with —
-// green, amber and the app's own ERROR colour. Green-amber-red is a severity
-// ramp, and how much experience a job asks for has no severity: it made
-// every posting a seasoned candidate is best qualified for look like a
-// warning and every beginner job look like a pass.
+// Two separate decisions live here and it is worth keeping them apart,
+// because the second one changed and the first one did not.
 //
-// Replacing that with a single hue was right. Washing it across the entire
-// card was not. A tint has to stay faint enough to read a whole card of
-// muted text through, and three steps that faint are indistinguishable from
-// each other in the feed — so the cards all came out the same flat sage,
-// the legend explained a difference nobody could see, and the crispness of
-// a white card was spent for nothing.
+// WHERE the colour goes: on a badge. It was the card's own background for a
+// while and that could not work at any strength — a wash has to stay faint
+// enough to read a card of muted text through, and three steps that faint
+// are not separable, while anything stronger drowns the text. A badge is a
+// few words on a known ground, so it holds colour at four times the
+// strength and stays legible. JobDetailScreen already did it this way.
 //
-// So the colour now sits on one small badge per card. A badge is compared
-// against white on both sides, needs to carry three words at most, and can
-// therefore be four times stronger than a card wash — which is what makes
-// the three bands actually separable.
+// WHICH colours: green for no experience, amber for one to three years, red
+// for over three. This is the owner's call, made after seeing a single-hue
+// ramp on the device — three steps of one green were not telling the bands
+// apart, and a scale nobody can read is not a scale. Three hues are
+// unmistakable at a glance, which is what the feed needs.
 //
-// Two values, because they do different jobs and one ramp cannot do both:
-// `Tint` fills, `Accent` is ink — it is used as dot fill, border AND label
-// colour, so every step of it has to be legible as text. That is why the
-// accents are solid rather than the low-alpha values a border alone could
-// have got away with.
-const BAND = "11, 110, 79"; // the emerald the rest of the app is built from
-
-// Badge fill. rgba so it composites on whatever surface the badge sits on,
-// with a stronger ramp in the dark theme where the same alpha barely moves
-// off the background.
-export function getExperienceTint(key, theme) {
+// Three values per band, because they do three different jobs and no single
+// colour does all of them:
+//
+//   Tint  fills the badge — a wash, so it sits behind text.
+//   Mark  colours the shapes: the dot, the legend swatch, the badge border,
+//         the rail on the narrow cards. Nothing here has to be read, so it
+//         is the band's true colour at full strength.
+//   Accent is ink — the label, at 10.5px on the tint.
+//
+// Mark and Accent are the same colour for green and red and differ for
+// amber, which is the whole reason they are separate. #E8A33D is the amber
+// this app means; as small text on white it fails contrast, so the label
+// darkens to accentDark. Using that darker value for the dot as well — which
+// is what one shared value forced — turned the middle swatch brown, and a
+// legend that says brown when the design says amber is wrong about itself.
+function bands(theme) {
   const dark = theme?.scheme === "dark";
-  const steps = dark
-    ? { none: 0.16, junior: 0.28, senior: 0.42 }
-    : { none: 0.09, junior: 0.18, senior: 0.3 };
-  if (steps[key]) return `rgba(${BAND}, ${steps[key]})`;
-  // No requirement stated is not the same as an undemanding one, so an
-  // unknown band gets no badge fill rather than the lightest step.
-  return theme?.surfaceAlt ?? "transparent";
+  return dark
+    ? {
+        // On a dark ground the amber is already legible, so mark and ink
+        // agree in all three bands here.
+        none: {
+          fill: "rgba(34, 178, 106, 0.22)",
+          mark: "#22B26A",
+          ink: "#5EDCA0",
+        },
+        junior: {
+          fill: "rgba(240, 181, 89, 0.22)",
+          mark: "#F0B559",
+          ink: "#F0B559",
+        },
+        senior: {
+          fill: "rgba(241, 112, 112, 0.22)",
+          mark: "#F17070",
+          ink: "#F17070",
+        },
+      }
+    : {
+        none: {
+          fill: "rgba(15, 122, 74, 0.12)",
+          mark: "#0F7A4A",
+          ink: "#0F7A4A",
+        },
+        junior: {
+          fill: "rgba(232, 163, 61, 0.20)",
+          mark: "#E8A33D",
+          ink: "#9C6A1F",
+        },
+        senior: {
+          fill: "rgba(214, 69, 69, 0.13)",
+          mark: "#D64545",
+          ink: "#B3352F",
+        },
+      };
 }
 
-// Badge ink: dot, border and label. Solid, and legible at 10.5px on the
-// matching fill in both themes — the light ramp deepens toward the app
-// emerald, the dark ramp brightens away from it, so in both cases "asks for
-// more" reads as "stands out more".
+export function getExperienceTint(key, theme) {
+  const band = bands(theme)[key];
+  // No requirement stated is not the same as an undemanding one, so an
+  // unknown band gets no badge colour rather than the green.
+  return band ? band.fill : (theme?.surfaceAlt ?? "transparent");
+}
+
+// Text. Always check this one against the tint before changing it.
 export function getExperienceAccent(key, theme) {
-  const dark = theme?.scheme === "dark";
-  const inks = dark
-    ? { none: "#4E9E80", junior: "#68C29D", senior: "#8FE2BC" }
-    : { none: "#4C9E80", junior: "#1E8560", senior: "#0B6E4F" };
-  return inks[key] ?? theme?.textMuted ?? "#6B7280";
+  const band = bands(theme)[key];
+  return band ? band.ink : (theme?.textMuted ?? "#6B7280");
+}
+
+// Shapes: dot, swatch, border, rail. Never used for text.
+export function getExperienceMark(key, theme) {
+  const band = bands(theme)[key];
+  return band ? band.mark : (theme?.border ?? "#E3E6EA");
 }

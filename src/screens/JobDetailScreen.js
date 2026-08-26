@@ -45,6 +45,7 @@ import { POSTING_DIAL } from "../data/countries";
 import { jobCategories } from "../data/jobCategories";
 import {
   getExperienceAccent,
+  getExperienceMark,
   getExperienceLabel,
   getExperienceLevel,
   getExperienceTint,
@@ -484,9 +485,7 @@ export function JobDetailScreen({ navigation, route }) {
           ) : null}
           {experienceKey ? (
             <Tag tint={getExperienceTint(experienceKey, colors)}>
-              <ExperienceDot
-                color={getExperienceAccent(experienceKey, colors)}
-              />
+              <ExperienceDot color={getExperienceMark(experienceKey, colors)} />
               <TagLabel
                 color={getExperienceAccent(experienceKey, colors)}
                 numberOfLines={1}

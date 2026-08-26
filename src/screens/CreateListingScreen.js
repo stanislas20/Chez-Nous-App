@@ -208,6 +208,7 @@ import { guessContentType } from "../utils/uploadContentType";
 import {
   experienceLevels,
   getExperienceAccent,
+  getExperienceMark,
   getExperienceLabel,
   getExperienceTint,
 } from "../data/jobExperience";
@@ -3796,17 +3797,18 @@ export function CreateListingScreen({ route, navigation }) {
                   // 3 ans" and seeing the beginner colour here would teach
                   // the opposite of what the feed then shows.
                   const accent = getExperienceAccent(level.key, colors);
+                  const mark = getExperienceMark(level.key, colors);
                   return (
                     <ExperienceOption
                       key={level.key}
                       selected={selected}
-                      accent={accent}
+                      accent={mark}
                       tint={getExperienceTint(level.key, colors)}
                       onPress={() =>
                         setExperienceLevel(selected ? null : level.key)
                       }
                     >
-                      <ExperienceDot accent={accent} />
+                      <ExperienceDot accent={mark} />
                       <ExperienceLabel
                         selected={selected}
                         accent={accent}

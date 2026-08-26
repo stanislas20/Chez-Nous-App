@@ -23,6 +23,7 @@ import { buildLinkUrl } from "../data/restaurantLinks";
 import {
   airconServices,
   airconSymptoms,
+  getRefrigerant,
   refrigerants,
   specialtiesForSymptom,
 } from "../data/aircon";
@@ -71,6 +72,15 @@ export function AirconScreen({ navigation }) {
     () =>
       providers
         .filter((item) => wanted.some((key) => item.specialties.includes(key)))
+        // A workshop that declared its gases and does not hold this one
+        // cannot do the job, so it steps aside. One that declared nothing
+        // stays: silence is not a refusal, and the screen says to ask.
+        .filter(
+          (item) =>
+            gas === "unknown" ||
+            item.airconGases.length === 0 ||
+            item.airconGases.includes(gas),
+        )
         .sort((a, b) => {
           if (a.openNow !== b.openNow) return a.openNow === false ? 1 : -1;
           if (a.distanceKm != null && b.distanceKm != null) {
@@ -78,7 +88,7 @@ export function AirconScreen({ navigation }) {
           }
           return 0;
         }),
-    [providers, wanted],
+    [providers, wanted, gas],
   );
 
   const label = (item, key) =>
@@ -124,7 +134,10 @@ export function AirconScreen({ navigation }) {
   const openPostForm = () =>
     navigation.navigate("CreateListing", {
       categoryKey: "services",
-      trade: "garage",
+      // Not "garage": that gives the mechanic's form and the mechanic's
+      // worked example, which is how somebody publishing an air-conditioning
+      // workshop ends up describing an oil change.
+      trade: "clim",
     });
 
   const { remember } = useAccountGateIntent(user, openPostForm);
@@ -346,20 +359,35 @@ export function AirconScreen({ navigation }) {
                 ) : null}
               </MetaRow>
 
-              {/* Which of the trades this symptom needs they actually cover.
-                  With no symptom chosen there is nothing to disambiguate. */}
-              {openSymptom ? (
+              {/* Which of the trades this symptom needs they actually cover,
+                  and which gases they hold. With no symptom chosen there is
+                  nothing to disambiguate. */}
+              {openSymptom || item.airconGases.length ? (
                 <TradeRow>
-                  {wanted
-                    .filter((key) => item.specialties.includes(key))
-                    .map((key) => (
-                      <CoversPill key={key}>
-                        <CoversLabel>
-                          {getGarageSpecialtyLabel(key, language)}
-                        </CoversLabel>
-                      </CoversPill>
-                    ))}
+                  {openSymptom
+                    ? wanted
+                        .filter((key) => item.specialties.includes(key))
+                        .map((key) => (
+                          <CoversPill key={key}>
+                            <CoversLabel>
+                              {getGarageSpecialtyLabel(key, language)}
+                            </CoversLabel>
+                          </CoversPill>
+                        ))
+                    : null}
+                  {item.airconGases.map((key) => (
+                    <GasPill key={key}>
+                      <GasLabel>
+                        {label(getRefrigerant(key) ?? {}, "label") || key}
+                      </GasLabel>
+                    </GasPill>
+                  ))}
                 </TradeRow>
+              ) : null}
+              {/* Said plainly rather than left to be inferred from an empty
+                  row: a workshop that declared nothing has not said no. */}
+              {gas !== "unknown" && item.airconGases.length === 0 ? (
+                <AskLine>{t("airconAskGas")}</AskLine>
               ) : null}
 
               <ActionRow>
@@ -844,6 +872,26 @@ const CoversLabel = styled.Text`
   font-family: ${fontFamily.bold};
   font-size: 10.5px;
   color: ${ICE};
+`;
+
+const GasPill = styled.View`
+  padding: 5px 10px;
+  border-radius: 999px;
+  background-color: rgba(44, 127, 166, 0.14);
+`;
+
+const GasLabel = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 10.5px;
+  color: ${DEEP};
+`;
+
+const AskLine = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 11.5px;
+  line-height: 17px;
+  color: ${(props) => props.theme.textMuted};
+  margin-bottom: 12px;
 `;
 
 const ActionRow = styled.View`

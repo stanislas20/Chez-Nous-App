@@ -187,6 +187,7 @@ import {
   insuranceVehicles,
   isInsuranceListing,
 } from "../data/insurance";
+import { airconServices, refrigerants } from "../data/aircon";
 import {
   isPartsSellerListing,
   partCategories,
@@ -270,6 +271,10 @@ const TRADE_HINT_KEYS = {
   parts: "sellTitleHint_parts",
   driver: "sellTitleHint_driver",
   insurance: "sellTitleHint_insurance",
+  clim: "sellTitleHint_aircon",
+  // Missing since the Lavage screen shipped: a car washer arriving from it
+  // was shown the generic Services example, which is a plumber.
+  wash: "sellTitleHint_wash",
 };
 
 // The car trades that have a screen of their own, offered inside the form
@@ -303,6 +308,7 @@ const SERVICE_TRADES = [
     icon: "shield-checkmark-outline",
     labelKey: "sellTradeInsurance",
   },
+  { key: "clim", icon: "snow-outline", labelKey: "sellTradeAircon" },
 ];
 
 // Under Services these two keys describe a workshop, not a product, so the
@@ -326,6 +332,10 @@ const TRADE_NOTE_KEYS = {
   tyres: "sellTitleNote_garage",
   battery: "sellTitleNote_garage",
   insurance: "sellTitleNote_insurance",
+  // The one trade where the note is load-bearing rather than helpful: "clim"
+  // is a weak term, so a workshop that writes only "climatisation" never
+  // matches — in French that is an office far more often than a car.
+  clim: "sellTitleNote_aircon",
 };
 
 // The description example matters as much as the title one: "ce que vous
@@ -337,6 +347,8 @@ const TRADE_DESC_HINT_KEYS = {
   parts: "sellDescHint_parts",
   driver: "sellDescHint_driver",
   insurance: "sellDescHint_insurance",
+  clim: "sellDescHint_aircon",
+  wash: "sellDescHint_wash",
 };
 
 // Vehicles covers "cars, motorbikes, parts", and a part is not a car: asking
@@ -693,6 +705,10 @@ export function CreateListingScreen({ route, navigation }) {
   );
   const [insuranceMobileMoney, setInsuranceMobileMoney] = useState(
     seed("insuranceMobileMoney", false) === true,
+  );
+  const [airconGasKeys, setAirconGasKeys] = useState(seed("airconGases", []));
+  const [airconServiceKeys, setAirconServiceKeys] = useState(
+    seed("airconServices", []),
   );
   const [washHomeFee, setWashHomeFee] = useState(
     seed("washHomeFee", null) == null ? "" : String(seed("washHomeFee", "")),
@@ -1100,6 +1116,14 @@ export function CreateListingScreen({ route, navigation }) {
         : [],
     ),
   );
+
+  // Air conditioning. The Climatisation screen tells the reader that not
+  // every workshop stocks R1234yf and to ask before setting off — so the
+  // workshop needs somewhere to answer, or that advice stays advice forever.
+  const mentionsAircon =
+    isServices &&
+    (trade === "clim" ||
+      matchesGarageSpecialty(`${title} ${description}`, "clim"));
 
   // And once more for chauffeurs, using the same rule: their own words, or
   // the trade they arrived with.
@@ -1716,6 +1740,12 @@ export function CreateListingScreen({ route, navigation }) {
                     ),
                     insuranceDelivery: insuranceDelivery.trim() || null,
                     insuranceMobileMoney,
+                  }
+                : {}),
+              ...(mentionsAircon
+                ? {
+                    airconGases: airconGasKeys,
+                    airconServices: airconServiceKeys,
                   }
                 : {}),
               ...(mentionsDriver
@@ -4362,6 +4392,79 @@ export function CreateListingScreen({ route, navigation }) {
                     </NegotiableLabel>
                   </NegotiableRow>
                   <FieldNote>{t("sellPartChecksFitHint")}</FieldNote>
+                </>
+              ) : null}
+
+              {mentionsAircon ? (
+                <>
+                  <Label>{t("sellFieldAirconGases")}</Label>
+                  <FieldNote>{t("sellAirconGasesHint")}</FieldNote>
+                  <PickerGrid>
+                    {/* Only the two real ones. "I don't know" is an answer a
+                        car owner may give; a workshop that does not know
+                        which gases it handles has nothing to declare. */}
+                    {refrigerants
+                      .filter((option) => option.key !== "unknown")
+                      .map((option, index, list) => {
+                        const active = airconGasKeys.includes(option.key);
+                        return (
+                          <PickerCard
+                            key={option.key}
+                            width={getPickerCardWidth(index, list.length)}
+                            full={isPickerCardFull(index, list.length)}
+                            selected={active}
+                            onPress={() =>
+                              setAirconGasKeys((prev) =>
+                                prev.includes(option.key)
+                                  ? prev.filter((key) => key !== option.key)
+                                  : [...prev, option.key],
+                              )
+                            }
+                          >
+                            <PickerCardLabel
+                              selected={active}
+                              numberOfLines={2}
+                            >
+                              {language === "en"
+                                ? option.labelEn
+                                : option.labelFr}
+                            </PickerCardLabel>
+                          </PickerCard>
+                        );
+                      })}
+                  </PickerGrid>
+
+                  <Label>{t("sellFieldAirconServices")}</Label>
+                  <FieldNote>{t("sellAirconServicesHint")}</FieldNote>
+                  <PickerGrid>
+                    {airconServices.map((option, index) => {
+                      const active = airconServiceKeys.includes(option.key);
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(
+                            index,
+                            airconServices.length,
+                          )}
+                          full={isPickerCardFull(index, airconServices.length)}
+                          selected={active}
+                          onPress={() =>
+                            setAirconServiceKeys((prev) =>
+                              prev.includes(option.key)
+                                ? prev.filter((key) => key !== option.key)
+                                : [...prev, option.key],
+                            )
+                          }
+                        >
+                          <PickerCardLabel selected={active} numberOfLines={2}>
+                            {language === "en"
+                              ? option.labelEn
+                              : option.labelFr}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
                 </>
               ) : null}
 

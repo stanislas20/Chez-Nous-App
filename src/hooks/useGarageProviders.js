@@ -36,6 +36,11 @@ export function useGarageProviders(userCoords) {
         return {
           ...listing,
           specialties: garageSpecialtiesFor(searchableText(listing)),
+          // Declared by the workshop on the posting form. Empty means they
+          // said nothing, which the Climatisation screen reads as "ask them"
+          // rather than as "no" — silence is not a refusal.
+          airconGases: listing.airconGases ?? [],
+          airconServices: listing.airconServices ?? [],
           distanceKm:
             userCoords && cityCoord
               ? distanceInKm(userCoords, cityCoord)

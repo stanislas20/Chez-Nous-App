@@ -1132,6 +1132,21 @@ export const translations = {
     sellTradeBodywork: "Bodywork",
     sellTradeElectric: "Auto electrics",
     sellTradeTyres: "Tyre fitting",
+    sellTitleHint_wash: "e.g. Car wash — inside and out, Fidjrossè",
+    sellDescHint_wash:
+      "Whether you work from a station or travel, which vehicles you take, and what a full wash includes.",
+    sellTradeAircon: "Air conditioning",
+    sellTitleHint_aircon: "e.g. Car air conditioning — recharge and leaks",
+    sellTitleNote_aircon:
+      "Write “climatisation auto” — with the car word. On its own, “climatisation” reads as buildings, and the Climatisation screen will not find you.",
+    sellDescHint_aircon:
+      "Whether you find leaks or only recharge, which gases you hold, and whether you do compressors.",
+    sellFieldAirconGases: "Which gases do you hold?",
+    sellAirconGasesHint:
+      "Only what you actually stock. R1234yf is not something a driver can be sent across town to discover you do not have.",
+    sellFieldAirconServices: "What do you do?",
+    sellAirconServicesHint:
+      "Leak detection is the one drivers are told to ask for — say so if you do it.",
     sellTradeInsurance: "Insurance agency",
     sellTitleHint_insurance: "e.g. Motor insurance — all companies",
     sellTitleNote_insurance:
@@ -1484,6 +1499,8 @@ export const translations = {
     papersWhereCaveat:
       "Chez-Nous does not hold the addresses or opening hours of public offices, and will not invent them. Each row opens a map search around you instead.",
     papersSearchMap: "Search",
+    airconAskGas:
+      "This workshop has not said which gases it holds — worth asking before you set off.",
     airconEyebrow: "Air conditioning",
     airconTitle: "It runs, but nothing comes out cold",
     airconIntro:
@@ -3460,6 +3477,21 @@ export const translations = {
     sellTradeBodywork: "Carrosserie",
     sellTradeElectric: "Électricité auto",
     sellTradeTyres: "Montage de pneus",
+    sellTitleHint_wash: "ex. Lavage auto — intérieur et extérieur, Fidjrossè",
+    sellDescHint_wash:
+      "Si vous travaillez en station ou à domicile, les véhicules que vous prenez, et ce que comprend un lavage complet.",
+    sellTradeAircon: "Climatisation",
+    sellTitleHint_aircon: "ex. Climatisation auto — recharge et fuites",
+    sellTitleNote_aircon:
+      "Écrivez « climatisation auto » — avec le mot voiture. Seul, « climatisation » désigne les bâtiments, et l’écran Climatisation ne vous trouvera pas.",
+    sellDescHint_aircon:
+      "Si vous cherchez les fuites ou si vous rechargez seulement, les gaz que vous avez, et si vous faites les compresseurs.",
+    sellFieldAirconGases: "Quels gaz avez-vous ?",
+    sellAirconGasesHint:
+      "Uniquement ce que vous avez réellement. Le R1234yf n’est pas quelque chose qu’un automobiliste doit traverser la ville pour découvrir que vous n’en avez pas.",
+    sellFieldAirconServices: "Que faites-vous ?",
+    sellAirconServicesHint:
+      "La recherche de fuite est ce qu’on conseille aux automobilistes de demander — dites-le si vous la faites.",
     sellTradeInsurance: "Agence d’assurance",
     sellTitleHint_insurance: "ex. Assurance auto — toutes compagnies",
     sellTitleNote_insurance:
@@ -3817,6 +3849,8 @@ export const translations = {
     papersWhereCaveat:
       "Chez-Nous ne détient ni les adresses ni les horaires des services publics, et ne les inventera pas. Chaque ligne ouvre plutôt une recherche sur la carte autour de vous.",
     papersSearchMap: "Chercher",
+    airconAskGas:
+      "Cet atelier n’a pas indiqué les gaz qu’il a — à demander avant de vous déplacer.",
     airconEyebrow: "Climatisation",
     airconTitle: "Elle tourne, mais rien ne sort de froid",
     airconIntro:

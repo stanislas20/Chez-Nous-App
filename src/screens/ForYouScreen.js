@@ -1670,6 +1670,58 @@ export function ForYouScreen({ navigation, route }) {
           showsVerticalScrollIndicator={false}
           refreshControl={refreshControl}
         >
+          {/* Scope first, then filters.
+
+              These are two different kinds of control and they were the
+              wrong way round: where you are looking and who you are (an
+              employer, someone reviewing saved ads) decides the pool, and
+              Pour vous / Récent / Temps plein narrow whatever that pool
+              turns out to be. Putting scope on top also lifts Recruter to
+              the first row of the tab, which is the point — an employer
+              should not have to read a filter row to find their own door. */}
+          <JobLocFilterRow>
+            <JobLocPill onPress={() => setJobCitySheetOpen(true)}>
+              <Ionicons name="location" size={13} color={EMERALD} />
+              <JobLocPillLabel numberOfLines={1}>
+                {jobCity ?? t("pharmacyAllCities")}
+              </JobLocPillLabel>
+            </JobLocPill>
+            <JobFiltersPill
+              onPress={() => setJobsSortOpen(true)}
+              active={jobsSortBy !== "date"}
+            >
+              <JobFiltersPillLabel active={jobsSortBy !== "date"}>
+                {t("jobsFilters")}
+              </JobFiltersPillLabel>
+            </JobFiltersPill>
+            {/* An employer opening Emplois is not reading job ads, and the
+                card that offers to publish sits below all of them. Nobody
+                scrolls a jobs list to find out they can post one — so the
+                action also lives here, in the row they are already looking
+                at, above the first advert.
+
+                "Recruter" rather than "Publier": it says who it is for.
+                Publier is what everyone does on this app, and an employer
+                skimming for their own door needs the word that is theirs. */}
+            {mayPublish ? (
+              <JobHirePill onPress={startJobPosting}>
+                <Ionicons name="megaphone-outline" size={13} color={EMERALD} />
+                <JobHirePillLabel>{t("jobsHirePill")}</JobHirePillLabel>
+              </JobHirePill>
+            ) : null}
+            <JobSaveLink
+              active={showSavedJobsOnly}
+              onPress={() => setShowSavedJobsOnly((value) => !value)}
+            >
+              <Ionicons
+                name={showSavedJobsOnly ? "heart" : "heart-outline"}
+                size={14}
+                color={EMERALD}
+              />
+              <JobSaveLinkLabel>{t("jobsSavedLink")}</JobSaveLinkLabel>
+            </JobSaveLink>
+          </JobLocFilterRow>
+
           <JobChipScroll horizontal showsHorizontalScrollIndicator={false}>
             {JOB_FILTERS.map((f) => {
               const active = activeJobFilter === f.key;
@@ -1696,33 +1748,6 @@ export function ForYouScreen({ navigation, route }) {
               );
             })}
           </JobChipScroll>
-
-          <JobLocFilterRow>
-            <JobLocPill onPress={() => setJobCitySheetOpen(true)}>
-              <Ionicons name="location" size={13} color={EMERALD} />
-              <JobLocPillLabel numberOfLines={1}>
-                {jobCity ?? t("pharmacyAllCities")}
-              </JobLocPillLabel>
-            </JobLocPill>
-            <JobFiltersPill
-              onPress={() => setJobsSortOpen(true)}
-              active={jobsSortBy !== "date"}
-            >
-              <JobFiltersPillLabel active={jobsSortBy !== "date"}>
-                {t("jobsFilters")}
-              </JobFiltersPillLabel>
-            </JobFiltersPill>
-            <JobSaveLink
-              onPress={() => setShowSavedJobsOnly((value) => !value)}
-            >
-              <Ionicons
-                name={showSavedJobsOnly ? "heart" : "heart-outline"}
-                size={14}
-                color={EMERALD}
-              />
-              <JobSaveLinkLabel>{t("jobsSavedLink")}</JobSaveLinkLabel>
-            </JobSaveLink>
-          </JobLocFilterRow>
 
           <JobFreshBanner>
             <JobFreshBannerText>
@@ -3027,6 +3052,12 @@ const CityRowLabel = styled.Text`
 
 const JobLocFilterRow = styled.View`
   flex-direction: row;
+  align-items: center;
+  /* Four items now. Wrapping is what a narrow handset does instead of
+     clipping the last one off the edge, where it would be exactly as
+     invisible as the card below the list was. */
+  flex-wrap: wrap;
+  gap: ${spacing.sm}px;
   margin-bottom: ${spacing.sm}px;
 `;
 
@@ -3034,7 +3065,6 @@ const JobLocPill = styled(Pressable)`
   flex-direction: row;
   align-items: center;
   gap: 5px;
-  margin-right: ${spacing.sm}px;
   background-color: rgba(11, 110, 79, 0.08);
   padding: 7px 11px;
   border-radius: ${radius.pill}px;
@@ -3057,11 +3087,36 @@ const JobFiltersPillLabel = styled.Text`
   color: ${(props) => (props.active ? EMERALD : props.theme.text)};
 `;
 
+// Same weight as the filter pills beside it, not a call to action: it is a
+// door for the few, held open without shouting at the many who came to look
+// for work.
+const JobHirePill = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 13px;
+  border-radius: ${radius.pill}px;
+  background-color: rgba(11, 110, 79, 0.08);
+`;
+
+const JobHirePillLabel = styled.Text`
+  ${type.captionMedium}
+  color: ${EMERALD};
+`;
+
+// Was pushed to the right with margin-left: auto, which was fine while the
+// row held three items on one line. With four it wraps, and an auto margin
+// on a wrapped item strands it alone on a second line hugging the edge. It
+// flows with the others instead — same shell as the pills beside it, since
+// it is the same kind of control.
 const JobSaveLink = styled(Pressable)`
   flex-direction: row;
   align-items: center;
   gap: 5px;
-  margin-left: auto;
+  padding: 8px 13px;
+  border-radius: ${radius.pill}px;
+  background-color: ${(props) =>
+    props.active ? "rgba(11, 110, 79, 0.08)" : props.theme.surfaceAlt};
 `;
 
 const JobSaveLinkLabel = styled.Text`

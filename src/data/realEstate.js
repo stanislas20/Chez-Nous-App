@@ -339,6 +339,21 @@ export function realEstateHasFurnished(dealKey) {
   return !!getRealEstateDeal(dealKey)?.hasFurnished;
 }
 
+// Whether the poster can offer a vehicle alongside the place.
+//
+// Only the two lets where somebody arrives without one: a short stay, and a
+// long rental. A sale, a plot of land and a shop lease all end with the
+// buyer owning or occupying something — a car thrown in makes no sense in
+// any of them, and asking would be noise on three forms out of five.
+//
+// This is a bundle people already run here — a furnished flat or a villa
+// let with a car and sometimes a driver — and the app had a "Séjour +
+// voiture" tile pointing at a text search that could never find one,
+// because no listing had any way to say so.
+export function realEstateHasCarOption(dealKey) {
+  return dealKey === "rent" || dealKey === "shortStay";
+}
+
 export function realEstateHasDeposit(dealKey, commercialType) {
   if (!getRealEstateDeal(dealKey)?.hasDeposit) return false;
   // A hall is paid for the day; there is no caution held against months of

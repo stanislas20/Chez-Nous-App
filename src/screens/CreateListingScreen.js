@@ -78,6 +78,7 @@ import {
   getLandDocumentTier,
   listerKinds,
   getListerKindLabel,
+  realEstateHasCarOption,
   realEstateHasFurnished,
   realEstateHasRooms,
   realEstatePriceSuffixKey,
@@ -579,8 +580,11 @@ export function CreateListingScreen({ route, navigation }) {
   const [sportsSize, setSportsSize] = useState(seedText("sportsSize", ""));
   const [babyKind, setBabyKind] = useState(seed("babyKind", null));
   const [babyDetail, setBabyDetail] = useState(seedText("babyDetail", ""));
+  // Preset when the seller arrived from a route that already knows which
+  // one they mean — the Immobilier screen's publish bar carries whichever
+  // tab they were reading. Same mechanism as vehiclePurpose below.
   const [realEstateDeal, setRealEstateDeal] = useState(
-    seed("realEstateDeal", null),
+    seed("realEstateDeal", route.params?.realEstateDeal ?? null),
   );
   const [commercialType, setCommercialType] = useState(
     seed("commercialType", null),
@@ -800,6 +804,12 @@ export function CreateListingScreen({ route, navigation }) {
   const [bedrooms, setBedrooms] = useState(seed("bedrooms", null));
   const [bathrooms, setBathrooms] = useState(seed("bathrooms", null));
   const [isFurnished, setIsFurnished] = useState(seed("isFurnished", false));
+  // A vehicle offered with the place. Two fields, because "yes" alone
+  // leaves every enquiry starting with "included or extra?" — the note is
+  // where the poster answers that in their own words rather than in a price
+  // field this app cannot verify.
+  const [withCar, setWithCar] = useState(seed("withCar", false));
+  const [withCarNote, setWithCarNote] = useState(seedText("withCarNote", ""));
   const [depositMonths, setDepositMonths] = useState(
     seedText("depositMonths", ""),
   );
@@ -1809,6 +1819,11 @@ export function CreateListingScreen({ route, navigation }) {
               bedrooms,
               bathrooms,
               isFurnished,
+              withCar,
+              // Only when the box is ticked: a note left behind after
+              // unticking would sit in the document describing a car that
+              // is no longer on offer.
+              withCarNote: withCar ? withCarNote.trim() : "",
               depositMonths: Number(depositMonths) || null,
               // Kept separate from the deposit: together they are what a
               // tenant must actually produce to move in, and the browse
@@ -2147,6 +2162,12 @@ export function CreateListingScreen({ route, navigation }) {
       setAmenities([]);
     }
     if (!realEstateHasFurnished(next)) setIsFurnished(false);
+    // Selling a plot with a car included is not a thing. Carrying the flag
+    // over from a rental would publish an offer nobody made.
+    if (!realEstateHasCarOption(next)) {
+      setWithCar(false);
+      setWithCarNote("");
+    }
     if (!realEstateHasDeposit(next)) setDepositMonths("");
     if (next !== "commercial") {
       setCommercialType(null);
@@ -3137,6 +3158,48 @@ export function CreateListingScreen({ route, navigation }) {
                         {t("sellFieldFurnished")}
                       </NegotiableLabel>
                     </NegotiableRow>
+                  ) : null}
+
+                  {/* A car with the place.
+                  
+                      Renting a furnished flat or a villa together with a
+                      vehicle is an arrangement people here already offer,
+                      and there was no way to say so — the Véhicules hub has
+                      carried a "Séjour + voiture" tile the whole time,
+                      pointing at a text search that could never match a
+                      property because no property could declare one.
+                  
+                      The note is free text and deliberately so. Whether the
+                      car is included, extra, with a driver or only for the
+                      first week is the poster's business, and a price field
+                      here would be a second price on a listing that already
+                      has one. */}
+                  {realEstateHasCarOption(realEstateDeal) ? (
+                    <>
+                      <NegotiableRow onPress={() => setWithCar((v) => !v)}>
+                        <Checkbox checked={withCar}>
+                          {withCar ? (
+                            <Ionicons
+                              name="checkmark"
+                              size={13}
+                              color="#ffffff"
+                            />
+                          ) : null}
+                        </Checkbox>
+                        <NegotiableLabel>
+                          {t("sellFieldWithCar")}
+                        </NegotiableLabel>
+                      </NegotiableRow>
+                      {withCar ? (
+                        <Input
+                          value={withCarNote}
+                          onChangeText={setWithCarNote}
+                          placeholder={t("sellFieldWithCarNotePlaceholder")}
+                          placeholderTextColor={colors.textMuted}
+                          maxLength={90}
+                        />
+                      ) : null}
+                    </>
                   ) : null}
 
                   <Label>{t("sellFieldPrice")}</Label>

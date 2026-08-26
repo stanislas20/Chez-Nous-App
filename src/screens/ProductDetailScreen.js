@@ -950,6 +950,25 @@ export function ProductDetailScreen({ route, navigation }) {
                   <SpecText>{t("sellFieldFurnished")}</SpecText>
                 </SpecItem>
               ) : null}
+              {/* A vehicle offered with the place, and the poster's own
+                  words about it. The note is the half that matters —
+                  "included" and "3 000 F/day, driver extra" are both
+                  honest answers to the same tick box, and only the poster
+                  knows which one applies. */}
+              {listing.withCar ? (
+                <SpecItem>
+                  <Ionicons
+                    name="car-outline"
+                    size={15}
+                    color={colors.primary}
+                  />
+                  <SpecText>
+                    {listing.withCarNote
+                      ? `${t("realEstateWithCarBadge")} — ${listing.withCarNote}`
+                      : t("realEstateWithCarBadge")}
+                  </SpecText>
+                </SpecItem>
+              ) : null}
               {listing.depositMonths ? (
                 <SpecItem>
                   <Ionicons

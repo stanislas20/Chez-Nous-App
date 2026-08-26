@@ -16,6 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import MapView, { Circle } from "react-native-maps";
 import styled from "styled-components/native";
 import { HeroPostBar } from "../components/HeroPostBar";
+import { realEstateHasCarOption } from "../data/realEstate";
 import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
@@ -137,7 +138,7 @@ const sheetScrollStyle = { flexShrink: 1 };
 const sheetScrollContentStyle = { paddingBottom: spacing.md };
 const listContentStyle = { padding: spacing.md, paddingBottom: spacing.xl };
 
-export function RealEstateScreen({ navigation }) {
+export function RealEstateScreen({ navigation, route }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { language, t } = useI18n();
@@ -148,9 +149,23 @@ export function RealEstateScreen({ navigation }) {
   // Immobilier in a category sheet — the same detour every other vertical
   // has now stopped asking for. A landlord reading the market is exactly the
   // person about to list one.
+  // Declared above openPostForm because that closure carries it. It reads
+  // fine either way — the closure only runs on a tap — but a reader should
+  // not have to work that out.
+  // A caller can name the tab and the filter — the Véhicules hub's
+  // "Séjour + voiture" tile opens short stays that come with a vehicle.
+  // Rent stays the default for anybody arriving without an opinion.
+  const [deal, setDeal] = useState(route.params?.realEstateDeal ?? "rent");
+
+  //
+  // The tab travels with it. Landing on a blank deal picker after tapping
+  // publish from "À louer" makes the seller re-answer a question the screen
+  // already knew, and a landlord who misses the picker publishes a rental
+  // as a sale.
   const openPostForm = () =>
     navigation.navigate("CreateListing", {
       categoryKey: "realEstate",
+      realEstateDeal: deal,
     });
 
   const { remember } = useAccountGateIntent(user, openPostForm);
@@ -173,7 +188,9 @@ export function RealEstateScreen({ navigation }) {
   // with the screen.
   const { favoriteIds, toggleFavorite } = useFavorites(user?.uid);
 
-  const [deal, setDeal] = useState("rent");
+  // Off by default: this narrows to a minority of listings, and a filter
+  // that starts on hides most of the market from somebody who never asked.
+  const [withCarOnly, setWithCarOnly] = useState(!!route.params?.withCar);
   const [city, setCity] = useState(null);
   const [quartier, setQuartier] = useState(null);
   const [band, setBand] = useState(null);
@@ -227,6 +244,7 @@ export function RealEstateScreen({ navigation }) {
         // sheet, counted in its badge, and then never applied.
         if (propertyType && item.propertyType !== propertyType) return false;
         if (rooms && String(item.rooms ?? "") !== String(rooms)) return false;
+        if (withCarOnly && !item.withCar) return false;
         return true;
       });
 
@@ -251,12 +269,16 @@ export function RealEstateScreen({ navigation }) {
     propertyType,
     rooms,
     commercialType,
+    withCarOnly,
   ]);
 
   const selectDeal = (key) => {
     if (key === deal) return;
     selectionTick();
     setDeal(key);
+    // The chip disappears on a sale or a plot; leaving the filter set would
+    // silently hide listings with no visible control to explain why.
+    if (!realEstateHasCarOption(key)) setWithCarOnly(false);
     setCommercialType(null);
     // Bands are per-deal; one chosen under "rent" would silently filter
     // everything out under "land".
@@ -363,7 +385,8 @@ export function RealEstateScreen({ navigation }) {
     search.trim() ||
     propertyType ||
     rooms ||
-    commercialType
+    commercialType ||
+    withCarOnly
   );
   const moreCount = (propertyType ? 1 : 0) + (rooms ? 1 : 0);
   // Land has no rooms to count and nothing to furnish, so the extra
@@ -378,6 +401,7 @@ export function RealEstateScreen({ navigation }) {
     setQuartier(null);
     setBand(null);
     setSearch("");
+    setWithCarOnly(false);
   };
   const contactPhone = contactFor?.phone ?? contactFor?.sellerPhone ?? null;
 
@@ -407,7 +431,7 @@ export function RealEstateScreen({ navigation }) {
           <HeroPostBar
             icon="home-outline"
             ink={EMERALD}
-            label={t("realEstatePostTitle")}
+            label={t(`realEstatePostPrompt_${deal}`)}
             cta={t("heroPostCta")}
             onPress={startPosting}
           />
@@ -549,6 +573,24 @@ export function RealEstateScreen({ navigation }) {
               color={band ? "#ffffff" : colors.textMuted}
             />
           </FilterPill>
+
+          {/* Only on the two deals that can carry a car. On a sale or a
+              plot it would be a filter that matches nothing, every time. */}
+          {realEstateHasCarOption(deal) ? (
+            <FilterPill
+              active={withCarOnly}
+              onPress={() => setWithCarOnly((value) => !value)}
+            >
+              <Feather
+                name="truck"
+                size={13}
+                color={withCarOnly ? "#ffffff" : colors.textMuted}
+              />
+              <FilterPillLabel active={withCarOnly} numberOfLines={1}>
+                {t("realEstateFilterWithCar")}
+              </FilterPillLabel>
+            </FilterPill>
+          ) : null}
 
           {showMoreFilters ? (
             <FilterPill
@@ -1128,6 +1170,8 @@ export function buildPropertyView(listing, language, t) {
     isVerifiedLister:
       listing.listerKind === "agency" && !!listing.sellerVerified,
     place: [listing.quartier, listing.city].filter(Boolean).join(", "),
+    withCar: !!listing.withCar,
+    withCarNote: listing.withCarNote || null,
   };
 }
 
@@ -1227,6 +1271,12 @@ function PropertyCard({
               {view.documentBadge}
             </DocBadgeLabel>
           </DocBadge>
+        ) : null}
+        {view.withCar ? (
+          <CarBadge>
+            <Feather name="truck" size={10} color={EMERALD} />
+            <CarBadgeLabel>{t("realEstateWithCarBadge")}</CarBadgeLabel>
+          </CarBadge>
         ) : null}
         {view.listerLabel ? (
           <ListerBadge verified={view.isVerifiedLister}>
@@ -1519,8 +1569,18 @@ const SearchWrap = styled.View`
 
 // A fixed row rather than a horizontal scroll: three filters always fit,
 // and scrolling left a ragged gap on the right that read as a mistake.
+// Wraps. The bar was built for exactly four pills sharing the width, and a
+// fifth — "Avec véhicule", which only appears on the two lets — crushed
+// every label to two letters and an ellipsis: "Qu…", "Bu…", "Av…", "Filt…".
+// A filter that cannot say what it filters is not a filter.
+//
+// Wrapping rather than scrolling sideways, for the same reason the job tags
+// wrap: a horizontal swipe inside a vertical list is a gesture nobody
+// discovers, and a filter you have to swipe to find is one you do not know
+// you have.
 const FilterBar = styled.View`
   flex-direction: row;
+  flex-wrap: wrap;
   align-items: center;
   gap: ${spacing.sm}px;
   padding: 0 ${spacing.md}px;
@@ -1531,7 +1591,9 @@ const FilterBar = styled.View`
 // so the bar doubles as a summary of what is applied and there is no need
 // for a second row of active-filter chips.
 const FilterPill = styled(Pressable)`
-  flex: 1;
+  /* grow, not flex: 1 — they share what is left over but none of them can
+     be squeezed below its own label, which is what produced "Qu…". */
+  flex-grow: 1;
   flex-direction: row;
   align-items: center;
   justify-content: center;
@@ -1737,6 +1799,23 @@ const DocBadgeLabel = styled.Text`
   font-family: ${fontFamily.bold};
   font-size: 10.5px;
   color: ${(props) => props.tint};
+`;
+
+// Same shape as the lister badge beside it, in the app's own green: a car
+// with the place is a feature of the offer, not a warning or a tier.
+const CarBadge = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: ${radius.pill}px;
+  background-color: ${(props) => props.theme.primaryLight};
+`;
+
+const CarBadgeLabel = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 10.5px;
+  color: ${EMERALD};
 `;
 
 const ListerBadge = styled.View`

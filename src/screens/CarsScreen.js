@@ -551,6 +551,10 @@ export function CarsScreen({ navigation, route }) {
       const params = {
         ...(entry.specialty ? { specialty: entry.specialty } : {}),
         ...(entry.problem ? { problem: entry.problem } : {}),
+        ...(entry.realEstateDeal
+          ? { realEstateDeal: entry.realEstateDeal }
+          : {}),
+        ...(entry.withCar ? { withCar: true } : {}),
       };
       navigation.navigate(
         entry.route,

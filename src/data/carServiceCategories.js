@@ -135,5 +135,16 @@ export const carServicesMore = [
   { key: "trucks", icon: "bus-outline", query: "camion utilitaire" },
   { key: "importation", icon: "boat-outline", query: "importation véhicule" },
   { key: "scrap", icon: "refresh-circle-outline", query: "casse automobile" },
-  { key: "stayCar", icon: "home-outline", query: "séjour voiture" },
+  // Was a text search in Services for "séjour voiture", which could never
+  // match anything: the thing it describes is a property, Services holds
+  // trades, and until now no listing of any kind could declare that a car
+  // came with it. It goes to Immobilier's short-stay tab with the vehicle
+  // filter already on.
+  {
+    key: "stayCar",
+    icon: "home-outline",
+    route: "RealEstate",
+    realEstateDeal: "shortStay",
+    withCar: true,
+  },
 ];

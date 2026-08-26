@@ -39,9 +39,7 @@ export const translations = {
     realEstatePostCopy:
       "Publish it here — rent, sale or land, seen from Bénin and abroad.",
     jobsHireCta: "Post",
-    jobsPostAction: "Post a job",
     jobsPostTitle: "Are you hiring?",
-    jobsPostCopy: "Post the role here — candidates apply from inside the app.",
     postingTitleVehicles: "Sell a vehicle",
     postingTitleRealEstate: "List a property",
     postingTitleServices: "Offer a service",
@@ -513,7 +511,6 @@ export const translations = {
     jobDetailViewsStat: "views",
     jobDetailApplicationsStat: "applications",
     jobDetailViewApplications: "View applications",
-    jobsFreshBanner: "{count} opportunities available",
     jobsSampleNote:
       "Sample postings, shown while employers are still joining. You can open them to see how a job looks, but there is no employer behind them yet — an application won't be sent anywhere.",
     jobsExperienceLegend:
@@ -2360,10 +2357,7 @@ export const translations = {
     realEstatePostCopy:
       "Publiez-le ici — location, vente ou terrain, vu du Bénin comme de l’étranger.",
     jobsHireCta: "Publier",
-    jobsPostAction: "Publier une offre",
     jobsPostTitle: "Vous recrutez ?",
-    jobsPostCopy:
-      "Publiez le poste ici — les candidats postulent depuis l’application.",
     postingTitleVehicles: "Vendre un véhicule",
     postingTitleRealEstate: "Publier un bien",
     postingTitleServices: "Proposer un service",
@@ -2848,7 +2842,6 @@ export const translations = {
     jobDetailViewsStat: "vues",
     jobDetailApplicationsStat: "candidatures",
     jobDetailViewApplications: "Voir les candidatures",
-    jobsFreshBanner: "{count} opportunités disponibles",
     jobsSampleNote:
       "Offres d’exemple, affichées en attendant l’arrivée des employeurs. Vous pouvez les ouvrir pour voir à quoi ressemble une offre, mais aucun employeur n’est derrière : une candidature ne sera envoyée nulle part.",
     jobsExperienceLegend:

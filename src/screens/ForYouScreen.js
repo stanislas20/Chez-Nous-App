@@ -1769,12 +1769,6 @@ export function ForYouScreen({ navigation, route }) {
             })}
           </JobChipScroll>
 
-          <JobFreshBanner>
-            <JobFreshBannerText>
-              🔥 {t("jobsFreshBanner", { count: jobPool.length })}
-            </JobFreshBannerText>
-          </JobFreshBanner>
-
           {/* Same disclosure RestaurantsScreen makes, for the same reason:
               until an employer has posted, these five are invented, and a
               candidate has no other way to tell. Applying to one already
@@ -1793,13 +1787,22 @@ export function ForYouScreen({ navigation, route }) {
             </JobSampleNote>
           ) : null}
 
+          <SectionHeading
+            label={t("jobsForYouSection")}
+            meta={t("jobsCategoryCount", { count: jobsForYou.length })}
+          />
           {/* The cards have been colour-coded by required experience all
               along, with nothing anywhere saying so — a colour nobody can
               decode is just decoration, and a red card reads as a warning
               rather than as "this one wants a veteran". The swatches are
               built from the same getExperienceTint/getExperienceAccent the
               cards use, so the legend cannot drift from what it explains,
-              and it inverts with the theme for free. */}
+              and it inverts with the theme for free.
+
+              It sits under the heading of the list it describes rather than
+              up with the filters, where it was one of five stacked bands a
+              candidate had to get past before seeing a single job — and far
+              enough from the badges that it was not obviously about them. */}
           <JobLegend>
             <JobLegendCaption>{t("jobsExperienceLegend")}</JobLegendCaption>
             <JobLegendItems>
@@ -1822,7 +1825,6 @@ export function ForYouScreen({ navigation, route }) {
             </JobLegendItems>
           </JobLegend>
 
-          <SectionTitle>{t("jobsForYouSection")}</SectionTitle>
           {jobsForYou.length === 0 ? (
             <EmptyCityText>{t("jobsEmptyResults")}</EmptyCityText>
           ) : (
@@ -1978,35 +1980,7 @@ export function ForYouScreen({ navigation, route }) {
             </JobList>
           )}
 
-          {/* Every other vertical in the app offers to publish from inside
-              itself — a garage from Garages, a carrossier from Carrosserie,
-              a chauffeur from Chauffeurs. Emplois was the one that did not,
-              and "Vendre" is a strange door for an employer who is not
-              selling anything.
-
-              Placed after the list rather than at the very bottom: somebody
-              who has just read what the market looks like is the person most
-              likely to post, and the seventeen sector tiles below would bury
-              it. */}
-          {mayPublish ? (
-            <JobPostCard onPress={startJobPosting}>
-              <JobPostTop>
-                <JobPostIcon>
-                  <Ionicons name="megaphone" size={19} color="#ffffff" />
-                </JobPostIcon>
-                <JobPostCol>
-                  <JobPostTitle>{t("jobsPostTitle")}</JobPostTitle>
-                  <JobPostCopy>{t("jobsPostCopy")}</JobPostCopy>
-                </JobPostCol>
-              </JobPostTop>
-              <JobPostButton>
-                <Ionicons name="add" size={16} color="#ffffff" />
-                <JobPostButtonLabel>{t("jobsPostAction")}</JobPostButtonLabel>
-              </JobPostButton>
-            </JobPostCard>
-          ) : null}
-
-          <SectionTitle>{t("jobsExploreSection")}</SectionTitle>
+          <SectionHeading label={t("jobsExploreSection")} />
           <CatGrid>
             {jobCategories.map((c) => {
               const selected = selectedJobCategory === c.key;
@@ -2583,14 +2557,35 @@ const PharmacyRatingText = styled.Text`
 // which is six accent colours the palette never agreed to, competing with
 // the cards underneath. A rule above the title does the same job of
 // separating one band from the next, and does it the same way every time.
-function SectionHeading({ label }) {
+//
+// `meta` is for a fact about the section itself — how many jobs are in the
+// list below. That used to be a banner of its own, which is a lot of
+// furniture for one number, and it sat far enough above the list that it
+// was not obviously counting it.
+function SectionHeading({ label, meta }) {
   return (
     <SectionHeadingWrap>
       <SectionRule />
-      <SectionTitle numberOfLines={2}>{label}</SectionTitle>
+      <SectionTitleRow>
+        <SectionTitle numberOfLines={2}>{label}</SectionTitle>
+        {meta ? <SectionMeta>{meta}</SectionMeta> : null}
+      </SectionTitleRow>
     </SectionHeadingWrap>
   );
 }
+
+const SectionTitleRow = styled.View`
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+const SectionMeta = styled.Text`
+  ${type.caption}
+  font-size: 12px;
+  color: ${(props) => props.theme.textMuted};
+`;
 
 const SectionHeadingWrap = styled.View`
   gap: 9px;
@@ -3325,26 +3320,20 @@ const JobFilterChipLabel = styled.Text`
   color: ${(props) => (props.active ? "#ffffff" : props.theme.text)};
 `;
 
-const JobFreshBanner = styled.View`
-  padding: 11px 14px;
-  border-radius: ${radius.lg}px;
-  background-color: rgba(217, 164, 65, 0.12);
-  margin-bottom: ${spacing.lg}px;
-`;
-
-const JobFreshBannerText = styled.Text`
-  ${type.captionMedium}
-  color: #8a6415;
-`;
-// Matches RestaurantsScreen's sample note. Spacing above comes from
-// JobFreshBanner's own bottom margin, so this only carries the gap below it.
+// The disclosure is not negotiable — until an employer has posted, these
+// jobs are invented and the reader has no other way to know. What changed is
+// its voice: a filled green panel four lines deep was the loudest thing on
+// the tab, competing with the jobs it was a footnote about. A hairline card
+// says the same words without pretending to be the headline.
 const JobSampleNote = styled.View`
   flex-direction: row;
   align-items: flex-start;
   gap: ${spacing.sm}px;
-  padding: 12px 13px;
+  padding: 11px 13px;
   border-radius: ${radius.lg}px;
-  background-color: ${(props) => props.theme.primaryLight};
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
   margin-bottom: ${spacing.lg}px;
 `;
 const JobSampleNoteIcon = styled.View`
@@ -3513,70 +3502,6 @@ const JobCompanyRow = styled.View`
   align-items: center;
   gap: 5px;
   margin-top: 2px;
-`;
-
-// The other half of the same door, and it has room the header strip does
-// not: here the offer can explain itself and end in a button somebody can
-// aim at, instead of a whole row that happens to be tappable.
-const JobPostCard = styled(Tappable)`
-  gap: 13px;
-  padding: ${spacing.md}px;
-  margin-bottom: ${spacing.lg}px;
-  border-radius: ${radius.xl}px;
-  background-color: ${(props) => props.theme.surface};
-  border-width: 1px;
-  border-color: rgba(11, 110, 79, 0.22);
-  ${shadow.card}
-`;
-
-const JobPostTop = styled.View`
-  flex-direction: row;
-  align-items: flex-start;
-  gap: ${spacing.sm}px;
-`;
-
-const JobPostIcon = styled.View`
-  width: 38px;
-  height: 38px;
-  border-radius: 19px;
-  align-items: center;
-  justify-content: center;
-  background-color: ${EMERALD};
-`;
-
-const JobPostButton = styled.View`
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 46px;
-  border-radius: ${radius.pill}px;
-  background-color: ${EMERALD};
-`;
-
-const JobPostButtonLabel = styled.Text`
-  font-family: ${fontFamily.semiBold};
-  font-size: 14px;
-  color: #ffffff;
-`;
-
-const JobPostCol = styled.View`
-  flex: 1;
-  min-width: 0px;
-`;
-
-const JobPostTitle = styled.Text`
-  font-family: ${fontFamily.semiBold};
-  font-size: 14px;
-  color: ${(props) => props.theme.text};
-`;
-
-const JobPostCopy = styled.Text`
-  font-family: ${fontFamily.regular};
-  font-size: 12px;
-  line-height: 17px;
-  margin-top: 2px;
-  color: ${(props) => props.theme.textMuted};
 `;
 
 const OfferBadge = styled.View`

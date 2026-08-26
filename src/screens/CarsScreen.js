@@ -289,6 +289,16 @@ export function CarsScreen({ navigation, route }) {
   const [city, setCity] = useState(null);
   // One bottom sheet serves both the city picker and the full marque list.
   const [activeSheet, setActiveSheet] = useState(null);
+  // Null means "follow the search": the grid is nine tiles across three rows,
+  // and once somebody has typed a make into the search box it is the only
+  // thing between them and the results they asked for. An explicit tap on
+  // the header wins from then on — the reader who wants the grid back while
+  // searching is not overruled on every keystroke.
+  const [brandsOpen, setBrandsOpen] = useState(null);
+  // Quick access is a menu, not a filter: it is what you read on the way in
+  // and never once you are comparing cars. Same rule — it steps aside while
+  // a search is running, unless the reader says otherwise.
+  const [quickOpen, setQuickOpen] = useState(null);
   const [sheetSearch, setSheetSearch] = useState("");
 
   // Collapse state. scrollY drives the bar on the native driver; `stuck` is
@@ -411,6 +421,9 @@ export function CarsScreen({ navigation, route }) {
 
   const isLoading = listings === null;
   const hasFilters = !!(deal || brand || band || search.trim() || city);
+  const searching = search.trim().length > 0;
+  const brandsExpanded = brandsOpen ?? !searching;
+  const quickExpanded = quickOpen ?? !searching;
 
   // Every one of these is counted, not declared. The parks and the concessions
   // are the length of lists that exist; the vehicle figure is how many are
@@ -1108,19 +1121,36 @@ export function CarsScreen({ navigation, route }) {
               </>
             ) : null}
 
-            <SectionLabel>{t("carsQuickLabel")}</SectionLabel>
-            <QuickGrid>
-              {quickAccess.map((item) => (
-                <QuickTile key={item.key} onPress={item.onPress}>
-                  <QuickIcon tint={item.tint}>
-                    <Ionicons name={item.icon} size={20} color={item.ink} />
-                  </QuickIcon>
-                  <QuickLabel numberOfLines={1}>
-                    {t(`carsQuick_${item.key}`)}
-                  </QuickLabel>
-                </QuickTile>
-              ))}
-            </QuickGrid>
+            <SectionToggleRow>
+              <SectionToggle
+                open={quickExpanded}
+                onPress={() => setQuickOpen(!quickExpanded)}
+                hitSlop={8}
+              >
+                <SectionToggleLabel>{t("carsQuickLabel")}</SectionToggleLabel>
+                <ToggleChevron open={quickExpanded}>
+                  <Ionicons
+                    name={quickExpanded ? "chevron-up" : "chevron-down"}
+                    size={13}
+                    color={EMERALD}
+                  />
+                </ToggleChevron>
+              </SectionToggle>
+            </SectionToggleRow>
+            {quickExpanded ? (
+              <QuickGrid>
+                {quickAccess.map((item) => (
+                  <QuickTile key={item.key} onPress={item.onPress}>
+                    <QuickIcon tint={item.tint}>
+                      <Ionicons name={item.icon} size={20} color={item.ink} />
+                    </QuickIcon>
+                    <QuickLabel numberOfLines={1}>
+                      {t(`carsQuick_${item.key}`)}
+                    </QuickLabel>
+                  </QuickTile>
+                ))}
+              </QuickGrid>
+            ) : null}
 
             {/* Seen on the way past the menu, never between a filter and its
                 result — someone who has just set a budget is mid-task. */}
@@ -1186,7 +1216,34 @@ export function CarsScreen({ navigation, route }) {
                   </FilterScroll>
                 ) : null}
                 <SectionHead>
-                  <SectionHeadTitle>{t("carsBrandsLabel")}</SectionHeadTitle>
+                  {/* The title itself collapses the grid. "Tout voir" still
+                      opens the full sheet — two different jobs, so they stay
+                      two different targets. */}
+                  <SectionToggle
+                    open={brandsExpanded}
+                    onPress={() => setBrandsOpen(!brandsExpanded)}
+                    hitSlop={8}
+                  >
+                    <SectionToggleTitle>
+                      {t("carsBrandsLabel")}
+                    </SectionToggleTitle>
+                    {/* Collapsing must not hide a live filter. With the grid
+                        shut, the chosen make is named on the control itself. */}
+                    {!brandsExpanded && brand ? (
+                      <BrandPickPill>
+                        <BrandPickLabel numberOfLines={1}>
+                          {brand}
+                        </BrandPickLabel>
+                      </BrandPickPill>
+                    ) : null}
+                    <ToggleChevron open={brandsExpanded}>
+                      <Ionicons
+                        name={brandsExpanded ? "chevron-up" : "chevron-down"}
+                        size={13}
+                        color={EMERALD}
+                      />
+                    </ToggleChevron>
+                  </SectionToggle>
                   <SectionLink
                     onPress={() => setActiveSheet("brand")}
                     hitSlop={8}
@@ -1203,52 +1260,62 @@ export function CarsScreen({ navigation, route }) {
                     nine and the rest sat behind a sideways swipe, which is
                     the one gesture nobody makes on a section they are still
                     reading. Three columns of three fills the width evenly. */}
-                <BrandGrid>
-                  <BrandTile
-                    onPress={() => navigation.navigate("VehicleList", {})}
-                  >
-                    <BrandBadge
-                      colors={["#4C5A63", "#26313A"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                    >
-                      <Ionicons name="apps-outline" size={20} color="#ffffff" />
-                    </BrandBadge>
-                    <BrandTileLabel numberOfLines={1}>
-                      {t("carsBrandAll")}
-                    </BrandTileLabel>
-                  </BrandTile>
-                  {railBrands.map((item) => (
+                {brandsExpanded ? (
+                  <BrandGrid>
                     <BrandTile
-                      key={item}
-                      onPress={() =>
-                        navigation.navigate("VehicleList", { brand: item })
-                      }
+                      onPress={() => navigation.navigate("VehicleList", {})}
                     >
-                      {/* The real mark where we have one, the monogram plate
+                      <BrandBadge
+                        colors={["#4C5A63", "#26313A"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                      >
+                        <Ionicons
+                          name="apps-outline"
+                          size={20}
+                          color="#ffffff"
+                        />
+                      </BrandBadge>
+                      <BrandTileLabel numberOfLines={1}>
+                        {t("carsBrandAll")}
+                      </BrandTileLabel>
+                    </BrandTile>
+                    {railBrands.map((item) => (
+                      <BrandTile
+                        key={item}
+                        onPress={() =>
+                          navigation.navigate("VehicleList", { brand: item })
+                        }
+                      >
+                        {/* The real mark where we have one, the monogram plate
                           otherwise. White plate either way, so a rail of
                           mixed makes stays even. */}
-                      {brandLogo(item) ? (
-                        <BrandPlate wide={isWideLogo(item)}>
-                          <BrandLogo
-                            source={brandLogo(item)}
-                            wide={isWideLogo(item)}
-                            resizeMode="contain"
-                          />
-                        </BrandPlate>
-                      ) : (
-                        <BrandBadge
-                          colors={[vehicleBrandTint(item), "#07362A"]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                        >
-                          <BrandMonogram>{vehicleMonogram(item)}</BrandMonogram>
-                        </BrandBadge>
-                      )}
-                      <BrandTileLabel numberOfLines={1}>{item}</BrandTileLabel>
-                    </BrandTile>
-                  ))}
-                </BrandGrid>
+                        {brandLogo(item) ? (
+                          <BrandPlate wide={isWideLogo(item)}>
+                            <BrandLogo
+                              source={brandLogo(item)}
+                              wide={isWideLogo(item)}
+                              resizeMode="contain"
+                            />
+                          </BrandPlate>
+                        ) : (
+                          <BrandBadge
+                            colors={[vehicleBrandTint(item), "#07362A"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                          >
+                            <BrandMonogram>
+                              {vehicleMonogram(item)}
+                            </BrandMonogram>
+                          </BrandBadge>
+                        )}
+                        <BrandTileLabel numberOfLines={1}>
+                          {item}
+                        </BrandTileLabel>
+                      </BrandTile>
+                    ))}
+                  </BrandGrid>
+                ) : null}
                 <SectionHead>
                   <SectionTitleRow>
                     <SectionHeadTitle>{t("carsBudgetLabel")}</SectionHeadTitle>
@@ -2382,6 +2449,80 @@ const SectionHeadTitle = styled.Text`
   font-family: ${fontFamily.bold};
   font-size: 16px;
   color: ${(props) => props.theme.text};
+`;
+
+// A control, not a caption.
+//
+// The first version was the section title with a chevron beside it, and it
+// read as decoration: nothing about a bold word says "this folds away". A
+// pill with a border and a chevron chip is the shape people already tap
+// everywhere else on this screen, so the affordance costs no explanation.
+//
+// It keeps its outline in both states rather than gaining one when shut —
+// a control that only looks like a control once you have used it is the
+// same problem in a different place.
+const SectionToggle = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  align-self: flex-start;
+  flex-shrink: 1;
+  padding: 7px 8px 7px 14px;
+  border-radius: 999px;
+  background-color: ${(props) =>
+    props.open ? "transparent" : props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) =>
+    props.open ? props.theme.border : "rgba(11, 110, 79, 0.24)"};
+`;
+
+// The eyebrow sections (Accès rapide) keep their small uppercase label; the
+// titled ones (Marque) keep their heading size. Same shell, two weights.
+const SectionToggleLabel = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 10.5px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+const SectionToggleTitle = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 16px;
+  color: ${(props) => props.theme.text};
+`;
+
+const ToggleChevron = styled.View`
+  width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(11, 110, 79, 0.1);
+`;
+
+// The eyebrow toggles sit where SectionLabel used to, so they inherit its
+// horizontal padding and its shared top rhythm rather than inventing a new
+// gap that would make one section look loose next to the others.
+const SectionToggleRow = styled.View`
+  padding-horizontal: ${spacing.md}px;
+  margin-top: ${spacing.lg}px;
+  margin-bottom: 10px;
+`;
+
+// Named, not just counted: "Toyota" tells the reader what the shut section
+// is still doing to their results. A bare dot would not.
+const BrandPickPill = styled.View`
+  max-width: 120px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background-color: rgba(11, 110, 79, 0.09);
+`;
+
+const BrandPickLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 11.5px;
+  color: ${EMERALD};
 `;
 
 const SectionLink = styled(Pressable)``;

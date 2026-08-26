@@ -24,6 +24,7 @@ import styled from "styled-components/native";
 import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
+import { Tappable } from "../components/Tappable";
 import { SearchBar } from "../components/SearchBar";
 import { ListingCard } from "../components/ListingCard";
 import { AdCard } from "../components/AdCard";
@@ -1142,6 +1143,10 @@ export function ForYouScreen({ navigation, route }) {
   const explicitlyPopular = listings.filter((listing) => listing.popular);
   const trendingListings =
     explicitlyPopular.length > 0 ? explicitlyPopular : listings.slice(0, 5);
+  // Whether Trending is saying anything Recommandé does not. With no
+  // popularity data it is the first five of the same list, so the rail is
+  // withheld rather than filled with a copy.
+  const hasRealTrending = explicitlyPopular.length > 0;
   // A real price drop, not a fabricated discount — set when a seller lowers the price on their own listing
   // whenever a seller lowers the price on an existing listing.
   const dealListings = listings.filter(
@@ -1528,18 +1533,91 @@ export function ForYouScreen({ navigation, route }) {
             </UtilityCard>
           ) : null}
 
-          {businessCards.length > 0 ? (
+          {/* Local first. It is the promise the app is built on, and it
+              was fifth. Everything below it is a selection we made;
+              this is the one section the reader chose, by city. */}
+          <Section>
+            <NearSectionHeader onPress={() => setCityPickerVisible(true)}>
+              <SectionHeading
+                label={t("nearYouSectionTitle", { city: nearYouCity })}
+              />
+              <Ionicons
+                name="chevron-down"
+                size={16}
+                color={colors.textMuted}
+              />
+            </NearSectionHeader>
+            {nearYouListings.length > 0 ? (
+              <FlatList
+                data={nearYouListings}
+                keyExtractor={(item) => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={hScrollContentStyle}
+                renderItem={({ item }) => (
+                  <NearCard listing={item} navigation={navigation} />
+                )}
+              />
+            ) : (
+              <EmptyCityText>
+                {t("nearYouEmpty", { city: nearYouCity })}
+              </EmptyCityText>
+            )}
+          </Section>
+
+          {filteredListings.length > 0 ? (
             <Section>
-              <SectionTitle>
-                🏆 {t("verifiedBusinessesSectionTitle")}
-              </SectionTitle>
-              <BusinessMarquee ads={businessCards} navigation={navigation} />
+              <SectionHeading label={t("recommendedSectionTitle")} />
+              <FlatList
+                data={filteredListings}
+                showsVerticalScrollIndicator={false}
+                keyExtractor={(item) => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={hScrollContentStyle}
+                renderItem={({ item }) => (
+                  <RecommendedCard
+                    listing={item}
+                    navigation={navigation}
+                    isFavorite={favoriteIds.has(item.id)}
+                    onToggleFavorite={() => toggleFavorite(item.id)}
+                    userCoords={userCoords}
+                  />
+                )}
+              />
+            </Section>
+          ) : null}
+
+          {/* Only when the popularity signal is real. Without it
+              trendingListings is listings.slice(0, 5) — the first five
+              of exactly what Recommandé shows in full underneath, and
+              two rails of the same cards is padding, not a section. */}
+          {hasRealTrending ? (
+            <Section>
+              <SectionHeading label={t("trendingSectionTitle")} />
+              <FlatList
+                showsVerticalScrollIndicator={false}
+                data={trendingListings}
+                keyExtractor={(item) => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                snapToInterval={trendingCardWidth + spacing.sm}
+                decelerationRate="fast"
+                contentContainerStyle={hScrollContentStyle}
+                renderItem={({ item }) => (
+                  <TrendingCard
+                    listing={item}
+                    navigation={navigation}
+                    cardWidth={trendingCardWidth}
+                  />
+                )}
+              />
             </Section>
           ) : null}
 
           {feedJobs.length > 0 ? (
             <Section>
-              <SectionTitle>💼 {t("quickAccessJobsFeedTitle")}</SectionTitle>
+              <SectionHeading label={t("quickAccessJobsFeedTitle")} />
               <FlatList
                 showsVerticalScrollIndicator={false}
                 data={feedJobs}
@@ -1594,84 +1672,16 @@ export function ForYouScreen({ navigation, route }) {
             </Section>
           ) : null}
 
-          {trendingListings.length > 0 ? (
+          {businessCards.length > 0 ? (
             <Section>
-              <SectionTitle>🔥 {t("trendingSectionTitle")}</SectionTitle>
-              <FlatList
-                showsVerticalScrollIndicator={false}
-                data={trendingListings}
-                keyExtractor={(item) => item.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                snapToInterval={trendingCardWidth + spacing.sm}
-                decelerationRate="fast"
-                contentContainerStyle={hScrollContentStyle}
-                renderItem={({ item }) => (
-                  <TrendingCard
-                    listing={item}
-                    navigation={navigation}
-                    cardWidth={trendingCardWidth}
-                  />
-                )}
-              />
+              <SectionHeading label={t("verifiedBusinessesSectionTitle")} />
+              <BusinessMarquee ads={businessCards} navigation={navigation} />
             </Section>
           ) : null}
-
-          {filteredListings.length > 0 ? (
-            <Section>
-              <SectionTitle>⭐ {t("recommendedSectionTitle")}</SectionTitle>
-              <FlatList
-                data={filteredListings}
-                showsVerticalScrollIndicator={false}
-                keyExtractor={(item) => item.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={hScrollContentStyle}
-                renderItem={({ item }) => (
-                  <RecommendedCard
-                    listing={item}
-                    navigation={navigation}
-                    isFavorite={favoriteIds.has(item.id)}
-                    onToggleFavorite={() => toggleFavorite(item.id)}
-                    userCoords={userCoords}
-                  />
-                )}
-              />
-            </Section>
-          ) : null}
-
-          <Section>
-            <NearSectionHeader onPress={() => setCityPickerVisible(true)}>
-              <SectionTitle>
-                📍 {t("nearYouSectionTitle", { city: nearYouCity })}
-              </SectionTitle>
-              <Ionicons
-                name="chevron-down"
-                size={16}
-                color={colors.textMuted}
-              />
-            </NearSectionHeader>
-            {nearYouListings.length > 0 ? (
-              <FlatList
-                data={nearYouListings}
-                keyExtractor={(item) => item.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={hScrollContentStyle}
-                renderItem={({ item }) => (
-                  <NearCard listing={item} navigation={navigation} />
-                )}
-              />
-            ) : (
-              <EmptyCityText>
-                {t("nearYouEmpty", { city: nearYouCity })}
-              </EmptyCityText>
-            )}
-          </Section>
 
           {dealListings.length > 0 ? (
             <Section>
-              <SectionTitle>🎯 {t("dealsSectionTitle")}</SectionTitle>
+              <SectionHeading label={t("dealsSectionTitle")} />
               <FlatList
                 data={dealListings}
                 keyExtractor={(item) => item.id}
@@ -2283,7 +2293,7 @@ const Container = styled(SafeAreaView)`
 // other, and a hairline holding them together. The weight is all in those
 // two small solid shapes rather than in a block of colour, so it reads as
 // something to press without competing with the job cards below it.
-const HireBar = styled(Pressable)`
+const HireBar = styled(Tappable)`
   flex-direction: row;
   align-items: center;
   gap: 10px;
@@ -2340,7 +2350,7 @@ const HeaderRow = styled.View`
   margin-bottom: 16px;
 `;
 
-const AvatarButton = styled(Pressable)`
+const AvatarButton = styled(Tappable)`
   border-radius: 14px;
 `;
 
@@ -2399,16 +2409,16 @@ const HeaderActions = styled.View`
   gap: ${spacing.xs}px;
 `;
 
-const IconButton = styled(Pressable)`
+const IconButton = styled(Tappable)`
   width: 38px;
   height: 38px;
-  border-radius: 12px;
+  border-radius: ${radius.pill}px;
   align-items: center;
   justify-content: center;
   background-color: ${(props) => props.theme.surfaceAlt};
 `;
 
-const LangPill = styled(Pressable)`
+const LangPill = styled(Tappable)`
   background-color: rgba(11, 110, 79, 0.1);
   padding-horizontal: 11px;
   padding-vertical: 7px;
@@ -2430,14 +2440,17 @@ const LangPillLabel = styled.Text`
 // rounded rectangle matches the budget buttons and the brand filter chips
 // rather than the pill it was: a pill is the shape of a passive tag, and
 // these are not tags.
-const CategoryChip = styled(Pressable)`
+// Pill, like every other chip on this screen. Filtres, Enregistrés, Pour
+// vous and Récent were already pills; the category tabs — the most
+// important control here — were the one rounded rectangle in the set.
+const CategoryChip = styled(Tappable)`
   flex-direction: row;
   align-items: center;
   gap: 7px;
   margin-right: 10px;
   padding-horizontal: 16px;
   padding-vertical: 12px;
-  border-radius: 14px;
+  border-radius: ${radius.pill}px;
   background-color: ${(props) => (props.selected ? props.theme.primary : props.theme.primaryLight)};
   ${(props) => (props.selected ? shadow.card : "")}
 `;
@@ -2529,17 +2542,46 @@ const PharmacyRatingText = styled.Text`
   color: ${(props) => props.theme.textMuted};
 `;
 
+// One header for every section, and no emoji in it.
+//
+// Six sections each opened with a different pictogram — 🏆 💼 🔥 ⭐ 📍 🎯 —
+// which is six accent colours the palette never agreed to, competing with
+// the cards underneath. A rule above the title does the same job of
+// separating one band from the next, and does it the same way every time.
+function SectionHeading({ label }) {
+  return (
+    <SectionHeadingWrap>
+      <SectionRule />
+      <SectionTitle numberOfLines={2}>{label}</SectionTitle>
+    </SectionHeadingWrap>
+  );
+}
+
+const SectionHeadingWrap = styled.View`
+  gap: 9px;
+  margin-bottom: 14px;
+`;
+
+// Short and heavy rather than a full-width hairline: it reads as a mark
+// against the title, not as a divider closing the section above.
+const SectionRule = styled.View`
+  width: 26px;
+  height: 3px;
+  border-radius: 2px;
+  background-color: ${EMERALD};
+`;
+
 const SectionTitle = styled.Text`
   ${type.h3}
+  letter-spacing: -0.2px;
   color: ${(props) => props.theme.text};
-  margin-bottom: 12px;
 `;
 
 const QuickAccessRow = styled.ScrollView`
   margin-bottom: 20px;
 `;
 
-const QuickAccessItem = styled(Pressable)`
+const QuickAccessItem = styled(Tappable)`
   align-items: center;
   gap: 6px;
   margin-right: 14px;
@@ -2567,7 +2609,7 @@ const QuickAccessLabel = styled.Text`
   text-align: center;
 `;
 
-const UtilityCard = styled(Pressable)`
+const UtilityCard = styled(Tappable)`
   padding: 14px 16px;
   border-radius: ${radius.xl}px;
   background-color: rgba(11, 110, 79, 0.06);
@@ -2630,7 +2672,7 @@ const DutyBadgeText = styled.Text`
 // instead of following the curve, so the shadow lives on its own plain
 // outer layer and the clipped, bordered content sits in a separate inner
 // one.
-const FeedJobCard = styled(Pressable)`
+const FeedJobCard = styled(Tappable)`
   flex-shrink: 0;
   width: 168px;
   height: 190px;
@@ -2707,9 +2749,9 @@ const FeedJobSalary = styled.Text`
   color: ${(props) => (props.onRequest ? props.theme.textMuted : EMERALD)};
 `;
 
-const TrendingPressable = styled(Pressable)`
+const TrendingPressable = styled(Tappable)`
   height: 180px;
-  border-radius: 24px;
+  border-radius: ${radius.xl}px;
   overflow: hidden;
   margin-right: ${spacing.sm}px;
   background-color: ${(props) => props.theme.surfaceAlt};
@@ -2778,14 +2820,14 @@ const TrendingCity = styled.Text`
   color: rgba(255, 255, 255, 0.85);
 `;
 
-const RecCard = styled(Pressable)`
+const RecCard = styled(Tappable)`
   width: 168px;
   margin-right: 14px;
   ${shadow.card}
 `;
 
 const RecCardInner = styled.View`
-  border-radius: 22px;
+  border-radius: ${radius.xl}px;
   overflow: hidden;
   background-color: ${(props) => props.theme.surface};
 `;
@@ -2832,7 +2874,7 @@ const RecPromotedLabel = styled.Text`
   color: ${BADGE_TEXT};
 `;
 
-const RecFavButton = styled(Pressable)`
+const RecFavButton = styled(Tappable)`
   position: absolute;
   top: 8px;
   right: 8px;
@@ -2904,14 +2946,14 @@ const RecTime = styled.Text`
   margin-top: 2px;
 `;
 
-const NearPressable = styled(Pressable)`
+const NearPressable = styled(Tappable)`
   width: 148px;
   margin-right: 14px;
   ${shadow.card}
 `;
 
 const NearCardInner = styled.View`
-  border-radius: 20px;
+  border-radius: ${radius.xl}px;
   overflow: hidden;
   background-color: ${(props) => props.theme.surface};
 `;
@@ -2975,11 +3017,11 @@ const MarqueeRow = styled(Animated.View)`
   flex-direction: row;
 `;
 
-const BusinessPressable = styled(Pressable)`
+const BusinessPressable = styled(Tappable)`
   width: ${BUSINESS_CARD_WIDTH}px;
   align-items: center;
   padding: 18px 16px 16px;
-  border-radius: 24px;
+  border-radius: ${radius.xl}px;
   margin-right: ${BUSINESS_CARD_GAP}px;
   background-color: ${(props) => props.theme.surface};
   border-width: 1px;
@@ -3050,7 +3092,7 @@ const BusinessName = styled.Text`
   color: ${(props) => props.theme.text};
 `;
 
-const NearSectionHeader = styled(Pressable)`
+const NearSectionHeader = styled(Tappable)`
   flex-direction: row;
   align-items: center;
   gap: 4px;
@@ -3087,7 +3129,7 @@ const ModalTitle = styled.Text`
   color: ${(props) => props.theme.text};
 `;
 
-const ResetCityRow = styled(Pressable)`
+const ResetCityRow = styled(Tappable)`
   flex-direction: row;
   align-items: center;
   gap: ${spacing.sm}px;
@@ -3099,7 +3141,7 @@ const ResetCityLabel = styled.Text`
   color: ${(props) => props.theme.primary};
 `;
 
-const CityRow = styled(Pressable)`
+const CityRow = styled(Tappable)`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
@@ -3126,7 +3168,7 @@ const JobLocFilterRow = styled.View`
   margin-bottom: ${spacing.sm}px;
 `;
 
-const JobLocPill = styled(Pressable)`
+const JobLocPill = styled(Tappable)`
   flex-direction: row;
   align-items: center;
   gap: 5px;
@@ -3141,7 +3183,7 @@ const JobLocPillLabel = styled.Text`
   color: ${(props) => props.theme.text};
 `;
 
-const JobFiltersPill = styled(Pressable)`
+const JobFiltersPill = styled(Tappable)`
   padding: 8px 14px;
   border-radius: ${radius.pill}px;
   background-color: ${(props) => (props.active ? "rgba(11, 110, 79, 0.08)" : props.theme.surfaceAlt)};
@@ -3157,7 +3199,7 @@ const JobFiltersPillLabel = styled.Text`
 // on a wrapped item strands it alone on a second line hugging the edge. It
 // flows with the others instead — same shell as the pills beside it, since
 // it is the same kind of control.
-const JobSaveLink = styled(Pressable)`
+const JobSaveLink = styled(Tappable)`
   flex-direction: row;
   align-items: center;
   gap: 5px;
@@ -3193,7 +3235,7 @@ const VerifiedFilterRow = styled.View`
   padding-bottom: ${spacing.sm}px;
 `;
 
-const VerifiedFilterPill = styled(Pressable)`
+const VerifiedFilterPill = styled(Tappable)`
   flex-direction: row;
   align-items: center;
   gap: 6px;
@@ -3213,7 +3255,7 @@ const VerifiedFilterLabel = styled.Text`
 // The active chip keeps a border of its own colour rather than dropping to
 // 0px — swapping border-width on selection made every chip shift by a pixel
 // as the selection moved along the row.
-const JobFilterChip = styled(Pressable)`
+const JobFilterChip = styled(Tappable)`
   flex-shrink: 0;
   flex-direction: row;
   align-items: center;
@@ -3352,7 +3394,7 @@ const JobList = styled.View`
 // one of those switches to this list, so a job that was amber in the feed
 // has to stay amber here — otherwise the colour reads as decoration rather
 // than as information about the job.
-const JobCard = styled(Pressable)`
+const JobCard = styled(Tappable)`
   padding: 15px 16px;
   border-radius: ${radius.xl}px;
   background-color: ${(props) => props.tint ?? props.theme.surface};
@@ -3419,7 +3461,7 @@ const JobCompanyRow = styled.View`
 // The other half of the same door, and it has room the header strip does
 // not: here the offer can explain itself and end in a button somebody can
 // aim at, instead of a whole row that happens to be tappable.
-const JobPostCard = styled(Pressable)`
+const JobPostCard = styled(Tappable)`
   gap: 13px;
   padding: ${spacing.md}px;
   margin-bottom: ${spacing.lg}px;
@@ -3570,7 +3612,7 @@ const CatGrid = styled.View`
   padding-bottom: ${spacing.xl}px;
 `;
 
-const CatCard = styled(Pressable)`
+const CatCard = styled(Tappable)`
   width: 47.5%;
   padding: 14px 13px;
   border-radius: ${radius.lg}px;
@@ -3646,7 +3688,7 @@ const JobSheetScroll = styled.ScrollView.attrs(() => ({
   padding-horizontal: ${spacing.md}px;
 `;
 
-const JobSheetRow = styled(Pressable)`
+const JobSheetRow = styled(Tappable)`
   flex-direction: row;
   align-items: center;
   gap: ${spacing.md}px;
@@ -3662,7 +3704,7 @@ const JobSheetRowLabel = styled.Text`
   flex: 1;
 `;
 
-const JobSortRow = styled(Pressable)`
+const JobSortRow = styled(Tappable)`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
@@ -3700,7 +3742,7 @@ const JobSortActionsWrap = styled.View`
   padding: ${spacing.sm}px ${spacing.lg}px 0;
 `;
 
-const JobSortApplyButton = styled(Pressable)`
+const JobSortApplyButton = styled(Tappable)`
   align-items: center;
   justify-content: center;
   border-radius: ${radius.md}px;
@@ -3714,7 +3756,7 @@ const JobSortApplyButtonLabel = styled.Text`
   color: #ffffff;
 `;
 
-const JobCurrentLocationRow = styled(Pressable)`
+const JobCurrentLocationRow = styled(Tappable)`
   flex-direction: row;
   align-items: center;
   gap: ${spacing.sm}px;

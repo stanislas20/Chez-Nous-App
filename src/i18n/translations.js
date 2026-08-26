@@ -36,8 +36,6 @@ export const translations = {
     carsPostTitle: "Do you have a vehicle to sell?",
     carsPostCopy: "Publish it here — buyers in Bénin and abroad are looking.",
     realEstatePostTitle: "Do you have a property to list?",
-    realEstatePostCopy:
-      "Publish it here — rent, sale or land, seen from Bénin and abroad.",
     jobsHireCta: "Post",
     jobsPostTitle: "Are you hiring?",
     postingTitleVehicles: "Sell a vehicle",
@@ -848,7 +846,6 @@ export const translations = {
     bodyNoProsCopy:
       "This list fills as body shops publish. Garages reaches the wider trade in the meantime.",
     bodyPostTitle: "Do you run a body shop?",
-    bodyPostCopy: "Publish your workshop and appear in this list.",
     bodyQuoteOpen: "Hello, I am contacting you through Chez-Nous.",
     bodyQuoteProblem: "The damage: {problem}.",
     bodyQuoteService: "I am looking for: {service}.",
@@ -900,7 +897,6 @@ export const translations = {
     electricNoProsCopy:
       "This list fills as electricians publish. Dépannage reaches every trade in the meantime.",
     electricPostTitle: "Are you an auto electrician?",
-    electricPostCopy: "Publish your workshop and appear in this list.",
     electricQuoteOpen: "Hello, I am contacting you through Chez-Nous.",
     electricQuoteProblem: "My problem: {problem}.",
     electricQuoteService: "I am looking for: {service}.",
@@ -968,7 +964,6 @@ export const translations = {
     partsSafetyNote:
       "Note the reference on the old part before buying, and keep it until the new one is fitted. On a used part, pay after testing: a starter or an alternator is tested in two minutes.",
     partsPostTitle: "Do you sell parts?",
-    partsPostCopy: "Publish your shop and appear in this list.",
     partsQuoteOpen: "Hello, I am contacting you through Chez-Nous.",
     partsQuoteItem: "I am looking for: {item}.",
     partsQuoteCategory: "I am looking for: {category}.",
@@ -996,7 +991,6 @@ export const translations = {
     washSafetyNote:
       "Empty the glovebox and the boot before an interior wash. Providers do not answer for what is left in the vehicle.",
     washPostTitle: "Do you wash vehicles?",
-    washPostCopy: "Publish your prices by formula and appear in this list.",
     washQuoteIntro: "Hello, I am contacting you through Chez-Nous.",
     washQuoteJob: "I would like: {formula} for a {vehicle}.",
     washQuoteHome: "At my address.",
@@ -1065,7 +1059,6 @@ export const translations = {
     driverPriceWarning:
       "Agree the price and what it covers before setting off. On a run to the interior, ask who pays the fuel, the tolls and the driver's night away: that is where nearly every disagreement starts.",
     driverPostTitle: "Are you a driver?",
-    driverPostCopy: "Publish once and appear here and under Transport jobs.",
     driverQuoteOpen: "Hello, I am contacting you through Chez-Nous.",
     driverQuoteNeed: "I am looking for: {need}.",
     driverQuoteAsk: "Are you available, and what would it cost?",
@@ -1229,8 +1222,6 @@ export const translations = {
     batteryTestDoneNote:
       "Kept on this phone only, so the screen can tell you how long ago it was. Nobody else sees it.",
     batteryOwnerTitle: "Do you sell or fit batteries?",
-    batteryOwnerCopy:
-      "Publish your capacities and your services so drivers looking for them find you.",
     batteryVehicleSheetTitle: "Find my reference",
     batteryCapacityLabel: "Which capacity?",
     batteryCapacityHint:
@@ -1356,8 +1347,6 @@ export const translations = {
     tyreFlatSafety:
       "Do not drive on a flat tyre, even a short distance: the rim and the sidewall are damaged very quickly.",
     tyreOwnerTitle: "Do you sell or fit tyres?",
-    tyreOwnerCopy:
-      "Publish your sizes and your services so drivers looking for them find you.",
     findOnMapButton: "Find on the map",
     breakdownSendPhoto: "Send a photo",
     breakdownSendPhotoHint: "They see the problem before answering",
@@ -1456,10 +1445,7 @@ export const translations = {
     garageEmptyReset: "Clear filters",
     garageSafetyNote:
       "Ratings come from customers who used the app. Hours and prices are what each provider published — call ahead to confirm before you drive over.",
-    garageOwnerTitle: "Do you run a garage?",
     garageOwnerCardTitle: "Get your garage listed",
-    garageOwnerCopy:
-      "Post a Services listing and name the trades you do — vidange, freins, carrosserie, pneus. That wording is what places you under the right trade here.",
     carsDealershipsEyebrow: "Official distributors",
     carsDealershipsTitle: "Dealerships",
     carsDealershipsIntro:
@@ -1555,6 +1541,8 @@ export const translations = {
     insureNoneCopy:
       "Chez-Nous does not keep its own list of insurers. Agencies appear here when they publish, so this page is empty rather than filled with names we cannot stand behind.",
     insurePost: "List an insurance agency",
+    heroPostCta: "List it",
+    insurePostPrompt: "Do you run an agency?",
     insureSafety:
       "Never pay without receiving the certificate and a receipt in the company's name. A forged attestation covers you for nothing, and you only find that out after an accident.",
     insureQuoteIntro: "Hello, I would like a motor insurance quote.",
@@ -1767,9 +1755,6 @@ export const translations = {
     restoEmptyTitle: "No restaurant matches",
     restoEmptyCopy: "Try another cuisine, or widen the area.",
     restoOwnerCardTitle: "List my restaurant",
-    restoOwnerTitle: "You run a restaurant?",
-    restoOwnerCopy:
-      "Add your cuisine, neighbourhood and opening hours. Free — it goes live once reviewed.",
     menuBanksRow: "Banks",
     menuTourismRow: "Tourism & leisure",
     menuEventsRow: "Events & outings",
@@ -2355,8 +2340,6 @@ export const translations = {
     carsPostCopy:
       "Publiez-le ici — des acheteurs au Bénin comme à l’étranger cherchent.",
     realEstatePostTitle: "Vous avez un bien à publier ?",
-    realEstatePostCopy:
-      "Publiez-le ici — location, vente ou terrain, vu du Bénin comme de l’étranger.",
     jobsHireCta: "Publier",
     jobsPostTitle: "Vous recrutez ?",
     postingTitleVehicles: "Vendre un véhicule",
@@ -3188,7 +3171,6 @@ export const translations = {
     bodyNoProsCopy:
       "Cette liste se remplit au fur et à mesure des publications. En attendant, Garages couvre le métier plus largement.",
     bodyPostTitle: "Vous tenez une carrosserie ?",
-    bodyPostCopy: "Publiez votre atelier et apparaissez dans cette liste.",
     bodyQuoteOpen: "Bonjour, je vous contacte via Chez-Nous.",
     bodyQuoteProblem: "Le dégât : {problem}.",
     bodyQuoteService: "Je cherche : {service}.",
@@ -3240,7 +3222,6 @@ export const translations = {
     electricNoProsCopy:
       "Cette liste se remplit au fur et à mesure des publications. En attendant, Dépannage joint tous les métiers.",
     electricPostTitle: "Vous êtes électricien auto ?",
-    electricPostCopy: "Publiez votre atelier et apparaissez dans cette liste.",
     electricQuoteOpen: "Bonjour, je vous contacte via Chez-Nous.",
     electricQuoteProblem: "Mon problème : {problem}.",
     electricQuoteService: "Je cherche : {service}.",
@@ -3308,7 +3289,6 @@ export const translations = {
     partsSafetyNote:
       "Notez la référence inscrite sur l’ancienne pièce avant d’acheter, et gardez-la jusqu’au montage. Sur une pièce d’occasion, payez après essai : un démarreur ou un alternateur se teste en deux minutes.",
     partsPostTitle: "Vous vendez des pièces ?",
-    partsPostCopy: "Publiez votre magasin et apparaissez dans cette liste.",
     partsQuoteOpen: "Bonjour, je vous contacte via Chez-Nous.",
     partsQuoteItem: "Je cherche : {item}.",
     partsQuoteCategory: "Je cherche : {category}.",
@@ -3336,8 +3316,6 @@ export const translations = {
     washSafetyNote:
       "Videz la boîte à gants et le coffre avant un lavage intérieur. Les prestataires ne répondent pas des objets laissés dans le véhicule.",
     washPostTitle: "Vous lavez des véhicules ?",
-    washPostCopy:
-      "Publiez vos tarifs par formule et apparaissez dans cette liste.",
     washQuoteIntro: "Bonjour, je vous contacte via Chez-Nous.",
     washQuoteJob: "Je souhaite : {formula} pour un(e) {vehicle}.",
     washQuoteHome: "À mon adresse.",
@@ -3407,8 +3385,6 @@ export const translations = {
     driverPriceWarning:
       "Fixez le prix et ce qu’il comprend avant de partir. Sur un trajet vers l’intérieur, demandez qui paie le carburant, les péages et la nuitée du chauffeur : c’est là que naissent presque tous les désaccords.",
     driverPostTitle: "Vous êtes chauffeur ?",
-    driverPostCopy:
-      "Publiez une fois et apparaissez ici et dans les emplois Transport.",
     driverQuoteOpen: "Bonjour, je vous contacte via Chez-Nous.",
     driverQuoteNeed: "Je cherche : {need}.",
     driverQuoteAsk: "Êtes-vous disponible, et à quel tarif ?",
@@ -3571,8 +3547,6 @@ export const translations = {
     batteryTestDoneNote:
       "Conservé sur ce téléphone uniquement, pour vous rappeler depuis combien de temps. Personne d’autre ne le voit.",
     batteryOwnerTitle: "Vous vendez ou posez des batteries ?",
-    batteryOwnerCopy:
-      "Publiez vos capacités et vos prestations pour être trouvé par ceux qui les cherchent.",
     batteryVehicleSheetTitle: "Trouver ma référence",
     batteryCapacityLabel: "Quelle capacité ?",
     batteryCapacityHint:
@@ -3703,8 +3677,6 @@ export const translations = {
     tyreFlatSafety:
       "Ne roulez pas sur un pneu à plat, même sur une courte distance : la jante et le flanc s’abîment très vite.",
     tyreOwnerTitle: "Vous vendez ou montez des pneus ?",
-    tyreOwnerCopy:
-      "Publiez vos dimensions et vos prestations pour être trouvé par ceux qui les cherchent.",
     findOnMapButton: "Trouver sur la carte",
     breakdownSendPhoto: "Envoyer une photo",
     breakdownSendPhotoHint:
@@ -3804,10 +3776,7 @@ export const translations = {
     garageEmptyReset: "Retirer les filtres",
     garageSafetyNote:
       "Les notes proviennent de clients passés par l’application. Les horaires et les prix sont ceux publiés par chaque prestataire — appelez avant de vous déplacer.",
-    garageOwnerTitle: "Vous tenez un garage ?",
     garageOwnerCardTitle: "Faire figurer mon garage",
-    garageOwnerCopy:
-      "Publiez une annonce Services et citez vos spécialités — vidange, freins, carrosserie, pneus. Ce sont ces mots qui vous classent dans la bonne spécialité ici.",
     carsDealershipsEyebrow: "Distributeurs officiels",
     carsDealershipsTitle: "Concessionnaires",
     carsDealershipsIntro:
@@ -3904,6 +3873,8 @@ export const translations = {
     insureNoneCopy:
       "Chez-Nous ne tient pas sa propre liste d’assureurs. Les agences apparaissent ici quand elles publient : cette page est donc vide plutôt que remplie de noms dont nous ne pourrions pas répondre.",
     insurePost: "Publier une agence d’assurance",
+    heroPostCta: "Publier",
+    insurePostPrompt: "Vous tenez une agence ?",
     insureSafety:
       "Ne payez jamais sans recevoir l’attestation et un reçu au nom de la compagnie. Une attestation contrefaite ne couvre rien, et on ne s’en aperçoit qu’après l’accident.",
     insureQuoteIntro: "Bonjour, je souhaite un devis d’assurance auto.",
@@ -4121,9 +4092,6 @@ export const translations = {
     restoEmptyTitle: "Aucun restaurant ne correspond",
     restoEmptyCopy: "Essayez une autre cuisine, ou élargissez la zone.",
     restoOwnerCardTitle: "Référencer mon restaurant",
-    restoOwnerTitle: "Vous tenez un restaurant ?",
-    restoOwnerCopy:
-      "Ajoutez votre cuisine, votre quartier et vos horaires. Gratuit — publié après validation.",
     menuBanksRow: "Banques",
     menuTourismRow: "Tourisme & loisirs",
     menuEventsRow: "Événements & sorties",

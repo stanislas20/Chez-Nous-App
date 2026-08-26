@@ -8,6 +8,7 @@ import MapView, { Marker } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
+import { HeroPostBar } from "../components/HeroPostBar";
 import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
@@ -64,6 +65,16 @@ export function RestaurantsScreen({ navigation }) {
   // Picks the form back up after a visitor creates an account, so signing
   // up does not cost them the tap they already made.
   const { remember } = useAccountGateIntent(user, openRestaurantPostForm);
+  // Was written inline on the owner card. The hero bar needs the same gate,
+  // and a visitor must reach the form the same way from either.
+  const startRestaurantPosting = () => {
+    if (!user) {
+      remember();
+      openAccountGate(navigation);
+      return;
+    }
+    openRestaurantPostForm();
+  };
   // Signed out still sees this: that is a door, and the gate opens it.
   // Signed in on a number that cannot publish is a wall, and inviting an
   // owner abroad to list a restaurant they will be refused is the dead
@@ -355,6 +366,16 @@ export function RestaurantsScreen({ navigation }) {
         </HeroTopRow>
         <HeroTitle>{t("menuRestaurantsRow")}</HeroTitle>
         <HeroCopy>{t("restoHeroCopy")}</HeroCopy>
+        {/* In the hero, which does not scroll. See HeroPostBar. */}
+        {mayPublish ? (
+          <HeroPostBar
+            icon="restaurant-outline"
+            ink={GOLD}
+            label={t("restoOwnerCardTitle")}
+            cta={t("heroPostCta")}
+            onPress={startRestaurantPosting}
+          />
+        ) : null}
       </Hero>
 
       <Body
@@ -746,41 +767,6 @@ export function RestaurantsScreen({ navigation }) {
             );
           })
         )}
-
-        {mayPublish ? (
-          <>
-            <OwnerHeading>{t("restoOwnerTitle")}</OwnerHeading>
-            {/* Goes to Post-a-Listing, not the ad flow: the ad flow sells a
-              promo banner, so an owner tapping this used to end up buying an
-              advert instead of getting listed. */}
-            <OwnerCard
-              onPress={() => {
-                // The shared gate for a visitor: jumping to the Sell tab pops
-                // this screen off the root stack, so signup could not return
-                // here. See openAccountGate.
-                if (!user) {
-                  remember();
-                  openAccountGate(navigation);
-                  return;
-                }
-                openRestaurantPostForm();
-              }}
-            >
-              <OwnerIcon>
-                <Ionicons name="restaurant" size={21} color={GOLD} />
-              </OwnerIcon>
-              <OwnerBody>
-                <OwnerTitle>{t("restoOwnerCardTitle")}</OwnerTitle>
-                <OwnerCopy>{t("restoOwnerCopy")}</OwnerCopy>
-              </OwnerBody>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={colors.textMuted}
-              />
-            </OwnerCard>
-          </>
-        ) : null}
       </Body>
 
       <Modal
@@ -1435,54 +1421,6 @@ const EmptyCopy = styled.Text`
   line-height: 18px;
   text-align: center;
   color: ${(props) => props.theme.textMuted};
-`;
-
-const OwnerHeading = styled.Text`
-  ${type.h3}
-  color: ${(props) => props.theme.text};
-  margin: ${spacing.lg}px 2px ${spacing.sm}px;
-`;
-
-// Dashed rather than solid: it isn't a result, it's an invitation, and the
-// broken edge is what stops it reading as one more restaurant in the list.
-const OwnerCard = styled(Pressable)`
-  flex-direction: row;
-  align-items: center;
-  gap: ${spacing.md}px;
-  padding: 17px 16px;
-  border-radius: ${radius.lg}px;
-  background-color: ${(props) => props.theme.surface};
-  border-width: 1.5px;
-  border-style: dashed;
-  border-color: ${(props) => props.theme.border};
-`;
-
-const OwnerIcon = styled.View`
-  width: 46px;
-  height: 46px;
-  border-radius: ${radius.md}px;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(217, 164, 65, 0.16);
-`;
-
-const OwnerBody = styled.View`
-  flex: 1;
-  min-width: 0;
-`;
-
-const OwnerTitle = styled.Text`
-  font-family: ${fontFamily.semiBold};
-  font-size: 14.5px;
-  color: ${(props) => props.theme.text};
-`;
-
-const OwnerCopy = styled.Text`
-  font-family: ${fontFamily.regular};
-  font-size: 12px;
-  line-height: 17px;
-  color: ${(props) => props.theme.textMuted};
-  margin-top: 2px;
 `;
 
 const SheetRoot = styled.View`

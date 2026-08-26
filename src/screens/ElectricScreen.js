@@ -16,6 +16,7 @@ import { openAccountGate } from "../utils/openAccountGate";
 import { canPublish } from "../utils/canPublish";
 import { openChat } from "../utils/openChat";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
+import { HeroPostBar } from "../components/HeroPostBar";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useSellerRatings } from "../hooks/useSellerRatings";
 import { useElectricProviders } from "../hooks/useElectricProviders";
@@ -268,6 +269,17 @@ export function ElectricScreen({ navigation }) {
             </WireRow>
           </SparkArt>
         </HeroRow>
+        {/* In the hero, which does not scroll. See HeroPostBar for why
+            every vertical in the app now does this. */}
+        {mayPublish ? (
+          <HeroPostBar
+            icon="flash-outline"
+            ink={EMERALD}
+            label={t("electricPostTitle")}
+            cta={t("heroPostCta")}
+            onPress={startPosting}
+          />
+        ) : null}
       </Hero>
 
       {/* Cars and motorbikes do not share a fault list, and in Cotonou the
@@ -632,23 +644,6 @@ export function ElectricScreen({ navigation }) {
             </EmptyTitle>
             <EmptyCopy>{t("electricNoProsCopy")}</EmptyCopy>
           </EmptyCard>
-        ) : null}
-
-        {mayPublish ? (
-          <PostCard onPress={startPosting}>
-            <PostIcon>
-              <Ionicons name="flash-outline" size={20} color={EMERALD} />
-            </PostIcon>
-            <PostCol>
-              <PostTitle>{t("electricPostTitle")}</PostTitle>
-              <PostCopy>{t("electricPostCopy")}</PostCopy>
-            </PostCol>
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={colors.textMuted}
-            />
-          </PostCard>
         ) : null}
       </Scroll>
     </Container>
@@ -1335,44 +1330,5 @@ const EmptyCopy = styled.Text`
   font-family: ${fontFamily.regular};
   font-size: 12.5px;
   line-height: 18px;
-  color: ${(props) => props.theme.textMuted};
-`;
-
-const PostCard = styled(Pressable)`
-  flex-direction: row;
-  align-items: center;
-  gap: ${spacing.sm}px;
-  padding: 14px 15px;
-  border-radius: ${radius.xl}px;
-  background-color: ${(props) => props.theme.surface};
-  border-width: 1px;
-  border-color: ${(props) => props.theme.border};
-`;
-
-const PostIcon = styled.View`
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
-  align-items: center;
-  justify-content: center;
-  background-color: ${(props) => props.theme.primaryLight};
-`;
-
-const PostCol = styled.View`
-  flex: 1;
-  min-width: 0px;
-`;
-
-const PostTitle = styled.Text`
-  font-family: ${fontFamily.semiBold};
-  font-size: 14px;
-  color: ${(props) => props.theme.text};
-`;
-
-const PostCopy = styled.Text`
-  font-family: ${fontFamily.regular};
-  font-size: 12px;
-  line-height: 17px;
-  margin-top: 2px;
   color: ${(props) => props.theme.textMuted};
 `;

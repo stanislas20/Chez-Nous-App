@@ -15,6 +15,7 @@ import { useAuth } from "../auth/AuthContext";
 import { openAccountGate } from "../utils/openAccountGate";
 import { canPublish } from "../utils/canPublish";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
+import { HeroPostBar } from "../components/HeroPostBar";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useSellerRatings } from "../hooks/useSellerRatings";
 import { useVehiclePapers } from "../hooks/useVehiclePapers";
@@ -203,6 +204,17 @@ export function InsuranceScreen({ navigation }) {
 
         <HeroTitle>{t("insureTitle")}</HeroTitle>
         <HeroCopy>{t("insureIntro")}</HeroCopy>
+        {/* In the hero, which does not scroll. See HeroPostBar for why
+            every vertical in the app now does this. */}
+        {mayPublish ? (
+          <HeroPostBar
+            icon="shield-checkmark-outline"
+            ink={INDIGO}
+            label={t("insurePostPrompt")}
+            cta={t("heroPostCta")}
+            onPress={startPosting}
+          />
+        ) : null}
       </Hero>
 
       {/* Astride the banner's edge, and a SIBLING of the scroll view rather
@@ -494,12 +506,9 @@ export function InsuranceScreen({ navigation }) {
           <EmptyCard>
             <EmptyTitle>{t("insureNoneTitle")}</EmptyTitle>
             <EmptyCopy>{t("insureNoneCopy")}</EmptyCopy>
-            {mayPublish ? (
-              <PostButton onPress={startPosting}>
-                <Ionicons name="add" size={16} color="#ffffff" />
-                <PostLabel>{t("insurePost")}</PostLabel>
-              </PostButton>
-            ) : null}
+            {/* No button here: the hero's is on screen already, and this
+                one only ever appeared when no agency matched — so it
+                vanished exactly as the screen filled up. */}
           </EmptyCard>
         ) : null}
 
@@ -1059,22 +1068,6 @@ const EmptyCopy = styled.Text`
   line-height: 18px;
   text-align: center;
   color: ${(props) => props.theme.textMuted};
-`;
-
-const PostButton = styled(Pressable)`
-  flex-direction: row;
-  align-items: center;
-  gap: 7px;
-  margin-top: 6px;
-  padding: 12px 18px;
-  border-radius: 999px;
-  background-color: ${INK};
-`;
-
-const PostLabel = styled.Text`
-  font-family: ${fontFamily.semiBold};
-  font-size: 13px;
-  color: #ffffff;
 `;
 
 const Safety = styled.View`

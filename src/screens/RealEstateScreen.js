@@ -15,6 +15,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import MapView, { Circle } from "react-native-maps";
 import styled from "styled-components/native";
+import { HeroPostBar } from "../components/HeroPostBar";
 import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
@@ -399,6 +400,18 @@ export function RealEstateScreen({ navigation }) {
         </BannerTopRow>
         <BannerTitle>{t("realEstateTitle")}</BannerTitle>
         <BannerCopy>{t("realEstateSubtitle")}</BannerCopy>
+        {/* In the banner, which does not scroll. This one was the
+            ListFooterComponent of a long property list — literally the last
+            thing on the screen. See HeroPostBar. */}
+        {mayPublish ? (
+          <HeroPostBar
+            icon="home-outline"
+            ink={EMERALD}
+            label={t("realEstatePostTitle")}
+            cta={t("heroPostCta")}
+            onPress={startPosting}
+          />
+        ) : null}
       </Banner>
 
       {/* Controls stay put while results scroll. Three stacked labelled
@@ -657,28 +670,6 @@ export function RealEstateScreen({ navigation }) {
               ) : null}
             </EmptyWrap>
           )
-        }
-        ListFooterComponent={
-          mayPublish ? (
-            <PostCard onPress={startPosting}>
-              <PostIcon>
-                <Ionicons
-                  name="home-outline"
-                  size={20}
-                  color={colors.primary}
-                />
-              </PostIcon>
-              <PostCol>
-                <PostTitle>{t("realEstatePostTitle")}</PostTitle>
-                <PostCopy>{t("realEstatePostCopy")}</PostCopy>
-              </PostCol>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={colors.textMuted}
-              />
-            </PostCard>
-          ) : null
         }
         renderItem={({ item }) => (
           <PropertyCard
@@ -1872,46 +1863,6 @@ const EmptyWrap = styled.View`
 const EmptyGlyph = styled.Text`
   font-size: 34px;
   margin-bottom: 4px;
-`;
-
-const PostCard = styled(Pressable)`
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 15px;
-  margin-top: 8px;
-  border-radius: 20px;
-  background-color: ${(props) => props.theme.surface};
-  border-width: 1px;
-  border-color: ${(props) => props.theme.border};
-`;
-
-const PostIcon = styled.View`
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
-  align-items: center;
-  justify-content: center;
-  background-color: ${(props) => props.theme.primaryLight};
-`;
-
-const PostCol = styled.View`
-  flex: 1;
-  min-width: 0px;
-`;
-
-const PostTitle = styled.Text`
-  font-family: ${fontFamily.semiBold};
-  font-size: 14px;
-  color: ${(props) => props.theme.text};
-`;
-
-const PostCopy = styled.Text`
-  font-family: ${fontFamily.regular};
-  font-size: 12px;
-  line-height: 17px;
-  margin-top: 2px;
-  color: ${(props) => props.theme.textMuted};
 `;
 
 const EmptyTitle = styled.Text`

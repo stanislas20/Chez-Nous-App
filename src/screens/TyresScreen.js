@@ -17,6 +17,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
+import { HeroPostBar } from "../components/HeroPostBar";
 import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
@@ -453,6 +454,16 @@ export function TyresScreen({ navigation }) {
                 <HelpLinkLabel>{t("tyreSizeHelpLink")}</HelpLinkLabel>
               </HelpLink>
             </>
+          ) : null}
+          {/* In the hero, which does not scroll. See HeroPostBar. */}
+          {mayPublish ? (
+            <HeroPostBar
+              icon="disc-outline"
+              ink={EMERALD}
+              label={t("tyreOwnerTitle")}
+              cta={t("heroPostCta")}
+              onPress={startPosting}
+            />
           ) : null}
         </Hero>
 
@@ -1031,23 +1042,6 @@ export function TyresScreen({ navigation }) {
                 <SafetyText>{t("tyreFlatSafety")}</SafetyText>
               </SafetyNote>
             </>
-          ) : null}
-
-          {mayPublish ? (
-            <OwnerCard onPress={startPosting}>
-              <OwnerIcon>
-                <Ionicons name="disc-outline" size={20} color={EMERALD} />
-              </OwnerIcon>
-              <OwnerCol>
-                <OwnerCardTitle>{t("tyreOwnerTitle")}</OwnerCardTitle>
-                <OwnerCopy>{t("tyreOwnerCopy")}</OwnerCopy>
-              </OwnerCol>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={colors.textMuted}
-              />
-            </OwnerCard>
           ) : null}
         </Scroll>
 
@@ -2225,47 +2219,6 @@ const SafetyText = styled.Text`
   line-height: 17px;
   color: #6b5a2e;
   flex: 1;
-`;
-
-const OwnerCard = styled(Pressable)`
-  flex-direction: row;
-  align-items: center;
-  gap: ${spacing.sm}px;
-  padding: ${spacing.md}px;
-  border-radius: ${radius.xl}px;
-  background-color: ${(props) => props.theme.surface};
-  border-width: 1px;
-  border-style: dashed;
-  border-color: rgba(11, 110, 79, 0.35);
-  margin-top: ${spacing.lg}px;
-`;
-
-const OwnerIcon = styled.View`
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  align-items: center;
-  justify-content: center;
-  background-color: ${(props) => props.theme.primaryLight};
-`;
-
-const OwnerCol = styled.View`
-  flex: 1;
-  min-width: 0px;
-`;
-
-const OwnerCardTitle = styled.Text`
-  font-family: ${fontFamily.semiBold};
-  font-size: 14px;
-  color: ${(props) => props.theme.text};
-`;
-
-const OwnerCopy = styled.Text`
-  font-family: ${fontFamily.regular};
-  font-size: 11.5px;
-  line-height: 17px;
-  color: ${(props) => props.theme.textMuted};
-  margin-top: 2px;
 `;
 
 const Backdrop = styled(Pressable)`

@@ -15,6 +15,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
+import { HeroPostBar } from "../components/HeroPostBar";
 import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
@@ -337,6 +338,16 @@ export function GaragesScreen({ navigation, route }) {
         </HeroTop>
         <HeroTitle>{t("garagesTitle")}</HeroTitle>
         <HeroCopy>{t("garagesIntro")}</HeroCopy>
+        {/* In the hero, which does not scroll. See HeroPostBar. */}
+        {mayPublish ? (
+          <HeroPostBar
+            icon="build"
+            ink={GOLD}
+            label={t("garageOwnerCardTitle")}
+            cta={t("heroPostCta")}
+            onPress={startPosting}
+          />
+        ) : null}
       </Hero>
 
       {/* Still the first thing on the screen, and now sitting astride the
@@ -811,23 +822,6 @@ export function GaragesScreen({ navigation, route }) {
             listed, not to buy an advert. Nested twice because the Sell tab
             opens the dashboard — naming the inner screen is what carries
             the category through to the form. */}
-        <OwnerHeading>{t("garageOwnerTitle")}</OwnerHeading>
-        {mayPublish ? (
-          <OwnerCard onPress={startPosting}>
-            <OwnerIcon>
-              <Ionicons name="build" size={21} color={GOLD} />
-            </OwnerIcon>
-            <OwnerBody>
-              <OwnerCardTitle>{t("garageOwnerCardTitle")}</OwnerCardTitle>
-              <OwnerCopy>{t("garageOwnerCopy")}</OwnerCopy>
-            </OwnerBody>
-            <Ionicons
-              name="chevron-forward"
-              size={16}
-              color={colors.textMuted}
-            />
-          </OwnerCard>
-        ) : null}
       </ScrollView>
 
       <Modal
@@ -1590,55 +1584,6 @@ const SampleBadgeLabel = styled.Text`
   letter-spacing: 0.4px;
   text-transform: uppercase;
   color: ${(props) => props.theme.textMuted};
-`;
-
-const OwnerHeading = styled.Text`
-  font-family: ${fontFamily.bold};
-  font-size: 15px;
-  color: ${(props) => props.theme.text};
-  margin: ${spacing.lg}px 0px 10px;
-`;
-
-// Dashed rather than solid: this is an invitation to add something, not a
-// record of something that exists — the same distinction the restaurants
-// owner card draws.
-const OwnerCard = styled(Pressable)`
-  flex-direction: row;
-  align-items: center;
-  gap: ${spacing.sm}px;
-  padding: ${spacing.md}px;
-  border-radius: ${radius.xl}px;
-  background-color: ${(props) => props.theme.surface};
-  border-width: 1px;
-  border-style: dashed;
-  border-color: rgba(11, 110, 79, 0.35);
-`;
-
-const OwnerIcon = styled.View`
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(217, 164, 65, 0.16);
-`;
-
-const OwnerBody = styled.View`
-  flex: 1;
-`;
-
-const OwnerCardTitle = styled.Text`
-  font-family: ${fontFamily.semiBold};
-  font-size: 14px;
-  color: ${(props) => props.theme.text};
-`;
-
-const OwnerCopy = styled.Text`
-  font-family: ${fontFamily.regular};
-  font-size: 11.5px;
-  line-height: 17px;
-  color: ${(props) => props.theme.textMuted};
-  margin-top: 3px;
 `;
 
 const SheetBackdrop = styled(Pressable)`

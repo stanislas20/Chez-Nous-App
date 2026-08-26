@@ -7,6 +7,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
+import { HeroPostBar } from "../components/HeroPostBar";
 import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
@@ -617,6 +618,16 @@ export function VehicleListScreen({ navigation, route }) {
             </HeroCount>
           </HeroCol>
         </HeroRow>
+        {/* In the hero, which does not scroll. See HeroPostBar. */}
+        {mayPublish ? (
+          <HeroPostBar
+            icon="car-sport-outline"
+            ink={EMERALD}
+            label={t("carsSellTitle")}
+            cta={t("heroPostCta")}
+            onPress={goSell}
+          />
+        ) : null}
       </Hero>
 
       <FlatList
@@ -919,15 +930,6 @@ export function VehicleListScreen({ navigation, route }) {
                     >
                       <EmptyGhostLabel>{t("brandAllMakes")}</EmptyGhostLabel>
                     </EmptyGhost>
-                    {mayPublish ? (
-                      <EmptyGhost onPress={goSell}>
-                        <EmptyGhostLabel numberOfLines={1}>
-                          {fixedBrand
-                            ? t("brandSellMine", { brand })
-                            : t("carsSellCta")}
-                        </EmptyGhostLabel>
-                      </EmptyGhost>
-                    ) : null}
                   </EmptyRow>
                 </EmptyActions>
               </EmptyCard>

@@ -15,6 +15,7 @@ import { useAuth } from "../auth/AuthContext";
 import { openAccountGate } from "../utils/openAccountGate";
 import { canPublish } from "../utils/canPublish";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
+import { HeroPostBar } from "../components/HeroPostBar";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useSellerRatings } from "../hooks/useSellerRatings";
 import {
@@ -153,6 +154,17 @@ export function CarWashScreen({ navigation }) {
 
         <HeroTitle>{t("washTitle")}</HeroTitle>
         <HeroCopy>{t("washIntro")}</HeroCopy>
+        {/* In the hero, which does not scroll. See HeroPostBar for why
+            every vertical in the app now does this. */}
+        {mayPublish ? (
+          <HeroPostBar
+            icon="water-outline"
+            ink={TEAL}
+            label={t("washPostTitle")}
+            cta={t("heroPostCta")}
+            onPress={startPosting}
+          />
+        ) : null}
       </Hero>
 
       {/* Where the work happens, first, because it removes two formulas and
@@ -448,23 +460,6 @@ export function CarWashScreen({ navigation }) {
           <Ionicons name="alert-circle-outline" size={15} color="#8a6415" />
           <SafetyText>{t("washSafetyNote")}</SafetyText>
         </SafetyCard>
-
-        {mayPublish ? (
-          <PostCard onPress={startPosting}>
-            <PostIcon>
-              <Ionicons name="water-outline" size={20} color={TEAL} />
-            </PostIcon>
-            <PostCol>
-              <PostTitle>{t("washPostTitle")}</PostTitle>
-              <PostCopy>{t("washPostCopy")}</PostCopy>
-            </PostCol>
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={colors.textMuted}
-            />
-          </PostCard>
-        ) : null}
       </Scroll>
     </Container>
   );
@@ -1015,43 +1010,4 @@ const SafetyText = styled.Text`
   font-size: 11.5px;
   line-height: 17px;
   color: #6b5a2e;
-`;
-
-const PostCard = styled(Pressable)`
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
-  padding: ${spacing.md}px;
-  border-radius: ${radius.xl}px;
-  background-color: ${(props) => props.theme.surface};
-  border-width: 1px;
-  border-style: dashed;
-  border-color: rgba(14, 110, 140, 0.32);
-`;
-
-const PostIcon = styled.View`
-  width: 42px;
-  height: 42px;
-  border-radius: 15px;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(14, 110, 140, 0.08);
-`;
-
-const PostCol = styled.View`
-  flex: 1;
-  gap: 3px;
-`;
-
-const PostTitle = styled.Text`
-  font-family: ${fontFamily.semiBold};
-  font-size: 14px;
-  color: ${(props) => props.theme.text};
-`;
-
-const PostCopy = styled.Text`
-  font-family: ${fontFamily.regular};
-  font-size: 11.5px;
-  line-height: 16px;
-  color: ${(props) => props.theme.textMuted};
 `;

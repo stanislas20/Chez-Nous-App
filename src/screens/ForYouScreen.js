@@ -1801,8 +1801,13 @@ export function ForYouScreen({ navigation, route }) {
             <JobLegendItems>
               {experienceLevels.map((level) => (
                 <JobLegendItem key={level.key}>
+                  {/* The swatch takes the accent as its fill, not the
+                      card's tint. The tint has to stay faint enough to read
+                      a whole card through; at 12mm across that same value is
+                      invisible, and a legend whose first swatch looks blank
+                      explains nothing. Same three-step ramp, one stop up. */}
                   <JobLegendSwatch
-                    tint={getExperienceTint(level.key, colors)}
+                    tint={getExperienceAccent(level.key, colors)}
                     accent={getExperienceAccent(level.key, colors)}
                   />
                   <JobLegendLabel>
@@ -3400,7 +3405,14 @@ const JobCard = styled(Tappable)`
   background-color: ${(props) => props.tint ?? props.theme.surface};
   border-width: 1px;
   border-color: ${(props) => props.accent ?? "transparent"};
-  ${shadow.card}
+  /* No elevation here, deliberately.
+  
+     The experience tint is a translucent wash, and Android draws the
+     elevation shadow *through* a translucent background — which is what put
+     a second, darker rectangle inside every job card the moment the tint
+     stopped being an opaque pastel. A card that already carries a tint and
+     a matching border does not need a shadow to separate it from the page
+     as well. */
 `;
 
 const JobCardTopRow = styled.View`

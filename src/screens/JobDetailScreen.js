@@ -1009,11 +1009,10 @@ const Tag = styled.View`
     (props.accent ? "rgba(11, 110, 79, 0.1)" : props.theme.surfaceAlt)};
 `;
 
-// Carries the feed's green/amber/red onto the one tag it describes, rather
-// than tinting the whole detail page. The list view answers "is this for
-// me?" at a glance and needs the colour to be unmissable; here the job is
-// already open and the reader wants the text, so the band shows up as a
-// dot on the tag it belongs to and nothing else changes.
+// Carries the feed's band onto the one tag it describes, rather than
+// tinting the whole detail page. This is the pattern the feed cards ended
+// up adopting too, after tinting a whole card proved to be a choice between
+// unreadable text and indistinguishable bands.
 const ExperienceDot = styled.View`
   width: 7px;
   height: 7px;

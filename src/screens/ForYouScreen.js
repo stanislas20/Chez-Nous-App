@@ -1632,16 +1632,19 @@ export function ForYouScreen({ navigation, route }) {
                     language === "en" ? item.typeEn : item.typeFr;
                   const feedJobSalary =
                     language === "en" ? item.salaryEn : item.salaryFr;
-                  // Green / amber / red by how much experience the job asks
-                  // for, so the feed answers "can I apply for this?" before
-                  // anything is read. A posting that never stated a band
-                  // keeps the plain surface rather than being guessed at.
+                  // Banded by how much experience the job asks for, so the
+                  // feed answers "can I apply for this?" before anything is
+                  // read. A posting that never stated a band keeps the plain
+                  // border rather than being guessed at.
                   const experienceKey = getExperienceLevel(item);
                   return (
                     <FeedJobCard onPress={() => setSelectedChipKey("jobs")}>
                       <FeedJobCardInner
-                        tint={getExperienceTint(experienceKey, colors)}
-                        accent={getExperienceAccent(experienceKey, colors)}
+                        accent={
+                          experienceKey
+                            ? getExperienceAccent(experienceKey, colors)
+                            : null
+                        }
                       >
                         <FeedJobTopGroup>
                           {item.postedDaysAgo < 1 ? (
@@ -1801,13 +1804,13 @@ export function ForYouScreen({ navigation, route }) {
             <JobLegendItems>
               {experienceLevels.map((level) => (
                 <JobLegendItem key={level.key}>
-                  {/* The swatch takes the accent as its fill, not the
-                      card's tint. The tint has to stay faint enough to read
-                      a whole card through; at 12mm across that same value is
-                      invisible, and a legend whose first swatch looks blank
-                      explains nothing. Same three-step ramp, one stop up. */}
+                  {/* A miniature of the badge on the card: the same fill
+                      inside the same ink border. It could not be that while
+                      the band lived on the card's own background — that
+                      value is invisible at 14px — which is how a legend and
+                      the thing it explains came to be drawn differently. */}
                   <JobLegendSwatch
-                    tint={getExperienceAccent(level.key, colors)}
+                    tint={getExperienceTint(level.key, colors)}
                     accent={getExperienceAccent(level.key, colors)}
                   />
                   <JobLegendLabel>
@@ -1837,14 +1840,14 @@ export function ForYouScreen({ navigation, route }) {
                 const salary = language === "en" ? job.salaryEn : job.salaryFr;
                 const posted = language === "en" ? job.postedEn : job.postedFr;
                 const isJobFav = jobFavoriteIds.has(job.id);
+                const experienceKey = getExperienceLevel(job);
+                const experienceLabel = getExperienceLabel(
+                  experienceKey,
+                  language,
+                );
                 return (
                   <JobCard
                     key={job.id}
-                    tint={getExperienceTint(getExperienceLevel(job), colors)}
-                    accent={getExperienceAccent(
-                      getExperienceLevel(job),
-                      colors,
-                    )}
                     onPress={() => navigation.navigate("JobDetail", { job })}
                   >
                     <JobCardTopRow>
@@ -1931,14 +1934,40 @@ export function ForYouScreen({ navigation, route }) {
                       showsHorizontalScrollIndicator={false}
                       contentContainerStyle={jobTagsRowContentStyle}
                     >
+                      {/* Every band gets a badge, not only the beginner
+                          one. "Sans expérience" alone told a candidate
+                          nothing about the cards that lacked it — they could
+                          be asking for one year or ten. The colour is the
+                          same ramp the legend and the job detail page use,
+                          and the words are on it as well, so the band still
+                          reads for anyone who cannot separate the three
+                          greens.
+
+                          First in the row, ahead of "Nouveau" and the job
+                          type: this row scrolls sideways, and at the end of
+                          it the badge was cut in half on a normal phone —
+                          the one tag the legend exists to explain was the
+                          one you had to swipe to finish reading. */}
+                      {experienceLabel ? (
+                        <JobExpTag
+                          tint={getExperienceTint(experienceKey, colors)}
+                          accent={getExperienceAccent(experienceKey, colors)}
+                        >
+                          <JobExpDot
+                            accent={getExperienceAccent(experienceKey, colors)}
+                          />
+                          <JobExpLabel
+                            accent={getExperienceAccent(experienceKey, colors)}
+                          >
+                            {experienceLabel}
+                          </JobExpLabel>
+                        </JobExpTag>
+                      ) : null}
                       {job.postedDaysAgo < 1 ? (
                         <JobTagAccent>🔥 {t("jobsNewTag")}</JobTagAccent>
                       ) : null}
                       <JobTag>{typeLabel}</JobTag>
                       {categoryLabel ? <JobTag>{categoryLabel}</JobTag> : null}
-                      {job.noExp ? (
-                        <JobTagAccent>{t("jobsNoExperienceTag")}</JobTagAccent>
-                      ) : null}
                     </JobTagsRow>
                     {salary ? <JobSalary>{salary}</JobSalary> : null}
                     <JobPosted>{posted}</JobPosted>
@@ -2690,13 +2719,20 @@ const FeedJobCard = styled(Tappable)`
   elevation: 7;
 `;
 
+// These cards are ~160px wide and already carry a type badge, a two-line
+// title, a city and a salary — there is no room for a fourth labelled
+// element, so the band shows as a rail down the leading edge instead. Solid
+// ink at full strength, which is what makes the three of them separable in
+// a row; the card itself stays white like every other card in the feed.
 const FeedJobCardInner = styled.View`
   flex: 1;
   padding: 14px;
   border-radius: ${radius.lg}px;
-  background-color: ${(props) => props.tint ?? props.theme.surface};
+  background-color: ${(props) => props.theme.surface};
   border-width: 1px;
-  border-color: ${(props) => props.accent ?? props.theme.border};
+  border-color: ${(props) => props.theme.border};
+  border-left-width: ${(props) => (props.accent ? 3 : 1)}px;
+  border-left-color: ${(props) => props.accent ?? props.theme.border};
   justify-content: space-between;
   overflow: hidden;
 `;
@@ -3396,23 +3432,31 @@ const JobList = styled.View`
 `;
 
 // Same experience banding as the "Nouveaux emplois" cards above. Tapping
-// one of those switches to this list, so a job that was amber in the feed
-// has to stay amber here — otherwise the colour reads as decoration rather
-// than as information about the job.
+// one of those switches to this list, so a job that showed the top band in
+// the feed has to show the top band here — otherwise the colour reads as
+// decoration rather than as information about the job. It shows as a rail
+// there and a badge here only because a 160px card has no room for words.
+// An ordinary white card. The experience band is carried by JobExpTag
+// inside it, not by the card's own fill.
+//
+// It was the fill for a while, and both ways of doing that failed. A strong
+// tint drowned the card's muted text; a tint faint enough to read through
+// was too faint to tell the three bands apart, so every card came out the
+// same flat sage and the legend explained a difference that wasn't visible.
+// A badge is only ever a few words on a known ground, so it can carry the
+// colour at four times the strength and stay legible — which is the whole
+// reason the bands are distinguishable again.
+//
+// The opaque background also brings the shadow back: Android draws
+// elevation *through* a translucent background, and that was what put a
+// second darker rectangle inside every card while the tint was in charge.
 const JobCard = styled(Tappable)`
   padding: 15px 16px;
   border-radius: ${radius.xl}px;
-  background-color: ${(props) => props.tint ?? props.theme.surface};
+  background-color: ${(props) => props.theme.surface};
   border-width: 1px;
-  border-color: ${(props) => props.accent ?? "transparent"};
-  /* No elevation here, deliberately.
-  
-     The experience tint is a translucent wash, and Android draws the
-     elevation shadow *through* a translucent background — which is what put
-     a second, darker rectangle inside every job card the moment the tint
-     stopped being an opaque pastel. A card that already carries a tint and
-     a matching border does not need a shadow to separate it from the page
-     as well. */
+  border-color: ${(props) => props.theme.border};
+  ${shadow.card}
 `;
 
 const JobCardTopRow = styled.View`
@@ -3587,6 +3631,31 @@ const JobTag = styled.Text`
   padding: 4px 9px;
   border-radius: ${radius.pill}px;
   overflow: hidden;
+`;
+
+// The band badge. Mirrors the tag on JobDetailScreen exactly — same fill,
+// same dot, same ink — because tapping a card is where the two are compared.
+const JobExpTag = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  background-color: ${(props) => props.tint};
+  border-width: 1px;
+  border-color: ${(props) => props.accent};
+  padding: 3px 9px 3px 7px;
+  border-radius: ${radius.pill}px;
+`;
+const JobExpDot = styled.View`
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background-color: ${(props) => props.accent};
+`;
+const JobExpLabel = styled.Text`
+  ${type.caption}
+  font-size: 10.5px;
+  font-weight: 600;
+  color: ${(props) => props.accent};
 `;
 
 const JobTagAccent = styled.Text`

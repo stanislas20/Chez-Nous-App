@@ -516,7 +516,8 @@ export const translations = {
     jobsFreshBanner: "{count} opportunities available",
     jobsSampleNote:
       "Sample postings, shown while employers are still joining. You can open them to see how a job looks, but there is no employer behind them yet — an application won't be sent anywhere.",
-    jobsExperienceLegend: "Card colour = experience the employer asks for",
+    jobsExperienceLegend:
+      "Badge on the card = experience the employer asks for",
     listingsUnavailableTitle: "Listings didn't load",
     listingsUnavailable:
       "We couldn't load listings just now — this isn't an empty marketplace. Pull down to try again.",
@@ -526,7 +527,6 @@ export const translations = {
     jobsCategoryEmpty: "Nothing open",
     jobsFeedSalaryOnRequest: "Salary on request",
     jobsSavedLink: "Saved",
-    jobsNoExperienceTag: "No experience needed",
     jobsNewTag: "New",
     jobsEmptyResults: "No jobs match your search.",
 
@@ -2852,7 +2852,7 @@ export const translations = {
     jobsSampleNote:
       "Offres d’exemple, affichées en attendant l’arrivée des employeurs. Vous pouvez les ouvrir pour voir à quoi ressemble une offre, mais aucun employeur n’est derrière : une candidature ne sera envoyée nulle part.",
     jobsExperienceLegend:
-      "Couleur de la carte = expérience demandée par l’employeur",
+      "Badge sur la carte = expérience demandée par l’employeur",
     listingsUnavailableTitle: "Annonces non chargées",
     listingsUnavailable:
       "Impossible de charger les annonces pour le moment — la place de marché n’est pas vide. Tirez vers le bas pour réessayer.",
@@ -2862,7 +2862,6 @@ export const translations = {
     jobsCategoryEmpty: "Aucune offre",
     jobsFeedSalaryOnRequest: "Salaire sur demande",
     jobsSavedLink: "Enregistrés",
-    jobsNoExperienceTag: "Sans expérience",
     jobsNewTag: "Nouveau",
     jobsEmptyResults: "Aucune offre ne correspond à votre recherche.",
 

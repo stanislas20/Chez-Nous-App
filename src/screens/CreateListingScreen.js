@@ -3790,11 +3790,11 @@ export function CreateListingScreen({ route, navigation }) {
               <ExperienceRow>
                 {experienceLevels.map((level) => {
                   const selected = experienceLevel === level.key;
-                  // Each band selects in its own colour — green, amber, red
-                  // — because that colour IS the thing being chosen: it's
-                  // what the card will be tinted with in the feed. Selecting
-                  // "Plus de 3 ans" and getting a green card taught the
-                  // opposite of what the feed then shows.
+                  // Each band selects in its own step of the ramp, because
+                  // that colour IS the thing being chosen: it is what the
+                  // job's badge will look like in the feed. Picking "Plus de
+                  // 3 ans" and seeing the beginner colour here would teach
+                  // the opposite of what the feed then shows.
                   const accent = getExperienceAccent(level.key, colors);
                   return (
                     <ExperienceOption
@@ -6956,8 +6956,8 @@ const ExperienceOption = styled(Pressable)`
   border-color: ${(props) => (props.selected ? props.accent : props.theme.border)};
 `;
 
-// The same green/amber/red the home feed tints its cards with, so the
-// choice made here is visibly the thing that shows up there.
+// The same ramp the home feed badges its cards with, so the choice made
+// here is visibly the thing that shows up there.
 const ExperienceDot = styled.View`
   width: 12px;
   height: 12px;

@@ -617,6 +617,7 @@ export const translations = {
 
     homeGreeting: "Hello, {name} 👋",
     homeGreetingGuest: "Hello 👋",
+    homeWelcome: "Welcome to Chez-Nous",
     categoryAll: "All",
     trendingSectionTitle: "Trending near you",
     popularBadgeLabel: "Popular",
@@ -2953,6 +2954,7 @@ export const translations = {
 
     homeGreeting: "Bonjour, {name} 👋",
     homeGreetingGuest: "Bonjour 👋",
+    homeWelcome: "Bienvenue sur Chez-Nous",
     categoryAll: "Tout",
     trendingSectionTitle: "Tendance près de vous",
     popularBadgeLabel: "Populaire",

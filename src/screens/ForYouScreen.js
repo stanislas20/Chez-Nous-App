@@ -1351,26 +1351,27 @@ export function ForYouScreen({ navigation, route }) {
               </Avatar>
             )}
           </AvatarButton>
-          {/* One line, not three.
+          {/* Two lines, not three.
               
-              The greeting used to be followed by a subtitle and a
-              pull-to-refresh hint. The subtitle never finished — it is
-              longer than the space between an avatar and two buttons, and
-              numberOfLines={1} meant every user only ever saw "Découvrez ce
-              qui se passe près de …". A sentence that is always truncated
-              is not a sentence.
+              The line under the greeting is short on purpose. The one that
+              used to live here — "Découvrez ce qui se passe près de chez
+              vous" — is longer than the space between an avatar and two
+              buttons, so with numberOfLines={1} every user on every phone
+              read "Découvrez ce qui se passe près de …". The width here is
+              about 210dp; anything that does not finish inside it does not
+              belong on this row.
               
-              The hint taught a gesture that RefreshControl already
-              demonstrates the moment anybody pulls, and it charged a
-              permanent line of the one part of this screen that never
-              scrolls to do it. Between them they pushed the first job on
-              Emplois below the fold. */}
+              The third line, a pull-to-refresh hint, is gone for good:
+              RefreshControl demonstrates that gesture the moment anybody
+              pulls, and it was charging a permanent line of the one part of
+              this screen that never scrolls to teach it. */}
           <GreetingBlock>
             <GreetingText numberOfLines={1}>
               {firstName
                 ? t("homeGreeting", { name: firstName })
                 : t("homeGreetingGuest")}
             </GreetingText>
+            <WelcomeText numberOfLines={1}>{t("homeWelcome")}</WelcomeText>
           </GreetingBlock>
           <HeaderActions>
             <IconButton onPress={() => navigation.navigate("More")} hitSlop={8}>
@@ -2404,6 +2405,12 @@ const GreetingBlock = styled.View`
 const GreetingText = styled.Text`
   ${type.h3}
   color: ${(props) => props.theme.text};
+`;
+
+const WelcomeText = styled.Text`
+  ${type.caption}
+  color: ${(props) => props.theme.textMuted};
+  margin-top: 1px;
 `;
 
 const HeaderActions = styled.View`

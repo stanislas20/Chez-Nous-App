@@ -1484,6 +1484,33 @@ export const translations = {
     papersWhereCaveat:
       "Chez-Nous does not hold the addresses or opening hours of public offices, and will not invent them. Each row opens a map search around you instead.",
     papersSearchMap: "Search",
+    airconEyebrow: "Air conditioning",
+    airconTitle: "It runs, but nothing comes out cold",
+    airconIntro:
+      "Half of what stops a car cooling is not the gas, and several of these are not air-conditioning jobs at all. Pick the symptom and we name the trade.",
+    airconSealedTitle: "A recharge is not a repair",
+    airconSealedCopy:
+      "The circuit is sealed — a healthy one does not use gas. If yours needs refilling every few months it is leaking, and each refill is paying to fill a bucket with a hole in it. Ask for the leak to be found first.",
+    airconSymptomTitle: "What is it doing?",
+    airconCausesLabel: "Usual causes",
+    airconCausesNote:
+      "Most likely first. A pressure test is what confirms it — nobody can tell from the description alone, including us.",
+    airconGasLabel: "Which gas does it take?",
+    airconGasWarn:
+      "The gas is decided by the vehicle, not by the workshop. Never accept a “universal” or hydrocarbon substitute: it is flammable and it damages the system.",
+    airconServicesTitle: "The jobs, and what they are for",
+    airconCount: "{count} workshop(s) doing air conditioning",
+    airconCountFor: "{count} workshop(s) — {symptom}",
+    airconNoneTitle: "No workshop here lists air conditioning yet",
+    airconNoneCopy:
+      "Workshops appear here when they publish and say they do it. Nothing is listed on their behalf.",
+    airconPost: "List a workshop",
+    airconSafety:
+      "Agree what is being done before it starts. “Recharge” and “find the leak” are two different jobs at two different prices, and only the second one lasts.",
+    airconQuoteIntro: "Hello, I have an air conditioning problem.",
+    airconQuoteSymptom: "Symptom: {symptom}.",
+    airconQuoteGas: "Gas: {gas}.",
+    airconQuoteAsk: "Could you test the pressures and tell me what it needs?",
     insureEyebrow: "Motor insurance",
     insureTitle: "Compare before you renew",
     insureIntro:
@@ -3790,6 +3817,34 @@ export const translations = {
     papersWhereCaveat:
       "Chez-Nous ne détient ni les adresses ni les horaires des services publics, et ne les inventera pas. Chaque ligne ouvre plutôt une recherche sur la carte autour de vous.",
     papersSearchMap: "Chercher",
+    airconEyebrow: "Climatisation",
+    airconTitle: "Elle tourne, mais rien ne sort de froid",
+    airconIntro:
+      "La moitié des pannes de clim ne vient pas du gaz, et plusieurs d’entre elles ne sont pas des travaux de clim du tout. Choisissez le symptôme, nous nommons le métier.",
+    airconSealedTitle: "Une recharge n’est pas une réparation",
+    airconSealedCopy:
+      "Le circuit est fermé — un circuit sain ne consomme pas de gaz. S’il faut le recharger tous les quelques mois, il fuit, et chaque recharge revient à remplir un seau percé. Demandez d’abord la recherche de fuite.",
+    airconSymptomTitle: "Que fait-elle ?",
+    airconCausesLabel: "Causes habituelles",
+    airconCausesNote:
+      "De la plus probable à la moins probable. Seul un contrôle des pressions confirme — personne ne peut le dire sur description, nous compris.",
+    airconGasLabel: "Quel gaz utilise-t-elle ?",
+    airconGasWarn:
+      "Le gaz est imposé par le véhicule, pas par l’atelier. N’acceptez jamais un substitut « universel » ou à base d’hydrocarbures : il est inflammable et il abîme le circuit.",
+    airconServicesTitle: "Les prestations, et à quoi elles servent",
+    airconCount: "{count} atelier(s) faisant la climatisation",
+    airconCountFor: "{count} atelier(s) — {symptom}",
+    airconNoneTitle: "Aucun atelier n’a encore déclaré la climatisation ici",
+    airconNoneCopy:
+      "Les ateliers apparaissent ici quand ils publient et qu’ils le disent. Rien n’est inscrit à leur place.",
+    airconPost: "Publier un atelier",
+    airconSafety:
+      "Mettez-vous d’accord sur la prestation avant qu’elle commence. « Recharge » et « recherche de fuite » sont deux travaux différents à deux prix différents, et seul le second tient.",
+    airconQuoteIntro: "Bonjour, j’ai un problème de climatisation.",
+    airconQuoteSymptom: "Symptôme : {symptom}.",
+    airconQuoteGas: "Gaz : {gas}.",
+    airconQuoteAsk:
+      "Pourriez-vous contrôler les pressions et me dire ce qu’il faut ?",
     insureEyebrow: "Assurance auto",
     insureTitle: "Comparer avant de renouveler",
     insureIntro:

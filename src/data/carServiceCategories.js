@@ -120,7 +120,12 @@ export const carServicesPrimary = [
 ];
 
 export const carServicesMore = [
-  { key: "aircon", icon: "snow-outline", route: "Garages", specialty: "clim" },
+  // Its own screen rather than the garage list filtered to "clim". That
+  // list is correct and answers none of the questions somebody sweating in
+  // traffic actually has: what the symptom means, which trade fixes it, and
+  // that a sealed circuit does not consume gas — so a car needing a recharge
+  // every few months is leaking, not thirsty.
+  { key: "aircon", icon: "snow-outline", route: "Aircon" },
   { key: "keys", icon: "key-outline", query: "clé voiture" },
   { key: "gps", icon: "navigate-circle-outline", query: "gps traceur" },
   { key: "fleet", icon: "business-outline", query: "gestion de flotte" },

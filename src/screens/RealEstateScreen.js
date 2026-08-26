@@ -423,266 +423,6 @@ export function RealEstateScreen({ navigation, route }) {
 
   return (
     <Container edges={["left", "right", "bottom"]}>
-      {/* A banner rather than a title bar: this is a destination people
-          arrive at, and the count tells them the market has depth before
-          they touch a filter. */}
-      <Banner
-        colors={BANNER}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ paddingTop: insets.top + spacing.sm }}
-      >
-        {/* Two very faint discs, catching the light off the top-right
-            corner. A gradient this large with nothing on it reads as a
-            coloured rectangle; these give it a surface. Behind everything,
-            clipped by the banner's own corners. */}
-        <BannerGlowLarge pointerEvents="none" />
-        <BannerGlowSmall pointerEvents="none" />
-        <BannerTopRow>
-          <BannerBack onPress={() => navigation.goBack()} hitSlop={10}>
-            <Feather name="chevron-left" size={21} color="#ffffff" />
-          </BannerBack>
-          <BannerKicker>{t("realEstateKicker")}</BannerKicker>
-        </BannerTopRow>
-        <BannerTitle>{t("realEstateTitle")}</BannerTitle>
-        <BannerCopy>{t("realEstateSubtitle")}</BannerCopy>
-
-        {/* Counted, never declared. Hidden until the first snapshot lands —
-            "0 biens en ligne" while the query is still in flight says the
-            market is empty when nobody knows yet. */}
-        {isLoading ? null : (
-          <StatRow>
-            <StatCol>
-              <StatValue>{marketStats.total}</StatValue>
-              {/* French takes the singular after 0 and 1, so a fixed plural
-                  reads as a typo on exactly the counts a young market
-                  spends most of its time showing. Same rule as Véhicules. */}
-              <StatLabel>
-                {t(
-                  marketStats.total > 1
-                    ? "realEstateStatOnline"
-                    : "realEstateStatOnlineOne",
-                )}
-              </StatLabel>
-            </StatCol>
-            <StatDivider />
-            <StatCol>
-              <StatValue>{marketStats.cities}</StatValue>
-              <StatLabel>
-                {t(
-                  marketStats.cities > 1
-                    ? "realEstateStatCities"
-                    : "realEstateStatCitiesOne",
-                )}
-              </StatLabel>
-            </StatCol>
-            <StatDivider />
-            <StatCol>
-              <StatValue>{marketStats.quartiers}</StatValue>
-              <StatLabel>
-                {t(
-                  marketStats.quartiers > 1
-                    ? "realEstateStatQuartiers"
-                    : "realEstateStatQuartiersOne",
-                )}
-              </StatLabel>
-            </StatCol>
-          </StatRow>
-        )}
-        {/* In the banner, which does not scroll. This one was the
-            ListFooterComponent of a long property list — literally the last
-            thing on the screen. See HeroPostBar. */}
-        {mayPublish ? (
-          <HeroPostBar
-            icon="home-outline"
-            ink={EMERALD}
-            label={t(`realEstatePostPrompt_${deal}`)}
-            cta={t("heroPostCta")}
-            onPress={startPosting}
-          />
-        ) : null}
-      </Banner>
-
-      {/* Controls stay put while results scroll. Three stacked labelled
-          filter sections pushed the first card ~350px down the page; as
-          compact pills they cost one row and the results are visible from
-          the first frame — which is the whole job of a search screen. */}
-      <Chrome>
-        <DealTrack
-          ref={dealScrollRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={dealTrackContentStyle}
-          onLayout={(event) =>
-            setDealTrackWidth(event.nativeEvent.layout.width)
-          }
-        >
-          {dealThumbWidth > 0 ? (
-            <DealThumb
-              style={{
-                width: dealThumbWidth,
-                transform: [{ translateX: dealThumbX }],
-              }}
-            />
-          ) : null}
-          {realEstateDeals.map((item, index) => (
-            <DealTab key={item.key} onPress={() => selectDeal(item.key)}>
-              <DealGlyph>{getRealEstateDealGlyph(item.key)}</DealGlyph>
-              <DealTabLabel numberOfLines={1}>
-                {getRealEstateDealLabel(item.key, language)}
-              </DealTabLabel>
-              {/* The same row again in white, faded in as the pill arrives.
-                  The glyph is an emoji and renders identically in both, so
-                  the two layers read as one. */}
-              <DealTabActiveLayer
-                pointerEvents="none"
-                style={{
-                  opacity: dealPos.interpolate({
-                    inputRange: [index - 0.6, index, index + 0.6],
-                    outputRange: [0, 1, 0],
-                    extrapolate: "clamp",
-                  }),
-                }}
-              >
-                <DealGlyph>{getRealEstateDealGlyph(item.key)}</DealGlyph>
-                <DealTabLabel active numberOfLines={1}>
-                  {getRealEstateDealLabel(item.key, language)}
-                </DealTabLabel>
-              </DealTabActiveLayer>
-            </DealTab>
-          ))}
-        </DealTrack>
-
-        {deal === "commercial" ? (
-          <TypeChipRow
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={typeChipRowStyle}
-          >
-            {commercialTypes.map((option) => {
-              const active = commercialType === option.key;
-              return (
-                <TypeChip
-                  key={option.key}
-                  active={active}
-                  accent={option.color}
-                  // Tapping the active chip clears it — the row has no "all"
-                  // entry, so the selected chip is its own off switch.
-                  onPress={() => setCommercialType(active ? null : option.key)}
-                >
-                  <TypeChipDisc
-                    active={active}
-                    tint={
-                      active
-                        ? "rgba(255,255,255,0.22)"
-                        : sectorTint(option.color, 0.14)
-                    }
-                  >
-                    <TypeChipGlyph>{option.glyph}</TypeChipGlyph>
-                  </TypeChipDisc>
-                  <TypeChipLabel active={active}>
-                    {getCommercialTypeLabel(option.key, language)}
-                  </TypeChipLabel>
-                </TypeChip>
-              );
-            })}
-          </TypeChipRow>
-        ) : null}
-
-        <SearchWrap>
-          <SearchBar
-            value={search}
-            onChangeText={setSearch}
-            placeholder={t("realEstateSearchPlaceholder")}
-          />
-        </SearchWrap>
-
-        <FilterBar>
-          <FilterPill active={!!city} onPress={() => setCityPickerOpen(true)}>
-            <Feather
-              name="map-pin"
-              size={13}
-              color={city ? "#ffffff" : colors.textMuted}
-            />
-            <FilterPillLabel active={!!city} numberOfLines={1}>
-              {city ?? t("realEstateFilterCity")}
-            </FilterPillLabel>
-            <Feather
-              name="chevron-down"
-              size={13}
-              color={city ? "#ffffff" : colors.textMuted}
-            />
-          </FilterPill>
-
-          <FilterPill
-            active={!!quartier}
-            onPress={() => setQuartierPickerOpen(true)}
-          >
-            <FilterPillLabel active={!!quartier} numberOfLines={1}>
-              {quartier ?? t("realEstateFilterQuartier")}
-            </FilterPillLabel>
-            <Feather
-              name="chevron-down"
-              size={13}
-              color={quartier ? "#ffffff" : colors.textMuted}
-            />
-          </FilterPill>
-
-          <FilterPill active={!!band} onPress={() => setBudgetPickerOpen(true)}>
-            <FilterPillLabel active={!!band} numberOfLines={1}>
-              {activeBandLabel ?? t("realEstateFilterBudget")}
-            </FilterPillLabel>
-            <Feather
-              name="chevron-down"
-              size={13}
-              color={band ? "#ffffff" : colors.textMuted}
-            />
-          </FilterPill>
-
-          {/* Only on the two deals that can carry a car. On a sale or a
-              plot it would be a filter that matches nothing, every time. */}
-          {realEstateHasCarOption(deal) ? (
-            <FilterPill
-              active={withCarOnly}
-              onPress={() => setWithCarOnly((value) => !value)}
-            >
-              <Feather
-                name="truck"
-                size={13}
-                color={withCarOnly ? "#ffffff" : colors.textMuted}
-              />
-              <FilterPillLabel active={withCarOnly} numberOfLines={1}>
-                {t("realEstateFilterWithCar")}
-              </FilterPillLabel>
-            </FilterPill>
-          ) : null}
-
-          {showMoreFilters ? (
-            <FilterPill
-              active={moreCount > 0}
-              onPress={() => setMorePickerOpen(true)}
-            >
-              <Feather
-                name="sliders"
-                size={13}
-                color={moreCount > 0 ? "#ffffff" : colors.textMuted}
-              />
-              <FilterPillLabel active={moreCount > 0} numberOfLines={1}>
-                {moreCount > 0
-                  ? `${t("realEstateMoreFilters")} ${moreCount}`
-                  : t("realEstateMoreFilters")}
-              </FilterPillLabel>
-            </FilterPill>
-          ) : null}
-
-          {hasFilters ? (
-            <ClearPill onPress={clearFilters} hitSlop={6}>
-              <Feather name="x" size={15} color={colors.textMuted} />
-            </ClearPill>
-          ) : null}
-        </FilterBar>
-      </Chrome>
-
       <FlatList
         data={results}
         keyExtractor={(item) => item.id}
@@ -690,6 +430,292 @@ export function RealEstateScreen({ navigation, route }) {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <>
+            {/* The banner and the filter block scroll with the list.
+            
+                Pinned, they stood about 1250px tall on a 2400px phone —
+                more than half the screen spent on chrome, with the market
+                itself reading through a slot at the bottom. The banner is
+                identity and is read once; the filters are used in bursts
+                and are one flick away. Véhicules already works this way,
+                for the same reason.
+            
+                HeaderBleed cancels the list's own 16px padding so the
+                banner still runs edge to edge and its rounded foot sits
+                against the page. */}
+            <HeaderBleed>
+              {/* A banner rather than a title bar: this is a destination people
+              arrive at, and the count tells them the market has depth before
+              they touch a filter. */}
+              <Banner
+                colors={BANNER}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ paddingTop: insets.top + spacing.sm }}
+              >
+                {/* Two very faint discs, catching the light off the top-right
+                corner. A gradient this large with nothing on it reads as a
+                coloured rectangle; these give it a surface. Behind everything,
+                clipped by the banner's own corners. */}
+                <BannerGlowLarge pointerEvents="none" />
+                <BannerGlowSmall pointerEvents="none" />
+                <BannerTopRow>
+                  <BannerBack onPress={() => navigation.goBack()} hitSlop={10}>
+                    <Feather name="chevron-left" size={21} color="#ffffff" />
+                  </BannerBack>
+                  <BannerKicker>{t("realEstateKicker")}</BannerKicker>
+                </BannerTopRow>
+                <BannerTitle>{t("realEstateTitle")}</BannerTitle>
+                <BannerCopy>{t("realEstateSubtitle")}</BannerCopy>
+
+                {/* Counted, never declared. Hidden until the first snapshot lands —
+                "0 biens en ligne" while the query is still in flight says the
+                market is empty when nobody knows yet. */}
+                {isLoading ? null : (
+                  <StatRow>
+                    <StatCol>
+                      <StatValue>{marketStats.total}</StatValue>
+                      {/* French takes the singular after 0 and 1, so a fixed plural
+                      reads as a typo on exactly the counts a young market
+                      spends most of its time showing. Same rule as Véhicules. */}
+                      <StatLabel>
+                        {t(
+                          marketStats.total > 1
+                            ? "realEstateStatOnline"
+                            : "realEstateStatOnlineOne",
+                        )}
+                      </StatLabel>
+                    </StatCol>
+                    <StatDivider />
+                    <StatCol>
+                      <StatValue>{marketStats.cities}</StatValue>
+                      <StatLabel>
+                        {t(
+                          marketStats.cities > 1
+                            ? "realEstateStatCities"
+                            : "realEstateStatCitiesOne",
+                        )}
+                      </StatLabel>
+                    </StatCol>
+                    <StatDivider />
+                    <StatCol>
+                      <StatValue>{marketStats.quartiers}</StatValue>
+                      <StatLabel>
+                        {t(
+                          marketStats.quartiers > 1
+                            ? "realEstateStatQuartiers"
+                            : "realEstateStatQuartiersOne",
+                        )}
+                      </StatLabel>
+                    </StatCol>
+                  </StatRow>
+                )}
+                {/* In the banner, which does not scroll. This one was the
+                ListFooterComponent of a long property list — literally the last
+                thing on the screen. See HeroPostBar. */}
+                {mayPublish ? (
+                  <HeroPostBar
+                    icon="home-outline"
+                    ink={EMERALD}
+                    label={t(`realEstatePostPrompt_${deal}`)}
+                    cta={t("heroPostCta")}
+                    onPress={startPosting}
+                  />
+                ) : null}
+              </Banner>
+
+              {/* Controls stay put while results scroll. Three stacked labelled
+              filter sections pushed the first card ~350px down the page; as
+              compact pills they cost one row and the results are visible from
+              the first frame — which is the whole job of a search screen. */}
+              <Chrome>
+                <DealTrack
+                  ref={dealScrollRef}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={dealTrackContentStyle}
+                  onLayout={(event) =>
+                    setDealTrackWidth(event.nativeEvent.layout.width)
+                  }
+                >
+                  {dealThumbWidth > 0 ? (
+                    <DealThumb
+                      style={{
+                        width: dealThumbWidth,
+                        transform: [{ translateX: dealThumbX }],
+                      }}
+                    />
+                  ) : null}
+                  {realEstateDeals.map((item, index) => (
+                    <DealTab
+                      key={item.key}
+                      onPress={() => selectDeal(item.key)}
+                    >
+                      <DealGlyph>{getRealEstateDealGlyph(item.key)}</DealGlyph>
+                      <DealTabLabel numberOfLines={1}>
+                        {getRealEstateDealLabel(item.key, language)}
+                      </DealTabLabel>
+                      {/* The same row again in white, faded in as the pill arrives.
+                      The glyph is an emoji and renders identically in both, so
+                      the two layers read as one. */}
+                      <DealTabActiveLayer
+                        pointerEvents="none"
+                        style={{
+                          opacity: dealPos.interpolate({
+                            inputRange: [index - 0.6, index, index + 0.6],
+                            outputRange: [0, 1, 0],
+                            extrapolate: "clamp",
+                          }),
+                        }}
+                      >
+                        <DealGlyph>
+                          {getRealEstateDealGlyph(item.key)}
+                        </DealGlyph>
+                        <DealTabLabel active numberOfLines={1}>
+                          {getRealEstateDealLabel(item.key, language)}
+                        </DealTabLabel>
+                      </DealTabActiveLayer>
+                    </DealTab>
+                  ))}
+                </DealTrack>
+
+                {deal === "commercial" ? (
+                  <TypeChipRow
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={typeChipRowStyle}
+                  >
+                    {commercialTypes.map((option) => {
+                      const active = commercialType === option.key;
+                      return (
+                        <TypeChip
+                          key={option.key}
+                          active={active}
+                          accent={option.color}
+                          // Tapping the active chip clears it — the row has no "all"
+                          // entry, so the selected chip is its own off switch.
+                          onPress={() =>
+                            setCommercialType(active ? null : option.key)
+                          }
+                        >
+                          <TypeChipDisc
+                            active={active}
+                            tint={
+                              active
+                                ? "rgba(255,255,255,0.22)"
+                                : sectorTint(option.color, 0.14)
+                            }
+                          >
+                            <TypeChipGlyph>{option.glyph}</TypeChipGlyph>
+                          </TypeChipDisc>
+                          <TypeChipLabel active={active}>
+                            {getCommercialTypeLabel(option.key, language)}
+                          </TypeChipLabel>
+                        </TypeChip>
+                      );
+                    })}
+                  </TypeChipRow>
+                ) : null}
+
+                <SearchWrap>
+                  <SearchBar
+                    value={search}
+                    onChangeText={setSearch}
+                    placeholder={t("realEstateSearchPlaceholder")}
+                  />
+                </SearchWrap>
+
+                <FilterBar>
+                  <FilterPill
+                    active={!!city}
+                    onPress={() => setCityPickerOpen(true)}
+                  >
+                    <Feather
+                      name="map-pin"
+                      size={13}
+                      color={city ? "#ffffff" : colors.textMuted}
+                    />
+                    <FilterPillLabel active={!!city} numberOfLines={1}>
+                      {city ?? t("realEstateFilterCity")}
+                    </FilterPillLabel>
+                    <Feather
+                      name="chevron-down"
+                      size={13}
+                      color={city ? "#ffffff" : colors.textMuted}
+                    />
+                  </FilterPill>
+
+                  <FilterPill
+                    active={!!quartier}
+                    onPress={() => setQuartierPickerOpen(true)}
+                  >
+                    <FilterPillLabel active={!!quartier} numberOfLines={1}>
+                      {quartier ?? t("realEstateFilterQuartier")}
+                    </FilterPillLabel>
+                    <Feather
+                      name="chevron-down"
+                      size={13}
+                      color={quartier ? "#ffffff" : colors.textMuted}
+                    />
+                  </FilterPill>
+
+                  <FilterPill
+                    active={!!band}
+                    onPress={() => setBudgetPickerOpen(true)}
+                  >
+                    <FilterPillLabel active={!!band} numberOfLines={1}>
+                      {activeBandLabel ?? t("realEstateFilterBudget")}
+                    </FilterPillLabel>
+                    <Feather
+                      name="chevron-down"
+                      size={13}
+                      color={band ? "#ffffff" : colors.textMuted}
+                    />
+                  </FilterPill>
+
+                  {/* Only on the two deals that can carry a car. On a sale or a
+                  plot it would be a filter that matches nothing, every time. */}
+                  {realEstateHasCarOption(deal) ? (
+                    <FilterPill
+                      active={withCarOnly}
+                      onPress={() => setWithCarOnly((value) => !value)}
+                    >
+                      <Feather
+                        name="truck"
+                        size={13}
+                        color={withCarOnly ? "#ffffff" : colors.textMuted}
+                      />
+                      <FilterPillLabel active={withCarOnly} numberOfLines={1}>
+                        {t("realEstateFilterWithCar")}
+                      </FilterPillLabel>
+                    </FilterPill>
+                  ) : null}
+
+                  {showMoreFilters ? (
+                    <FilterPill
+                      active={moreCount > 0}
+                      onPress={() => setMorePickerOpen(true)}
+                    >
+                      <Feather
+                        name="sliders"
+                        size={13}
+                        color={moreCount > 0 ? "#ffffff" : colors.textMuted}
+                      />
+                      <FilterPillLabel active={moreCount > 0} numberOfLines={1}>
+                        {moreCount > 0
+                          ? `${t("realEstateMoreFilters")} ${moreCount}`
+                          : t("realEstateMoreFilters")}
+                      </FilterPillLabel>
+                    </FilterPill>
+                  ) : null}
+
+                  {hasFilters ? (
+                    <ClearPill onPress={clearFilters} hitSlop={6}>
+                      <Feather name="x" size={15} color={colors.textMuted} />
+                    </ClearPill>
+                  ) : null}
+                </FilterBar>
+              </Chrome>
+            </HeaderBleed>
             {deal === "rent" ? (
               <WarnBox>
                 <Feather name="alert-circle" size={15} color={AMBER_TEXT} />
@@ -1412,6 +1438,14 @@ const Container = styled(SafeAreaView)`
 // overflow: hidden so the glow discs are cut by those corners. Safe with a
 // gradient because it is opaque; the artifact that bit the job cards needed
 // a translucent background.
+// Pulls back the FlatList contentContainer's padding so the banner is full
+// width inside a padded list. The negative margin is safe here — it pulls
+// content back to the scroll view's own edge, not past it, which is what
+// gets clipped.
+const HeaderBleed = styled.View`
+  margin: -${spacing.md}px -${spacing.md}px ${spacing.md}px;
+`;
+
 const Banner = styled(LinearGradient)`
   padding: ${spacing.sm}px ${spacing.md}px ${spacing.lg}px;
   border-bottom-left-radius: 28px;

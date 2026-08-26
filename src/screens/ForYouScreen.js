@@ -1413,6 +1413,27 @@ export function ForYouScreen({ navigation, route }) {
             );
           }}
         />
+
+        {/* Inside HeaderCard, which is the part of this screen that does
+            not scroll. In the body it was the first row of the tab and
+            still went away the moment somebody started reading job
+            adverts — and an employer opening Emplois reads job adverts on
+            the way to deciding to post one. Here it is simply always
+            there.
+
+            Only on Emplois: on Marketplace it would offer something the
+            tab is not about. */}
+        {selectedChipKey === "jobs" && mayPublish ? (
+          <HireBar onPress={startJobPosting}>
+            <HireDisc>
+              <Ionicons name="megaphone" size={15} color="#ffffff" />
+            </HireDisc>
+            <HireBarLabel numberOfLines={1}>{t("jobsPostTitle")}</HireBarLabel>
+            <HireCta>
+              <HireCtaLabel>{t("jobsHireCta")}</HireCtaLabel>
+            </HireCta>
+          </HireBar>
+        ) : null}
       </HeaderCard>
 
       {isDefaultBrowse ? (
@@ -1694,21 +1715,6 @@ export function ForYouScreen({ navigation, route }) {
                 {t("jobsFilters")}
               </JobFiltersPillLabel>
             </JobFiltersPill>
-            {/* An employer opening Emplois is not reading job ads, and the
-                card that offers to publish sits below all of them. Nobody
-                scrolls a jobs list to find out they can post one — so the
-                action also lives here, in the row they are already looking
-                at, above the first advert.
-
-                "Recruter" rather than "Publier": it says who it is for.
-                Publier is what everyone does on this app, and an employer
-                skimming for their own door needs the word that is theirs. */}
-            {mayPublish ? (
-              <JobHirePill onPress={startJobPosting}>
-                <Ionicons name="megaphone-outline" size={13} color={EMERALD} />
-                <JobHirePillLabel>{t("jobsHirePill")}</JobHirePillLabel>
-              </JobHirePill>
-            ) : null}
             <JobSaveLink
               active={showSavedJobsOnly}
               onPress={() => setShowSavedJobsOnly((value) => !value)}
@@ -1827,16 +1833,29 @@ export function ForYouScreen({ navigation, route }) {
                     onPress={() => navigation.navigate("JobDetail", { job })}
                   >
                     <JobCardTopRow>
-                      <JobLogoGradient
-                        colors={[EMERALD, GOLD]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                      >
-                        <JobLogoLabel>
-                          {(job.company ?? "").trim().charAt(0).toUpperCase() ||
-                            "?"}
-                        </JobLogoLabel>
-                      </JobLogoGradient>
+                      {/* The employer's logo where they uploaded one. The
+                          gradient initial stays as the fallback rather than
+                          being replaced by a grey placeholder — the same
+                          rule the account avatar follows. */}
+                      {job.logoUrl ? (
+                        <JobLogoPhoto
+                          source={{ uri: job.logoUrl }}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <JobLogoGradient
+                          colors={[EMERALD, GOLD]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                        >
+                          <JobLogoLabel>
+                            {(job.company ?? "")
+                              .trim()
+                              .charAt(0)
+                              .toUpperCase() || "?"}
+                          </JobLogoLabel>
+                        </JobLogoGradient>
+                      )}
                       <JobInfoCol>
                         <JobTitleRow>
                           <JobTitleText numberOfLines={1}>
@@ -1926,22 +1945,19 @@ export function ForYouScreen({ navigation, route }) {
               it. */}
           {mayPublish ? (
             <JobPostCard onPress={startJobPosting}>
-              <JobPostIcon>
-                <Ionicons
-                  name="megaphone-outline"
-                  size={20}
-                  color={colors.primary}
-                />
-              </JobPostIcon>
-              <JobPostCol>
-                <JobPostTitle>{t("jobsPostTitle")}</JobPostTitle>
-                <JobPostCopy>{t("jobsPostCopy")}</JobPostCopy>
-              </JobPostCol>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={colors.textMuted}
-              />
+              <JobPostTop>
+                <JobPostIcon>
+                  <Ionicons name="megaphone" size={19} color="#ffffff" />
+                </JobPostIcon>
+                <JobPostCol>
+                  <JobPostTitle>{t("jobsPostTitle")}</JobPostTitle>
+                  <JobPostCopy>{t("jobsPostCopy")}</JobPostCopy>
+                </JobPostCol>
+              </JobPostTop>
+              <JobPostButton>
+                <Ionicons name="add" size={16} color="#ffffff" />
+                <JobPostButtonLabel>{t("jobsPostAction")}</JobPostButtonLabel>
+              </JobPostButton>
             </JobPostCard>
           ) : null}
 
@@ -2256,6 +2272,55 @@ export function ForYouScreen({ navigation, route }) {
 const Container = styled(SafeAreaView)`
   flex: 1;
   background-color: ${(props) => props.theme.background};
+`;
+
+// It sits under the category chips for the whole time somebody is in
+// Emplois, so it has to survive being looked at a hundred times. The first
+// version survived by being invisible — a pale strip of text with a chevron,
+// which reads as a notice and gets skipped like one.
+//
+// A control instead: a filled disc on one side, a filled action on the
+// other, and a hairline holding them together. The weight is all in those
+// two small solid shapes rather than in a block of colour, so it reads as
+// something to press without competing with the job cards below it.
+const HireBar = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin: 0px ${spacing.md}px ${spacing.sm}px;
+  padding: 7px 7px 7px 9px;
+  border-radius: ${radius.pill}px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: rgba(11, 110, 79, 0.22);
+`;
+
+const HireDisc = styled.View`
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  align-items: center;
+  justify-content: center;
+  background-color: ${EMERALD};
+`;
+
+const HireBarLabel = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.semiBold};
+  font-size: 13px;
+  color: ${(props) => props.theme.text};
+`;
+
+const HireCta = styled.View`
+  padding: 7px 14px;
+  border-radius: ${radius.pill}px;
+  background-color: ${EMERALD};
+`;
+
+const HireCtaLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 12.5px;
+  color: #ffffff;
 `;
 
 const HeaderCard = styled.View`
@@ -3087,23 +3152,6 @@ const JobFiltersPillLabel = styled.Text`
   color: ${(props) => (props.active ? EMERALD : props.theme.text)};
 `;
 
-// Same weight as the filter pills beside it, not a call to action: it is a
-// door for the few, held open without shouting at the many who came to look
-// for work.
-const JobHirePill = styled(Pressable)`
-  flex-direction: row;
-  align-items: center;
-  gap: 5px;
-  padding: 8px 13px;
-  border-radius: ${radius.pill}px;
-  background-color: rgba(11, 110, 79, 0.08);
-`;
-
-const JobHirePillLabel = styled.Text`
-  ${type.captionMedium}
-  color: ${EMERALD};
-`;
-
 // Was pushed to the right with margin-left: auto, which was fine while the
 // row held three items on one line. With four it wraps, and an auto margin
 // on a wrapped item strands it alone on a second line hugging the edge. It
@@ -3319,6 +3367,15 @@ const JobCardTopRow = styled.View`
   margin-bottom: 10px;
 `;
 
+// Same box as the gradient it replaces, so a list of employers — some with
+// a logo, some without — stays on one grid.
+const JobLogoPhoto = styled(Image)`
+  width: 42px;
+  height: 42px;
+  border-radius: ${radius.md}px;
+  background-color: ${(props) => props.theme.border};
+`;
+
 const JobLogoGradient = styled(LinearGradient)`
   width: 42px;
   height: 42px;
@@ -3359,25 +3416,49 @@ const JobCompanyRow = styled.View`
   margin-top: 2px;
 `;
 
+// The other half of the same door, and it has room the header strip does
+// not: here the offer can explain itself and end in a button somebody can
+// aim at, instead of a whole row that happens to be tappable.
 const JobPostCard = styled(Pressable)`
-  flex-direction: row;
-  align-items: center;
-  gap: ${spacing.sm}px;
-  padding: 14px 15px;
+  gap: 13px;
+  padding: ${spacing.md}px;
   margin-bottom: ${spacing.lg}px;
   border-radius: ${radius.xl}px;
   background-color: ${(props) => props.theme.surface};
   border-width: 1px;
-  border-color: ${(props) => props.theme.border};
+  border-color: rgba(11, 110, 79, 0.22);
+  ${shadow.card}
+`;
+
+const JobPostTop = styled.View`
+  flex-direction: row;
+  align-items: flex-start;
+  gap: ${spacing.sm}px;
 `;
 
 const JobPostIcon = styled.View`
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
+  width: 38px;
+  height: 38px;
+  border-radius: 19px;
   align-items: center;
   justify-content: center;
-  background-color: ${(props) => props.theme.primaryLight};
+  background-color: ${EMERALD};
+`;
+
+const JobPostButton = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 46px;
+  border-radius: ${radius.pill}px;
+  background-color: ${EMERALD};
+`;
+
+const JobPostButtonLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 14px;
+  color: #ffffff;
 `;
 
 const JobPostCol = styled.View`

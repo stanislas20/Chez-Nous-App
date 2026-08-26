@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -430,13 +431,19 @@ export function JobDetailScreen({ navigation, route }) {
         contentContainerStyle={bodyContentStyle}
       >
         <HeroRow>
-          <LogoGradient
-            colors={[EMERALD, GOLD]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <LogoLabel>{job.company.charAt(0)}</LogoLabel>
-          </LogoGradient>
+          {/* Whatever the card showed, the detail shows. A logo that
+              disappears on the way in reads as a different employer. */}
+          {job.logoUrl ? (
+            <LogoPhoto source={{ uri: job.logoUrl }} resizeMode="cover" />
+          ) : (
+            <LogoGradient
+              colors={[EMERALD, GOLD]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <LogoLabel>{job.company.charAt(0)}</LogoLabel>
+            </LogoGradient>
+          )}
           <HeroInfo>
             <HeroTitle>{title}</HeroTitle>
             <HeroCompanyRow>
@@ -589,13 +596,20 @@ export function JobDetailScreen({ navigation, route }) {
 
         <SectionTitle>{t("jobDetailAboutCompanySection")}</SectionTitle>
         <CompanyCard>
-          <CompanyLogoGradient
-            colors={[EMERALD, GOLD]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <CompanyLogoLabel>{job.company.charAt(0)}</CompanyLogoLabel>
-          </CompanyLogoGradient>
+          {job.logoUrl ? (
+            <CompanyLogoPhoto
+              source={{ uri: job.logoUrl }}
+              resizeMode="cover"
+            />
+          ) : (
+            <CompanyLogoGradient
+              colors={[EMERALD, GOLD]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <CompanyLogoLabel>{job.company.charAt(0)}</CompanyLogoLabel>
+            </CompanyLogoGradient>
+          )}
           <CompanyInfoCol>
             <CompanyNameRow>
               <CompanyName>{job.company}</CompanyName>
@@ -910,6 +924,14 @@ const HeroRow = styled.View`
   margin-bottom: ${spacing.md}px;
 `;
 
+const LogoPhoto = styled(Image)`
+  width: 64px;
+  height: 64px;
+  border-radius: ${radius.lg}px;
+  flex-shrink: 0;
+  background-color: ${(props) => props.theme.border};
+`;
+
 const LogoGradient = styled(LinearGradient)`
   width: 64px;
   height: 64px;
@@ -1146,6 +1168,14 @@ const CompanyCard = styled.View`
   shadow-radius: 8px;
   elevation: 2;
   margin-bottom: ${spacing.lg}px;
+`;
+
+const CompanyLogoPhoto = styled(Image)`
+  width: 52px;
+  height: 52px;
+  border-radius: ${radius.md}px;
+  flex-shrink: 0;
+  background-color: ${(props) => props.theme.border};
 `;
 
 const CompanyLogoGradient = styled(LinearGradient)`

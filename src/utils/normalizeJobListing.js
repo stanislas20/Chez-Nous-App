@@ -1,24 +1,26 @@
 const JOB_TYPE_LABEL_KEYS = {
-  fullTime: 'jobTypeFullTime',
-  partTime: 'jobTypePartTime',
-  contract: 'jobTypeContract',
-  gig: 'jobTypeGig',
+  fullTime: "jobTypeFullTime",
+  partTime: "jobTypePartTime",
+  contract: "jobTypeContract",
+  gig: "jobTypeGig",
 };
 
 function formatPosted(daysAgo, language) {
   if (daysAgo < 1) {
     const hours = Math.max(1, Math.round(daysAgo * 24));
-    return language === 'en' ? `${hours}h ago` : `Il y a ${hours}h`;
+    return language === "en" ? `${hours}h ago` : `Il y a ${hours}h`;
   }
   if (daysAgo < 2) {
-    return language === 'en' ? 'Yesterday' : 'Hier';
+    return language === "en" ? "Yesterday" : "Hier";
   }
   if (daysAgo < 7) {
     const days = Math.round(daysAgo);
-    return language === 'en' ? `${days} days ago` : `Il y a ${days}j`;
+    return language === "en" ? `${days} days ago` : `Il y a ${days}j`;
   }
   const weeks = Math.round(daysAgo / 7);
-  return language === 'en' ? `${weeks} week${weeks > 1 ? 's' : ''} ago` : `Il y a ${weeks} sem.`;
+  return language === "en"
+    ? `${weeks} week${weeks > 1 ? "s" : ""} ago`
+    : `Il y a ${weeks} sem.`;
 }
 
 // Converts a raw Firestore job listing (categoryKey: 'jobs', written by
@@ -38,7 +40,7 @@ function formatPosted(daysAgo, language) {
 // *other* language up front.
 export function normalizeJobListing(doc, t, language) {
   const typeLabelKey = JOB_TYPE_LABEL_KEYS[doc.jobType] ?? null;
-  const typeLabel = typeLabelKey ? t(typeLabelKey) : '';
+  const typeLabel = typeLabelKey ? t(typeLabelKey) : "";
   const postedDaysAgo = doc.createdAt?.toDate
     ? (Date.now() - doc.createdAt.toDate().getTime()) / (1000 * 60 * 60 * 24)
     : 0;
@@ -56,7 +58,19 @@ export function normalizeJobListing(doc, t, language) {
     sellerId: doc.sellerId,
     titleEn: doc.titleEn,
     titleFr: doc.titleFr,
-    company: doc.company || '',
+    company: doc.company || "",
+    // The employer's own picture, if they attached one. The posting form
+    // already asks for it — "un logo d'entreprise ou une photo du lieu de
+    // travail aide les candidats à faire confiance à l'annonce" — and until
+    // now nothing rendered it, so every card drew the same initial and the
+    // upload changed nothing a candidate could see.
+    //
+    // Cover image first, then the first attachment, then the account photo:
+    // an employer who uploaded a logo means the logo, and one who uploaded
+    // nothing still has a face on their account. `mediaUrl` and not `url` —
+    // the media entries are { mediaType, mediaUrl, mediaPath }.
+    logoUrl:
+      doc.mediaUrl ?? doc.media?.[0]?.mediaUrl ?? doc.sellerPhotoUrl ?? null,
     city: doc.city,
     category: doc.jobCategory,
     verified: Boolean(doc.verified),

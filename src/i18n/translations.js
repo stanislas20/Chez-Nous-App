@@ -38,6 +38,8 @@ export const translations = {
     realEstatePostTitle: "Do you have a property to list?",
     realEstatePostCopy:
       "Publish it here — rent, sale or land, seen from Bénin and abroad.",
+    jobsHireCta: "Post",
+    jobsPostAction: "Post a job",
     jobsPostTitle: "Are you hiring?",
     jobsPostCopy: "Post the role here — candidates apply from inside the app.",
     postingTitleVehicles: "Sell a vehicle",
@@ -523,7 +525,6 @@ export const translations = {
     jobsCategoryCount: "{count} open",
     jobsCategoryEmpty: "Nothing open",
     jobsFeedSalaryOnRequest: "Salary on request",
-    jobsHirePill: "Hire",
     jobsSavedLink: "Saved",
     jobsNoExperienceTag: "No experience needed",
     jobsNewTag: "New",
@@ -2358,6 +2359,8 @@ export const translations = {
     realEstatePostTitle: "Vous avez un bien à publier ?",
     realEstatePostCopy:
       "Publiez-le ici — location, vente ou terrain, vu du Bénin comme de l’étranger.",
+    jobsHireCta: "Publier",
+    jobsPostAction: "Publier une offre",
     jobsPostTitle: "Vous recrutez ?",
     jobsPostCopy:
       "Publiez le poste ici — les candidats postulent depuis l’application.",
@@ -2858,7 +2861,6 @@ export const translations = {
     jobsCategoryCount: "{count} offre(s)",
     jobsCategoryEmpty: "Aucune offre",
     jobsFeedSalaryOnRequest: "Salaire sur demande",
-    jobsHirePill: "Recruter",
     jobsSavedLink: "Enregistrés",
     jobsNoExperienceTag: "Sans expérience",
     jobsNewTag: "Nouveau",

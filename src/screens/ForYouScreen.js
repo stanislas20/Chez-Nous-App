@@ -25,6 +25,7 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { Tappable } from "../components/Tappable";
+import { SectionHeading } from "../components/SectionHeading";
 import { SearchBar } from "../components/SearchBar";
 import { ListingCard } from "../components/ListingCard";
 import { AdCard } from "../components/AdCard";
@@ -2550,62 +2551,6 @@ const PharmacyRatingText = styled.Text`
   ${type.caption}
   font-size: 10.5px;
   color: ${(props) => props.theme.textMuted};
-`;
-
-// One header for every section, and no emoji in it.
-//
-// Six sections each opened with a different pictogram — 🏆 💼 🔥 ⭐ 📍 🎯 —
-// which is six accent colours the palette never agreed to, competing with
-// the cards underneath. A rule above the title does the same job of
-// separating one band from the next, and does it the same way every time.
-//
-// `meta` is for a fact about the section itself — how many jobs are in the
-// list below. That used to be a banner of its own, which is a lot of
-// furniture for one number, and it sat far enough above the list that it
-// was not obviously counting it.
-function SectionHeading({ label, meta }) {
-  return (
-    <SectionHeadingWrap>
-      <SectionRule />
-      <SectionTitleRow>
-        <SectionTitle numberOfLines={2}>{label}</SectionTitle>
-        {meta ? <SectionMeta>{meta}</SectionMeta> : null}
-      </SectionTitleRow>
-    </SectionHeadingWrap>
-  );
-}
-
-const SectionTitleRow = styled.View`
-  flex-direction: row;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-`;
-
-const SectionMeta = styled.Text`
-  ${type.caption}
-  font-size: 12px;
-  color: ${(props) => props.theme.textMuted};
-`;
-
-const SectionHeadingWrap = styled.View`
-  gap: 9px;
-  margin-bottom: 14px;
-`;
-
-// Short and heavy rather than a full-width hairline: it reads as a mark
-// against the title, not as a divider closing the section above.
-const SectionRule = styled.View`
-  width: 26px;
-  height: 3px;
-  border-radius: 2px;
-  background-color: ${EMERALD};
-`;
-
-const SectionTitle = styled.Text`
-  ${type.h3}
-  letter-spacing: -0.2px;
-  color: ${(props) => props.theme.text};
 `;
 
 const QuickAccessRow = styled.ScrollView`

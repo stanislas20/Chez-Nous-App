@@ -404,10 +404,10 @@ export const translations = {
       "Respond to buyers quickly — fast replies lead to more sales.",
 
     localTitle: "Local",
-    localSubtitle: "Listings near you",
     localLocationLabel: "{city}, Benin",
     localAllCities: "All cities",
     localSearchPlaceholder: "Search near {city}",
+    localSearchPlaceholderAll: "Search listings",
     localFilterDistanceLabel: "Distance",
     localFilterCategoryLabel: "Category",
     localFilterPriceLabel: "Price",
@@ -2734,10 +2734,10 @@ export const translations = {
       "Répondez rapidement aux acheteurs — les réponses rapides mènent à plus de ventes.",
 
     localTitle: "Local",
-    localSubtitle: "Annonces près de chez vous",
     localLocationLabel: "{city}, Bénin",
     localAllCities: "Toutes les villes",
     localSearchPlaceholder: "Rechercher près de {city}",
+    localSearchPlaceholderAll: "Rechercher une annonce",
     localFilterDistanceLabel: "Distance",
     localFilterCategoryLabel: "Catégorie",
     localFilterPriceLabel: "Prix",

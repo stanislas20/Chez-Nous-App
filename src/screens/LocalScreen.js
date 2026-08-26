@@ -17,6 +17,7 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { SearchBar } from "../components/SearchBar";
+import { SectionHeading } from "../components/SectionHeading";
 import { ListingCard } from "../components/ListingCard";
 import { mockListings } from "../data/mockListings";
 import { cities } from "../data/cities";
@@ -294,25 +295,19 @@ export function LocalScreen({ navigation }) {
           <LocationLabel numberOfLines={1}>{locationLabel}</LocationLabel>
           <Ionicons name="chevron-down" size={14} color={colors.textMuted} />
         </LocationRow>
-        <Subtitle>{t("localSubtitle")}</Subtitle>
-        <RefreshHintRow>
-          <RowIconSlot>
-            <Ionicons
-              name="arrow-down-outline"
-              size={11}
-              color={colors.textMuted}
-            />
-          </RowIconSlot>
-          <RefreshHintText>{t("pullToRefreshHint")}</RefreshHintText>
-        </RefreshHintRow>
-
         <SearchBarWrap>
           <SearchBar
             value={query}
             onChangeText={setQuery}
-            placeholder={t("localSearchPlaceholder", {
-              city: selectedCity ?? t("localAllCities"),
-            })}
+            /* "Rechercher près de Toutes les villes" — near All cities —
+               is not a sentence. The placeholder names a place only when
+               there is a place to name; with no city chosen it asks the
+               plain question. */
+            placeholder={
+              selectedCity
+                ? t("localSearchPlaceholder", { city: selectedCity })
+                : t("localSearchPlaceholderAll")
+            }
           />
         </SearchBarWrap>
 
@@ -453,12 +448,25 @@ export function LocalScreen({ navigation }) {
               </PlaceCard>
             ) : null}
 
-            <SectionLabelRow>
-              <SectionLabel>{t("localRestaurantsSectionTitle")}</SectionLabel>
-              <SeeAllLink onPress={() => navigation.navigate("Restaurants")}>
-                {t("dashboardSeeAll")}
-              </SeeAllLink>
-            </SectionLabelRow>
+            {/* "Voir toutes" only when there is a strip to see the rest
+                of. With none published the card below is itself the way
+                into the directory — it says so and carries the chevron —
+                and two links to the same screen, a thumb apart, is one
+                link too many. */}
+            <SectionHeadingWrap>
+              <SectionHeading
+                label={t("localRestaurantsSectionTitle")}
+                action={
+                  nearbyRestaurants.length ? (
+                    <SeeAllLink
+                      onPress={() => navigation.navigate("Restaurants")}
+                    >
+                      {t("dashboardSeeAll")}
+                    </SeeAllLink>
+                  ) : null
+                }
+              />
+            </SectionHeadingWrap>
 
             {nearbyRestaurants.length ? (
               <RestoStrip horizontal showsHorizontalScrollIndicator={false}>
@@ -518,9 +526,16 @@ export function LocalScreen({ navigation }) {
               </PlaceCard>
             )}
 
-            <SectionLabelRow>
-              <SectionLabel>{t("localNearbySectionTitle")}</SectionLabel>
-            </SectionLabelRow>
+            <SectionHeadingWrap>
+              <SectionHeading
+                label={t("localNearbySectionTitle")}
+                meta={
+                  filteredListings.length
+                    ? t("jobsCategoryCount", { count: filteredListings.length })
+                    : null
+                }
+              />
+            </SectionHeadingWrap>
           </>
         }
         keyExtractor={(item) => item.id}
@@ -729,7 +744,6 @@ const LangPillLabel = styled.Text`
 // which has no icon at all — otherwise the three lines' text visibly
 // stair-step instead of lining up on the same left edge.
 const ROW_ICON_SLOT = 16;
-const ROW_TEXT_INDENT = ROW_ICON_SLOT + spacing.sm;
 
 const LocationRow = styled(Pressable)`
   flex-direction: row;
@@ -750,30 +764,19 @@ const LocationLabel = styled.Text`
   flex-shrink: 1;
 `;
 
-const Subtitle = styled.Text`
-  ${type.caption}
-  color: ${(props) => props.theme.textMuted};
-  padding-left: ${spacing.md + ROW_TEXT_INDENT}px;
-  padding-right: ${spacing.md}px;
-  margin-top: 2px;
-`;
-
-const RefreshHintRow = styled.View`
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-end;
-  padding-horizontal: ${spacing.md}px;
-  margin-top: 2px;
-  margin-bottom: ${spacing.xs}px;
-`;
-
+// Two lines used to sit between the city row and the search field and
+// neither survived a look at them together.
+//
+// "Annonces près de chez vous" restated the screen's own title and the city
+// row directly above it, in three places saying one thing.
+//
+// The pull-to-refresh hint was worse: justify-content: flex-end parked it
+// alone against the right edge, under two left-aligned lines, which read as
+// a layout accident rather than a hint. RefreshControl demonstrates the
+// gesture the moment anybody pulls — it does not need a permanent line of
+// sticky chrome, and certainly not a misaligned one.
 const SearchBarWrap = styled.View`
   margin-top: ${spacing.sm}px;
-`;
-
-const RefreshHintText = styled.Text`
-  ${type.caption}
-  color: ${(props) => props.theme.textMuted};
 `;
 
 const ChipRow = styled.ScrollView`
@@ -944,19 +947,11 @@ const SeeAllLink = styled.Text`
   color: ${(props) => props.theme.primary};
 `;
 
-const SectionLabelRow = styled.View`
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
+// SectionHeading brings its own bottom margin; this only supplies the
+// screen's horizontal padding and the air above the section.
+const SectionHeadingWrap = styled.View`
   padding-horizontal: ${spacing.md}px;
   padding-top: ${spacing.lg}px;
-  padding-bottom: ${spacing.sm}px;
-`;
-
-const SectionLabel = styled.Text`
-  font-family: ${fontFamily.semiBold};
-  font-size: 15.5px;
-  color: ${(props) => props.theme.text};
 `;
 
 const EmptyState = styled.View`

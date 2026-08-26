@@ -413,6 +413,62 @@ export function RealEstateScreen({ navigation, route }) {
     };
   }, [listings]);
 
+  // The floating bar. Same mechanism as Véhicules, which already solved
+  // this: scrollY drives the bar on the native driver, and `stuck` is a JS
+  // mirror used only for pointerEvents — an invisible bar left interactive
+  // would swallow every tap across the top of the list.
+  const [bannerHeight, setBannerHeight] = useState(0);
+  const [stuck, setStuck] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const onScroll = useMemo(
+    () =>
+      Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+        useNativeDriver: true,
+      }),
+    [scrollY],
+  );
+
+  // A sane distance until the banner has been measured, so the
+  // interpolation always has an increasing input range.
+  const trigger = bannerHeight > 0 ? bannerHeight : 320;
+
+  // Fractions of the banner, not its last fifty pixels.
+  //
+  // Véhicules fades over [height - 60, height - 10], which works there
+  // because that screen always has more list than viewport. Here it does
+  // not: with one property published the whole page only scrolls about
+  // 660px, the fade finished at 670, and the bar sat permanently half
+  // transparent with the deal tabs showing through it. A market this young
+  // spends most of its time with a short list, so the range has to land
+  // inside a scroll that short.
+  const fadeFrom = trigger * 0.45;
+  const fadeTo = trigger * 0.8;
+
+  useEffect(() => {
+    const id = scrollY.addListener(({ value }) => {
+      setStuck((prev) => {
+        // Hysteresis: without the gap the bar flickers between states when a
+        // scroll settles right on the threshold.
+        const next = prev ? value > fadeFrom * 0.9 : value > fadeTo;
+        return next === prev ? prev : next;
+      });
+    });
+    return () => scrollY.removeListener(id);
+  }, [scrollY, fadeFrom, fadeTo]);
+
+  const stickyOpacity = scrollY.interpolate({
+    inputRange: [fadeFrom, fadeTo],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
+  const stickyShift = scrollY.interpolate({
+    inputRange: [fadeFrom, fadeTo],
+    outputRange: [-14, 0],
+    extrapolate: "clamp",
+  });
+
   const clearFilters = () => {
     setCity(null);
     setQuartier(null);
@@ -424,11 +480,13 @@ export function RealEstateScreen({ navigation, route }) {
 
   return (
     <Container edges={["left", "right", "bottom"]}>
-      <FlatList
+      <Animated.FlatList
         data={results}
         keyExtractor={(item) => item.id}
         contentContainerStyle={listContentStyle}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={onScroll}
         ListHeaderComponent={
           <>
             {/* The banner and the filter block scroll with the list.
@@ -447,7 +505,14 @@ export function RealEstateScreen({ navigation, route }) {
               {/* A banner rather than a title bar: this is a destination people
               arrive at, and the count tells them the market has depth before
               they touch a filter. */}
+              {/* Measured on the banner alone, not on HeaderBleed, which
+                  also wraps the filter block: measuring both put the
+                  trigger at ~1250px and the floating bar never appeared
+                  until the list was almost exhausted. */}
               <Banner
+                onLayout={(event) =>
+                  setBannerHeight(event.nativeEvent.layout.height)
+                }
                 colors={BANNER}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -825,6 +890,38 @@ export function RealEstateScreen({ navigation, route }) {
           />
         )}
       />
+
+      {/* The floating bar, once the banner has scrolled past.
+      
+          It carries what the banner was carrying and the list still needs:
+          a way back, since the banner's own arrow has gone with it, the
+          screen's identity, and the publish call. That last one is the
+          point — moving the banner into the list to free up the screen cost
+          the publish bar its permanent place, and this gives it back
+          without spending half the viewport on chrome.
+      
+          Above the list rather than in it: a sticky list header would push
+          the rows down, and this has to float over them. */}
+      <StickyBar
+        topInset={insets.top}
+        pointerEvents={stuck ? "auto" : "none"}
+        style={{
+          opacity: stickyOpacity,
+          transform: [{ translateY: stickyShift }],
+        }}
+      >
+        <StickyBack onPress={() => navigation.goBack()} hitSlop={12}>
+          <Feather name="chevron-left" size={21} color={colors.text} />
+        </StickyBack>
+        <BeninFlag width={22} />
+        <StickyTitle numberOfLines={1}>{t("realEstateTitle")}</StickyTitle>
+        {mayPublish ? (
+          <StickyCta onPress={startPosting}>
+            <Feather name="plus" size={14} color="#ffffff" />
+            <StickyCtaLabel>{t("heroPostCta")}</StickyCtaLabel>
+          </StickyCta>
+        ) : null}
+      </StickyBar>
 
       <Modal
         visible={cityPickerOpen}
@@ -1444,6 +1541,50 @@ const Container = styled(SafeAreaView)`
 // width inside a padded list. The negative margin is safe here — it pulls
 // content back to the scroll view's own edge, not past it, which is what
 // gets clipped.
+const StickyBar = styled(Animated.View)`
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  padding: ${(props) => props.topInset + 6}px ${spacing.md}px 10px;
+  background-color: ${(props) => props.theme.surface};
+  border-bottom-width: 1px;
+  border-bottom-color: ${(props) => props.theme.border};
+`;
+
+const StickyBack = styled(Pressable)`
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+`;
+
+const StickyTitle = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.bold};
+  font-size: 16px;
+  color: ${(props) => props.theme.text};
+`;
+
+const StickyCta = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  border-radius: ${radius.pill}px;
+  background-color: ${EMERALD};
+`;
+
+const StickyCtaLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 12.5px;
+  color: #ffffff;
+`;
+
 const HeaderBleed = styled.View`
   margin: -${spacing.md}px -${spacing.md}px ${spacing.md}px;
 `;

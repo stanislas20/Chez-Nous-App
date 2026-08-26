@@ -51,5 +51,22 @@ export function useVehiclePapers() {
     [],
   );
 
-  return { papers, loaded, remember, write };
+  // The folder's own name, kept beside the dates rather than in a store of
+  // its own. It is not a paper and must never be counted as one: the screen
+  // filters on paperKinds, so a stored label cannot be mistaken for a
+  // document the reader has entered.
+  const rememberVehicle = useCallback(
+    (label) =>
+      setPapers((prev) => {
+        const next = { ...prev };
+        const trimmed = (label ?? "").trim();
+        if (!trimmed) delete next.vehicle;
+        else next.vehicle = trimmed;
+        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+        return next;
+      }),
+    [],
+  );
+
+  return { papers, loaded, remember, rememberVehicle, write };
 }

@@ -903,6 +903,9 @@ export function RealEstateScreen({ navigation, route }) {
           Above the list rather than in it: a sticky list header would push
           the rows down, and this has to float over them. */}
       <StickyBar
+        colors={BANNER}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         topInset={insets.top}
         pointerEvents={stuck ? "auto" : "none"}
         style={{
@@ -911,13 +914,13 @@ export function RealEstateScreen({ navigation, route }) {
         }}
       >
         <StickyBack onPress={() => navigation.goBack()} hitSlop={12}>
-          <Feather name="chevron-left" size={21} color={colors.text} />
+          <Feather name="chevron-left" size={21} color="#ffffff" />
         </StickyBack>
         <BeninFlag width={22} />
         <StickyTitle numberOfLines={1}>{t("realEstateTitle")}</StickyTitle>
         {mayPublish ? (
           <StickyCta onPress={startPosting}>
-            <Feather name="plus" size={14} color="#ffffff" />
+            <Feather name="plus" size={14} color={EMERALD} />
             <StickyCtaLabel>{t("heroPostCta")}</StickyCtaLabel>
           </StickyCta>
         ) : null}
@@ -1541,7 +1544,13 @@ const Container = styled(SafeAreaView)`
 // width inside a padded list. The negative margin is safe here — it pulls
 // content back to the scroll view's own edge, not past it, which is what
 // gets clipped.
-const StickyBar = styled(Animated.View)`
+// The banner's own gradient, not a white toolbar.
+//
+// It was white, and that made the banner read as gone and something else
+// arriving in its place. Wearing the same green with the same flag and the
+// same title, it reads as what it is — the banner, collapsed to the one row
+// that still fits, keeping its identity while the market gets the screen.
+const StickyBar = styled(Animated.createAnimatedComponent(LinearGradient))`
   position: absolute;
   top: 0px;
   left: 0px;
@@ -1550,9 +1559,8 @@ const StickyBar = styled(Animated.View)`
   align-items: center;
   gap: 9px;
   padding: ${(props) => props.topInset + 6}px ${spacing.md}px 10px;
-  background-color: ${(props) => props.theme.surface};
-  border-bottom-width: 1px;
-  border-bottom-color: ${(props) => props.theme.border};
+  border-bottom-left-radius: 22px;
+  border-bottom-right-radius: 22px;
 `;
 
 const StickyBack = styled(Pressable)`
@@ -1567,22 +1575,24 @@ const StickyTitle = styled.Text`
   flex: 1;
   font-family: ${fontFamily.bold};
   font-size: 16px;
-  color: ${(props) => props.theme.text};
+  color: #ffffff;
 `;
 
+// White on the green, the same way HeroPostBar sits on the full banner: an
+// emerald button on an emerald ground is the least visible thing in the row.
 const StickyCta = styled(Pressable)`
   flex-direction: row;
   align-items: center;
   gap: 5px;
   padding: 8px 14px;
   border-radius: ${radius.pill}px;
-  background-color: ${EMERALD};
+  background-color: #ffffff;
 `;
 
 const StickyCtaLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 12.5px;
-  color: #ffffff;
+  color: ${EMERALD};
 `;
 
 const HeaderBleed = styled.View`

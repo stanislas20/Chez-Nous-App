@@ -66,6 +66,33 @@ const listingsRowStyle = {
 // same hues the category tiles use elsewhere in the app, so a colour means
 // the same thing wherever it appears rather than being decoration invented
 // for this screen.
+// A hue at 12% over whatever it sits on. Light enough that a 15px glyph
+// stays the darkest thing in the disc, which is the point — the disc is a
+// backing, not a button.
+function washOf(hex) {
+  const value = hex.replace("#", "");
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, 0.12)`;
+}
+
+// The glyph for each figure. Six keys, because the stat row is a different
+// three for a buyer account than for a seller one.
+//
+// Ionicons names, outline weight: at 15px a filled glyph on a pale disc
+// closes up into a blob, and these sit next to a 21px numeral that is
+// meant to be the thing you look at.
+const STAT_ICONS = {
+  total: "pricetags-outline",
+  active: "checkmark-circle-outline",
+  sold: "cash-outline",
+  views: "eye-outline",
+  messages: "chatbubble-ellipses-outline",
+  saved: "heart-outline",
+  following: "people-outline",
+};
+
 const ACTION_TINTS = {
   // Stat cards share this table with the action cards, so "saved" is the
   // same pink in both places on the same screen.
@@ -89,24 +116,6 @@ const ACTION_TINTS = {
   moderation: "#C1512D",
 };
 
-// 14% of the hue on a light ground, 22% on a dark one: the same tint at one
-// opacity is either invisible on white or muddy on near-black.
-function edgeOf(hex, dark) {
-  const value = hex.replace("#", "");
-  const r = parseInt(value.slice(0, 2), 16);
-  const g = parseInt(value.slice(2, 4), 16);
-  const b = parseInt(value.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${dark ? 0.45 : 0.3})`;
-}
-
-function tintOf(hex, dark) {
-  const value = hex.replace("#", "");
-  const r = parseInt(value.slice(0, 2), 16);
-  const g = parseInt(value.slice(2, 4), 16);
-  const b = parseInt(value.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${dark ? 0.22 : 0.14})`;
-}
-
 const quickActionsGridStyle = {
   flexDirection: "row",
   flexWrap: "wrap",
@@ -114,8 +123,7 @@ const quickActionsGridStyle = {
 };
 
 export function SellerDashboardScreen({ navigation }) {
-  const { colors, scheme } = useTheme();
-  const isDark = scheme === "dark";
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { language, t, resetLanguage } = useI18n();
   const { user, sellerProfile, logOut } = useAuth();
@@ -870,19 +878,19 @@ export function SellerDashboardScreen({ navigation }) {
 
         <StatsGrid>
           {statCards.map((card) => {
-            const statHue = ACTION_TINTS[card.key] ?? colors.primary;
             // The trailing-row arithmetic this used to do is now the card's
             // own job — see StatCard.
+            const statHue = ACTION_TINTS[card.key] ?? colors.primary;
             return (
-              <StatCard
-                key={card.key}
-                tint={tintOf(statHue, isDark)}
-                edge={edgeOf(statHue, isDark)}
-                onPress={card.onPress}
-              >
-                <StatValue hue={statHue} dark={isDark}>
-                  {card.value}
-                </StatValue>
+              <StatCard key={card.key} onPress={card.onPress}>
+                <StatIconDisc tint={washOf(statHue)}>
+                  <Ionicons
+                    name={STAT_ICONS[card.key] ?? "ellipse-outline"}
+                    size={15}
+                    color={statHue}
+                  />
+                </StatIconDisc>
+                <StatValue>{card.value}</StatValue>
                 <StatLabel>{card.label}</StatLabel>
               </StatCard>
             );
@@ -1023,17 +1031,11 @@ export function SellerDashboardScreen({ navigation }) {
             const hue =
               ACTION_TINTS[action.tint ?? action.key] ?? colors.primary;
             return (
-              <QuickActionCard
-                key={action.key}
-                hue={hue}
-                tint={tintOf(hue, isDark)}
-                edge={edgeOf(hue, isDark)}
-                onPress={action.onPress}
-              >
+              <QuickActionCard key={action.key} onPress={action.onPress}>
                 <QuickActionIconBadge accent={isAccent} solid={hue}>
                   <Ionicons name={action.icon} size={20} color="#ffffff" />
                 </QuickActionIconBadge>
-                <QuickActionLabel hue={hue} dark={isDark} numberOfLines={2}>
+                <QuickActionLabel numberOfLines={2}>
                   {action.label}
                 </QuickActionLabel>
               </QuickActionCard>
@@ -1525,6 +1527,21 @@ const StatsGrid = styled.View`
 // cards and the seller's has five, so any fixed fraction is right for one of
 // them and wrong for the other — 30% as a basis keeps three per row where
 // three fit and shares the rest out where they do not.
+// Plain cards, like the To-do rows directly beneath them.
+//
+// These were five pastel tiles in five hues with the figure inside each
+// tinted to match. On the action grid below, colour earns its place — it is
+// how you find "Messages" in a 3x3 of near-identical tiles without reading
+// all nine labels. Here it does no work at all: Listings is not blue for a
+// reason and Sold is not pink for one, and five arbitrary hues stacked
+// above a column of white rows made the top of the screen look like a
+// different app from the bottom of it.
+//
+// A figure is the thing to look at, so the figure gets the emphasis —
+// large, bold, in ink — and the tile gets out of its way. The hue survives
+// on one small disc per card: enough to tell the five apart at a glance and
+// to say which figure is which without reading, but not enough to turn the
+// row back into a paint chart. Same rule the job cards landed on.
 const StatCard = styled(Pressable)`
   flex-grow: 1;
   flex-basis: 30%;
@@ -1533,16 +1550,25 @@ const StatCard = styled(Pressable)`
   min-height: 72px;
   padding: ${spacing.sm}px ${spacing.xs}px;
   border-radius: ${radius.lg}px;
-  background-color: ${(props) => props.tint ?? props.theme.surface};
+  background-color: ${(props) => props.theme.surface};
   border-width: 1px;
-  border-color: ${(props) => props.edge ?? props.theme.border};
+  border-color: ${(props) => props.theme.border};
+`;
+
+const StatIconDisc = styled.View`
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  align-items: center;
+  justify-content: center;
+  background-color: ${(props) => props.tint};
+  margin-bottom: 5px;
 `;
 
 const StatValue = styled.Text`
   font-family: ${fontFamily.bold};
   font-size: 21px;
-  color: ${(props) =>
-    props.dark ? props.theme.text : (props.hue ?? props.theme.text)};
+  color: ${(props) => props.theme.text};
 `;
 
 const StatLabel = styled.Text`

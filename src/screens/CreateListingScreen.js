@@ -1141,6 +1141,15 @@ export function CreateListingScreen({ route, navigation }) {
   // An insurance agency is the same case and was missed: it sells a policy
   // over a counter and is never sent to a roadside, so it was being asked
   // whether it carries a jerrycan.
+  //
+  // Air conditioning is deliberately NOT in this list, which looks like an
+  // oversight and is not. Insurance is a business; "clim" is a specialty
+  // that ordinary garages hold alongside everything else, so mentionsAircon
+  // is true for any workshop whose words include it. Excluding them would
+  // strip the roadside questions from a general garage that happens to
+  // mention climatisation — and the "dépannage" escape hatch below only
+  // rescues the ones who also wrote that word. Showing two optional fields
+  // to a specialist is the cheaper mistake.
   const showRoadsideFields =
     (!mentionsDriver && !mentionsParts && !mentionsInsurance) ||
     matchesGarageSpecialty(`${title} ${description}`, "depan");

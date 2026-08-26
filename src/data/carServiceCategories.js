@@ -103,10 +103,6 @@ export const carServicesPrimary = [
   // stocks and whether that stock is new or from a casse.
   { key: "parts", icon: "cog-outline", route: "Parts" },
   { key: "wash", icon: "water-outline", route: "CarWash" },
-  // Not parking. A "parc auto" here is a roadside lot where used cars are
-  // sold — the Sèkandji and Ekpè market — and the tile said Parking, which
-  // in both languages means somewhere to leave your own car instead.
-  { key: "carParks", icon: "location-outline", route: "CarParks" },
   { key: "documents", icon: "document-text-outline", route: "Papers" },
   // Its own screen rather than a text search. "Assurance" alone finds
   // health cover, life cover and every bank's side business, and a motor
@@ -117,15 +113,20 @@ export const carServicesPrimary = [
     icon: "shield-checkmark-outline",
     route: "Insurance",
   },
+  // Promoted out of "Plus de services" when it got a screen of its own.
+  //
+  // This list is the tiles with a destination; the tail below is mostly
+  // tiles that run a search. Air conditioning sat in the tail because it had
+  // no screen, and that stopped being true.
+  //
+  // It replaces "Parc auto" rather than making a thirteenth: the count of
+  // twelve is deliberate (see below), a parc auto is a market and not a
+  // service, and Accès rapide already opens the same screen two-thirds of a
+  // screen higher — it was the one tile here saying something twice.
+  { key: "aircon", icon: "snow-outline", route: "Aircon" },
 ];
 
 export const carServicesMore = [
-  // Its own screen rather than the garage list filtered to "clim". That
-  // list is correct and answers none of the questions somebody sweating in
-  // traffic actually has: what the symptom means, which trade fixes it, and
-  // that a sealed circuit does not consume gas — so a car needing a recharge
-  // every few months is leaking, not thirsty.
-  { key: "aircon", icon: "snow-outline", route: "Aircon" },
   { key: "keys", icon: "key-outline", query: "clé voiture" },
   { key: "gps", icon: "navigate-circle-outline", query: "gps traceur" },
   { key: "fleet", icon: "business-outline", query: "gestion de flotte" },

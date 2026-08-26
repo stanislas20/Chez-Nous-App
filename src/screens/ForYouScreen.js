@@ -1351,23 +1351,26 @@ export function ForYouScreen({ navigation, route }) {
               </Avatar>
             )}
           </AvatarButton>
+          {/* One line, not three.
+              
+              The greeting used to be followed by a subtitle and a
+              pull-to-refresh hint. The subtitle never finished — it is
+              longer than the space between an avatar and two buttons, and
+              numberOfLines={1} meant every user only ever saw "Découvrez ce
+              qui se passe près de …". A sentence that is always truncated
+              is not a sentence.
+              
+              The hint taught a gesture that RefreshControl already
+              demonstrates the moment anybody pulls, and it charged a
+              permanent line of the one part of this screen that never
+              scrolls to do it. Between them they pushed the first job on
+              Emplois below the fold. */}
           <GreetingBlock>
             <GreetingText numberOfLines={1}>
               {firstName
                 ? t("homeGreeting", { name: firstName })
                 : t("homeGreetingGuest")}
             </GreetingText>
-            <SubtitleText numberOfLines={1}>{t("homeSubtitle")}</SubtitleText>
-            <RefreshHintRow>
-              <Ionicons
-                name="arrow-down-outline"
-                size={11}
-                color={colors.textMuted}
-              />
-              <RefreshHintText numberOfLines={1}>
-                {t("pullToRefreshHint")}
-              </RefreshHintText>
-            </RefreshHintRow>
           </GreetingBlock>
           <HeaderActions>
             <IconButton onPress={() => navigation.navigate("More")} hitSlop={8}>
@@ -2356,7 +2359,7 @@ const HeaderRow = styled.View`
   align-items: center;
   padding-horizontal: 20px;
   gap: ${spacing.sm}px;
-  margin-bottom: 16px;
+  margin-bottom: 13px;
 `;
 
 const AvatarButton = styled(Tappable)`
@@ -2393,23 +2396,6 @@ const GreetingBlock = styled.View`
 const GreetingText = styled.Text`
   ${type.h3}
   color: ${(props) => props.theme.text};
-`;
-
-const SubtitleText = styled.Text`
-  ${type.caption}
-  color: ${(props) => props.theme.textMuted};
-`;
-
-const RefreshHintRow = styled.View`
-  flex-direction: row;
-  align-items: center;
-  gap: 4px;
-  margin-top: 2px;
-`;
-
-const RefreshHintText = styled.Text`
-  ${type.caption}
-  color: ${(props) => props.theme.textMuted};
 `;
 
 const HeaderActions = styled.View`

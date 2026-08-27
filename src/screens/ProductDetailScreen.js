@@ -893,8 +893,13 @@ export function ProductDetailScreen({ route, navigation }) {
               ) : null}
 
               {listing.phone ? (
+                // size="lg" so it stands the same height as the
+                // WhatsApp button directly above it — two stacked actions
+                // of different sizes read as a primary and an afterthought,
+                // and here neither is.
                 <PhoneCallButtons
                   phone={listing.phone}
+                  size="lg"
                   style={{ marginTop: spacing.sm }}
                 />
               ) : null}
@@ -1520,17 +1525,36 @@ const Body = styled.View`
   padding: ${spacing.lg}px;
 `;
 
+// The card that carries the price, or on a trade the whole contact panel.
+//
+// It was align-self: flex-start, so it shrank to its widest child and sat
+// as an odd narrow slab against a full-width page — and because the buttons
+// inside are full-width of the card, the card's width was decided by
+// whichever label happened to be longest. It now spans the column like
+// every other card in the app.
+//
+// The shadow was doing the separating: opacity 0.18 at elevation 5, which
+// is the weight the app uses for something that floats above the page. This
+// does not float, it is part of the page, so it separates the way the other
+// cards do — a hairline border and just enough shadow to lift it off the
+// background.
+//
+// The margin above is the specific complaint: it butted straight into the
+// category line, so the title, the meta and the contact panel read as one
+// undifferentiated block instead of three things in order.
 const PriceCard = styled.View`
-  align-self: flex-start;
+  align-self: stretch;
+  margin-top: ${spacing.md}px;
   background-color: ${(props) => props.theme.surface};
-  border-radius: ${radius.lg}px;
-  padding-horizontal: ${spacing.md}px;
-  padding-vertical: ${spacing.sm}px;
-  shadow-color: #000000;
-  shadow-offset: 0px 3px;
-  shadow-opacity: 0.18;
-  shadow-radius: 8px;
-  elevation: 5;
+  border-radius: ${radius.xl}px;
+  padding: ${spacing.md}px;
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+  shadow-color: #0b1f16;
+  shadow-offset: 0px 2px;
+  shadow-opacity: 0.06;
+  shadow-radius: 10px;
+  elevation: 2;
 `;
 
 const PriceRow = styled.View`
@@ -2026,7 +2050,7 @@ const RestoOpenLabel = styled.Text`
 const RestoDayRow = styled.View`
   flex-direction: row;
   gap: 5px;
-  margin-top: ${spacing.sm}px;
+  margin-top: ${spacing.md}px;
 `;
 
 const RestoDayChip = styled.View`
@@ -2043,14 +2067,17 @@ const RestoDayLabel = styled.Text`
   color: ${(props) => (props.on ? props.theme.primaryDark : props.theme.textMuted)};
 `;
 
+// Separated from the hours and the links above it rather than stacked
+// straight onto them: this is the act the card exists for, and an action
+// pressed against the information it acts on reads as one more row.
 const WhatsAppButton = styled(Pressable)`
   flex-direction: row;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: ${spacing.sm}px;
-  padding: 13px;
-  border-radius: ${radius.lg}px;
+  margin-top: ${spacing.md}px;
+  padding: 14px;
+  border-radius: ${radius.md}px;
   background-color: #25d366;
 `;
 
@@ -2063,7 +2090,7 @@ const WhatsAppLabel = styled.Text`
 const RestoLinkRow = styled.View`
   flex-direction: row;
   gap: ${spacing.sm}px;
-  margin-top: ${spacing.sm}px;
+  margin-top: ${spacing.md}px;
 `;
 
 const RestoLinkButton = styled(Pressable)`

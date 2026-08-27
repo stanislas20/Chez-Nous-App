@@ -785,7 +785,10 @@ export const translations = {
     dealerDirections: "Directions",
     dealerFilterEmpty: "No official distributor listed for this brand.",
     dealerNoSite: "No published site",
-    dealerSubmitLink: "Report a missing distributor",
+    // Phrased as a question with a short call, because it lives in the hero
+    // bar next to a pill — the full sentence would truncate.
+    dealerSubmitHeroLabel: "A distributor missing?",
+    dealerSubmitHeroCta: "Report",
     dealerSubmitTitle: "Report a distributor",
     dealerSubmitIntro:
       "Tell us about an official distributor that is missing from this list. We check every one against a published source before adding it, so it will not appear straight away.",
@@ -3250,7 +3253,8 @@ export const translations = {
     dealerDirections: "Itinéraire",
     dealerFilterEmpty: "Aucun distributeur officiel listé pour cette marque.",
     dealerNoSite: "Pas de site publié",
-    dealerSubmitLink: "Signaler un distributeur manquant",
+    dealerSubmitHeroLabel: "Un distributeur manque ?",
+    dealerSubmitHeroCta: "Signaler",
     dealerSubmitTitle: "Signaler un distributeur",
     dealerSubmitIntro:
       "Indiquez-nous un distributeur officiel absent de cette liste. Nous vérifions chacun auprès d’une source publiée avant de l’ajouter : il n’apparaîtra donc pas immédiatement.",

@@ -204,9 +204,19 @@ check(
 // So all three parts are asserted together — the words, the button, and the
 // destination — since any one of them going missing restores the dead end.
 const screen = read("src/screens/CarDealershipsScreen.js");
+// In the hero, not beside the note. The note is below six cards and the
+// brand filter — a control there was only reachable by someone who had
+// already scrolled past everything they came for.
 check(
   "the note's promise has a control",
-  /dealerSubmitLink/.test(screen),
+  /dealerSubmitHeroLabel/.test(screen),
+  true,
+);
+check(
+  "and it is in the hero, above the fold",
+  /<HeroPostBar[\s\S]{0,300}dealerSubmitHeroLabel[\s\S]{0,200}<\/Hero>/.test(
+    screen,
+  ),
   true,
 );
 check(

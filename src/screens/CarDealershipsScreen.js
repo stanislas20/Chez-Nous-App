@@ -18,6 +18,7 @@ import {
   dealerEmblem,
 } from "../data/carDealerships";
 import { brandLogo, isWideLogo } from "../data/vehicleBrandLogos";
+import { HeroPostBar } from "../components/HeroPostBar";
 import { useDirectory } from "../hooks/useDirectory";
 import { useAuth } from "../auth/AuthContext";
 import { openAccountGate } from "../utils/openAccountGate";
@@ -116,6 +117,18 @@ export function CarDealershipsScreen({ navigation }) {
         </HeroTop>
         <HeroTitle>{t("carsDealershipsTitle")}</HeroTitle>
         <HeroCopy>{t("carsDealershipsIntro")}</HeroCopy>
+        {/* In the hero rather than beside the note that promises it, which
+            is where this started. The note sits under six cards and two
+            scrolls of brand pills, so the offer was only found by people who
+            had already given up. No publishing gate on it, unlike the other
+            hero bars: reporting a company writes nothing public. */}
+        <HeroPostBar
+          icon="add-circle-outline"
+          ink={GOLD}
+          label={t("dealerSubmitHeroLabel")}
+          cta={t("dealerSubmitHeroCta")}
+          onPress={reportMissing}
+        />
       </Hero>
 
       <ScrollView
@@ -314,17 +327,6 @@ export function CarDealershipsScreen({ navigation }) {
           <Ionicons name="information-circle-outline" size={14} color={GOLD} />
           <NoteText>{t("carsDealershipsPartial")}</NoteText>
         </Note>
-
-        {/* The other half of the sentence directly above. That note has
-            promised since it shipped that a missing distributor can be
-            reported, and there was nothing anywhere to tap — the promise read
-            as an apology. It goes here, against the claim it answers, rather
-            than at the top where it would invite reports from people who have
-            not yet seen the list is short. */}
-        <SuggestRow onPress={reportMissing}>
-          <Ionicons name="add-circle-outline" size={17} color={EMERALD} />
-          <SuggestLabel>{t("dealerSubmitLink")}</SuggestLabel>
-        </SuggestRow>
 
         <Note>
           <Ionicons name="information-circle-outline" size={14} color={GOLD} />
@@ -630,24 +632,6 @@ const NoSiteLabel = styled.Text`
   font-family: ${fontFamily.regular};
   font-size: 12px;
   color: ${(props) => props.theme.textMuted};
-`;
-
-const SuggestRow = styled(Pressable)`
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: ${spacing.sm}px;
-  padding: 13px;
-  margin-top: ${spacing.sm}px;
-  border-radius: 18px;
-  border-width: 1.5px;
-  border-color: rgba(11, 110, 79, 0.4);
-`;
-
-const SuggestLabel = styled.Text`
-  font-family: ${fontFamily.semiBold};
-  font-size: 13px;
-  color: ${EMERALD};
 `;
 
 const EmptyText = styled.Text`

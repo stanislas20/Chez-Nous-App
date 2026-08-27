@@ -19,6 +19,7 @@ import {
 } from "../data/carDealerships";
 import { brandLogo, isWideLogo } from "../data/vehicleBrandLogos";
 import { HeroPostBar } from "../components/HeroPostBar";
+import { ScreenFooter } from "../components/ScreenFooter";
 import { useDirectory } from "../hooks/useDirectory";
 import { useAuth } from "../auth/AuthContext";
 import { openAccountGate } from "../utils/openAccountGate";
@@ -332,6 +333,8 @@ export function CarDealershipsScreen({ navigation }) {
           <Ionicons name="information-circle-outline" size={14} color={GOLD} />
           <NoteText>{t("carsDealershipsNote")}</NoteText>
         </Note>
+
+        <ScreenFooter />
       </ScrollView>
     </Container>
   );

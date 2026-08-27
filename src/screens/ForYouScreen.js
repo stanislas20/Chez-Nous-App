@@ -28,6 +28,7 @@ import { Tappable } from "../components/Tappable";
 import { SectionHeading } from "../components/SectionHeading";
 import { SearchBar } from "../components/SearchBar";
 import { ListingCard } from "../components/ListingCard";
+import { ScreenFooter } from "../components/ScreenFooter";
 import { AdCard } from "../components/AdCard";
 import { PhoneCallButtons } from "../components/PhoneCallButtons";
 import { mockListings } from "../data/mockListings";
@@ -1377,7 +1378,7 @@ export function ForYouScreen({ navigation, route }) {
   );
 
   return (
-    <Container edges={["top", "left", "right", "bottom"]}>
+    <Container edges={["top", "left", "right"]}>
       <HeaderCard>
         <HeaderRow>
           {/* The account holder's own photo when they have uploaded one.
@@ -1785,6 +1786,8 @@ export function ForYouScreen({ navigation, route }) {
               />
             </Section>
           ) : null}
+
+          <ScreenFooter />
         </ScrollView>
       ) : selectedChipKey === "jobs" ? (
         <ScrollView
@@ -2101,6 +2104,8 @@ export function ForYouScreen({ navigation, route }) {
               );
             })}
           </CatGrid>
+
+          <ScreenFooter />
         </ScrollView>
       ) : (
         <FlatList
@@ -2205,6 +2210,7 @@ export function ForYouScreen({ navigation, route }) {
               <ListingCard listing={item.listing} />
             )
           }
+          ListFooterComponent={<ScreenFooter />}
         />
       )}
 

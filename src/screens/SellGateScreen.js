@@ -56,7 +56,7 @@ export function SellGateScreen({ navigation }) {
   const steps = [t("sellGateStep1"), t("sellGateStep2"), t("sellGateStep3")];
 
   return (
-    <Container edges={["left", "right", "bottom"]}>
+    <Container edges={["left", "right"]}>
       <Scroll
         contentContainerStyle={scrollContentStyle}
         showsVerticalScrollIndicator={false}

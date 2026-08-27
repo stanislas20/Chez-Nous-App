@@ -645,6 +645,9 @@ export const translations = {
     searchCityPlaceholder: "Search cities",
     useMyLocationCity: "Use my current location",
     verifiedBusinessesSectionTitle: "Verified businesses",
+    // Describes what the app does. Not a superlative — nothing here claims
+    // to be the biggest or the only one.
+    footerLine: "Buy, sell and find a service in Bénin.",
     // What a distributor is, in the same slot a company shows its sector.
     dealerBusinessSector: "Official distributor",
     dealsSectionTitle: "Deals ending soon",
@@ -3114,6 +3117,7 @@ export const translations = {
     searchCityPlaceholder: "Rechercher une ville",
     useMyLocationCity: "Utiliser ma position actuelle",
     verifiedBusinessesSectionTitle: "Entreprises vérifiées",
+    footerLine: "Acheter, vendre et trouver un service au Bénin.",
     dealerBusinessSector: "Distributeur officiel",
     dealsSectionTitle: "Offres se terminant bientôt",
     notificationsTitle: "Notifications",

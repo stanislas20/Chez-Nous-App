@@ -21,6 +21,7 @@ import { BeninFlag } from "../components/BeninFlag";
 import { SectionHeading } from "../components/SectionHeading";
 import { Tappable } from "../components/Tappable";
 import { ListingCard } from "../components/ListingCard";
+import { ScreenFooter } from "../components/ScreenFooter";
 import { mockListings } from "../data/mockListings";
 import { cities } from "../data/cities";
 import { cityCoordinates } from "../data/cityCoordinates";
@@ -278,7 +279,7 @@ export function LocalScreen({ navigation }) {
     : t("localAllCities");
 
   return (
-    <Container edges={["top", "left", "right", "bottom"]}>
+    <Container edges={["top", "left", "right"]}>
       <Header>
         {/* Depth, not decoration for its own sake: a flat gradient this
             large reads as a coloured rectangle, and two very faint discs
@@ -579,6 +580,7 @@ export function LocalScreen({ navigation }) {
             onToggleFavorite={() => toggleFavorite(item.id)}
           />
         )}
+        ListFooterComponent={<ScreenFooter />}
       />
 
       <Modal

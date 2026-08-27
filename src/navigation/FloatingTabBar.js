@@ -29,6 +29,12 @@ export function FloatingTabBar({ state, descriptors, navigation }) {
   if (focused?.options?.tabBarStyle?.display === "none") return null;
 
   return (
+    // The bottom inset belongs to THIS component, not to the screens above
+    // it: the bar is what actually sits against the system navigation. The
+    // tab screens therefore leave "bottom" out of their SafeAreaView edges —
+    // when they claimed it too, the inset was reserved twice and a device
+    // with a 126px navigation bar showed a dead band of exactly that height
+    // between the content and the bar, cutting the last row of cards.
     <Wrap style={{ paddingBottom: (insets.bottom || spacing.sm) + spacing.xs }}>
       <Bar intensity={40} tint={scheme === "dark" ? "dark" : "light"}>
         <BarTint surfaceColor={colors.surface} borderColor={colors.border}>

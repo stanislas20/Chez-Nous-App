@@ -58,7 +58,7 @@ export function NotificationsScreen() {
 
   if (!user) {
     return (
-      <Container edges={["left", "right", "bottom"]}>
+      <Container edges={["left", "right"]}>
         <Ionicons
           name="notifications-outline"
           size={40}
@@ -98,7 +98,7 @@ export function NotificationsScreen() {
   const isLoading = conversations === null;
 
   return (
-    <Container edges={["left", "right", "bottom"]}>
+    <Container edges={["left", "right"]}>
       <FlatList
         data={feed}
         keyExtractor={(entry) => entry.id}

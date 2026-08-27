@@ -42,7 +42,7 @@ export function ChatListScreen({ navigation }) {
 
   if (!user) {
     return (
-      <Container edges={["left", "right", "bottom"]}>
+      <Container edges={["left", "right"]}>
         <SignInPrompt>
           <Ionicons
             name="chatbubbles-outline"
@@ -59,7 +59,7 @@ export function ChatListScreen({ navigation }) {
   }
 
   return (
-    <Container edges={["left", "right", "bottom"]}>
+    <Container edges={["left", "right"]}>
       <FlatList
         data={conversations ?? []}
         keyExtractor={(item) => item.id}

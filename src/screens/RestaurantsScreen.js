@@ -10,6 +10,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
 import { BeninFlag } from "../components/BeninFlag";
 import { HeroPostBar } from "../components/HeroPostBar";
+import { ScreenFooter } from "../components/ScreenFooter";
 import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
@@ -762,6 +763,8 @@ export function RestaurantsScreen({ navigation }) {
             );
           })
         )}
+
+        <ScreenFooter />
       </Body>
 
       <Modal

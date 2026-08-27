@@ -759,6 +759,64 @@ export function ProductDetailScreen({ route, navigation }) {
               restaurant-specific — gating the whole card on isRestaurant
               meant a garage's own opening hours, TikTok and WhatsApp were
               collected by the form and then never shown to anyone. */}
+          {/* What it is, then where it is, then what it costs.
+          
+              This block used to come after the price card, and on a service
+              that card is the whole contact panel — opening hours, the day
+              strip, the social links and two full-width call buttons. So the
+              screen opened by offering to ring somebody before it said whose
+              number it was, and the name arrived underneath, orphaned.
+          
+              A listing answers three questions in one order: what is this,
+              where is it, what does it cost. Everything else — the specs,
+              the description, the seller, the hours, the buttons — is
+              detail somebody reads once those three are settled. */}
+          <Title>{title}</Title>
+          <MetaRow>
+            {category ? (
+              <MetaItem>
+                <MetaLabel>{categoryLabel}</MetaLabel>
+              </MetaItem>
+            ) : null}
+            <MetaDot>·</MetaDot>
+            <MetaItem>
+              <Ionicons
+                name="location-outline"
+                size={13}
+                color={colors.textMuted}
+              />
+              <MetaLabel>{listing.city}</MetaLabel>
+            </MetaItem>
+            {listing.status === "approved" ? (
+              <>
+                <MetaDot>·</MetaDot>
+                <MetaLabel muted>
+                  {/* The badge only appears once a listing is genuinely
+                      being looked at — see viewHeat.js for why the
+                      thresholds are set well above today's numbers. */}
+                  {withViewHeat(
+                    listing.viewCount,
+                    t("productDetailViewCount", {
+                      count: listing.viewCount ?? 0,
+                    }),
+                  )}
+                </MetaLabel>
+                {/* Silent at zero: "0 partages" beside a listing reads as a
+                    verdict on it, where no number at all reads as new. */}
+                {listing.shareCount ? (
+                  <>
+                    <MetaDot>·</MetaDot>
+                    <MetaLabel muted>
+                      {t("productDetailShareCount", {
+                        count: listing.shareCount,
+                      })}
+                    </MetaLabel>
+                  </>
+                ) : null}
+              </>
+            ) : null}
+          </MetaRow>
+
           {isTrade ? (
             <PriceCard>
               {isRestaurant ? (
@@ -914,7 +972,6 @@ export function ProductDetailScreen({ route, navigation }) {
               </SaleStatusPill>
             </PriceRow>
           )}
-          <Title>{title}</Title>
 
           {/* Fields the forms have been collecting all along with nothing on
               the buyer's side to read them. */}
@@ -1049,51 +1106,6 @@ export function ProductDetailScreen({ route, navigation }) {
               </SpecItem>
             </SpecGrid>
           ) : null}
-
-          <MetaRow>
-            {category ? (
-              <MetaItem>
-                <MetaLabel>{categoryLabel}</MetaLabel>
-              </MetaItem>
-            ) : null}
-            <MetaDot>·</MetaDot>
-            <MetaItem>
-              <Ionicons
-                name="location-outline"
-                size={13}
-                color={colors.textMuted}
-              />
-              <MetaLabel>{listing.city}</MetaLabel>
-            </MetaItem>
-            {listing.status === "approved" ? (
-              <>
-                <MetaDot>·</MetaDot>
-                <MetaLabel muted>
-                  {/* The badge only appears once a listing is genuinely
-                      being looked at — see viewHeat.js for why the
-                      thresholds are set well above today's numbers. */}
-                  {withViewHeat(
-                    listing.viewCount,
-                    t("productDetailViewCount", {
-                      count: listing.viewCount ?? 0,
-                    }),
-                  )}
-                </MetaLabel>
-                {/* Silent at zero: "0 partages" beside a listing reads as a
-                    verdict on it, where no number at all reads as new. */}
-                {listing.shareCount ? (
-                  <>
-                    <MetaDot>·</MetaDot>
-                    <MetaLabel muted>
-                      {t("productDetailShareCount", {
-                        count: listing.shareCount,
-                      })}
-                    </MetaLabel>
-                  </>
-                ) : null}
-              </>
-            ) : null}
-          </MetaRow>
 
           {listing.sellerName ? (
             <Section>

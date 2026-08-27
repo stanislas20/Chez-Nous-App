@@ -936,6 +936,10 @@ export const translations = {
     moderationFactPrice: "Price",
     moderationFactPhone: "Phone",
     moderationNoPhoto: "No photo on this listing.",
+    moderationAllFields: "Everything else in this listing",
+    moderationOwnListing:
+      "This is your own listing. A moderator cannot decide their own \u2014 another one has to look at it.",
+    moderationVideoCount: "{count} video(s) \u2014 not shown here",
     moderationApprove: "Approve",
     moderationReject: "Reject",
     moderationApproveConfirmTitle: "Publish this listing?",
@@ -3338,6 +3342,11 @@ export const translations = {
     moderationFactPrice: "Prix",
     moderationFactPhone: "Téléphone",
     moderationNoPhoto: "Aucune photo sur cette annonce.",
+    moderationAllFields: "Tout le reste de l'annonce",
+    moderationOwnListing:
+      "C'est votre propre annonce. Un mod\u00e9rateur ne peut pas trancher la sienne \u2014 il faut qu'un autre la regarde.",
+    moderationVideoCount:
+      "{count} vid\u00e9o(s) \u2014 non affich\u00e9e(s) ici",
     moderationApprove: "Approuver",
     moderationReject: "Refuser",
     moderationApproveConfirmTitle: "Publier cette annonce ?",

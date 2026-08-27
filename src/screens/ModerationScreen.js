@@ -29,6 +29,81 @@ const TERRACOTTA = "#C1512D";
 // The three faults worth catching — a wrong category, an unreachable number,
 // a description that is really an advert for something else — are all
 // invisible in a title.
+// The fields the card already shows in its own words, plus the plumbing a
+// moderator has no use for: ids, timestamps, counters, search indexes.
+// Everything not named here is content somebody typed, and content somebody
+// typed is what moderation is for.
+const SHOWN_ABOVE = new Set([
+  "id",
+  "titleEn",
+  "titleFr",
+  "descriptionEn",
+  "descriptionFr",
+  "price",
+  "phone",
+  "city",
+  "categoryKey",
+  "sellerName",
+  "media",
+  "mediaUrl",
+  "mediaPath",
+  "mediaType",
+]);
+
+const PLUMBING = new Set([
+  "status",
+  "sellerId",
+  "sellerUid",
+  "sellerPhotoUrl",
+  "sellerVerified",
+  "createdAt",
+  "updatedAt",
+  "approvedAt",
+  "expiresAt",
+  "moderatedAt",
+  "moderatedBy",
+  "moderationNote",
+  "viewCount",
+  "viewCountToday",
+  "viewCountDate",
+  "shareCount",
+  "searchTokens",
+  "lat",
+  "lng",
+]);
+
+// Firestore hands back Timestamps, arrays and nested objects; all three have
+// to survive being put inside a <Text>. An empty string, an empty array and
+// null are dropped rather than printed as a row of dashes — a moderator
+// scanning for what a seller actually declared should not have to read past
+// forty blanks to find it.
+function printable(value) {
+  if (value === null || value === undefined || value === "") return null;
+  if (Array.isArray(value)) {
+    return value.length
+      ? value.map((item) => printable(item) ?? "?").join(", ")
+      : null;
+  }
+  if (typeof value === "boolean") return value ? "oui / yes" : "non / no";
+  if (typeof value === "number") return String(value);
+  if (typeof value === "string") return value;
+  // A Firestore Timestamp, or any other object worth seeing at all.
+  if (typeof value?.toDate === "function") return value.toDate().toISOString();
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return null;
+  }
+}
+
+function extraFields(item) {
+  return Object.entries(item)
+    .filter(([key]) => !SHOWN_ABOVE.has(key) && !PLUMBING.has(key))
+    .map(([key, value]) => [key, printable(value)])
+    .filter(([, value]) => value !== null)
+    .sort((a, b) => a[0].localeCompare(b[0]));
+}
+
 export function ModerationScreen({ navigation }) {
   const { colors } = useTheme();
   const { t, language } = useI18n();
@@ -89,8 +164,15 @@ export function ModerationScreen({ navigation }) {
       setNote("");
       setOpenId(null);
     } catch (error) {
-      // Almost always a stale token that has not picked up the claim yet.
-      Alert.alert(t("moderationTitle"), t("moderationFailed"));
+      // Every failure used to read "your token is stale", which was a guess
+      // dressed as a diagnosis — and the wrong guess for the commonest
+      // case, which is the rule refusing a moderator their own listing.
+      // The code is shown because a moderator who cannot see it has nothing
+      // to report and nothing to try.
+      Alert.alert(
+        t("moderationTitle"),
+        `${t("moderationFailed")}\n\n${error?.code ?? error?.message ?? "unknown"}`,
+      );
     } finally {
       setBusyId(null);
     }
@@ -116,11 +198,39 @@ export function ModerationScreen({ navigation }) {
 
   const renderCard = (item) => {
     const expanded = openId === item.id;
-    const media = item.media?.length
-      ? item.media
-      : item.mediaUrl
-        ? [{ url: item.mediaUrl }]
-        : [];
+    // The rules refuse any decision by the seller on their own listing —
+    // deliberately, so that a second moderator cannot wave their own work
+    // through. The queue does not filter these out, because a moderator
+    // should still see what is waiting; what was wrong was offering the
+    // buttons and letting the write be refused, then blaming the token.
+    const isOwn = !!user && item.sellerId === user.uid;
+    // mediaUrl, which is what the posting form writes and what every other
+    // screen reads. This read `asset.url ?? asset.uri` — neither of which
+    // exists on a stored asset — so every source came out undefined. The
+    // array was still non-empty, so the "no photograph" line never showed
+    // either: a moderator got a row of blank boxes and no way to tell
+    // whether the listing had photos or the screen had failed.
+    //
+    // The two fallbacks stay for the local shape the picker produces before
+    // upload, which does use `uri`.
+    const assets = (
+      item.media?.length
+        ? item.media
+        : item.mediaUrl
+          ? [{ mediaUrl: item.mediaUrl }]
+          : []
+    )
+      .map((asset) => ({
+        ...asset,
+        url: asset.mediaUrl ?? asset.url ?? asset.uri ?? null,
+      }))
+      .filter((asset) => asset.url);
+
+    // A video URL in an <Image> is another blank box. Counted and named
+    // instead, because "this listing is a video" is exactly the kind of
+    // thing a moderator needs to know before approving it.
+    const media = assets.filter((asset) => asset.mediaType !== "video");
+    const videoCount = assets.length - media.length;
 
     return (
       <Card key={item.id}>
@@ -146,17 +256,23 @@ export function ModerationScreen({ navigation }) {
               <PhotoRow horizontal showsHorizontalScrollIndicator={false}>
                 {media.map((asset, index) => (
                   <Photo
-                    key={`${asset.url ?? asset.uri}-${index}`}
-                    source={{ uri: asset.url ?? asset.uri }}
+                    key={`${asset.url}-${index}`}
+                    source={{ uri: asset.url }}
                     resizeMode="cover"
                   />
                 ))}
               </PhotoRow>
-            ) : (
+            ) : null}
+            {videoCount ? (
+              <NoPhoto>
+                {t("moderationVideoCount", { count: videoCount })}
+              </NoPhoto>
+            ) : null}
+            {!media.length && !videoCount ? (
               // Said rather than left blank: for most categories a listing
               // with no photograph is the thing to send back.
               <NoPhoto>{t("moderationNoPhoto")}</NoPhoto>
-            )}
+            ) : null}
 
             <FactGrid>
               <Fact>
@@ -183,23 +299,55 @@ export function ModerationScreen({ navigation }) {
               <Description>{descriptionOf(item)}</Description>
             ) : null}
 
-            <ActionRow>
-              <RejectButton
-                onPress={() => {
-                  setRejectFor(item);
-                  setNote("");
-                }}
-                disabled={busyId === item.id}
-              >
-                <RejectLabel>{t("moderationReject")}</RejectLabel>
-              </RejectButton>
-              <ApproveButton
-                onPress={() => confirmApprove(item)}
-                disabled={busyId === item.id}
-              >
-                <ApproveLabel>{t("moderationApprove")}</ApproveLabel>
-              </ApproveButton>
-            </ActionRow>
+            {/* Everything else the listing carries.
+            
+                The card showed a price, a phone and a description, which is
+                a summary — and this screen's own opening comment says it
+                exists to show the whole listing rather than a summary. A
+                moderator judging a car advert could not see the year, the
+                mileage or the make; judging a flat, not the rooms or the
+                deal. All three are exactly where a wrong category or an
+                invented spec would show.
+            
+                Rendered from whatever the document happens to hold rather
+                than from a hand-kept list, so a field added to the posting
+                form appears here the day it ships instead of the day
+                somebody remembers this file. Raw field names on purpose:
+                this is an internal tool, and the moderator wants to see
+                what is stored, not a friendly paraphrase of it. */}
+            {extraFields(item).length ? (
+              <>
+                <FieldsLabel>{t("moderationAllFields")}</FieldsLabel>
+                {extraFields(item).map(([key, value]) => (
+                  <FieldRow key={key}>
+                    <FieldKey>{key}</FieldKey>
+                    <FieldValue>{value}</FieldValue>
+                  </FieldRow>
+                ))}
+              </>
+            ) : null}
+
+            {isOwn ? (
+              <OwnNote>{t("moderationOwnListing")}</OwnNote>
+            ) : (
+              <ActionRow>
+                <RejectButton
+                  onPress={() => {
+                    setRejectFor(item);
+                    setNote("");
+                  }}
+                  disabled={busyId === item.id}
+                >
+                  <RejectLabel>{t("moderationReject")}</RejectLabel>
+                </RejectButton>
+                <ApproveButton
+                  onPress={() => confirmApprove(item)}
+                  disabled={busyId === item.id}
+                >
+                  <ApproveLabel>{t("moderationApprove")}</ApproveLabel>
+                </ApproveButton>
+              </ActionRow>
+            )}
           </>
         ) : null}
       </Card>
@@ -398,6 +546,54 @@ const Photo = styled(Image)`
   border-radius: ${radius.lg}px;
   margin-right: 8px;
   background-color: ${(props) => props.theme.surfaceAlt};
+`;
+
+const FieldsLabel = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-top: ${spacing.md}px;
+  margin-bottom: 6px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+const FieldRow = styled.View`
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  padding-vertical: 5px;
+  border-bottom-width: 1px;
+  border-bottom-color: ${(props) => props.theme.border};
+`;
+
+// Fixed width so the values line up in a column and a missing one is
+// obvious. Raw field names, so they are also searchable against the form.
+const FieldKey = styled.Text`
+  width: 132px;
+  font-family: ${fontFamily.medium};
+  font-size: 11.5px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+const FieldValue = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.regular};
+  font-size: 12.5px;
+  color: ${(props) => props.theme.text};
+`;
+
+// Not a warning: a moderator seeing their own listing in the queue is the
+// system working. It is only the buttons that must not be there.
+const OwnNote = styled.Text`
+  font-family: ${fontFamily.medium};
+  font-size: 12.5px;
+  line-height: 18px;
+  margin-top: ${spacing.md}px;
+  padding: 11px 13px;
+  border-radius: ${radius.lg}px;
+  background-color: ${(props) => props.theme.surfaceAlt};
+  color: ${(props) => props.theme.textMuted};
 `;
 
 const NoPhoto = styled.Text`

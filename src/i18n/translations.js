@@ -1501,6 +1501,36 @@ export const translations = {
     papersSearchMap: "Search",
     airconAskGas:
       "This workshop has not said which gases it holds — worth asking before you set off.",
+    keysEyebrow: "Car keys",
+    keysTitle: "A key that turns is not always a key that starts",
+    keysIntro:
+      "Cutting and coding are two different jobs. Tell us what happened and we name the trade that ends it.",
+    keysPostPrompt: "You make car keys?",
+    keysPost: "List a locksmith",
+    keysCutTitle: "Cut is not the same as coded",
+    keysCutCopy:
+      "A blade cut from your old key unlocks the door and turns in the ignition. If the car expects a chip and the new key has none it recognises, the engine will not start — and nothing went wrong. Ask one question before any money moves: can you code my make, not just cut it?",
+    keysSituationTitle: "What has happened?",
+    keysCausesLabel: "What it usually is",
+    keysCausesNote:
+      "Likeliest first. The trade named beside each one is who can settle it.",
+    keysTypeLabel: "What kind of key does the car take?",
+    keysBringTitle: "Bring with you",
+    keysOwnershipNote:
+      "A locksmith who asks for the carte grise and your ID is protecting your car, not being difficult. One who never asks would make a key for whoever took it.",
+    keysServicesTitle: "What you can ask for",
+    keysCount: "{count} locksmith(s) and workshop(s)",
+    keysCountFor: "{count} for: {situation}",
+    keysNoneTitle: "Nobody listed for this yet",
+    keysNoneCopy:
+      "No locksmith has published here for this situation. Try another one, or ask a general garage — many code keys without saying so in their listing.",
+    keysSafety:
+      "Agree the price before the work starts, and ask whether coding is included. A key made and not coded is half a job you will pay twice for.",
+    keysQuoteIntro: "Hello, I found you on Chez-Nous.",
+    keysQuoteSituation: "My situation: {situation}.",
+    keysQuoteType: "Key type: {type}.",
+    sellTradeKeys: "Keys and locks",
+    sellTitleHint_keys: "e.g. Auto locksmith — keys cut and coded, Cotonou",
     airconEyebrow: "Air conditioning",
     airconTitle: "It runs, but nothing comes out cold",
     airconIntro:
@@ -3847,6 +3877,36 @@ export const translations = {
     papersSearchMap: "Chercher",
     airconAskGas:
       "Cet atelier n’a pas indiqué les gaz qu’il a — à demander avant de vous déplacer.",
+    keysEyebrow: "Clés auto",
+    keysTitle: "Une clé qui tourne n'est pas toujours une clé qui démarre",
+    keysIntro:
+      "Tailler et coder sont deux métiers différents. Dites ce qui vous arrive, on nomme celui qui règle ça.",
+    keysPostPrompt: "Vous faites des clés auto ?",
+    keysPost: "Publier un serrurier",
+    keysCutTitle: "Taillée n'est pas codée",
+    keysCutCopy:
+      "Une lame taillée sur votre ancienne clé ouvre la porte et tourne dans le contact. Si la voiture attend une puce et que la nouvelle clé n'en a pas qu'elle reconnaît, le moteur ne démarrera pas — et rien n'est cassé. Une question avant de payer : savez-vous coder ma marque, pas seulement tailler ?",
+    keysSituationTitle: "Que s'est-il passé ?",
+    keysCausesLabel: "Ce que c'est en général",
+    keysCausesNote:
+      "Du plus probable au moins probable. Le métier indiqué à côté est celui qui peut trancher.",
+    keysTypeLabel: "Quel type de clé prend la voiture ?",
+    keysBringTitle: "À apporter",
+    keysOwnershipNote:
+      "Un serrurier qui demande la carte grise et votre pièce d'identité protège votre voiture, il ne complique pas. Celui qui ne demande jamais ferait une clé à celui qui vous l'a prise.",
+    keysServicesTitle: "Ce que vous pouvez demander",
+    keysCount: "{count} serrurier(s) et atelier(s)",
+    keysCountFor: "{count} pour : {situation}",
+    keysNoneTitle: "Personne d'inscrit pour ça",
+    keysNoneCopy:
+      "Aucun serrurier n'a publié ici pour cette situation. Essayez-en une autre, ou demandez à un garage généraliste — beaucoup codent des clés sans le dire dans leur annonce.",
+    keysSafety:
+      "Fixez le prix avant que le travail commence, et demandez si le codage est compris. Une clé faite mais non codée est un demi-travail que vous paierez deux fois.",
+    keysQuoteIntro: "Bonjour, je vous ai trouvé sur Chez-Nous.",
+    keysQuoteSituation: "Ma situation : {situation}.",
+    keysQuoteType: "Type de clé : {type}.",
+    sellTradeKeys: "Clés et serrures",
+    sellTitleHint_keys: "ex. Serrurier auto — clés taillées et codées, Cotonou",
     airconEyebrow: "Climatisation",
     airconTitle: "Elle tourne, mais rien ne sort de froid",
     airconIntro:

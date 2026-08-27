@@ -274,6 +274,7 @@ const TRADE_HINT_KEYS = {
   driver: "sellTitleHint_driver",
   insurance: "sellTitleHint_insurance",
   clim: "sellTitleHint_aircon",
+  keys: "sellTitleHint_keys",
   // Missing since the Lavage screen shipped: a car washer arriving from it
   // was shown the generic Services example, which is a plumber.
   wash: "sellTitleHint_wash",
@@ -311,6 +312,7 @@ const SERVICE_TRADES = [
     labelKey: "sellTradeInsurance",
   },
   { key: "clim", icon: "snow-outline", labelKey: "sellTradeAircon" },
+  { key: "keys", icon: "key-outline", labelKey: "sellTradeKeys" },
 ];
 
 // Under Services these two keys describe a workshop, not a product, so the

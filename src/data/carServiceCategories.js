@@ -127,7 +127,10 @@ export const carServicesPrimary = [
 ];
 
 export const carServicesMore = [
-  { key: "keys", icon: "key-outline", query: "clé voiture" },
+  // Was a text search of Services for "clé voiture", which finds whatever
+  // happens to contain those words and cannot answer a single question
+  // somebody arrives with.
+  { key: "keys", icon: "key-outline", route: "Keys" },
   { key: "gps", icon: "navigate-circle-outline", query: "gps traceur" },
   { key: "fleet", icon: "business-outline", query: "gestion de flotte" },
   { key: "dealers", icon: "storefront-outline", route: "CarDealerships" },

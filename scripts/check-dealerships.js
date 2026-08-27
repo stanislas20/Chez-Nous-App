@@ -30,14 +30,26 @@ function loadEsm(relative) {
       babelrc: false,
       configFile: false,
     }).code,
-    { module: shim, exports: shim.exports, require: () => ({}), console },
+    {
+      module: shim,
+      exports: shim.exports,
+      // carDealerships imports canonicalBrand, so the shim has to resolve
+      // it rather than hand back an empty object — a stub here would make
+      // every marque look unknown.
+      require: (specifier) =>
+        specifier.endsWith("vehicles") ? loadEsm("src/data/vehicles.js") : {},
+      console,
+    },
   );
   return shim.exports;
 }
 
-const { carDealerships, dealershipsReviewedOn, nonCarMarques } = loadEsm(
-  "src/data/carDealerships.js",
-);
+const {
+  carDealerships,
+  dealershipsReviewedOn,
+  nonCarMarques,
+  validateDealership,
+} = loadEsm("src/data/carDealerships.js");
 const { vehicleBrands, canonicalBrand } = loadEsm("src/data/vehicles.js");
 
 const read = (relative) =>
@@ -53,7 +65,16 @@ const check = (label, actual, expected) => {
 };
 
 // ── Every row says who, where and on whose authority ────────────────────
+//
+// Through the same function scripts/addDealership.js calls, so a row typed
+// into a terminal is held to exactly what the bundled ones are.
 carDealerships.forEach((firm) => {
+  const problems = validateDealership({ ...firm, order: 0 });
+  check(
+    `${firm.key} satisfies the shared rules (${problems.join("; ")})`,
+    problems.length,
+    0,
+  );
   check(`${firm.key} has a name`, Boolean(firm.name), true);
   check(`${firm.key} names a city`, Boolean(firm.city), true);
   check(`${firm.key} distributes something`, firm.brands.length > 0, true);
@@ -111,15 +132,31 @@ allBrands.forEach((brand) => {
 // And the excuses have to be about marques that are actually here, or the
 // list becomes a graveyard nobody prunes.
 Object.keys(nonCarMarques).forEach((brand) => {
-  check(`"${brand}" is excused but still distributed`, allBrands.includes(brand), true);
+  check(
+    `"${brand}" is excused but still distributed`,
+    allBrands.includes(brand),
+    true,
+  );
   check(`"${brand}" says what it is`, Boolean(nonCarMarques[brand]), true);
 });
-check("the alias resolves the company spelling", canonicalBrand("Mercedes-Benz"), "Mercedes");
-check("an unknown marque resolves to nothing", canonicalBrand("Nonesuch"), null);
+check(
+  "the alias resolves the company spelling",
+  canonicalBrand("Mercedes-Benz"),
+  "Mercedes",
+);
+check(
+  "an unknown marque resolves to nothing",
+  canonicalBrand("Nonesuch"),
+  null,
+);
 check("the make list is not empty", vehicleBrands.length > 0, true);
 
 // ── How old is this? ────────────────────────────────────────────────────
-check("the list records when it was last reviewed", Boolean(dealershipsReviewedOn), true);
+check(
+  "the list records when it was last reviewed",
+  Boolean(dealershipsReviewedOn),
+  true,
+);
 check(
   "and it is a real date",
   /^\d{4}-\d{2}-\d{2}$/.test(String(dealershipsReviewedOn)),

@@ -1,3 +1,5 @@
+import { canonicalBrand } from "./vehicles";
+
 // The official brand distributors in Bénin.
 //
 // These differ from the parks in one important way: a concession is a company
@@ -178,4 +180,47 @@ export function dealerBrandKey(brand) {
 // clipped by the layout rather than abbreviated into something nobody uses.
 export function dealerEmblem(name) {
   return (name ?? "").trim().split(/\s+/)[0] ?? "";
+}
+
+// The rules a row has to satisfy, wherever it comes from.
+//
+// This exists because the check script guards the array in this file, and
+// the app reads the `dealerships` collection in Firestore — so every rule
+// enforced here was bypassed entirely by anything added from the console.
+// A hand-typed row could carry a phone number, an http:// site or a marque
+// spelled a new way, and the guard would still report clean.
+//
+// Now the check and the admin script call the same function, so a row added
+// from a terminal is held to the rules the seed is held to.
+export function validateDealership(firm) {
+  const problems = [];
+  if (!firm || typeof firm !== "object") return ["not an object"];
+  if (!firm.name) problems.push("no name");
+  if (!firm.city) problems.push("no city");
+  if (!Array.isArray(firm.brands) || firm.brands.length === 0) {
+    problems.push("distributes nothing");
+  }
+  // Firestore's orderBy silently omits documents that lack the field, so a
+  // row without `order` is not last — it is invisible.
+  if (typeof firm.order !== "number") {
+    problems.push("no numeric `order` (a row without it never appears)");
+  }
+  if (firm.website && !String(firm.website).startsWith("https://")) {
+    problems.push(`website is not https: ${firm.website}`);
+  }
+  // No phone numbers, for the reason at the top of this file.
+  const text = JSON.stringify(firm);
+  if (/\d[\d\s]{7,}/.test(text)) {
+    problems.push("looks like it contains a phone number");
+  }
+  (firm.brands ?? []).forEach((brand) => {
+    const known = canonicalBrand(brand);
+    const declared = Object.prototype.hasOwnProperty.call(nonCarMarques, brand);
+    if (!known && !declared) {
+      problems.push(
+        `"${brand}" is neither a known make nor declared in nonCarMarques`,
+      );
+    }
+  });
+  return problems;
 }

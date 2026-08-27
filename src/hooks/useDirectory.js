@@ -23,8 +23,16 @@ import { firestore, isFirebaseConfigured } from "../config/firebase";
 // snapshot lands. Same shape as useApprovedListings falling back to mock
 // data when Firebase is unreachable.
 //
-// `order` is optional and only used to keep hand-entered rows in a
-// deliberate sequence; rows without it fall to the end in id order.
+// `order` is REQUIRED on every live row, and this comment used to say the
+// opposite — that rows without it "fall to the end in id order". They do
+// not. The query below orders by it, and Firestore omits documents that do
+// not carry the field, so a row added from the console without `order` is
+// not last: it never appears at all, with nothing anywhere to say why.
+//
+// The other thing to know before adding one: live rows REPLACE the bundled
+// seed, they do not merge with it. Put a single dealership in the
+// collection and the other five vanish from the screen. Use
+// scripts/addDealership.js, which seeds the whole list before adding.
 // `approvedOnly` is for the directories that accept submissions from the
 // app. The query has to carry the same filter the rules enforce — a query
 // wider than the rule is denied outright rather than filtered — so this is

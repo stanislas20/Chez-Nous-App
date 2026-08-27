@@ -156,10 +156,10 @@ function HeroGallery({ media, width, height, onIndexChange, onPressPhoto }) {
           ) : (
             <GallerySlide style={slideStyle}>
               <PhotoPressable onPress={() => onPressPhoto?.(item.mediaUrl)}>
-                <HeroImage
-                  source={{ uri: item.mediaUrl }}
-                  resizeMode="contain"
-                />
+                {/* cover, for the reason the single photo uses it: a slide
+                    sized from the first photo leaves bars down the sides of
+                    every other shape otherwise. */}
+                <HeroImage source={{ uri: item.mediaUrl }} resizeMode="cover" />
               </PhotoPressable>
             </GallerySlide>
           )
@@ -261,9 +261,15 @@ export function ProductDetailScreen({ route, navigation }) {
   //
   // A number computed here cannot be argued with by the layout. Whichever
   // is smaller: the photo at its own shape, or a fraction of the screen.
-  // resizeMode is "contain", so a tall photo is letterboxed rather than
-  // cropped — the original promise that nothing gets cut off survives, and
-  // it opens full-screen on tap regardless.
+  //
+  // The box takes the photo's own shape whenever that fits, which is the
+  // common case and crops nothing at all. It is only a photo taller than
+  // the ceiling — a phone screenshot, most often — that gets a box shorter
+  // than itself, and "cover" is what fills that box. The alternative was
+  // "contain", which fits such a photo by its height and leaves the width
+  // over as grey bars down both sides; a listing framed by empty margins
+  // looks broken in a way a cropped photograph does not. Nothing is lost
+  // either way: tapping opens the whole image, uncropped, full-screen.
   const MAX_HERO_FRACTION = 0.62;
   const singlePhotoHeight = Math.min(
     windowWidth / singlePhotoRatio,
@@ -700,10 +706,7 @@ export function ProductDetailScreen({ route, navigation }) {
           // fixed height, so nothing gets cropped.
           <HeroSingle style={{ height: singlePhotoHeight }}>
             <PhotoPressable onPress={() => openLightbox(coverUri)}>
-              <HeroSingleImage
-                source={{ uri: coverUri }}
-                resizeMode="contain"
-              />
+              <HeroSingleImage source={{ uri: coverUri }} resizeMode="cover" />
             </PhotoPressable>
             {listing.popular ? (
               <PopularBadge>

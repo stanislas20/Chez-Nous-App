@@ -222,7 +222,7 @@ export function ProductDetailScreen({ route, navigation }) {
   const { listing } = route.params;
   const { language, t } = useI18n();
   const { user } = useAuth();
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const title = language === "en" ? listing.titleEn : listing.titleFr;
   const description =
     language === "en" ? listing.descriptionEn : listing.descriptionFr;
@@ -234,11 +234,49 @@ export function ProductDetailScreen({ route, navigation }) {
   // a fixed height so every slide pages at the same size (standard
   // swipeable-gallery behavior — Instagram/Airbnb do the same).
   const [singlePhotoRatio, setSinglePhotoRatio] = useState(4 / 3);
+  // A ceiling on how much of the screen one photograph may take.
+  //
+  // Showing a single photo at its own aspect ratio was right for the common
+  // case and unbounded for the real one: sellers here photograph with a
+  // phone and many upload a screenshot, which is taller than it is wide by
+  // a factor of two. At full width that made the hero taller than the
+  // display, so the price, the title and the Contacter button sat two
+  // screens below the fold — the listing looked like a photograph followed
+  // by nothing, which is exactly what it was reported as.
+  //
+  // resizeMode is already "contain", so capping the box letterboxes a very
+  // tall photo instead of cropping it. The original promise — nothing gets
+  // cut off — survives; what changes is that the rest of the listing is on
+  // screen with it, and the photo opens full-screen on tap anyway.
+  // An explicit height, not an aspect ratio.
+  //
+  // The photo box used to size itself from `aspectRatio` on the image. That
+  // reads correctly and did not govern: the image sits inside a Pressable
+  // with height 100%, whose parent has no height of its own, so the
+  // percentage resolved against nothing and the box grew past the bottom of
+  // the screen. Measured on the device, the hero ran to more than twice the
+  // display for a portrait photograph — the listing was a picture followed
+  // by a wall of empty background, with the price and the Contacter button
+  // somewhere below all of it.
+  //
+  // A number computed here cannot be argued with by the layout. Whichever
+  // is smaller: the photo at its own shape, or a fraction of the screen.
+  // resizeMode is "contain", so a tall photo is letterboxed rather than
+  // cropped — the original promise that nothing gets cut off survives, and
+  // it opens full-screen on tap regardless.
+  const MAX_HERO_FRACTION = 0.62;
+  const singlePhotoHeight = Math.min(
+    windowWidth / singlePhotoRatio,
+    windowHeight * MAX_HERO_FRACTION,
+  );
   // Every slide in the gallery shares one height (a swipeable pager can't
   // reasonably resize itself mid-swipe), sized from the first photo's real
   // aspect ratio so at least the primary photo shows with zero cropping.
   const [galleryAspectRatio, setGalleryAspectRatio] = useState(4 / 3);
-  const gallerySlideHeight = windowWidth / galleryAspectRatio;
+  const gallerySlideHeight = Math.min(
+    windowWidth / galleryAspectRatio,
+    windowHeight * MAX_HERO_FRACTION,
+  );
   const galleryCount = hasGallery ? listing.media.length : coverUri ? 1 : 0;
 
   // Image.getSize fetches real pixel dimensions directly from the URI —
@@ -660,12 +698,11 @@ export function ProductDetailScreen({ route, navigation }) {
         {coverUri && !hasGallery && listing.mediaType !== "video" ? (
           // A single photo: shown at its real aspect ratio, full width, no
           // fixed height, so nothing gets cropped.
-          <HeroSingle>
+          <HeroSingle style={{ height: singlePhotoHeight }}>
             <PhotoPressable onPress={() => openLightbox(coverUri)}>
               <HeroSingleImage
                 source={{ uri: coverUri }}
                 resizeMode="contain"
-                style={{ aspectRatio: singlePhotoRatio }}
               />
             </PhotoPressable>
             {listing.popular ? (
@@ -1361,8 +1398,10 @@ const HeroSingle = styled.View`
   background-color: ${(props) => props.theme.surfaceAlt};
 `;
 
+// Fills the box its parent was given, rather than deciding the box.
 const HeroSingleImage = styled.Image`
   width: 100%;
+  height: 100%;
   background-color: ${(props) => props.theme.surfaceAlt};
 `;
 

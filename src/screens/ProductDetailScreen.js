@@ -887,7 +887,11 @@ export function ProductDetailScreen({ route, navigation }) {
                   five social glyphs wastes it. */}
               {whatsappUrl ? (
                 <WhatsAppButton onPress={() => Linking.openURL(whatsappUrl)}>
-                  <Ionicons name="logo-whatsapp" size={18} color="#ffffff" />
+                  <Ionicons
+                    name="logo-whatsapp"
+                    size={18}
+                    color={WHATSAPP_GREEN}
+                  />
                   <WhatsAppLabel>{t("contactOnWhatsApp")}</WhatsAppLabel>
                 </WhatsAppButton>
               ) : null}
@@ -2067,24 +2071,40 @@ const RestoDayLabel = styled.Text`
   color: ${(props) => (props.on ? props.theme.primaryDark : props.theme.textMuted)};
 `;
 
-// Separated from the hours and the links above it rather than stacked
-// straight onto them: this is the act the card exists for, and an action
-// pressed against the information it acts on reads as one more row.
+// Outlined, and in WhatsApp's deep green rather than its bright one.
+//
+// Two reasons, and the first is measurable. White on #25d366 — WhatsApp's
+// light brand green — is 1.98:1. The minimum for body text is 4.5:1, so the
+// label was not merely a bit pale, it was less than half as legible as it
+// needed to be, which is exactly the "dimmed" it was reported as. Filling
+// with a green dark enough to carry white would have meant abandoning the
+// brand colour anyway.
+//
+// The second is that this card had two full-width saturated green blocks
+// stacked on each other, under a green status line, beside green day chips.
+// Only one of the two is the primary action. Outlining this one halves the
+// green on the card and puts the label at 7.67:1 on white — nearly four
+// times the contrast it had — while keeping the colour that says WhatsApp.
+const WHATSAPP_DEEP = "#075E54";
+const WHATSAPP_GREEN = "#25d366";
+
 const WhatsAppButton = styled(Pressable)`
   flex-direction: row;
   align-items: center;
   justify-content: center;
   gap: 8px;
   margin-top: ${spacing.md}px;
-  padding: 14px;
+  padding: 13px;
   border-radius: ${radius.md}px;
-  background-color: #25d366;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1.5px;
+  border-color: ${WHATSAPP_GREEN};
 `;
 
 const WhatsAppLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 14.5px;
-  color: #ffffff;
+  color: ${WHATSAPP_DEEP};
 `;
 
 const RestoLinkRow = styled.View`

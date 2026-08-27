@@ -1607,9 +1607,24 @@ export function ForYouScreen({ navigation, route }) {
             </UtilityCard>
           ) : null}
 
-          {/* Local first. It is the promise the app is built on, and it
-              was fifth. Everything below it is a selection we made;
-              this is the one section the reader chose, by city. */}
+          {/* The named, checked businesses open the feed.
+              
+              This sits above "Près de {city}", which itself was moved to the
+              top once for a good reason — local is the promise the app is
+              built on, and the reader chose that city. The row above it now
+              is the one part of the feed that is not a selection we made
+              either: every card is a business a person verified, and the
+              distributors among them are the names somebody scrolling past
+              already recognises. Recognition is what makes the rest of the
+              feed worth trusting, so it goes first and local follows
+              immediately. */}
+          {businessCards.length > 0 ? (
+            <Section>
+              <SectionHeading label={t("verifiedBusinessesSectionTitle")} />
+              <BusinessMarquee ads={businessCards} navigation={navigation} />
+            </Section>
+          ) : null}
+
           <Section>
             <NearSectionHeader onPress={() => setCityPickerVisible(true)}>
               <SectionHeading
@@ -1752,13 +1767,6 @@ export function ForYouScreen({ navigation, route }) {
                   );
                 }}
               />
-            </Section>
-          ) : null}
-
-          {businessCards.length > 0 ? (
-            <Section>
-              <SectionHeading label={t("verifiedBusinessesSectionTitle")} />
-              <BusinessMarquee ads={businessCards} navigation={navigation} />
             </Section>
           ) : null}
 

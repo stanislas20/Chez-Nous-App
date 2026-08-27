@@ -275,6 +275,7 @@ const TRADE_HINT_KEYS = {
   insurance: "sellTitleHint_insurance",
   clim: "sellTitleHint_aircon",
   keys: "sellTitleHint_keys",
+  gps: "sellTitleHint_gps",
   // Missing since the Lavage screen shipped: a car washer arriving from it
   // was shown the generic Services example, which is a plumber.
   wash: "sellTitleHint_wash",
@@ -313,6 +314,7 @@ const SERVICE_TRADES = [
   },
   { key: "clim", icon: "snow-outline", labelKey: "sellTradeAircon" },
   { key: "keys", icon: "key-outline", labelKey: "sellTradeKeys" },
+  { key: "gps", icon: "navigate-circle-outline", labelKey: "sellTradeGps" },
 ];
 
 // Under Services these two keys describe a workshop, not a product, so the
@@ -1163,8 +1165,23 @@ export function CreateListingScreen({ route, navigation }) {
   // mention climatisation — and the "dépannage" escape hatch below only
   // rescues the ones who also wrote that word. Showing two optional fields
   // to a specialist is the cheaper mistake.
+  // A tracker fitter works at a bench, by appointment. Found on the device
+  // the day the GPS screen shipped: somebody arriving from it to publish
+  // was asked how fast they usually arrive, and whether they carry a
+  // flatbed, a winch and a jerrycan.
+  //
+  // Keyed on the trade they arrived with, not on their words. The matcher
+  // would also catch a general garage that happens to mention "traceur",
+  // and stripping the roadside questions from a garage is the mistake this
+  // list has been careful to avoid — the same reasoning that keeps "clim"
+  // out of it.
+  const isTrackerFitter = isServices && trade === "gps";
+
   const showRoadsideFields =
-    (!mentionsDriver && !mentionsParts && !mentionsInsurance) ||
+    (!mentionsDriver &&
+      !mentionsParts &&
+      !mentionsInsurance &&
+      !isTrackerFitter) ||
     matchesGarageSpecialty(`${title} ${description}`, "depan");
 
   // Hidden rather than optional: an unanswerable question left on the page

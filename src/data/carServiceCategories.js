@@ -141,7 +141,9 @@ export const carServicesPrimary = [
 ];
 
 export const carServicesMore = [
-  { key: "gps", icon: "navigate-circle-outline", query: "gps traceur" },
+  // Was a text search of Services for "gps traceur", which matched every
+  // printing shop with a plotter until the matcher learned the difference.
+  { key: "gps", icon: "navigate-circle-outline", route: "Tracking" },
   { key: "fleet", icon: "business-outline", query: "gestion de flotte" },
   { key: "dealers", icon: "storefront-outline", route: "CarDealerships" },
   { key: "drivingSchool", icon: "school-outline", query: "auto-école" },

@@ -1511,6 +1511,37 @@ export const translations = {
       "What this work goes for here, to tell a 3 500 job from a 145 000 one before anybody drives across town. It is not a quote \u2014 the specialist confirms once they see the car.",
     keysJobsNotOnType: "Not something a {type} has",
     keysJobsPickAnother: "Pick the kind of key you actually hold.",
+    gpsEyebrow: "GPS & tracking",
+    gpsTitle: "A tracker with no plan tracks nothing",
+    gpsIntro:
+      "The box is bought once. The SIM and the platform are paid every month, for as long as you want it to work \u2014 and a tracker whose SIM has lapsed looks fitted and tells you nothing.",
+    gpsPostPrompt: "You fit trackers?",
+    gpsPost: "List your workshop",
+    gpsNeedTitle: "What do you want it for?",
+    gpsKindLabel: "Kind of box",
+    gpsKindSuits: "SUITS THIS",
+    gpsMismatch:
+      "A {kind} is a weak answer to \u201c{need}\u201d. Worth hearing why from the installer before you pay for it.",
+    gpsAskTitle: "Ask before you pay",
+    gpsAskNote:
+      "No prices here: none were quoted to us for this trade, and a range invented on this screen would be held against an installer who never agreed to it. These are the questions whose answers make two quotes comparable.",
+    gpsCount: "{count} fitter(s) and workshop(s)",
+    gpsNoneTitle: "Nobody listed for this yet",
+    gpsNoneCopy:
+      "No tracker fitter has published here. Auto electricians fit them too \u2014 many without saying so in their listing.",
+    gpsCutoffTitle: "Engine cut-off",
+    gpsCutoffHeading: "The starter, never a moving engine",
+    gpsCutoffCopy:
+      "Sold as the headline feature and the one to be slowest about. A relay that can stop a running engine can stop it at speed, taking the power steering and the brake servo with it. Fitted properly it inhibits the starter, so the vehicle cannot be started again \u2014 which is what stops a theft, and does nothing to a vehicle already moving. Ask which one they are wiring.",
+    gpsSafety:
+      "A tracker gives you a position to hand the police. It does not recover a vehicle, and nobody can promise that it will. If somebody else drives the vehicle, tell them it is fitted.",
+    gpsQuoteIntro: "Hello, I found you on Chez-Nous.",
+    gpsQuoteNeed: "What I need it for: {need}.",
+    gpsQuoteKind: "Kind of box: {kind}.",
+    gpsQuoteAsk: "What does a year cost, box, SIM and platform included?",
+    sellTradeGps: "GPS & tracking",
+    sellTitleHint_gps:
+      "e.g. Vehicle tracker fitting \u2014 supply, wiring and subscription, Cotonou",
     keysEyebrow: "Car keys",
     keysTitle: "The price depends on the key",
     keysIntro:
@@ -3889,6 +3920,38 @@ export const translations = {
     keysJobsNotOnType: "Une {type} n'a pas \u00e7a",
     keysJobsPickAnother:
       "Choisissez le type de cl\u00e9 que vous avez r\u00e9ellement.",
+    gpsEyebrow: "GPS & traceur",
+    gpsTitle: "Un traceur sans forfait ne trace rien",
+    gpsIntro:
+      "Le bo\u00eetier s'ach\u00e8te une fois. La SIM et la plateforme se paient tous les mois, tant que vous voulez qu'il marche \u2014 et un traceur dont la SIM est \u00e9puis\u00e9e a l'air pos\u00e9 et ne dit rien.",
+    gpsPostPrompt: "Vous posez des traceurs ?",
+    gpsPost: "Publier votre atelier",
+    gpsNeedTitle: "Pourquoi en voulez-vous un ?",
+    gpsKindLabel: "Type de bo\u00eetier",
+    gpsKindSuits: "ADAPT\u00c9",
+    gpsMismatch:
+      "Un bo\u00eetier \u00ab {kind} \u00bb r\u00e9pond mal \u00e0 \u00ab {need} \u00bb. \u00c0 faire expliquer par l'installateur avant de payer.",
+    gpsAskTitle: "\u00c0 demander avant de payer",
+    gpsAskNote:
+      "Pas de prix ici : aucun ne nous a \u00e9t\u00e9 donn\u00e9 pour ce m\u00e9tier, et une fourchette invent\u00e9e sur cet \u00e9cran serait reproch\u00e9e \u00e0 un installateur qui ne l'a jamais accept\u00e9e. Voici les questions dont les r\u00e9ponses rendent deux devis comparables.",
+    gpsCount: "{count} installateur(s) et atelier(s)",
+    gpsNoneTitle: "Personne d'inscrit pour l'instant",
+    gpsNoneCopy:
+      "Aucun poseur de traceur n'a publi\u00e9 ici. Les \u00e9lectriciens auto en posent aussi \u2014 beaucoup sans le dire dans leur annonce.",
+    gpsCutoffTitle: "Coupure moteur",
+    gpsCutoffHeading: "Le d\u00e9marreur, jamais un moteur en marche",
+    gpsCutoffCopy:
+      "Vendue comme l'argument principal, c'est celle sur laquelle il faut \u00eatre le plus lent. Un relais capable d'arr\u00eater un moteur en marche peut l'arr\u00eater en roulant, et emporte avec lui la direction assist\u00e9e et l'assistance de frein. Bien pos\u00e9e, elle bloque le d\u00e9marreur : le v\u00e9hicule ne peut plus \u00eatre red\u00e9marr\u00e9 \u2014 c'est ce qui arr\u00eate un vol, et \u00e7a ne fait rien \u00e0 un v\u00e9hicule d\u00e9j\u00e0 en mouvement. Demandez laquelle des deux ils c\u00e2blent.",
+    gpsSafety:
+      "Un traceur vous donne une position \u00e0 remettre \u00e0 la police. Il ne r\u00e9cup\u00e8re pas un v\u00e9hicule, et personne ne peut promettre le contraire. Si quelqu'un d'autre conduit le v\u00e9hicule, dites-lui qu'il est pos\u00e9.",
+    gpsQuoteIntro: "Bonjour, je vous ai trouv\u00e9 sur Chez-Nous.",
+    gpsQuoteNeed: "Ce que je cherche : {need}.",
+    gpsQuoteKind: "Type de bo\u00eetier : {kind}.",
+    gpsQuoteAsk:
+      "Combien co\u00fbte une ann\u00e9e, bo\u00eetier, SIM et plateforme compris ?",
+    sellTradeGps: "GPS & traceur",
+    sellTitleHint_gps:
+      "ex. Pose de traceur GPS \u2014 fourniture, c\u00e2blage et abonnement, Cotonou",
     keysEyebrow: "Clés auto",
     keysTitle: "Le prix dépend de la clé",
     keysIntro:

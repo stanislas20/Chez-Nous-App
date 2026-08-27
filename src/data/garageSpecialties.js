@@ -158,6 +158,29 @@ export const garageSpecialties = [
     terms: ["serrurier", "reprogrammation"],
     weakTerms: ["clé", "clef", "télécommande", "verrouillage", "serrure"],
   },
+  // Vehicle tracking, and the two words that make it hard.
+  //
+  // "GPS" is a feature line on half the cars for sale in the country
+  // ("clim, GPS, caméra de recul"), so it can never be a strong term. It is
+  // safe here only because providers are drawn from Services listings and a
+  // vehicle advert is not one — but weak keeps it honest if that pool ever
+  // widens.
+  //
+  // "Traceur" is worse: in a printing shop it is a plotter, and Cotonou has
+  // more of those than it has tracker installers. Vehicle context is what
+  // separates them, the same way it separates a car electrician from a
+  // house one.
+  //
+  // "Géolocalisation" is the one word that means this and nothing else in a
+  // services listing, so it stands alone.
+  {
+    key: "gps",
+    icon: "navigate-circle-outline",
+    labelEn: "GPS tracking",
+    labelFr: "GPS & traceur",
+    terms: ["géolocalisation"],
+    weakTerms: ["gps", "traceur", "balise", "tracker", "antivol"],
+  },
   {
     key: "depan",
     icon: "warning-outline",

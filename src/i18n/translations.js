@@ -645,6 +645,8 @@ export const translations = {
     searchCityPlaceholder: "Search cities",
     useMyLocationCity: "Use my current location",
     verifiedBusinessesSectionTitle: "Verified businesses",
+    // What a distributor is, in the same slot a company shows its sector.
+    dealerBusinessSector: "Official distributor",
     dealsSectionTitle: "Deals ending soon",
     notificationsTitle: "Notifications",
     notificationsEmptyTitle: "No notifications yet",
@@ -3112,6 +3114,7 @@ export const translations = {
     searchCityPlaceholder: "Rechercher une ville",
     useMyLocationCity: "Utiliser ma position actuelle",
     verifiedBusinessesSectionTitle: "Entreprises vérifiées",
+    dealerBusinessSector: "Distributeur officiel",
     dealsSectionTitle: "Offres se terminant bientôt",
     notificationsTitle: "Notifications",
     notificationsEmptyTitle: "Aucune notification pour le moment",

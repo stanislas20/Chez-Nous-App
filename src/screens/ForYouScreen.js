@@ -40,6 +40,8 @@ import { cityCoordinates } from "../data/cityCoordinates";
 import { businessCategories } from "../data/businessCategories";
 import { useApprovedAds } from "../hooks/useApprovedAds";
 import { useVerifiedCompanies } from "../hooks/useVerifiedCompanies";
+import { useDirectory } from "../hooks/useDirectory";
+import { carDealerships, dealerEmblem } from "../data/carDealerships";
 import { getCompanySectorLabel } from "../data/companySectors";
 import {
   experienceLevels,
@@ -742,7 +744,9 @@ function BusinessMarquee({ ads, navigation }) {
 function BusinessCard({ ad, navigation }) {
   const { language, t } = useI18n();
   const name = ad.sponsorName ?? "";
-  const initials = name.trim().slice(0, 2).toUpperCase();
+  // Two letters is all a person's trading name gives you. A firm that ships
+  // its own short form — CFAO, SONAEC — says it better than a slice does.
+  const initials = ad.emblem ?? name.trim().slice(0, 2).toUpperCase();
   // A company card arrives with its label already resolved — sectors come
   // from companySectors.js, not the advertiser category list.
   const category = businessCategories.find((c) => c.key === ad.category);
@@ -775,6 +779,12 @@ function BusinessCard({ ad, navigation }) {
           });
           return;
         }
+        // A directory entry opens the directory. It has no profile of its
+        // own and inventing one would be inventing a company page.
+        if (ad.route) {
+          navigation.navigate(ad.route);
+          return;
+        }
         if (ad.linkUrl) Linking.openURL(ad.linkUrl);
       }}
     >
@@ -787,7 +797,16 @@ function BusinessCard({ ad, navigation }) {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <BusinessLogoLabel>{initials}</BusinessLogoLabel>
+            {/* Shrinks to fit rather than truncating: "SONAEC" is six
+                characters where a person's initials are two, and a plate
+                reading "SONAE…" identifies nothing. */}
+            <BusinessLogoLabel
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.5}
+            >
+              {initials}
+            </BusinessLogoLabel>
           </BusinessLogo>
         )}
       </BusinessLogoPlate>
@@ -1199,8 +1218,39 @@ export function ForYouScreen({ navigation, route }) {
   // it the checkmark on these cards is literally true — which is the whole
   // reason the section is called "verified".
   const verifiedCompanies = useVerifiedCompanies();
+  // The brand distributors belong in this row too, and they lead it.
+  //
+  // They are the businesses everybody in Bénin already knows, and they were
+  // three taps down — Auto, then Concessions. Their claim to the checkmark is
+  // not weaker than a signed-up company's: a person checked each one against
+  // a published source before it was written, and check-dealerships holds
+  // that. It is a different KIND of verification, so the card behaves
+  // differently — see the `route` branch in BusinessCard. There is no profile
+  // to open, no number to ring, and nothing here says they are partners: the
+  // screen it opens says the opposite, in as many words.
+  const dealerships = useDirectory("dealerships", carDealerships);
   const businessCards = useMemo(
     () => [
+      ...dealerships.map((firm) => ({
+        id: `dealer-${firm.key}`,
+        sponsorName: firm.name,
+        categoryLabel: t("dealerBusinessSector"),
+        verified: true,
+        // Not a sellerId: these firms have no account. The whole directory
+        // opens instead, where the brands, the addresses and the "annuaire,
+        // pas un partenariat" note all live.
+        route: "CarDealerships",
+        city: firm.city ?? null,
+        // No logo. We hold none for these firms and a distributor's mark is
+        // not ours to invent — the same reason the Concessionnaires cards
+        // use a tint rather than a badge. The marque logos we DO hold are
+        // Toyota's and Ford's, and putting one on a CFAO card would say the
+        // manufacturer is the verified business.
+        photoUrl: null,
+        // So the plate is worth reading: "CFAO", not the first two letters
+        // of it. dealerEmblem is what the directory's own cards use.
+        emblem: dealerEmblem(firm.name),
+      })),
       ...(verifiedCompanies ?? []).map((company) => ({
         id: `company-${company.id}`,
         sponsorName: company.companyName,
@@ -1215,7 +1265,7 @@ export function ForYouScreen({ navigation, route }) {
       })),
       ...ads,
     ],
-    [verifiedCompanies, ads, language],
+    [dealerships, verifiedCompanies, ads, language, t],
   );
 
   // The ONPB roster above only covers pharmacies currently on duty — a
@@ -3076,6 +3126,10 @@ const BusinessLogo = styled(LinearGradient)`
 const BusinessLogoLabel = styled.Text`
   font-family: ${fontFamily.bold};
   font-size: 20px;
+  /* Room for adjustsFontSizeToFit to shrink into — without a width the text
+     is measured at its natural size and never scales down. */
+  width: ${BUSINESS_LOGO_SIZE - 20}px;
+  text-align: center;
   color: #ffffff;
 `;
 

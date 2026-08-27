@@ -14,6 +14,7 @@ import { JobApplicationsScreen } from "../screens/JobApplicationsScreen";
 import { SellerProfileScreen } from "../screens/SellerProfileScreen";
 import { FollowListScreen } from "../screens/FollowListScreen";
 import { SubmitCarParkScreen } from "../screens/SubmitCarParkScreen";
+import { SubmitDealershipScreen } from "../screens/SubmitDealershipScreen";
 import { ChatScreen } from "../screens/ChatScreen";
 import { MoreScreen } from "../screens/MoreScreen";
 import { SavedListingsScreen } from "../screens/SavedListingsScreen";
@@ -354,6 +355,21 @@ export function RootNavigator() {
             name="JobApplications"
             component={JobApplicationsScreen}
             options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="SubmitDealership"
+            component={SubmitDealershipScreen}
+            options={{
+              headerShown: true,
+              title: t("dealerSubmitTitle"),
+              headerTintColor: colors.primary,
+              headerStyle: { backgroundColor: colors.surface },
+              headerTitleStyle: {
+                fontFamily: fontFamily.semiBold,
+                color: colors.text,
+              },
+              headerShadowVisible: false,
+            }}
           />
           <Stack.Screen
             name="SubmitCarPark"

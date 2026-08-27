@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Image, Linking, Pressable, ScrollView } from "react-native";
+import { Alert, Image, Linking, Pressable, ScrollView } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -19,6 +19,8 @@ import {
 } from "../data/carDealerships";
 import { brandLogo, isWideLogo } from "../data/vehicleBrandLogos";
 import { useDirectory } from "../hooks/useDirectory";
+import { useAuth } from "../auth/AuthContext";
+import { openAccountGate } from "../utils/openAccountGate";
 
 const EMERALD = "#0B6E4F";
 const GOLD = "#D9A441";
@@ -42,6 +44,7 @@ export function CarDealershipsScreen({ navigation }) {
   const dealerships = useDirectory("dealerships", carDealerships);
   const { colors } = useTheme();
   const { t } = useI18n();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [brandFilter, setBrandFilter] = useState(null);
 
@@ -63,6 +66,26 @@ export function CarDealershipsScreen({ navigation }) {
   const open = (url) => {
     if (!url) return;
     Linking.openURL(url).catch(() => {});
+  };
+
+  // An account is required, and the reason is not spam: a tip about a company
+  // is often nearly right — the correct firm, the wrong marque — and being
+  // able to ask the person who sent it is what turns it into a row we can
+  // publish. Asked for at the tap rather than by hiding the button, so the
+  // list never looks closed to the people most likely to know what is
+  // missing.
+  const reportMissing = () => {
+    if (!user) {
+      Alert.alert(t("dealerSubmitSignUpTitle"), t("dealerSubmitSignUpBody"), [
+        { text: t("cancel"), style: "cancel" },
+        {
+          text: t("signUpButton"),
+          onPress: () => openAccountGate(navigation),
+        },
+      ]);
+      return;
+    }
+    navigation.navigate("SubmitDealership");
   };
 
   // A maps search on the published address, not a pin: we hold no
@@ -239,8 +262,20 @@ export function CarDealershipsScreen({ navigation }) {
 
                 <Divider />
 
+                {/* Two actions split the row; one does not stretch to fill
+                    it. A lone "Itinéraire" given flex:1 became a full-width
+                    slab of emerald with a 12.5px label marooned in the
+                    middle, which reads as a loading state rather than a
+                    button. So the button is sized to its label, and the space
+                    it used to occupy says the true thing about these firms —
+                    that there is no site to send you to. Without that line
+                    the card is silent about it while the note below tells you
+                    to contact each company through its own site. */}
                 <ActionRow>
-                  <DirectionsButton onPress={() => openDirections(item)}>
+                  <DirectionsButton
+                    solo={!item.website}
+                    onPress={() => openDirections(item)}
+                  >
                     <Ionicons name="navigate-outline" size={15} color="#fff" />
                     <DirectionsLabel>{t("dealerDirections")}</DirectionsLabel>
                   </DirectionsButton>
@@ -252,7 +287,16 @@ export function CarDealershipsScreen({ navigation }) {
                       <Ionicons name="open-outline" size={14} color={EMERALD} />
                       <SiteLabel>{t("carsDealershipWebsite")}</SiteLabel>
                     </SiteButton>
-                  ) : null}
+                  ) : (
+                    <NoSiteRow>
+                      <Ionicons
+                        name="globe-outline"
+                        size={14}
+                        color={colors.textMuted}
+                      />
+                      <NoSiteLabel>{t("dealerNoSite")}</NoSiteLabel>
+                    </NoSiteRow>
+                  )}
                 </ActionRow>
               </DealerBody>
             </DealerCard>
@@ -270,6 +314,17 @@ export function CarDealershipsScreen({ navigation }) {
           <Ionicons name="information-circle-outline" size={14} color={GOLD} />
           <NoteText>{t("carsDealershipsPartial")}</NoteText>
         </Note>
+
+        {/* The other half of the sentence directly above. That note has
+            promised since it shipped that a missing distributor can be
+            reported, and there was nothing anywhere to tap — the promise read
+            as an apology. It goes here, against the claim it answers, rather
+            than at the top where it would invite reports from people who have
+            not yet seen the list is short. */}
+        <SuggestRow onPress={reportMissing}>
+          <Ionicons name="add-circle-outline" size={17} color={EMERALD} />
+          <SuggestLabel>{t("dealerSubmitLink")}</SuggestLabel>
+        </SuggestRow>
 
         <Note>
           <Ionicons name="information-circle-outline" size={14} color={GOLD} />
@@ -522,7 +577,10 @@ const ActionRow = styled.View`
 `;
 
 const DirectionsButton = styled(Pressable)`
-  flex: 1;
+  ${(props) =>
+    props.solo
+      ? "flex-grow: 0; flex-shrink: 0; padding: 0 22px;"
+      : "flex: 1;"}
   flex-direction: row;
   align-items: center;
   justify-content: center;
@@ -554,6 +612,41 @@ const SiteButton = styled(Pressable)`
 const SiteLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 12.5px;
+  color: ${EMERALD};
+`;
+
+// Not a button, and shaped so it cannot be mistaken for one: no border, no
+// fill, muted text. It occupies the space the site button would have had.
+const NoSiteRow = styled.View`
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+`;
+
+const NoSiteLabel = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 12px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+const SuggestRow = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: ${spacing.sm}px;
+  padding: 13px;
+  margin-top: ${spacing.sm}px;
+  border-radius: 18px;
+  border-width: 1.5px;
+  border-color: rgba(11, 110, 79, 0.4);
+`;
+
+const SuggestLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 13px;
   color: ${EMERALD};
 `;
 

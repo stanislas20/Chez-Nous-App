@@ -781,6 +781,29 @@ export const translations = {
     dealerAddressesLabel: "Addresses",
     dealerDirections: "Directions",
     dealerFilterEmpty: "No official distributor listed for this brand.",
+    dealerNoSite: "No published site",
+    dealerSubmitLink: "Report a missing distributor",
+    dealerSubmitTitle: "Report a distributor",
+    dealerSubmitIntro:
+      "Tell us about an official distributor that is missing from this list. We check every one against a published source before adding it, so it will not appear straight away.",
+    dealerSubmitNameLabel: "Company name",
+    dealerSubmitNamePlaceholder: "e.g. Cotonou Motors",
+    dealerSubmitCityLabel: "City",
+    dealerSubmitCityPlaceholder: "e.g. Parakou",
+    dealerSubmitBrandsLabel: "Brands they distribute",
+    dealerSubmitBrandsPlaceholder: "e.g. Toyota, Kia",
+    dealerSubmitNoteLabel: "How do you know? (optional)",
+    dealerSubmitNotePlaceholder:
+      "Their site, a sign on the building, the neighbourhood — anything that helps us check",
+    dealerSubmitAction: "Send the report",
+    dealerSubmitNameRequired: "Give the company a name.",
+    dealerSubmitBrandsRequired: "Say at least one brand they distribute.",
+    dealerSubmitThanks: "Thank you. We will check it before adding it.",
+    dealerSubmitModerationNote:
+      "We only list distributors we can verify from a published source — an official brand page or the company's own site. That is why this list is short.",
+    dealerSubmitSignUpTitle: "Sign up to report",
+    dealerSubmitSignUpBody:
+      "You need an account so we can come back to you if we have a question about the company. Sign up now?",
     sellTitleHint_tyres: "e.g. Michelin Energy XM2+ 195/65 R15 — new",
     errorTyreSize:
       "Enter the full tyre size — width, sidewall and rim — or buyers cannot find it.",
@@ -3222,6 +3245,29 @@ export const translations = {
     dealerAddressesLabel: "Adresses",
     dealerDirections: "Itinéraire",
     dealerFilterEmpty: "Aucun distributeur officiel listé pour cette marque.",
+    dealerNoSite: "Pas de site publié",
+    dealerSubmitLink: "Signaler un distributeur manquant",
+    dealerSubmitTitle: "Signaler un distributeur",
+    dealerSubmitIntro:
+      "Indiquez-nous un distributeur officiel absent de cette liste. Nous vérifions chacun auprès d’une source publiée avant de l’ajouter : il n’apparaîtra donc pas immédiatement.",
+    dealerSubmitNameLabel: "Nom de la société",
+    dealerSubmitNamePlaceholder: "ex. Cotonou Motors",
+    dealerSubmitCityLabel: "Ville",
+    dealerSubmitCityPlaceholder: "ex. Parakou",
+    dealerSubmitBrandsLabel: "Marques distribuées",
+    dealerSubmitBrandsPlaceholder: "ex. Toyota, Kia",
+    dealerSubmitNoteLabel: "Comment le savez-vous ? (facultatif)",
+    dealerSubmitNotePlaceholder:
+      "Leur site, l’enseigne sur le bâtiment, le quartier — tout ce qui nous aide à vérifier",
+    dealerSubmitAction: "Envoyer le signalement",
+    dealerSubmitNameRequired: "Donnez un nom à la société.",
+    dealerSubmitBrandsRequired: "Indiquez au moins une marque distribuée.",
+    dealerSubmitThanks: "Merci. Nous vérifions avant de l’ajouter.",
+    dealerSubmitModerationNote:
+      "Nous ne listons que les distributeurs vérifiables auprès d’une source publiée — une page officielle de la marque ou le site de la société. C’est pour cela que cette liste est courte.",
+    dealerSubmitSignUpTitle: "Inscrivez-vous pour signaler",
+    dealerSubmitSignUpBody:
+      "Il faut un compte pour que nous puissions vous recontacter si nous avons une question sur la société. Vous inscrire maintenant ?",
     sellTitleHint_tyres: "ex. Michelin Energy XM2+ 195/65 R15 — neuf",
     errorTyreSize:
       "Indiquez la dimension complète du pneu — largeur, flanc et jante — sinon les acheteurs ne peuvent pas la trouver.",

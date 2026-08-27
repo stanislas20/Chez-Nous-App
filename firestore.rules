@@ -288,6 +288,52 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Where "signalez-le et nous l'ajouterons" actually goes.
+    //
+    // The screen has always promised that a missing distributor can be
+    // reported, and until now there was nothing to tap. The promise is kept
+    // here rather than by loosening the block above, because a suggestion and
+    // a dealership are not the same object: one is a tip about a firm that
+    // may not hold any franchise at all, the other is the app asserting in
+    // its own voice that it does.
+    //
+    // So this is a separate collection that the app never reads. Nothing
+    // written here can appear anywhere — not filtered out, not sorted last:
+    // no screen queries it. An admin reads it with
+    // `node scripts/addDealership.js --suggestions`, checks the claim against
+    // a published source, and only then writes the real row. That keeps the
+    // one guarantee this directory exists to make: every name in it was
+    // verified by a person, and no phone can shortcut that.
+    match /dealershipSuggestions/{suggestionId} {
+      // Not world-readable. A tip carries the submitter's uid and is nobody
+      // else's business; the admin reads it with the service account, which
+      // bypasses rules.
+      allow read: if request.auth != null
+        && request.auth.uid == resource.data.submittedBy;
+
+      // `canPost` is deliberately NOT required here, unlike a park. A park
+      // submission publishes a place; this one publishes nothing at all, so
+      // the stricter gate would only hide the button from the people most
+      // likely to know a distributor we missed.
+      allow create: if request.auth != null
+        && request.resource.data.submittedBy == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 1
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.city is string
+        && request.resource.data.city.size() <= 80
+        && request.resource.data.brands is string
+        && request.resource.data.brands.size() <= 200
+        && (!('note' in request.resource.data)
+          || request.resource.data.note == null
+          || request.resource.data.note.size() <= 400);
+
+      // Nothing edits a tip, including its author: it is evidence, and the
+      // admin acts on what was actually sent.
+      allow update, delete: if false;
+    }
+
     // Parks, unlike dealerships, accept submissions from the app. A park is
     // a place — saying one exists is a much weaker claim than "official
     // Toyota distributor", and the useful moment to add one is standing in

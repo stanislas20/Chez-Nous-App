@@ -22,6 +22,7 @@
 //
 // Usage:
 //   GOOGLE_APPLICATION_CREDENTIALS=<key.json> node scripts/addDealership.js --list
+//   GOOGLE_APPLICATION_CREDENTIALS=<key.json> node scripts/addDealership.js --suggestions
 //   GOOGLE_APPLICATION_CREDENTIALS=<key.json> node scripts/addDealership.js --seed
 //   GOOGLE_APPLICATION_CREDENTIALS=<key.json> node scripts/addDealership.js \
 //     --key=cotonou-motors --name="Cotonou Motors" --city=Cotonou \
@@ -104,6 +105,37 @@ async function main() {
     );
   }
 
+  // ── What people reported from the app ────────────────────────────────
+  //
+  // The screen promises that a missing distributor can be reported, and the
+  // reports land in a collection nothing in the app reads. This is the only
+  // way to see them, so it has to exist or the promise is a dead letter.
+  //
+  // Read them, check the claim against a published source — the marque's own
+  // dealer page, or the company's site — and then write the row with the
+  // flags below. A tip is where a row starts, never what a row is.
+  if (args.suggestions) {
+    const tips = await admin
+      .firestore()
+      .collection("dealershipSuggestions")
+      .orderBy("createdAt", "desc")
+      .get();
+    console.log(`\nsuggestions: ${tips.size}`);
+    tips.docs.forEach((doc) => {
+      const tip = doc.data();
+      const when = tip.createdAt?.toDate?.().toISOString().slice(0, 10) ?? "?";
+      console.log(
+        `\n  ${when}  ${doc.id}\n` +
+          `    ${tip.name} — ${tip.city || "no city given"}\n` +
+          `    marques: ${tip.brands}` +
+          (tip.note ? `\n    note: ${tip.note}` : "") +
+          `\n    from: ${tip.submittedBy}`,
+      );
+    });
+    if (tips.empty) console.log("  nothing reported yet");
+    return;
+  }
+
   if (args.list) return;
 
   // ── Seeding ──────────────────────────────────────────────────────────
@@ -130,8 +162,9 @@ async function main() {
   // ── Adding one ───────────────────────────────────────────────────────
   if (!args.key || !args.name || !args.city || !args.brands) {
     console.log(
-      "\nnothing written. --list to inspect, --seed to publish the bundled " +
-        "list, or pass --key --name --city --brands to add one.",
+      "\nnothing written. --list to inspect, --suggestions to read what was " +
+        "reported from the app, --seed to publish the bundled list, or pass " +
+        "--key --name --city --brands to add one.",
     );
     return;
   }

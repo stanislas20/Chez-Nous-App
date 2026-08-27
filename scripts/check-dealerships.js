@@ -193,6 +193,83 @@ check(
   true,
 );
 
+// ── And the promise in that prose has somewhere to go ───────────────────
+//
+// The note says "signalez-le et nous l'ajouterons", and for a long time
+// there was nothing anywhere to tap: the sentence read as an apology rather
+// than an offer. A promise the interface cannot keep is the one failure this
+// directory cannot afford, because the whole screen rests on being straight
+// about what it does and does not know.
+//
+// So all three parts are asserted together — the words, the button, and the
+// destination — since any one of them going missing restores the dead end.
+const screen = read("src/screens/CarDealershipsScreen.js");
+check(
+  "the note's promise has a control",
+  /dealerSubmitLink/.test(screen),
+  true,
+);
+check(
+  "and the control goes somewhere",
+  /navigate\("SubmitDealership"\)/.test(screen),
+  true,
+);
+check(
+  "the destination is registered",
+  /name="SubmitDealership"/.test(read("src/navigation/RootNavigator.js")),
+  true,
+);
+
+// A report is not a listing. It is written to a collection no screen reads,
+// so nothing typed on a phone can ever render as an official distributor —
+// which is the entire reason `dealerships` is writable by nobody. A
+// submission pointed at `dealerships` itself would undo that in one line.
+const submit = read("src/screens/SubmitDealershipScreen.js");
+check(
+  "reports go to the suggestions collection",
+  /collection\(firestore, "dealershipSuggestions"\)/.test(submit),
+  true,
+);
+check(
+  "and never straight into the directory",
+  /collection\(firestore, "dealerships"\)/.test(submit),
+  false,
+);
+const rules = read("firestore.rules");
+check(
+  "the rules still forbid writing a dealership",
+  /match \/dealerships\/\{dealershipId\} \{\s*allow read: if true;\s*allow write: if false;/.test(
+    rules,
+  ),
+  true,
+);
+check(
+  "a report cannot be filed as anything but pending",
+  /dealershipSuggestions[\s\S]*?request\.resource\.data\.status == 'pending'/.test(
+    rules,
+  ),
+  true,
+);
+// The admin can read them. Without this the reports pile up unseen and the
+// promise is kept only as far as the write.
+check(
+  "there is a way to read what was reported",
+  /--suggestions/.test(read("scripts/addDealership.js")),
+  true,
+);
+
+// ── The card says when there is no site ─────────────────────────────────
+//
+// Two of these firms publish neither a phone number nor a site, and the note
+// at the bottom tells everyone to contact each company through its own. On
+// those two cards that instruction points at nothing, so the card has to say
+// so itself.
+check(
+  "a firm with no site says so on its card",
+  /dealerNoSite/.test(screen),
+  true,
+);
+
 if (failures.length) {
   failures.forEach((line) => console.error(`FAIL ${line}`));
   console.error(`\n${failures.length} failing`);

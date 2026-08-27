@@ -21,12 +21,14 @@ import { useGarageProviders } from "../hooks/useGarageProviders";
 import { getGarageSpecialtyLabel } from "../data/garageSpecialties";
 import { buildLinkUrl } from "../data/restaurantLinks";
 import {
+  getKeyNeed,
   getKeyType,
+  jobsFor,
   keyChecklist,
-  keyServices,
-  keySituations,
+  keyNeeds,
   keyTypes,
-  specialtiesForSituation,
+  priceRangeFor,
+  specialtiesForNeed,
 } from "../data/carKeys";
 
 // Brass, because that is what a key is. It also keeps this screen apart from
@@ -34,6 +36,10 @@ import {
 // vehicle screens that look identical are three screens somebody has to read
 // the title of to know where they are.
 const BRASS = "#A8762A";
+// The two urgent needs — locked in, lost with no spare — are the ones
+// somebody is reading standing next to the car. They get the app's own
+// terracotta rather than a fourth invented colour.
+const TERRACOTTA = "#C1512D";
 const PATINA = "#3A2A12";
 const GOLD = "#D9A441";
 
@@ -42,10 +48,19 @@ const GOLD = "#D9A441";
 // The tile used to run a text search of Services for "clé voiture", which
 // finds whatever happens to contain those words. This screen answers the
 // three questions somebody actually arrives with: what kind of key the car
-// takes, which trade ends this particular situation, and — the one that
+// takes, which trade ends this particular situation, and — the one the
 // decides the bill — that cutting and coding are two different jobs, so a
 // key that turns in the ignition is not necessarily a key that starts the
 // engine.
+// Grouped thousands with a non-breaking space, the way the rest of the app
+// prints money. Local copy rather than an import from CarsScreen, which does
+// not export it.
+function fcfa(value) {
+  return Number(value || 0)
+    .toLocaleString("fr-FR")
+    .replace(/ | /g, "\u00a0");
+}
+
 export function KeysScreen({ navigation }) {
   const { colors } = useTheme();
   const { t, language } = useI18n();
@@ -53,8 +68,12 @@ export function KeysScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { coords } = useCurrentLocation();
 
-  const [situation, setSituation] = useState(null);
-  const [keyType, setKeyType] = useState("unknown");
+  // The design opens on a chosen key type rather than on "I don't know":
+  // every price on the screen is per type, so there is nothing to show until
+  // one is picked, and a plain blade is the cheapest and least alarming
+  // thing to be looking at while you decide.
+  const [need, setNeed] = useState(null);
+  const [keyType, setKeyType] = useState("mech");
 
   // One definition of who is a garage, shared with Garages, Dépannage and
   // Climatisation. A separate matcher here would drift the first time a term
@@ -68,8 +87,8 @@ export function KeysScreen({ navigation }) {
   // starting is an immobiliser question and a locksmith is the wrong queue
   // to stand in.
   const wanted = useMemo(
-    () => (situation ? specialtiesForSituation(situation) : ["keys"]),
-    [situation],
+    () => (need ? specialtiesForNeed(need) : ["keys"]),
+    [need],
   );
 
   const matching = useMemo(
@@ -92,12 +111,12 @@ export function KeysScreen({ navigation }) {
   const title = (item) =>
     (language === "en" ? item.titleEn : item.titleFr) || item.titleFr;
 
-  const openSituation = useMemo(
-    () => keySituations.find((item) => item.key === situation) ?? null,
-    [situation],
-  );
-
+  const openNeed = useMemo(() => getKeyNeed(need), [need]);
   const typeMeta = getKeyType(keyType);
+  const jobs = useMemo(
+    () => (need ? jobsFor(need, keyType) : []),
+    [need, keyType],
+  );
 
   const call = (phone) => {
     if (!phone) return;
@@ -112,12 +131,10 @@ export function KeysScreen({ navigation }) {
     if (!url) return;
     const message = [
       t("keysQuoteIntro"),
-      openSituation
-        ? t("keysQuoteSituation", { situation: label(openSituation, "label") })
+      openNeed
+        ? t("keysQuoteSituation", { situation: label(openNeed, "label") })
         : null,
-      keyType !== "unknown" && typeMeta
-        ? t("keysQuoteType", { type: label(typeMeta, "label") })
-        : null,
+      typeMeta ? t("keysQuoteType", { type: label(typeMeta, "label") }) : null,
     ]
       .filter(Boolean)
       .join(" ");
@@ -185,71 +202,54 @@ export function KeysScreen({ navigation }) {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* First, and deliberately. Cutting and coding are two different
-            jobs, and not knowing that is how somebody pays for a key that
-            turns in the ignition and never starts the engine. */}
-        <Truth>
-          <TruthIcon>
-            <Ionicons name="information-circle" size={18} color={BRASS} />
-          </TruthIcon>
-          <TruthCol>
-            <TruthTitle>{t("keysCutTitle")}</TruthTitle>
-            <TruthCopy>{t("keysCutCopy")}</TruthCopy>
-          </TruthCol>
-        </Truth>
-
-        <SectionTitle>{t("keysSituationTitle")}</SectionTitle>
-        {keySituations.map((item) => {
-          const on = item.key === situation;
-          return (
-            <SymptomCard
-              key={item.key}
-              on={on}
-              onPress={() => setSituation(on ? null : item.key)}
-            >
-              <SymptomTop>
-                <SymptomIcon on={on}>
+        {/* No standing panel here. The hero already carries the one fact
+            this screen is built on — the spread between a plain blade and a
+            hands-free key — and repeating it in a card underneath would be
+            saying it twice before the reader has told us anything. The
+            Truth block below is per-need and appears once one is chosen. */}
+        <SectionTitle>{t("keysNeedTitle")}</SectionTitle>
+        <NeedGrid>
+          {keyNeeds.map((item) => {
+            const on = item.key === need;
+            return (
+              <NeedCard
+                key={item.key}
+                on={on}
+                onPress={() => setNeed(on ? null : item.key)}
+              >
+                <NeedIcon on={on} urgent={item.urgent}>
                   <Ionicons
                     name={item.icon}
                     size={18}
-                    color={on ? "#ffffff" : BRASS}
+                    color={on ? "#ffffff" : item.urgent ? TERRACOTTA : BRASS}
                   />
-                </SymptomIcon>
-                <SymptomLabel numberOfLines={2}>
-                  {label(item, "label")}
-                </SymptomLabel>
-                <Ionicons
-                  name={on ? "chevron-up" : "chevron-down"}
-                  size={16}
-                  color={colors.textMuted}
-                />
-              </SymptomTop>
+                </NeedIcon>
+                <NeedLabel numberOfLines={2}>{label(item, "label")}</NeedLabel>
+                <NeedHint numberOfLines={1}>{label(item, "hint")}</NeedHint>
+              </NeedCard>
+            );
+          })}
+        </NeedGrid>
 
-              {on ? (
-                <SymptomBody>
-                  <CausesLabel>{t("keysCausesLabel")}</CausesLabel>
-                  {item.causes.map((cause) => (
-                    <CauseBlock key={cause.labelEn}>
-                      <CauseRow>
-                        <CauseDot />
-                        <CauseText>{label(cause, "label")}</CauseText>
-                        {/* Naming the trade is the useful half: several of
-                            these are not locksmith work at all. */}
-                        <TradePill>
-                          <TradeLabel>
-                            {getGarageSpecialtyLabel(cause.specialty, language)}
-                          </TradeLabel>
-                        </TradePill>
-                      </CauseRow>
-                      <CauseNote>{label(cause, "note")}</CauseNote>
-                    </CauseBlock>
-                  ))}
-                  <CausesNote>{t("keysCausesNote")}</CausesNote>
-                </SymptomBody>
-              ) : null}
-            </SymptomCard>
-          );
-        })}
+        {/* The note is the reason the card exists. Three of the six are
+            warnings about what people do while they wait — the coat hanger
+            through the airbag wiring, forcing the broken blade deeper — and
+            those only help before somebody acts. */}
+        {openNeed ? (
+          <Truth>
+            <TruthIcon>
+              <Ionicons
+                name={openNeed.urgent ? "warning" : "information-circle"}
+                size={18}
+                color={openNeed.urgent ? TERRACOTTA : BRASS}
+              />
+            </TruthIcon>
+            <TruthCol>
+              <TruthTitle>{label(openNeed, "label")}</TruthTitle>
+              <TruthCopy>{label(openNeed, "note")}</TruthCopy>
+            </TruthCol>
+          </Truth>
+        ) : null}
 
         <SectionLabel>{t("keysTypeLabel")}</SectionLabel>
         <Segment>
@@ -264,14 +264,61 @@ export function KeysScreen({ navigation }) {
                 <SegmentLabel on={on} numberOfLines={1}>
                   {label(item, "label")}
                 </SegmentLabel>
+                <SegmentHint on={on} numberOfLines={1}>
+                  {label(item, "hint")}
+                </SegmentHint>
               </SegmentItem>
             );
           })}
         </Segment>
         <Note>{label(typeMeta ?? {}, "note")}</Note>
 
+        {/* Priced per kind of key, which is the whole argument of the
+            screen: the same trade, the same shop, and forty times the money
+            between a plain blade and a hands-free key. */}
+        {openNeed ? (
+          <>
+            <SectionTitle>
+              {t("keysJobsTitle", { type: label(typeMeta ?? {}, "label") })}
+            </SectionTitle>
+            {jobs.length ? (
+              <>
+                <ServiceList>
+                  {jobs.map((job) => (
+                    <ServiceRow key={job.key}>
+                      <ServiceCol>
+                        <ServiceLabel>{label(job, "label")}</ServiceLabel>
+                        <ServiceNote>{label(job, "detail")}</ServiceNote>
+                      </ServiceCol>
+                      <PriceCol>
+                        <PriceText>{fcfa(job.price[keyType])}</PriceText>
+                        <DurText>
+                          {t("keysJobDuration", { mins: job.mins })}
+                        </DurText>
+                      </PriceCol>
+                    </ServiceRow>
+                  ))}
+                </ServiceList>
+                {/* Said once, under the numbers rather than buried at the
+                    bottom: these are what the work goes for here, not a
+                    quote anybody on this screen has agreed to. */}
+                <Note>{t("keysPriceNote")}</Note>
+              </>
+            ) : (
+              <EmptyCard>
+                <EmptyTitle>
+                  {t("keysJobsNotOnType", {
+                    type: label(typeMeta ?? {}, "label"),
+                  })}
+                </EmptyTitle>
+                <EmptyCopy>{t("keysJobsPickAnother")}</EmptyCopy>
+              </EmptyCard>
+            )}
+          </>
+        ) : null}
+
         {/* Proof of ownership, framed as reassurance rather than as an
-            obstacle. A locksmith who asks for the carte grise and an ID is
+            obstacle. A specialist who asks for the carte grise and an ID is
             protecting the car; one who never asks would make a key for
             whoever took it. */}
         <SectionTitle>{t("keysBringTitle")}</SectionTitle>
@@ -292,27 +339,12 @@ export function KeysScreen({ navigation }) {
           <WarnText>{t("keysOwnershipNote")}</WarnText>
         </Warn>
 
-        <SectionTitle>{t("keysServicesTitle")}</SectionTitle>
-        <ServiceList>
-          {keyServices.map((item) => (
-            <ServiceRow key={item.key}>
-              <ServiceIcon>
-                <Ionicons name={item.icon} size={16} color={BRASS} />
-              </ServiceIcon>
-              <ServiceCol>
-                <ServiceLabel>{label(item, "label")}</ServiceLabel>
-                <ServiceNote>{label(item, "note")}</ServiceNote>
-              </ServiceCol>
-            </ServiceRow>
-          ))}
-        </ServiceList>
-
         <CountRow>
           <CountText>
-            {openSituation
+            {openNeed
               ? t("keysCountFor", {
                   count: matching.length,
-                  situation: label(openSituation, "label"),
+                  situation: label(openNeed, "label"),
                 })
               : t("keysCount", { count: matching.length })}
           </CountText>
@@ -386,7 +418,7 @@ export function KeysScreen({ navigation }) {
 
               {/* Which of the trades this situation needs they actually
                   cover. With none chosen there is nothing to disambiguate. */}
-              {openSituation ? (
+              {openNeed ? (
                 <TradeRow>
                   {wanted
                     .filter((key) => item.specialties.includes(key))
@@ -596,111 +628,75 @@ const SectionLabel = styled.Text`
   margin-bottom: 10px;
 `;
 
-const SymptomCard = styled(Pressable)`
-  padding: 13px ${spacing.md}px;
-  margin-bottom: 10px;
-  border-radius: ${radius.xl}px;
-  background-color: ${(props) => props.theme.surface};
+// Two across. Six needs in one column is a lot of scrolling before the
+// question is even answered, and the labels are short enough to pair.
+const NeedGrid = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: ${spacing.sm}px;
+  margin-bottom: ${spacing.md}px;
+`;
+
+const NeedCard = styled(Pressable)`
+  flex-grow: 1;
+  flex-basis: 45%;
+  padding: 13px;
+  border-radius: ${radius.lg}px;
+  background-color: ${(props) =>
+    props.on ? "rgba(168, 118, 42, 0.1)" : props.theme.surface};
   border-width: 1px;
   border-color: ${(props) => (props.on ? BRASS : props.theme.border)};
-  ${shadow.card}
 `;
 
-const SymptomTop = styled.View`
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
-`;
-
-const SymptomIcon = styled.View`
-  width: 36px;
-  height: 36px;
-  border-radius: 13px;
+const NeedIcon = styled.View`
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
   align-items: center;
   justify-content: center;
-  background-color: ${(props) => (props.on ? BRASS : "rgba(44, 127, 166, 0.09)")};
+  margin-bottom: 9px;
+  background-color: ${(props) =>
+    props.on
+      ? props.urgent
+        ? TERRACOTTA
+        : BRASS
+      : props.urgent
+        ? "rgba(193, 81, 45, 0.12)"
+        : "rgba(168, 118, 42, 0.12)"};
 `;
 
-const SymptomLabel = styled.Text`
-  flex: 1;
+const NeedLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 13.5px;
   color: ${(props) => props.theme.text};
 `;
 
-const SymptomBody = styled.View`
-  margin-top: 13px;
-  padding-top: 13px;
-  gap: 9px;
-  border-top-width: 1px;
-  border-top-color: ${(props) => props.theme.border};
-`;
-
-const CausesLabel = styled.Text`
-  font-family: ${fontFamily.bold};
-  font-size: 10px;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  color: ${(props) => props.theme.textMuted};
-`;
-
-// Each cause carries a sentence, which Climatisation's did not.
-//
-// There the cause name was enough — "condenser fan" is either your problem
-// or it is not. Here the useful part is the advice attached: try the coin
-// cell before you pay for a remote, do not push a broken blade further in,
-// ask whether they come to you before you book a tow. A trade pill alone
-// would send somebody to the right shop without telling them the thing that
-// saves the visit.
-const CauseBlock = styled.View`
-  margin-bottom: 10px;
-`;
-
-const CauseNote = styled.Text`
+const NeedHint = styled.Text`
   font-family: ${fontFamily.regular};
   font-size: 11.5px;
-  line-height: 17px;
-  margin-top: 3px;
-  margin-left: 14px;
+  margin-top: 2px;
   color: ${(props) => props.theme.textMuted};
 `;
 
-const CauseRow = styled.View`
-  flex-direction: row;
-  align-items: center;
-  gap: 9px;
+// The price and how long it takes, right-aligned against the job. Tabular
+// figures line up down the column, which is what makes the spread between a
+// plain blade and a hands-free key readable at a glance.
+const PriceCol = styled.View`
+  align-items: flex-end;
+  margin-left: ${spacing.sm}px;
 `;
 
-const CauseDot = styled.View`
-  width: 5px;
-  height: 5px;
-  border-radius: 3px;
-  background-color: ${BRASS};
-`;
-
-const CauseText = styled.Text`
-  flex: 1;
-  font-family: ${fontFamily.regular};
-  font-size: 12.5px;
+const PriceText = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 13.5px;
+  font-variant: tabular-nums;
   color: ${(props) => props.theme.text};
 `;
 
-const TradePill = styled.View`
-  padding: 4px 9px;
-  border-radius: 999px;
-  background-color: rgba(44, 127, 166, 0.09);
-`;
-
-const TradeLabel = styled.Text`
-  font-family: ${fontFamily.bold};
-  font-size: 10px;
-  color: ${BRASS};
-`;
-
-const CausesNote = styled.Text`
+const DurText = styled.Text`
   font-family: ${fontFamily.regular};
-  font-size: 11.5px;
-  line-height: 17px;
+  font-size: 11px;
+  margin-top: 2px;
   color: ${(props) => props.theme.textMuted};
 `;
 
@@ -720,6 +716,13 @@ const SegmentItem = styled(Pressable)`
   border-radius: ${radius.md}px;
   background-color: ${(props) =>
     props.on ? props.theme.surface : "transparent"};
+`;
+
+const SegmentHint = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 10.5px;
+  margin-top: 1px;
+  color: ${(props) => (props.on ? "rgba(255, 255, 255, 0.8)" : props.theme.textMuted)};
 `;
 
 const SegmentLabel = styled.Text`

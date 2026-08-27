@@ -1098,7 +1098,6 @@ export const translations = {
     sellFieldDriverPermits: "Permit categories you hold",
     sellDriverPermitsHint:
       "Declared, not checked. Clients are told to ask for the original — say only what you can show.",
-    sellFieldDriverVehicle: "Whose vehicle",
     sellFieldDriverLanguages: "Languages you speak",
     sellDriverLanguagesHint:
       "The filter families abroad use most when hiring for a relative.",
@@ -1501,24 +1500,23 @@ export const translations = {
     papersSearchMap: "Search",
     airconAskGas:
       "This workshop has not said which gases it holds — worth asking before you set off.",
+    keysNeedTitle: "What has happened?",
+    keysTypeLabel: "Your kind of key",
+    keysJobsTitle: "What it costs on a {type}",
+    keysJobDuration: "about {mins} min",
+    keysPriceNote:
+      "What this work goes for here, to tell a 3 500 job from a 145 000 one before anybody drives across town. It is not a quote \u2014 the specialist confirms once they see the car.",
+    keysJobsNotOnType: "Not something a {type} has",
+    keysJobsPickAnother: "Pick the kind of key you actually hold.",
     keysEyebrow: "Car keys",
-    keysTitle: "A key that turns is not always a key that starts",
+    keysTitle: "The price depends on the key",
     keysIntro:
-      "Cutting and coding are two different jobs. Tell us what happened and we name the trade that ends it.",
+      "A plain blade is copied for 3 500 FCFA; a hands-free key remade with no model to copy passes 145 000. Say which one you have before you call anybody out.",
     keysPostPrompt: "You make car keys?",
     keysPost: "List a locksmith",
-    keysCutTitle: "Cut is not the same as coded",
-    keysCutCopy:
-      "A blade cut from your old key unlocks the door and turns in the ignition. If the car expects a chip and the new key has none it recognises, the engine will not start — and nothing went wrong. Ask one question before any money moves: can you code my make, not just cut it?",
-    keysSituationTitle: "What has happened?",
-    keysCausesLabel: "What it usually is",
-    keysCausesNote:
-      "Likeliest first. The trade named beside each one is who can settle it.",
-    keysTypeLabel: "What kind of key does the car take?",
     keysBringTitle: "Bring with you",
     keysOwnershipNote:
       "A locksmith who asks for the carte grise and your ID is protecting your car, not being difficult. One who never asks would make a key for whoever took it.",
-    keysServicesTitle: "What you can ask for",
     keysCount: "{count} locksmith(s) and workshop(s)",
     keysCountFor: "{count} for: {situation}",
     keysNoneTitle: "Nobody listed for this yet",
@@ -3468,7 +3466,6 @@ export const translations = {
     sellFieldDriverPermits: "Catégories de permis que vous avez",
     sellDriverPermitsHint:
       "Déclaré, non vérifié. On demande aux clients d’exiger l’original — n’indiquez que ce que vous pouvez montrer.",
-    sellFieldDriverVehicle: "Quel véhicule",
     sellFieldDriverLanguages: "Langues que vous parlez",
     sellDriverLanguagesHint:
       "Le filtre le plus utilisé par les familles à l’étranger qui recrutent pour un proche.",
@@ -3877,24 +3874,24 @@ export const translations = {
     papersSearchMap: "Chercher",
     airconAskGas:
       "Cet atelier n’a pas indiqué les gaz qu’il a — à demander avant de vous déplacer.",
+    keysNeedTitle: "Que vous arrive-t-il ?",
+    keysTypeLabel: "Votre type de cl\u00e9",
+    keysJobsTitle: "Ce que \u00e7a co\u00fbte sur une {type}",
+    keysJobDuration: "environ {mins} min",
+    keysPriceNote:
+      "Ce que ce travail se pratique ici, pour distinguer un travail de 3 500 d'un travail de 145 000 avant que quiconque traverse la ville. Ce n'est pas un devis \u2014 le sp\u00e9cialiste confirme en voyant la voiture.",
+    keysJobsNotOnType: "Une {type} n'a pas \u00e7a",
+    keysJobsPickAnother:
+      "Choisissez le type de cl\u00e9 que vous avez r\u00e9ellement.",
     keysEyebrow: "Clés auto",
-    keysTitle: "Une clé qui tourne n'est pas toujours une clé qui démarre",
+    keysTitle: "Le prix dépend de la clé",
     keysIntro:
-      "Tailler et coder sont deux métiers différents. Dites ce qui vous arrive, on nomme celui qui règle ça.",
+      "Une clé plate se copie pour 3 500 FCFA, une clé mains libres refaite sans modèle dépasse 145 000. Dites lequel des deux vous avez avant de faire venir quelqu'un.",
     keysPostPrompt: "Vous faites des clés auto ?",
     keysPost: "Publier un serrurier",
-    keysCutTitle: "Taillée n'est pas codée",
-    keysCutCopy:
-      "Une lame taillée sur votre ancienne clé ouvre la porte et tourne dans le contact. Si la voiture attend une puce et que la nouvelle clé n'en a pas qu'elle reconnaît, le moteur ne démarrera pas — et rien n'est cassé. Une question avant de payer : savez-vous coder ma marque, pas seulement tailler ?",
-    keysSituationTitle: "Que s'est-il passé ?",
-    keysCausesLabel: "Ce que c'est en général",
-    keysCausesNote:
-      "Du plus probable au moins probable. Le métier indiqué à côté est celui qui peut trancher.",
-    keysTypeLabel: "Quel type de clé prend la voiture ?",
     keysBringTitle: "À apporter",
     keysOwnershipNote:
       "Un serrurier qui demande la carte grise et votre pièce d'identité protège votre voiture, il ne complique pas. Celui qui ne demande jamais ferait une clé à celui qui vous l'a prise.",
-    keysServicesTitle: "Ce que vous pouvez demander",
     keysCount: "{count} serrurier(s) et atelier(s)",
     keysCountFor: "{count} pour : {situation}",
     keysNoneTitle: "Personne d'inscrit pour ça",

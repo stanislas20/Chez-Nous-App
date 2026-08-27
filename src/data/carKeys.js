@@ -1,72 +1,62 @@
-// Clés auto — what actually goes wrong, and the fact that decides the bill.
+// Clés auto — the price depends on the key.
 //
-// A modern car key is two separate things in one object: a blade that is
-// cut, and a chip that is coded to the car. Cutting is mechanical and cheap;
-// coding needs equipment, and the equipment does not cover every make. A
-// shop that can do the first cannot necessarily do the second.
+// This follows the owner's design, and the design's whole argument is one
+// spread: a plain blade is copied for 3 500 FCFA, a hands-free key remade
+// with no model to copy passes 145 000. Same trade, same shop, forty times
+// the money — and which one you are holding is a fact about the car that
+// most people cannot name. Saying it before a specialist is called out is
+// the point of the screen.
 //
-// The failure this screen exists to prevent is paying for a key that turns.
-// A blade cut from your old one will unlock the door and turn in the
-// ignition, and the engine will not start, because the immobiliser never saw
-// a chip it recognises. From the customer's side that looks like a faulty
-// key and a wasted morning; from the workshop's side nothing went wrong at
-// all. Asking one question first — can you code my make, not just cut it —
-// settles it before any money moves.
+// So every job is priced three times, once per kind of key, and a job that
+// does not exist for a kind is null rather than zero: a plain blade has no
+// remote battery and no calculator to pair, and showing "0 FCFA" would read
+// as free rather than as not applicable.
 //
-// Everything else here is triage: the situation decides the trade, and
-// several of these are not locksmith jobs.
+// ── On the prices ────────────────────────────────────────────────────────
+//
+// These are the owner's own figures for this market, not a live quote and
+// not scraped from any listing. The screen has to say so where they are
+// shown, and the specialist still quotes: a number presented here as if a
+// particular workshop had agreed to it would be a promise this app cannot
+// keep. What they are good for is the comparison — telling somebody that
+// their situation is a 3 500 job or a 145 000 job before anybody drives
+// across town.
 
-// What kind of key the car takes.
-//
-// This is not a preference, it is a fact about the vehicle, and it decides
-// whether coding is needed at all. "I don't know" is offered first-class
-// rather than being forced into a guess: guessing wrong here is how somebody
-// pays for a duplicate that cannot start the car.
+// What kind of key the car takes. Three, because three is what changes the
+// price; finer distinctions than this do not.
 export const keyTypes = [
   {
-    key: "mechanical",
-    labelEn: "Plain metal key",
-    labelFr: "Clé métallique simple",
+    key: "mech",
+    labelEn: "Plain blade",
+    labelFr: "Clé plate",
+    hintEn: "No chip",
+    hintFr: "Sans puce",
     noteEn:
-      "No buttons, no chip in the head. Older vehicles. A cut copy works on its own — this is the only case where cutting alone is the whole job.",
+      "Metal only, nothing electronic. Older vehicles. The cheapest of everything here, and the only kind where cutting is the whole job.",
     noteFr:
-      "Sans boutons, sans puce dans la tête. Véhicules anciens. Une copie taillée suffit — c'est le seul cas où la taille est tout le travail.",
+      "Du métal, rien d'électronique. Véhicules anciens. Le moins cher de tout ce qui suit, et le seul type où tailler est tout le travail.",
   },
   {
     key: "remote",
-    labelEn: "Key with a remote",
-    labelFr: "Clé avec télécommande",
+    labelEn: "Chipped key",
+    labelFr: "Clé à puce",
+    hintEn: "Transponder",
+    hintFr: "Transpondeur",
     noteEn:
-      "Buttons to lock and unlock, folding or separate. The blade is cut and the remote has to be paired to the car; most also carry a chip.",
+      "A chip in the head, usually with buttons. The blade is cut and the chip is paired to the car — a copy that is only cut will not start it.",
     noteFr:
-      "Des boutons pour verrouiller et déverrouiller, pliante ou séparée. La lame se taille et la télécommande doit être appairée ; la plupart portent aussi une puce.",
-  },
-  {
-    key: "transponder",
-    labelEn: "Chipped key, no buttons",
-    labelFr: "Clé à puce, sans boutons",
-    noteEn:
-      "Looks like a plain key with a thicker plastic head. The chip inside is what lets the engine start, and a copy that is only cut will not start it.",
-    noteFr:
-      "Ressemble à une clé simple avec une tête en plastique plus épaisse. C'est la puce à l'intérieur qui autorise le démarrage : une copie seulement taillée ne démarrera pas.",
+      "Une puce dans la tête, en général avec des boutons. La lame se taille et la puce s'apparie à la voiture — une copie seulement taillée ne démarrera pas.",
   },
   {
     key: "smart",
-    labelEn: "Keyless / start button",
-    labelFr: "Sans clé / bouton start",
+    labelEn: "Hands-free key",
+    labelFr: "Clé mains libres",
+    hintEn: "Button start",
+    hintFr: "Démarrage bouton",
     noteEn:
-      "The key stays in your pocket and the car starts on a button. The most expensive to replace, and the one fewest workshops can code — ask before you travel.",
+      "The key stays in your pocket and the car starts on a button. Every job below costs the most on this kind, and fewest workshops can do them.",
     noteFr:
-      "La clé reste dans la poche et la voiture démarre au bouton. La plus chère à remplacer, et celle que le moins d'ateliers savent coder — demandez avant de vous déplacer.",
-  },
-  {
-    key: "unknown",
-    labelEn: "I don't know",
-    labelFr: "Je ne sais pas",
-    noteEn:
-      "Look at the head of the key: buttons mean a remote, a thick plastic head with no buttons usually means a chip. The carte grise does not say. A locksmith can tell in seconds — send a photo before you go.",
-    noteFr:
-      "Regardez la tête de la clé : des boutons = télécommande, une tête en plastique épaisse sans boutons = souvent une puce. La carte grise ne le dit pas. Un serrurier le voit en quelques secondes — envoyez une photo avant de vous déplacer.",
+      "La clé reste dans la poche et la voiture démarre au bouton. Chaque travail ci-dessous y coûte le plus cher, et peu d'ateliers savent les faire.",
   },
 ];
 
@@ -74,303 +64,247 @@ export function getKeyType(key) {
   return keyTypes.find((item) => item.key === key) ?? null;
 }
 
-// The situations somebody actually opens this screen in, each pointing at
-// the trade that can end it.
+// Every job a key specialist does, priced per kind of key.
 //
-// Not all of them are locksmith work, which is the whole reason for the
-// triage: a key that turns without starting the engine is an immobiliser
-// question, a worn ignition barrel is mechanical, and a car locked with the
-// keys inside is whoever can get there fastest.
-export const keySituations = [
+// `mins` is how long the work takes, which matters as much as the price when
+// somebody is standing next to a locked car deciding whether to wait.
+export const keyJobs = [
   {
-    key: "lostAll",
-    icon: "alert-circle-outline",
-    labelEn: "I have lost every key",
-    labelFr: "J'ai perdu toutes mes clés",
-    causes: [
-      {
-        specialty: "keys",
-        labelEn: "A key made from scratch, at the car",
-        labelFr: "Une clé faite à partir de zéro, sur place",
-        noteEn:
-          "The car cannot be driven to the workshop, so this is either a locksmith who comes to you or a tow. Ask which before you arrange anything — a tow you did not need is the expensive half.",
-        noteFr:
-          "La voiture ne peut pas rouler jusqu'à l'atelier : c'est donc un serrurier qui se déplace, ou un remorquage. Demandez lequel avant d'organiser quoi que ce soit — un remorquage inutile est la moitié chère.",
-      },
-    ],
+    key: "open",
+    labelEn: "Door opening",
+    labelFr: "Ouverture de porte",
+    detailEn: "Tracing tool, no damage",
+    detailFr: "Outil de traçage, sans dégât",
+    mins: 20,
+    price: { mech: 8000, remote: 10000, smart: 15000 },
   },
   {
-    key: "lostOne",
-    icon: "key-outline",
-    labelEn: "I lost one, I still have another",
-    labelFr: "J'en ai perdu une, il m'en reste une",
-    causes: [
-      {
-        specialty: "keys",
-        labelEn: "A duplicate, cut and coded from the one you have",
-        labelFr: "Un double, taillé et codé à partir de celle qui reste",
-        noteEn:
-          "Much cheaper than a key made from scratch, and worth doing before the second one goes too. Bring the key you still have.",
-        noteFr:
-          "Bien moins cher qu'une clé faite de zéro, et à faire avant que la seconde ne disparaisse aussi. Apportez la clé qui vous reste.",
-      },
-    ],
+    key: "extract",
+    labelEn: "Broken key extraction",
+    labelFr: "Extraction de clé cassée",
+    detailEn: "Removing the piece from the barrel",
+    detailFr: "Retrait du morceau dans le barillet",
+    mins: 30,
+    price: { mech: 10000, remote: 15000, smart: 20000 },
   },
   {
-    key: "spare",
-    icon: "copy-outline",
-    labelEn: "I want a spare",
-    labelFr: "Je veux un double",
-    causes: [
-      {
-        specialty: "keys",
-        labelEn: "A second key while you still have one",
-        labelFr: "Une deuxième clé pendant qu'il en reste une",
-        noteEn:
-          "The cheapest this job is ever going to be. A spare made now costs a fraction of a key made from scratch after the last one is lost.",
-        noteFr:
-          "Le moment le moins cher pour ce travail. Un double fait maintenant coûte une fraction d'une clé faite de zéro une fois la dernière perdue.",
-      },
-    ],
+    key: "battery",
+    labelEn: "Remote battery",
+    labelFr: "Pile de télécommande",
+    detailEn: "Replaced, battery included",
+    detailFr: "Remplacement, pile comprise",
+    mins: 10,
+    price: { mech: null, remote: 2500, smart: 3500 },
   },
   {
-    key: "remoteDead",
-    icon: "radio-outline",
-    labelEn: "The remote no longer opens the car",
-    labelFr: "La télécommande n'ouvre plus",
-    causes: [
-      {
-        specialty: "keys",
-        labelEn: "A flat battery in the remote",
-        labelFr: "La pile de la télécommande est morte",
-        noteEn:
-          "Try this first. It is a coin cell, it costs almost nothing, and it is the answer far more often than a broken remote is. The key still opens the door by hand in the meantime.",
-        noteFr:
-          "À essayer en premier. C'est une pile bouton, cela ne coûte presque rien, et c'est la réponse bien plus souvent qu'une télécommande cassée. En attendant, la clé ouvre toujours la porte à la main.",
-      },
-      {
-        specialty: "keys",
-        labelEn: "The remote has lost its pairing",
-        labelFr: "La télécommande a perdu son appairage",
-        noteEn:
-          "It has to be re-paired to the car with the same equipment that codes a new one.",
-        noteFr:
-          "Il faut la réappairer à la voiture, avec le même équipement qui code une clé neuve.",
-      },
-      {
-        specialty: "elec",
-        labelEn: "The central locking itself",
-        labelFr: "La centralisation elle-même",
-        noteEn:
-          "If the remote works on some doors and not others, or nothing responds at all, the fault is in the car rather than in the key.",
-        noteFr:
-          "Si la télécommande agit sur certaines portes et pas d'autres, ou si rien ne répond, la panne est dans la voiture, pas dans la clé.",
-      },
-    ],
+    key: "shell",
+    labelEn: "Shell and buttons",
+    labelFr: "Coque et boutons",
+    detailEn: "New casing, existing electronics kept",
+    detailFr: "Boîtier neuf, électronique conservée",
+    mins: 30,
+    price: { mech: null, remote: 12000, smart: 25000 },
   },
   {
-    key: "turnsNoStart",
-    icon: "power-outline",
-    labelEn: "The key turns but the engine will not start",
-    labelFr: "La clé tourne mais le moteur ne démarre pas",
-    causes: [
-      {
-        specialty: "elec",
-        labelEn: "The immobiliser does not recognise the key",
-        labelFr: "L'antidémarrage ne reconnaît pas la clé",
-        noteEn:
-          "Classic sign of a key that was cut but never coded, or a chip that has failed. A warning light shaped like a car with a key or a padlock usually stays on.",
-        noteFr:
-          "Signe classique d'une clé taillée mais jamais codée, ou d'une puce en panne. Un témoin en forme de voiture avec une clé ou un cadenas reste souvent allumé.",
-      },
-      {
-        specialty: "keys",
-        labelEn: "The key needs coding to this car",
-        labelFr: "La clé doit être codée sur cette voiture",
-        noteEn:
-          "If the key is new or was copied elsewhere, coding is the missing step and not a second fault.",
-        noteFr:
-          "Si la clé est neuve ou a été copiée ailleurs, le codage est l'étape manquante, pas une seconde panne.",
-      },
-      {
-        specialty: "batt",
-        labelEn: "Or simply a flat battery",
-        labelFr: "Ou simplement une batterie à plat",
-        noteEn:
-          "Worth ruling out first: if the dashboard lights are dim or nothing turns at all, this is a battery question and no key will fix it.",
-        noteFr:
-          "À écarter d'abord : si le tableau de bord est faible ou que rien ne tourne, c'est une question de batterie et aucune clé n'y changera rien.",
-      },
-    ],
+    key: "copy",
+    labelEn: "Copy from an existing key",
+    labelFr: "Double sur clé existante",
+    detailEn: "Mechanical copy and transponder",
+    detailFr: "Copie mécanique et transpondeur",
+    mins: 45,
+    price: { mech: 3500, remote: 25000, smart: 65000 },
   },
   {
-    key: "brokenInLock",
-    icon: "cut-outline",
-    labelEn: "The key broke, or is stuck in the lock",
-    labelFr: "La clé est cassée ou bloquée dans la serrure",
-    causes: [
-      {
-        specialty: "keys",
-        labelEn: "Extraction, then a new blade",
-        labelFr: "Extraction, puis une lame neuve",
-        noteEn:
-          "Do not force what is left with pliers — a broken blade pushed further in turns a key job into a lock replacement.",
-        noteFr:
-          "Ne forcez pas le morceau restant avec une pince : une lame cassée enfoncée plus loin transforme un travail de clé en remplacement de serrure.",
-      },
-    ],
+    key: "origin",
+    labelEn: "Key remade with no model",
+    labelFr: "Clé refaite sans modèle",
+    detailEn: "Decoded from the chassis number",
+    detailFr: "Décodage par numéro de châssis",
+    mins: 120,
+    price: { mech: 15000, remote: 55000, smart: 145000 },
   },
   {
-    key: "lockedOut",
+    key: "program",
+    labelEn: "Calculator programming",
+    labelFr: "Programmation calculateur",
+    detailEn: "Pairing, and voiding the lost keys",
+    detailFr: "Appariement, invalidation des clés perdues",
+    mins: 90,
+    price: { mech: null, remote: 35000, smart: 60000 },
+  },
+  {
+    key: "code",
+    labelEn: "Reading the lock code",
+    labelFr: "Lecture du code serrure",
+    detailEn: "Taken from the dismounted barrel",
+    detailFr: "Relevé sur barillet démonté",
+    mins: 60,
+    price: { mech: 8000, remote: 12000, smart: 18000 },
+  },
+  {
+    key: "diag",
+    labelEn: "Immobiliser diagnosis",
+    labelFr: "Diagnostic antidémarrage",
+    detailEn: "Reading codes, testing the transponder",
+    detailFr: "Lecture des codes, test transpondeur",
+    mins: 45,
+    price: { mech: null, remote: 10000, smart: 12000 },
+  },
+  {
+    key: "lockchange",
+    labelEn: "Lock replacement",
+    labelFr: "Changement de serrure",
+    detailEn: "Barrel and cylinders, part included",
+    detailFr: "Barillet et cylindres, pièce comprise",
+    mins: 180,
+    price: { mech: 45000, remote: 65000, smart: 120000 },
+  },
+];
+
+export function getKeyJob(key) {
+  return keyJobs.find((item) => item.key === key) ?? null;
+}
+
+// What has happened, and which jobs it turns into.
+//
+// Each note is the thing worth knowing before anybody is paid — and three of
+// them are warnings about what people do while waiting, which is when the
+// expensive mistakes get made.
+export const keyNeeds = [
+  {
+    key: "locked",
     icon: "lock-closed-outline",
-    labelEn: "I am locked out, the keys are inside",
-    labelFr: "Je suis enfermé dehors, les clés sont dedans",
-    causes: [
-      {
-        specialty: "keys",
-        labelEn: "Opening without damage",
-        labelFr: "Ouverture sans casse",
-        noteEn:
-          "A locksmith opens a door without breaking anything. Ask on the phone whether they do — the alternative costs a window.",
-        noteFr:
-          "Un serrurier ouvre une porte sans rien casser. Demandez-le au téléphone — l'alternative coûte une vitre.",
-      },
-      {
-        specialty: "depan",
-        labelEn: "Roadside assistance, if nobody closer answers",
-        labelFr: "Un dépanneur, si personne de plus proche ne répond",
-        noteEn:
-          "Breakdown outfits are used to being called out and are often the ones already on the road.",
-        noteFr:
-          "Les dépanneurs ont l'habitude des sorties et sont souvent déjà sur la route.",
-      },
-    ],
+    urgent: true,
+    labelEn: "Keys locked in",
+    labelFr: "Clés enfermées",
+    hintEn: "Inside the vehicle",
+    hintFr: "Dans le véhicule",
+    jobs: ["open"],
+    noteEn:
+      "Opened without damage using a tracing tool. Do not try the coat hanger: on a recent model you cut the door airbag wiring.",
+    noteFr:
+      "Ouverture sans casse par outil de traçage. N'essayez pas le cintre : sur un modèle récent vous coupez les câbles d'airbag de porte.",
   },
   {
-    key: "barrelWorn",
-    icon: "construct-outline",
-    labelEn: "The lock or the ignition barrel is worn",
-    labelFr: "La serrure ou le neiman est abîmé",
-    causes: [
-      {
-        specialty: "keys",
-        labelEn: "The barrel repaired or replaced",
-        labelFr: "Le barillet réparé ou remplacé",
-        noteEn:
-          "A key that has to be jiggled is usually the lock wearing out rather than the key, and it fails completely sooner or later.",
-        noteFr:
-          "Une clé qu'il faut remuer, c'est en général la serrure qui s'use plutôt que la clé — et elle finit par lâcher complètement.",
-      },
-      {
-        specialty: "meca",
-        labelEn: "The steering lock or the ignition switch",
-        labelFr: "L'antivol de direction ou le contacteur",
-        noteEn:
-          "If the wheel is locked hard or the key will not turn at all, the mechanism behind the barrel is the suspect.",
-        noteFr:
-          "Si le volant est bloqué dur ou que la clé ne tourne pas du tout, c'est le mécanisme derrière le barillet qui est en cause.",
-      },
-    ],
+    key: "lost",
+    icon: "search-outline",
+    urgent: true,
+    labelEn: "Keys lost",
+    labelFr: "Clés perdues",
+    hintEn: "No spare at all",
+    hintFr: "Aucun double",
+    jobs: ["origin", "code", "program", "lockchange"],
+    noteEn:
+      "With no spare, the calculator has to be reprogrammed to void the lost key. Otherwise whoever finds it keeps access.",
+    noteFr:
+      "Sans aucun double, il faut reprogrammer le calculateur pour invalider la clé perdue. Sinon celui qui la trouve garde l'accès.",
   },
-];
-
-export function getSituation(key) {
-  return keySituations.find((item) => item.key === key) ?? null;
-}
-
-// The trades a situation needs, de-duplicated and in the order the causes
-// are listed — the first cause is the likeliest, so the first trade is the
-// one to try first.
-export function specialtiesForSituation(key) {
-  const situation = getSituation(key);
-  if (!situation) return [];
-  const seen = [];
-  for (const cause of situation.causes) {
-    if (!seen.includes(cause.specialty)) seen.push(cause.specialty);
-  }
-  return seen;
-}
-
-// What a workshop can actually be asked for, so somebody can name the job
-// on the phone instead of describing it.
-export const keyServices = [
   {
-    key: "duplicate",
+    key: "broken",
+    icon: "cut-outline",
+    urgent: false,
+    labelEn: "Key broken",
+    labelFr: "Clé cassée",
+    hintEn: "In the lock, or in two",
+    hintFr: "Dans la serrure ou en deux",
+    jobs: ["extract", "origin", "code"],
+    noteEn:
+      "Do not force the piece left in the barrel: a failed extraction turns a 15 000 job into a lock replacement.",
+    noteFr:
+      "Ne forcez pas le morceau resté dans le barillet : une extraction ratée transforme un travail de 15 000 en changement de serrure.",
+  },
+  {
+    key: "copy",
     icon: "copy-outline",
-    labelEn: "Duplicate from an existing key",
-    labelFr: "Double à partir d'une clé existante",
+    urgent: false,
+    labelEn: "Make a spare",
+    labelFr: "Faire un double",
+    hintEn: "A second key",
+    hintFr: "Clé de secours",
+    jobs: ["origin", "copy", "program"],
     noteEn:
-      "Cut, and coded if the car needs it. Bring the key you have and the carte grise.",
+      "Do it before you need it: a copy taken from an existing key costs three to ten times less than a key remade from nothing.",
     noteFr:
-      "Taillée, et codée si la voiture l'exige. Apportez la clé que vous avez et la carte grise.",
+      "Faites-le avant d'en avoir besoin : un double fait sur clé existante coûte trois à dix fois moins qu'une clé refaite à partir de rien.",
   },
   {
-    key: "coding",
-    icon: "hardware-chip-outline",
-    labelEn: "Coding and pairing only",
-    labelFr: "Codage et appairage seulement",
+    key: "remote",
+    icon: "radio-outline",
+    urgent: false,
+    labelEn: "Dead remote",
+    labelFr: "Télécommande morte",
+    hintEn: "No longer locks",
+    hintFr: "Ne verrouille plus",
+    jobs: ["battery", "program", "shell"],
     noteEn:
-      "For a key or remote you already have that the car does not recognise. This is the step a cutting shop cannot always do.",
+      "Nine times out of ten it is the battery or the button contact, not the electronics. Have it tested before you accept a new key.",
     noteFr:
-      "Pour une clé ou une télécommande que vous avez déjà et que la voiture ne reconnaît pas. C'est l'étape qu'un atelier de taille ne sait pas toujours faire.",
+      "Neuf fois sur dix c'est la pile ou le contact du bouton, pas l'électronique. Faites tester avant d'accepter une clé neuve.",
   },
   {
-    key: "allLost",
-    icon: "albums-outline",
-    labelEn: "Full set when every key is gone",
-    labelFr: "Jeu complet quand tout est perdu",
+    key: "immo",
+    icon: "power-outline",
+    urgent: false,
+    labelEn: "Immobiliser",
+    labelFr: "Antidémarrage",
+    hintEn: "It turns, nothing starts",
+    hintFr: "La clé tourne, rien ne part",
+    jobs: ["diag", "program"],
     noteEn:
-      "The longest and dearest version of the job, and the one where the make matters most — some require data only a dealer holds.",
+      "A key or padlock warning light means the transponder is no longer recognised. That is programming work, not mechanics.",
     noteFr:
-      "La version la plus longue et la plus chère, et celle où la marque compte le plus — certaines exigent des données que seule une concession détient.",
-  },
-  {
-    key: "opening",
-    icon: "lock-open-outline",
-    labelEn: "Opening a locked car",
-    labelFr: "Ouverture d'un véhicule fermé",
-    noteEn: "Without breaking anything. Confirm that on the phone.",
-    noteFr: "Sans rien casser. À confirmer au téléphone.",
-  },
-  {
-    key: "remoteShell",
-    icon: "battery-half-outline",
-    labelEn: "Remote battery or shell",
-    labelFr: "Pile ou coque de télécommande",
-    noteEn:
-      "The cheap end of this trade, and often the whole answer to a remote that stopped working.",
-    noteFr:
-      "Le bas de gamme de ce métier, et souvent toute la réponse à une télécommande qui ne marche plus.",
-  },
-  {
-    key: "lockRepair",
-    icon: "build-outline",
-    labelEn: "Door lock or ignition barrel",
-    labelFr: "Serrure de porte ou neiman",
-    noteEn:
-      "Repair or replacement, keyed to the key you already carry where that is possible.",
-    noteFr:
-      "Réparation ou remplacement, sur la clé que vous avez déjà quand c'est possible.",
+      "Un voyant clé ou cadenas allumé signifie que le transpondeur n'est plus reconnu. C'est un travail de programmation, pas de mécanique.",
   },
 ];
 
-// What to have with you.
+export function getKeyNeed(key) {
+  return keyNeeds.find((item) => item.key === key) ?? null;
+}
+
+// The jobs a need turns into, for the kind of key actually held — dropping
+// the ones that do not exist on it.
 //
-// The third line is the point of the list. A locksmith who asks for the
-// carte grise and an ID is not being difficult — they are checking the car
-// is yours, and one who never asks would do the same for whoever took it.
-// It is worth reading as reassurance rather than as an obstacle.
+// Returning an empty array is a real answer and the screen says so: asking
+// about a dead remote on a plain blade is asking about a part the key does
+// not have, and the honest reply is "not on that key", not an empty list
+// that looks like nobody offers it.
+export function jobsFor(needKey, typeKey) {
+  const need = getKeyNeed(needKey);
+  if (!need) return [];
+  return need.jobs
+    .map(getKeyJob)
+    .filter(Boolean)
+    .filter((job) => job.price[typeKey] != null);
+}
+
+// The cheapest and dearest of a need, on one kind of key. What the screen
+// shows before anything is chosen, because the spread is the message.
+export function priceRangeFor(needKey, typeKey) {
+  const prices = jobsFor(needKey, typeKey).map((job) => job.price[typeKey]);
+  if (!prices.length) return null;
+  return { min: Math.min(...prices), max: Math.max(...prices) };
+}
+
+// Which trades can end a need.
+//
+// The design does not model this — it lists "spécialistes" — but the
+// provider list has to come from somewhere, and two of these are genuinely
+// not locksmith work. An immobiliser that no longer recognises a
+// transponder is an auto electrician's day, and a car locked in the street
+// is whoever is already on the road. Sending both to a locksmith would be a
+// filtered garage list with extra steps.
+export function specialtiesForNeed(needKey) {
+  if (needKey === "immo") return ["keys", "elec"];
+  if (needKey === "locked") return ["keys", "depan"];
+  return getKeyNeed(needKey) ? ["keys"] : [];
+}
+
+// What to bring. The first two are the ones that matter: a specialist who
+// asks for the carte grise and an ID is protecting the car, and one who
+// never asks would make a key for whoever took it.
 export const keyChecklist = [
-  {
-    key: "carteGrise",
-    labelEn: "The carte grise",
-    labelFr: "La carte grise",
-  },
-  {
-    key: "id",
-    labelEn: "Your own ID",
-    labelFr: "Votre pièce d'identité",
-  },
+  { key: "carteGrise", labelEn: "The carte grise", labelFr: "La carte grise" },
+  { key: "id", labelEn: "Your own ID", labelFr: "Votre pièce d'identité" },
   {
     key: "remaining",
     labelEn: "Any key you still have, even a broken one",

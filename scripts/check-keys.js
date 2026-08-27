@@ -1,16 +1,21 @@
-// Guards the car-key triage.
+// Guards the car-key screen.
 //
-// This screen's value is that it names the trade. Several of the situations
-// on it are not locksmith work — a key that turns without starting is an
-// immobiliser question, a worn ignition barrel is mechanical, a car locked
-// with the keys inside is whoever arrives first — and a situation pointed at
-// the wrong specialty sends somebody across town to a shop that cannot help.
-// That failure looks like a working screen from here and like a wasted
-// morning from the roadside.
+// Two things can break here and neither shows up as an error.
 //
-// So every specialty named by a cause has to be one the garage matcher can
-// actually produce. A typo — "key" for "keys" — filters the provider list
-// down to nobody and reads as "no locksmiths near you".
+// The prices are the screen. A job whose figure for a kind of key is
+// undefined rather than an explicit null renders as "0 FCFA", which reads
+// as free rather than as not applicable — and a plain blade has no remote
+// battery to change. The ordering matters too: the headline promises that
+// the same job costs more as the key gets harder, and a figure edited out
+// of order would quietly contradict it. The two numbers quoted in the hero
+// copy are pinned exactly, so moving either fails here rather than leaving
+// the headline lying.
+//
+// The routing is the other half. Two of the six needs are not locksmith
+// work — an immobiliser is an auto electrician and a car locked in the
+// street is whoever is already driving — and a need pointed at a specialty
+// the matcher cannot produce filters the provider list down to nobody and
+// reads as "no locksmiths near you".
 //
 // Run: node scripts/check-keys.js
 const babel = require("@babel/core");
@@ -39,11 +44,13 @@ function loadEsm(relative) {
 }
 
 const {
-  keySituations,
-  keyServices,
+  keyNeeds,
+  keyJobs,
   keyTypes,
   keyChecklist,
-  specialtiesForSituation,
+  jobsFor,
+  priceRangeFor,
+  specialtiesForNeed,
   getKeyType,
 } = loadEsm("src/data/carKeys.js");
 const { garageSpecialties, matchesGarageSpecialty } = loadEsm(
@@ -58,134 +65,139 @@ const check = (label, actual, expected) => {
 };
 
 const known = new Set(garageSpecialties.map((item) => item.key));
+const TYPE_KEYS = keyTypes.map((item) => item.key);
 
-// ── Every cause points at a trade that exists ───────────────────────────
-keySituations.forEach((situation) => {
+// ── Every need turns into jobs that exist ───────────────────────────────
+const jobKeys = new Set(keyJobs.map((item) => item.key));
+keyNeeds.forEach((need) => {
   check(
-    `${situation.key} labelled in both languages`,
-    Boolean(situation.labelEn && situation.labelFr),
+    `${need.key} labelled and hinted in both languages`,
+    Boolean(need.labelEn && need.labelFr && need.hintEn && need.hintFr),
     true,
   );
-  check(`${situation.key} has an icon`, Boolean(situation.icon), true);
+  check(`${need.key} has an icon`, Boolean(need.icon), true);
   check(
-    `${situation.key} has at least one cause`,
-    situation.causes.length > 0,
+    `${need.key} explains itself in both languages`,
+    Boolean(need.noteEn && need.noteFr),
     true,
   );
-  situation.causes.forEach((cause) => {
+  check(`${need.key} names at least one job`, need.jobs.length > 0, true);
+  need.jobs.forEach((key) => {
+    check(`${need.key} → "${key}" is a real job`, jobKeys.has(key), true);
+  });
+  specialtiesForNeed(need.key).forEach((key) => {
     check(
-      `${situation.key} → "${cause.labelEn}" names a real specialty (${cause.specialty})`,
-      known.has(cause.specialty),
-      true,
-    );
-    check(
-      `${situation.key} → "${cause.labelEn}" is labelled in both languages`,
-      Boolean(cause.labelEn && cause.labelFr),
-      true,
-    );
-    // The note is the advice that saves the visit — the coin cell before the
-    // remote, the tow you did not need. A cause without one is a trade name
-    // and nothing else.
-    check(
-      `${situation.key} → "${cause.labelEn}" explains itself in both languages`,
-      Boolean(cause.noteEn && cause.noteFr),
+      `${need.key} → specialty "${key}" exists`,
+      known.has(key),
       true,
     );
   });
 });
 
-// ── The triage has to route somewhere different ─────────────────────────
+// ── Pricing is the whole screen, so it has to be complete ───────────────
 //
-// If every situation resolved to "keys" this screen would be a filtered
-// garage list with extra steps, and the claim that it names the right trade
-// would be false.
-const routed = new Set(
-  keySituations.flatMap((situation) => specialtiesForSituation(situation.key)),
-);
-check("triage reaches more than one trade", routed.size > 1, true);
-check("triage reaches keys and locks", routed.has("keys"), true);
-check("triage reaches auto electrics", routed.has("elec"), true);
+// Every job carries a figure for every kind of key, or an explicit null.
+// `undefined` is the dangerous one: it renders as "0 FCFA", which reads as
+// free rather than as not applicable.
+keyJobs.forEach((job) => {
+  check(
+    `${job.key} labelled and detailed in both languages`,
+    Boolean(job.labelEn && job.labelFr && job.detailEn && job.detailFr),
+    true,
+  );
+  check(`${job.key} has a duration`, Number.isFinite(job.mins), true);
+  TYPE_KEYS.forEach((type) => {
+    check(
+      `${job.key} states a price or an explicit null for ${type}`,
+      job.price[type] === null || Number.isFinite(job.price[type]),
+      true,
+    );
+  });
+  // The spread is the argument. A job that costs the same on a plain blade
+  // as on a hands-free key would quietly contradict the headline.
+  const priced = TYPE_KEYS.map((type) => job.price[type]).filter(
+    (value) => value != null,
+  );
+  check(
+    `${job.key} costs more as the key gets harder`,
+    priced.every((value, i) => i === 0 || value > priced[i - 1]),
+    true,
+  );
+});
 
-// The two most commonly misdirected. A key that turns and does not start is
-// sent to a locksmith by default and is usually an immobiliser or a battery;
-// a locked-out car is a call-out rather than a workshop visit.
+// The headline is a promise about two specific numbers. If either moves,
+// the hero copy is wrong and has to move with it.
+const copy = keyJobs.find((item) => item.key === "copy");
+const origin = keyJobs.find((item) => item.key === "origin");
+check("a plain blade is copied for 3 500", copy.price.mech, 3500);
+check("a hands-free key remade with no model is 145 000", origin.price.smart, 145000);
+
+// ── Jobs that do not exist on a kind of key are dropped, not zeroed ─────
 check(
-  "a key that turns without starting reaches electrics",
-  specialtiesForSituation("turnsNoStart").includes("elec"),
+  "a plain blade has no remote battery",
+  jobsFor("remote", "mech").some((job) => job.key === "battery"),
+  false,
+);
+check(
+  "a chipped key does",
+  jobsFor("remote", "remote").some((job) => job.key === "battery"),
   true,
 );
+// The immobiliser need is programming on both electronic kinds and nothing
+// at all on a plain blade, which has no transponder to stop recognising.
 check(
-  "…and is not treated as a battery-only fault",
-  specialtiesForSituation("turnsNoStart")[0],
-  "elec",
+  "an immobiliser question does not arise on a plain blade",
+  jobsFor("immo", "mech").length,
+  0,
+);
+check("…and does on a chipped key", jobsFor("immo", "remote").length > 0, true);
+check("an unknown need has no jobs", jobsFor("nope", "mech").length, 0);
+
+// ── The range shown before anything is chosen ───────────────────────────
+const lostSmart = priceRangeFor("lost", "smart");
+check("losing every hands-free key has a range", Boolean(lostSmart), true);
+check("…and it is a range, not a point", lostSmart.max > lostSmart.min, true);
+check("a need with no jobs on a kind has no range", priceRangeFor("immo", "mech"), null);
+
+// ── Key types ───────────────────────────────────────────────────────────
+check("three kinds of key, which is what changes the price", keyTypes.length, 3);
+keyTypes.forEach((item) => {
+  check(
+    `${item.key} labelled, hinted and explained in both languages`,
+    Boolean(
+      item.labelEn && item.labelFr && item.hintEn && item.hintFr &&
+      item.noteEn && item.noteFr,
+    ),
+    true,
+  );
+});
+check("the cheapest kind is first", keyTypes[0].key, "mech");
+check("the dearest kind is last", keyTypes[keyTypes.length - 1].key, "smart");
+check("an unknown kind resolves to nothing", getKeyType("nope"), null);
+
+// ── Routing ─────────────────────────────────────────────────────────────
+//
+// If every need resolved to "keys" the provider list would be a filtered
+// garage list with extra steps, and the claim that this names the right
+// trade would be false.
+const routed = new Set(keyNeeds.flatMap((need) => specialtiesForNeed(need.key)));
+check("routing reaches more than one trade", routed.size > 1, true);
+check(
+  "an immobiliser reaches auto electrics",
+  specialtiesForNeed("immo").includes("elec"),
+  true,
 );
 check(
   "being locked out reaches breakdown as well",
-  specialtiesForSituation("lockedOut").includes("depan"),
+  specialtiesForNeed("locked").includes("depan"),
   true,
 );
-check(
-  "a worn barrel can be mechanical",
-  specialtiesForSituation("barrelWorn").includes("meca"),
-  true,
-);
-
-check("an unknown situation routes nowhere", specialtiesForSituation("nope").length, 0);
-
-// ── Key types ───────────────────────────────────────────────────────────
-//
-// "I don't know" must exist and must tell the reader how to look. Forcing a
-// guess is how somebody pays for a duplicate that cannot start the car.
-check(
-  "not knowing is one of the options",
-  keyTypes.some((item) => item.key === "unknown"),
-  true,
-);
-const unknown = getKeyType("unknown");
-check(
-  "the unknown option says how to tell",
-  /head of the key/i.test(unknown.noteEn) && /tête de la clé/i.test(unknown.noteFr),
-  true,
-);
-keyTypes.forEach((item) => {
-  check(
-    `${item.key} labelled in both languages`,
-    Boolean(item.labelEn && item.labelFr),
-    true,
-  );
-  check(
-    `${item.key} explained in both languages`,
-    Boolean(item.noteEn && item.noteFr),
-    true,
-  );
-});
-
-// ── The services list ───────────────────────────────────────────────────
-//
-// Coding has to be offered separately from cutting. Merge them and the
-// screen loses the one distinction it exists to draw.
-const serviceKeys = keyServices.map((item) => item.key);
-check("coding is offered on its own", serviceKeys.includes("coding"), true);
-check("a duplicate is offered", serviceKeys.includes("duplicate"), true);
-check("the cheap fix is offered", serviceKeys.includes("remoteShell"), true);
-keyServices.forEach((item) => {
-  check(`${item.key} has an icon`, Boolean(item.icon), true);
-  check(
-    `${item.key} labelled in both languages`,
-    Boolean(item.labelEn && item.labelFr),
-    true,
-  );
-  check(
-    `${item.key} explains itself in both languages`,
-    Boolean(item.noteEn && item.noteFr),
-    true,
-  );
-});
+check("an unknown need routes nowhere", specialtiesForNeed("nope").length, 0);
 
 // ── Proof of ownership ──────────────────────────────────────────────────
 //
 // The carte grise and an ID are the whole point of the checklist. Drop
-// either and the screen stops telling somebody what a careful locksmith
+// either and the screen stops telling somebody what a careful specialist
 // looks like.
 const checklistKeys = keyChecklist.map((item) => item.key);
 check("the carte grise is listed", checklistKeys.includes("carteGrise"), true);
@@ -201,10 +213,8 @@ keyChecklist.forEach((item) => {
 // ── The matcher this screen leans on still works ────────────────────────
 //
 // "serrurier" is a building far more often than a car, which is why the
-// garage matcher requires vehicle context for the weak terms. This screen
-// inherits that rule rather than re-implementing it, so it is worth
-// asserting it still holds — if it ever loosened, this screen would fill
-// with people who fit door locks in houses.
+// garage matcher requires vehicle context for the weak terms. If that ever
+// loosened, this screen would fill with people who fit door locks in houses.
 check(
   "an auto locksmith matches",
   matchesGarageSpecialty(
@@ -228,7 +238,7 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  `clean: car keys — ${keySituations.length} situations routed across ` +
-    `${routed.size} trades, ${keyTypes.length} key types, ` +
-    `${keyServices.length} jobs, house locksmiths stay out`,
+  `clean: car keys — ${keyNeeds.length} needs across ${routed.size} trades, ` +
+    `${keyJobs.length} jobs priced on ${keyTypes.length} kinds of key, ` +
+    `house locksmiths stay out`,
 );

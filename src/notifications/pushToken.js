@@ -9,7 +9,6 @@ import {
   onTokenRefresh,
   requestPermission,
 } from "@react-native-firebase/messaging";
-import * as Notifications from "expo-notifications";
 import { Alert, PermissionsAndroid, Platform } from "react-native";
 import { doc, setDoc } from "firebase/firestore";
 import { firestore } from "../config/firebase";
@@ -63,6 +62,17 @@ const PAPERS_VIBRATION = [0, 300, 200, 300];
 export async function ensureNotificationChannels() {
   if (Platform.OS !== "android") return;
   try {
+    // Required here rather than imported at the top, because channels are an
+    // Android idea and this is the only thing the app asks expo-notifications
+    // for. An import at module scope is evaluated on both platforms as the
+    // entry loads, so an iOS binary built before the package was added threw
+    // while resolving the native module — which the dev client reports, very
+    // unhelpfully, as "App entry not found". A dependency used by one
+    // platform should not be able to stop the other from starting.
+    //
+    // iOS still needs a rebuild for its own sake: autolinking adds the pod,
+    // and anything that later uses this module there will need it present.
+    const Notifications = require("expo-notifications");
     await Notifications.setNotificationChannelAsync(PAPERS_CHANNEL, {
       name: "Papiers & contrôle",
       description:

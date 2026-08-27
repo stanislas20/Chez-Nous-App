@@ -68,12 +68,19 @@ export function KeysScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { coords } = useCurrentLocation();
 
-  // The design opens on a chosen key type rather than on "I don't know":
-  // every price on the screen is per type, so there is nothing to show until
-  // one is picked, and a plain blade is the cheapest and least alarming
-  // thing to be looking at while you decide.
   const [need, setNeed] = useState(null);
-  const [keyType, setKeyType] = useState("mech");
+  // Nothing chosen, deliberately.
+  //
+  // This defaulted to "mech" — the cheapest of the three — which meant the
+  // job list opened priced for a plain blade: 8 000 to open a door, 45 000
+  // to change a lock. On a hands-free key those same two jobs are 15 000
+  // and 120 000. A screen whose whole purpose is that the bill should not
+  // surprise anybody opened by showing the most optimistic column, with
+  // nothing to tell the reader the figures were not theirs.
+  //
+  // No default costs one tap and removes a systematic under-quote. The
+  // prices stay hidden until the question the headline asks is answered.
+  const [keyType, setKeyType] = useState(null);
 
   // One definition of who is a garage, shared with Garages, Dépannage and
   // Climatisation. A separate matcher here would drift the first time a term
@@ -275,15 +282,19 @@ export function KeysScreen({ navigation }) {
             );
           })}
         </Segment>
-        <Note>{label(typeMeta ?? {}, "note")}</Note>
+        {typeMeta ? <Note>{label(typeMeta, "note")}</Note> : null}
 
         {/* Priced per kind of key, which is the whole argument of the
             screen: the same trade, the same shop, and forty times the money
             between a plain blade and a hands-free key. */}
-        {openNeed ? (
+        {openNeed && !typeMeta ? (
+          <TypePrompt>{t("keysTypePrompt")}</TypePrompt>
+        ) : null}
+
+        {openNeed && typeMeta ? (
           <>
             <SectionTitle>
-              {t("keysJobsTitle", { type: label(typeMeta ?? {}, "label") })}
+              {t("keysJobsTitle", { type: label(typeMeta, "label") })}
             </SectionTitle>
             {jobs.length ? (
               <>
@@ -326,9 +337,7 @@ export function KeysScreen({ navigation }) {
             ) : (
               <EmptyCard>
                 <EmptyTitle>
-                  {t("keysJobsNotOnType", {
-                    type: label(typeMeta ?? {}, "label"),
-                  })}
+                  {t("keysJobsNotOnType", { type: label(typeMeta, "label") })}
                 </EmptyTitle>
                 <EmptyCopy>{t("keysJobsPickAnother")}</EmptyCopy>
               </EmptyCard>
@@ -336,38 +345,21 @@ export function KeysScreen({ navigation }) {
           </>
         ) : null}
 
-        {/* Proof of ownership, framed as reassurance rather than as an
-            obstacle. A specialist who asks for the carte grise and an ID is
-            protecting the car; one who never asks would make a key for
-            whoever took it. */}
-        <SectionTitle>{t("keysBringTitle")}</SectionTitle>
-        <ServiceList>
-          {keyChecklist.map((item) => (
-            <ServiceRow key={item.key}>
-              <ServiceIcon>
-                <Ionicons name="checkmark" size={16} color={BRASS} />
-              </ServiceIcon>
-              <ServiceCol>
-                <ServiceLabel>{label(item, "label")}</ServiceLabel>
-              </ServiceCol>
-            </ServiceRow>
-          ))}
-        </ServiceList>
-        <Warn>
-          <Ionicons name="shield-checkmark-outline" size={15} color="#8a6415" />
-          <WarnText>{t("keysOwnershipNote")}</WarnText>
-        </Warn>
-
-        <CountRow>
-          <CountText>
-            {openNeed
-              ? t("keysCountFor", {
-                  count: matching.length,
-                  situation: label(openNeed, "label"),
-                })
-              : t("keysCount", { count: matching.length })}
-          </CountText>
-        </CountRow>
+        {/* Silent at zero. "0 serrurier(s) et atelier(s)" sat directly
+            above "Personne d'inscrit pour ça", which is the same sentence
+            twice — and the card is the one that also says what to do next. */}
+        {matching.length ? (
+          <CountRow>
+            <CountText>
+              {openNeed
+                ? t("keysCountFor", {
+                    count: matching.length,
+                    situation: label(openNeed, "label"),
+                  })
+                : t("keysCount", { count: matching.length })}
+            </CountText>
+          </CountRow>
+        ) : null}
 
         {matching.map((item) => {
           const score = ratings[item.sellerId];
@@ -479,6 +471,34 @@ export function KeysScreen({ navigation }) {
             <EmptyCopy>{t("keysNoneCopy")}</EmptyCopy>
           </EmptyCard>
         ) : null}
+
+        {/* After the specialists, not between them and the prices.
+        
+            This is what you need when you go, so it belongs with the other
+            before-you-go advice rather than interrupting the one question
+            that follows "what does it cost" — which is "who does it".
+        
+            Proof of ownership, framed as reassurance rather than as an
+            obstacle: a specialist who asks for the carte grise and an ID is
+            protecting the car, and one who never asks would make a key for
+            whoever took it. */}
+        <SectionTitle>{t("keysBringTitle")}</SectionTitle>
+        <ServiceList>
+          {keyChecklist.map((item) => (
+            <ServiceRow key={item.key}>
+              <ServiceIcon>
+                <Ionicons name="checkmark" size={16} color={BRASS} />
+              </ServiceIcon>
+              <ServiceCol>
+                <ServiceLabel>{label(item, "label")}</ServiceLabel>
+              </ServiceCol>
+            </ServiceRow>
+          ))}
+        </ServiceList>
+        <Warn>
+          <Ionicons name="shield-checkmark-outline" size={15} color="#8a6415" />
+          <WarnText>{t("keysOwnershipNote")}</WarnText>
+        </Warn>
 
         <Safety>
           <Ionicons name="shield-outline" size={15} color="#8a6415" />
@@ -700,6 +720,17 @@ const NeedHint = styled.Text`
 // The price and how long it takes, right-aligned against the job. Tabular
 // figures line up down the column, which is what makes the spread between a
 // plain blade and a hands-free key readable at a glance.
+// Where the job list will be once a kind of key is chosen. A line rather
+// than an empty space, so the gap reads as a question waiting for an answer
+// instead of as a section that failed to load.
+const TypePrompt = styled.Text`
+  font-family: ${fontFamily.medium};
+  font-size: 12.5px;
+  line-height: 18px;
+  margin-bottom: ${spacing.md}px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
 const RangeLine = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 13px;

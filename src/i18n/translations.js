@@ -1503,6 +1503,8 @@ export const translations = {
     keysNeedTitle: "What has happened?",
     keysTypeLabel: "Your kind of key",
     keysJobsTitle: "What it costs on a {type}",
+    keysTypePrompt:
+      "Pick your kind of key above to see what this costs \u2014 the same job runs from 3 500 to 145 000 depending which one the car takes.",
     keysJobDuration: "about {mins} min",
     keysRange: "{min} to {max} FCFA, depending which job it turns out to need",
     keysPriceNote:
@@ -3878,6 +3880,8 @@ export const translations = {
     keysNeedTitle: "Que vous arrive-t-il ?",
     keysTypeLabel: "Votre type de cl\u00e9",
     keysJobsTitle: "Ce que \u00e7a co\u00fbte sur une {type}",
+    keysTypePrompt:
+      "Choisissez votre type de cl\u00e9 ci-dessus pour voir ce que \u00e7a co\u00fbte \u2014 le m\u00eame travail va de 3 500 \u00e0 145 000 selon celui que prend la voiture.",
     keysJobDuration: "environ {mins} min",
     keysRange: "{min} \u00e0 {max} FCFA, selon le travail que \u00e7a demande",
     keysPriceNote:

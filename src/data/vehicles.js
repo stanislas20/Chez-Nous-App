@@ -106,6 +106,27 @@ export const vehicleSellerKinds = [
 // Ordered by what actually circulates in the parks along the Sèkandji–Ekpè
 // corridor, then the marques with an official local dealership. Kept as data
 // so a marque can be added without touching a screen.
+// The same marque, written the way each source writes it.
+//
+// vehicleBrands carries the name a seller picks from ("Mercedes"); the
+// dealership directory carries the company's own ("Mercedes-Benz"). Both are
+// correct for where they are used, and neither should be bent to match the
+// other — but anything crossing between them has to be able to resolve one
+// to the other, or a brand pill that navigates lands on a marque the app has
+// never heard of.
+const BRAND_ALIASES = {
+  "Mercedes-Benz": "Mercedes",
+  "Land-Rover": "Land Rover",
+  VW: "Volkswagen",
+};
+
+export function canonicalBrand(name) {
+  if (!name) return null;
+  const trimmed = String(name).trim();
+  const alias = BRAND_ALIASES[trimmed] ?? trimmed;
+  return vehicleBrands.includes(alias) ? alias : null;
+}
+
 export const vehicleBrands = [
   "Toyota",
   "Hyundai",

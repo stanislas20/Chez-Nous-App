@@ -20,6 +20,42 @@
 // counting it must therefore say "listed", never imply a national total —
 // the hero stat used to read "4 concessions", which read as a claim that
 // the country has four.
+// When this list was last edited, which is the most this file can honestly
+// claim. It is not a per-row verification date: nobody re-checks six
+// franchise agreements every morning, and a field saying "vérifié le" beside
+// each company would assert exactly that.
+//
+// It is here because brand representation is the thing that actually changes
+// — a marque moves to another importer and the entry silently becomes wrong
+// while looking as confident as the day it was right. A visible date decays
+// where a confident row does not, and it is the one honest answer to "how
+// old is this?".
+//
+// Bump it when the list is next reviewed. check-dealerships refuses a date
+// in the future and refuses a missing one.
+export const dealershipsReviewedOn = "2026-08-21";
+
+// Marques here that are deliberately not in vehicleBrands, and what they are.
+//
+// vehicleBrands is the list a private seller picks from when advertising a
+// car, so it holds car makes. These are real marques these companies really
+// distribute, and they belong on a dealership card — they simply are not
+// things somebody sells second-hand as "my car" on this app.
+//
+// Written down rather than left as a discrepancy, so the check can tell the
+// difference between a marque that is legitimately not a car and a marque
+// somebody spelled wrong.
+export const nonCarMarques = {
+  Yamaha: "moto",
+  Fuso: "camion",
+  Sinotruk: "camion",
+  XCMG: "engin de chantier",
+  BYD: "voiture — pas encore au catalogue des annonces",
+  Chery: "voiture — pas encore au catalogue des annonces",
+  Fiat: "voiture — pas encore au catalogue des annonces",
+  MG: "voiture — pas encore au catalogue des annonces",
+};
+
 export const carDealerships = [
   {
     key: "cfao",

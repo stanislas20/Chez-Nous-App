@@ -44,7 +44,6 @@ const {
   trackerKinds,
   trackingNeeds,
   trackingQuestions,
-  kindsFor,
   kindSuitsNeed,
   getTrackerKind,
 } = loadEsm("src/data/carTracking.js");
@@ -135,12 +134,29 @@ trackingNeeds.forEach((need) => {
 check("theft recommends the hidden wired unit", kindSuitsNeed("theft", "wired"), true);
 check("theft rules out the OBD plug-in", kindSuitsNeed("theft", "obd"), false);
 check("theft rules out the battery unit", kindSuitsNeed("theft", "battery"), false);
-check("theft names the wired unit first", kindsFor("theft")[0].key, "wired");
+// Asserted against the data rather than through a helper, because there was
+// a kindsFor() here that nothing but this file ever called — a test proving
+// an API the app does not ship.
+const theft = trackingNeeds.find((item) => item.key === "theft");
+check("theft names the wired unit first", theft.kinds[0], "wired");
 // A trailer has nothing to wire into, so the battery unit is the only one.
 check("a trailer takes the battery unit", kindSuitsNeed("asset", "battery"), true);
-check("…and nothing else", kindsFor("asset").length, 1);
-check("an unknown need recommends nothing", kindsFor("nope").length, 0);
+const asset = trackingNeeds.find((item) => item.key === "asset");
+check("…and nothing else", asset.kinds.length, 1);
 check("an unknown need suits nothing", kindSuitsNeed("nope", "wired"), false);
+
+// The category error that was here: "traceur moto" sat beside the wired unit
+// as though they were alternatives, when a motorcycle unit IS a wired unit.
+// Every kind must describe how the box is powered and mounted, not what it
+// is mounted to — so no kind may be named after a vehicle.
+const VEHICLE_WORDS = ["moto", "voiture", "camion", "car", "bike", "truck"];
+trackerKinds.forEach((item) => {
+  check(
+    `${item.key} is a mounting, not a vehicle`,
+    VEHICLE_WORDS.includes(item.key),
+    false,
+  );
+});
 
 // ── The questions that stand where prices stand on Clés ─────────────────
 const questionKeys = trackingQuestions.map((item) => item.key);
@@ -148,6 +164,9 @@ check("the all-in yearly cost is asked first", questionKeys[0], "yearly");
 check("the reporting interval is asked", questionKeys.includes("interval"), true);
 check("what happens when the SIM lapses is asked", questionKeys.includes("lapse"), true);
 check("who owns the account is asked", questionKeys.includes("account"), true);
+// Vehicles here cross to Nigeria, Togo and Niger routinely, and a SIM that
+// does not roam is a tracker that stops at the border.
+check("roaming across the border is asked", questionKeys.includes("borders"), true);
 trackingQuestions.forEach((item) => {
   check(
     `${item.key} asked and explained in both languages`,

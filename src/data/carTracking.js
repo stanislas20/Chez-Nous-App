@@ -22,6 +22,14 @@
 
 // What kind of box, which decides both what it costs to fit and how long it
 // survives somebody looking for it.
+//
+// Three, and all three are the same axis: how the box is powered and held
+// on. There was a fourth, "traceur moto", and it was a category error — a
+// motorcycle unit is a wired unit, smaller and sealed, so it sat beside the
+// wired one as if they were rivals. The visible cost was that somebody with
+// a car who picked it for a theft was told it suited, which is the sort of
+// confident wrong answer this screen exists to avoid. What is true about
+// two-wheelers is a property of the wired unit and is said there.
 export const trackerKinds = [
   {
     key: "obd",
@@ -43,9 +51,9 @@ export const trackerKinds = [
     hintEn: "Fitted by a technician",
     hintFr: "Posé par un technicien",
     noteEn:
-      "Wired into the loom and hidden somewhere that takes time to find. Costs an installation and is the only kind that reliably survives a theft. Ask where they intend to put it — and if they answer in front of other customers, ask again in private.",
+      "Wired into the loom and hidden somewhere that takes time to find. Costs an installation and is the only kind that reliably survives a theft. Ask where they intend to put it — and if they answer in front of other customers, ask again in private. On a two-wheeler this is a smaller sealed unit on the bike's own 12V: a car box fitted to a moto is the common mistake, being bigger, not waterproof, and with nowhere to hide.",
     noteFr:
-      "Câblé dans le faisceau et caché à un endroit qui prend du temps à trouver. Coûte une installation, et c'est le seul type qui survit vraiment à un vol. Demandez où ils comptent le poser — et s'ils répondent devant d'autres clients, redemandez à part.",
+      "Câblé dans le faisceau et caché à un endroit qui prend du temps à trouver. Coûte une installation, et c'est le seul type qui survit vraiment à un vol. Demandez où ils comptent le poser — et s'ils répondent devant d'autres clients, redemandez à part. Sur un deux-roues, c'est un boîtier plus petit et étanche, câblé sur le 12V de la moto : l'erreur courante est d'y poser un boîtier voiture, plus gros, pas étanche, et qu'on ne peut cacher nulle part.",
   },
   {
     key: "battery",
@@ -58,18 +66,6 @@ export const trackerKinds = [
       "Runs on its own battery and sticks under a wing or in a boot. Nothing to install, and nothing to keep it alive either: it has to be taken out and recharged every few weeks or months. Suits a trailer, a machine or a temporary worry — not a car you intend to forget about.",
     noteFr:
       "Fonctionne sur sa propre batterie et se colle sous une aile ou dans un coffre. Rien à installer, et rien pour le maintenir en vie non plus : il faut le retirer et le recharger toutes les quelques semaines ou quelques mois. Convient à une remorque, à un engin ou à une inquiétude passagère — pas à une voiture qu'on veut oublier.",
-  },
-  {
-    key: "moto",
-    icon: "bicycle-outline",
-    labelEn: "Motorcycle unit",
-    labelFr: "Traceur moto",
-    hintEn: "Small, sealed, 12V",
-    hintFr: "Petit, étanche, 12V",
-    noteEn:
-      "Sized and sealed for a two-wheeler, wired to the bike's own 12V. A car unit fitted to a moto is the common mistake here: it is bigger, it is not waterproof, and there is nowhere on a bike to hide it.",
-    noteFr:
-      "Dimensionné et étanche pour un deux-roues, câblé sur le 12V de la moto. L'erreur courante ici, c'est le boîtier voiture posé sur une moto : plus gros, pas étanche, et il n'y a nulle part où le cacher sur un engin.",
   },
 ];
 
@@ -88,7 +84,7 @@ export const trackingNeeds = [
     labelFr: "Retrouver après un vol",
     hintEn: "The vehicle is gone",
     hintFr: "Le véhicule a disparu",
-    kinds: ["wired", "moto"],
+    kinds: ["wired"],
     noteEn:
       "Only a hidden, wired unit is worth fitting for this. An OBD box is unplugged in the first minute, and a battery unit is flat when you need it. What a tracker gives you is a position to hand the police — it does not recover a vehicle, and no installer can promise that it will.",
     noteFr:
@@ -116,11 +112,11 @@ export const trackingNeeds = [
     labelFr: "Un véhicule que je loue à quelqu'un",
     hintEn: "Moto or car on hire",
     hintFr: "Moto ou voiture en location",
-    kinds: ["moto", "wired"],
+    kinds: ["wired"],
     noteEn:
-      "Tell the rider it is fitted. Not only because it is fair — a tracker somebody discovers is a tracker somebody removes, and the argument that follows costs more than the box.",
+      "Tell the rider it is fitted. Not only because it is fair — a tracker somebody discovers is a tracker somebody removes, and the argument that follows costs more than the box. On a moto, insist on a unit sized and sealed for a bike rather than a car box wedged under the seat.",
     noteFr:
-      "Dites au conducteur qu'il est posé. Pas seulement parce que c'est correct — un traceur qu'on découvre est un traceur qu'on retire, et la dispute qui suit coûte plus cher que le boîtier.",
+      "Dites au conducteur qu'il est posé. Pas seulement parce que c'est correct — un traceur qu'on découvre est un traceur qu'on retire, et la dispute qui suit coûte plus cher que le boîtier. Sur une moto, exigez un boîtier dimensionné et étanche pour deux-roues plutôt qu'un boîtier voiture coincé sous la selle.",
   },
   {
     key: "driver",
@@ -154,14 +150,6 @@ export const trackingNeeds = [
 
 export function getTrackingNeed(key) {
   return trackingNeeds.find((item) => item.key === key) ?? null;
-}
-
-// The kinds that answer a need, as objects, in the order the need lists them
-// — the first is the one the note argues for.
-export function kindsFor(needKey) {
-  const need = getTrackingNeed(needKey);
-  if (!need) return [];
-  return need.kinds.map(getTrackerKind).filter(Boolean);
 }
 
 // Whether a kind is a sensible answer to a need. Used to say so plainly when
@@ -211,6 +199,16 @@ export const trackingQuestions = [
       "La réponse honnête, c'est qu'il s'arrête. Ce qu'il faut savoir, c'est si quelque chose vous prévient — et si l'alerte vous arrive à vous ou seulement à eux.",
   },
   {
+    key: "borders",
+    icon: "globe-outline",
+    labelEn: "Does it still work across the border?",
+    labelFr: "Marche-t-il encore de l'autre côté de la frontière ?",
+    noteEn:
+      "Vehicles here cross to Nigeria, Togo and Niger routinely. Two things have to be true: the SIM has to roam, and the platform has to keep showing a position when it does. Cheap to ask, and nobody thinks to.",
+    noteFr:
+      "Les véhicules d'ici passent au Nigeria, au Togo et au Niger couramment. Deux choses doivent être vraies : que la SIM accepte l'itinérance, et que la plateforme continue d'afficher une position. La question ne coûte rien, et personne n'y pense.",
+  },
+  {
     key: "history",
     icon: "albums-outline",
     labelEn: "How long is the history kept?",
@@ -241,13 +239,3 @@ export const trackingQuestions = [
       "Mouvement, coupure d'alimentation, sortie de zone. L'alerte coupure d'alimentation est celle qui compte : c'est elle qui vous dit que le boîtier a été trouvé, pendant que le véhicule est encore près.",
   },
 ];
-
-// Engine cut-off, kept apart from the questions because it is the one thing
-// on this screen that can hurt somebody.
-//
-// It is sold as the headline feature and it is the one to be slowest about.
-// A relay that can cut a running engine can cut it at speed, taking the
-// power steering and the brake servo with it. Properly fitted, it inhibits
-// the starter so the vehicle cannot be started again — which is what stops a
-// theft, and does nothing to a vehicle already moving.
-export const CUTOFF_KEY = "cutoff";

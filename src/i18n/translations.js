@@ -370,6 +370,9 @@ export const translations = {
       "This cannot be undone. The listing and its photos will be permanently removed.",
     errorDeleteFailed: "Could not delete the listing. Please try again.",
     shareListingMessage: 'Check out "{title}" for {price} on Chez-Nous!',
+    // Same sentence with the price taken out rather than left as "for 0
+    // FCFA" — a listing that never had a price is still worth sharing.
+    shareListingMessageNoPrice: 'Check out "{title}" on Chez-Nous!',
     shareDutyPharmacyMessage:
       '"{title}" is on duty tonight on Chez-Nous! Call {phone}.',
     shareJobMessage: '"{title}" at {company} is hiring on Chez-Nous!',
@@ -2823,6 +2826,7 @@ export const translations = {
       "Cette action est irréversible. L'annonce et ses photos seront définitivement supprimées.",
     errorDeleteFailed: "Impossible de supprimer l'annonce. Veuillez réessayer.",
     shareListingMessage: 'Découvrez "{title}" à {price} sur Chez-Nous !',
+    shareListingMessageNoPrice: 'Découvrez "{title}" sur Chez-Nous !',
     shareDutyPharmacyMessage:
       '"{title}" est de garde ce soir sur Chez-Nous ! Appelez le {phone}.',
     shareJobMessage: '"{title}" chez {company} recrute sur Chez-Nous !',

@@ -11,13 +11,12 @@ import { useI18n } from "../i18n/I18nContext";
 import { saleStatusLabelKey } from "../data/saleStatuses";
 import { useAuth } from "../auth/AuthContext";
 import { categories } from "../data/categories";
-import { realEstatePriceSuffixKey } from "../data/realEstate";
+import { listingPrice, listingPriceText } from "../utils/listingPrice";
 import { openChat } from "../utils/openChat";
 import { openListing } from "../utils/openListing";
 import { getDutyLabel } from "../utils/pharmacyDuty";
 import { CategoryPlaceholder } from "./CategoryPlaceholder";
 
-const priceFormatter = new Intl.NumberFormat("fr-FR");
 const categoryIconByKey = categories.reduce((map, category) => {
   map[category.key] = category.icon;
   return map;
@@ -58,6 +57,10 @@ export function ListingCard({ listing, style, isFavorite, onToggleFavorite }) {
   const isPharmacy = listing.categoryKey === "pharmacyOnDuty";
   const isJobs = listing.categoryKey === "jobs";
   const duty = isPharmacy ? getDutyLabel(listing, language, t) : null;
+  // null when the seller gave no price: nothing is printed rather than a
+  // formatted zero.
+  const price = listingPrice(listing, t, language);
+  const priceText = listingPriceText(listing, t, language);
   const scale = useRef(new Animated.Value(1)).current;
 
   const pressIn = () => {
@@ -85,14 +88,9 @@ export function ListingCard({ listing, style, isFavorite, onToggleFavorite }) {
           ? t("shareDutyPharmacyMessage", { title, phone: listing.phone ?? "" })
           : isJobs
             ? t("shareJobMessage", { title, company: listing.company ?? "" })
-            : t("shareListingMessage", {
-                title,
-                price: `${priceFormatter.format(listing.price)} ${
-                  listing.categoryKey === "realEstate" && listing.realEstateDeal
-                    ? t(realEstatePriceSuffixKey(listing.realEstateDeal))
-                    : "FCFA"
-                }`,
-              }),
+            : priceText
+              ? t("shareListingMessage", { title, price: priceText })
+              : t("shareListingMessageNoPrice", { title }),
       });
     } catch {
       // user dismissed the share sheet — nothing to do
@@ -179,21 +177,25 @@ export function ListingCard({ listing, style, isFavorite, onToggleFavorite }) {
                 />
                 <CompanyLabel numberOfLines={1}>{listing.company}</CompanyLabel>
               </DutyBadge>
-            ) : (
+            ) : price?.kind === "amount" ? (
               <PriceGroup>
-                <PriceAmount>
-                  {priceFormatter.format(listing.price)}
-                </PriceAmount>
+                <PriceAmount>{price.amount}</PriceAmount>
                 {/* A rental in the grid read as an outright price. The
                     suffix is what separates 150 000 a month from 150 000
                     for the house. */}
-                <PriceCurrency>
-                  {listing.categoryKey === "realEstate" &&
-                  listing.realEstateDeal
-                    ? ` ${t(realEstatePriceSuffixKey(listing.realEstateDeal))}`
-                    : " FCFA"}
-                </PriceCurrency>
+                <PriceCurrency>{price.suffix}</PriceCurrency>
               </PriceGroup>
+            ) : price ? (
+              // Sur devis, in the muted weight — it is an answer, not an
+              // amount, and setting it in the price face would make the eye
+              // read it as one.
+              <PriceWords numberOfLines={1}>{price.text}</PriceWords>
+            ) : (
+              // Nothing at all. A restaurant, a community notice and a job
+              // never had a price to show, and the row simply closes up —
+              // the share and chat buttons keep their place because the row
+              // is spaced from its ends, not from this child.
+              <PriceSpacer />
             )}
             <IconButtonRow>
               {isOwner ? null : (
@@ -376,6 +378,19 @@ const ChatIconButton = styled(Pressable)`
   align-items: center;
   justify-content: center;
   background-color: ${(props) => props.theme.primary};
+`;
+
+// Takes the space the amount would have had, so the share and chat buttons
+// stay pinned to the right of a row laid out with space-between.
+const PriceSpacer = styled.View`
+  flex: 1;
+`;
+
+const PriceWords = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.semiBold};
+  font-size: 13px;
+  color: ${(props) => props.theme.textMuted};
 `;
 
 const PriceGroup = styled.View`

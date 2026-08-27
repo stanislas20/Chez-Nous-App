@@ -26,9 +26,9 @@ import { useAuth } from "../auth/AuthContext";
 import { useMyListings } from "../hooks/useMyListings";
 import { firestore, storage } from "../config/firebase";
 import { getDutyLabel } from "../utils/pharmacyDuty";
+import { listingPriceText } from "../utils/listingPrice";
 import { openListing } from "../utils/openListing";
 
-const priceFormatter = new Intl.NumberFormat("fr-FR");
 const listContentStyle = { padding: spacing.md };
 
 function getSaleStatuses(colors) {
@@ -124,12 +124,12 @@ export function MyListingsScreen() {
     : "";
 
   const handleShare = async (item, title) => {
+    const priceText = listingPriceText(item, t, language);
     try {
       await Share.share({
-        message: t("shareListingMessage", {
-          title,
-          price: `${priceFormatter.format(item.price)} FCFA`,
-        }),
+        message: priceText
+          ? t("shareListingMessage", { title, price: priceText })
+          : t("shareListingMessageNoPrice", { title }),
       });
     } catch {
       // user dismissed the share sheet — nothing to do
@@ -256,7 +256,7 @@ export function MyListingsScreen() {
                 <RowPrice>
                   {isPharmacy
                     ? dutyLabel
-                    : `${priceFormatter.format(item.price)} FCFA`}
+                    : listingPriceText(item, t, language)}
                 </RowPrice>
                 <PillRow>
                   <StatusPill approved={isApproved} rejected={isRejected}>

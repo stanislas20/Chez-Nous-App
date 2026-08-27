@@ -61,6 +61,7 @@ import { distanceInKm } from "../utils/geo";
 import { getDutyLabel } from "../utils/pharmacyDuty";
 import { queryMatches, queryMentionsAnyOf } from "../utils/search";
 import { normalizeJobListing } from "../utils/normalizeJobListing";
+import { listingPriceText } from "../utils/listingPrice";
 import { openListing } from "../utils/openListing";
 import { useSearchPharmacies } from "../hooks/useSearchPharmacies";
 
@@ -406,7 +407,7 @@ function TrendingCard({ listing, navigation, cardWidth }) {
         <TrendingTitle numberOfLines={1}>{title}</TrendingTitle>
         <TrendingMetaRow>
           <TrendingPrice>
-            {priceFormatter.format(listing.price)} FCFA
+            {listingPriceText(listing, t, language)}
           </TrendingPrice>
           <TrendingCity numberOfLines={1}>{listing.city}</TrendingCity>
         </TrendingMetaRow>
@@ -470,11 +471,13 @@ function RecommendedCard({
 
   const handleShare = async () => {
     try {
+      // A listing with no price shares the sentence without one, rather than
+      // inviting somebody to "Découvrez X à 0 FCFA".
+      const priceText = listingPriceText(listing, t, language);
       await Share.share({
-        message: t("shareListingMessage", {
-          title,
-          price: `${priceFormatter.format(listing.price)} FCFA`,
-        }),
+        message: priceText
+          ? t("shareListingMessage", { title, price: priceText })
+          : t("shareListingMessageNoPrice", { title }),
       });
     } catch {
       // user dismissed the share sheet — nothing to do
@@ -535,7 +538,7 @@ function RecommendedCard({
         <RecBody>
           <RecPriceRow>
             <RecPrice numberOfLines={1}>
-              {priceFormatter.format(listing.price)} FCFA
+              {listingPriceText(listing, t, language)}
             </RecPrice>
             <Pressable onPress={handleShare} hitSlop={8}>
               <Ionicons name="share-social-outline" size={14} color="#9CA3AF" />
@@ -574,7 +577,7 @@ function NearCard({ listing, navigation }) {
         </NearImageWrap>
         <NearBody>
           <NearPrice numberOfLines={1}>
-            {priceFormatter.format(listing.price)} FCFA
+            {listingPriceText(listing, t, language)}
           </NearPrice>
           <NearTitle numberOfLines={1}>{title}</NearTitle>
           <NearMeta numberOfLines={1}>{listing.city}</NearMeta>
@@ -602,7 +605,7 @@ function DealCard({ listing, navigation }) {
         <NearBody>
           <DealPriceRow>
             <NearPrice numberOfLines={1}>
-              {priceFormatter.format(listing.price)} FCFA
+              {listingPriceText(listing, t, language)}
             </NearPrice>
             <DealOldPrice numberOfLines={1}>
               {priceFormatter.format(listing.previousPrice)}

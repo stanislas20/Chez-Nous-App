@@ -21,6 +21,7 @@ import styled from "styled-components/native";
 import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
+import { listingPriceText } from "../utils/listingPrice";
 import { useI18n } from "../i18n/I18nContext";
 import { saleStatusLabelKey } from "../data/saleStatuses";
 import { useSellerStats } from "../hooks/useSellerStats";
@@ -45,7 +46,6 @@ import { withViewHeat } from "../utils/viewHeat";
 
 const EMERALD = "#0B6E4F";
 const GOLD = "#D9A441";
-const priceFormatter = new Intl.NumberFormat("fr-FR");
 const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
 
 const scrollContentStyle = { padding: spacing.md, paddingTop: spacing.lg };
@@ -975,7 +975,7 @@ export function SellerDashboardScreen({ navigation }) {
                         <ListingBody>
                           <ListingTitle numberOfLines={1}>{title}</ListingTitle>
                           <ListingPrice>
-                            {priceFormatter.format(item.price)} FCFA
+                            {listingPriceText(item, t, language)}
                           </ListingPrice>
                           {item.status === "approved" ? (
                             <ListingViewsRow>

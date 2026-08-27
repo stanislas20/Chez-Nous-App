@@ -43,6 +43,7 @@ import styled from "styled-components/native";
 import { radius, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
+import { listingPrice, listingPriceText } from "../utils/listingPrice";
 import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
 import { firestore } from "../config/firebase";
@@ -62,7 +63,6 @@ import {
   getAmenityLabel,
   getPropertyTypeLabel,
   getRealEstateDealLabel,
-  realEstatePriceSuffixKey,
 } from "../data/realEstate";
 import { categories } from "../data/categories";
 import { openChat } from "../utils/openChat";
@@ -84,7 +84,6 @@ import { getTodayDateString } from "../utils/listingLifecycle";
 import { openAccountGate } from "../utils/openAccountGate";
 
 const EMERALD = "#0B6E4F";
-const priceFormatter = new Intl.NumberFormat("fr-FR");
 const DEFAULT_COORDS = { latitude: 6.3703, longitude: 2.3912 };
 const categoryByKey = categories.reduce((map, category) => {
   map[category.key] = category;
@@ -180,7 +179,7 @@ function HeroGallery({ media, width, height, onIndexChange, onPressPhoto }) {
 // Thumbnail wasn't resolving before this horizontal FlatList measured it,
 // clipping the card's bottom.
 function SimilarCard({ listing, navigation }) {
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const title = language === "en" ? listing.titleEn : listing.titleFr;
   const coverUri = listing.mediaUrl ?? listing.image;
   const category = categoryByKey[listing.categoryKey];
@@ -206,7 +205,7 @@ function SimilarCard({ listing, navigation }) {
         </SimilarImageWrap>
         <SimilarBody>
           <SimilarPrice numberOfLines={1}>
-            {priceFormatter.format(listing.price)} FCFA
+            {listingPriceText(listing, t, language)}
           </SimilarPrice>
           <SimilarTitle numberOfLines={1}>{title}</SimilarTitle>
           <SimilarMeta numberOfLines={1}>{listing.city}</SimilarMeta>
@@ -564,16 +563,16 @@ export function ProductDetailScreen({ route, navigation }) {
     : null;
 
   const handleShare = async () => {
+    const priceText = listingPriceText(listing, t, language);
     try {
       const result = await Share.share({
         message: isPharmacy
           ? t("shareDutyPharmacyMessage", { title, phone: listing.phone ?? "" })
           : isJobs
             ? t("shareJobMessage", { title, company: listing.company ?? "" })
-            : t("shareListingMessage", {
-                title,
-                price: `${priceFormatter.format(listing.price)} FCFA`,
-              }),
+            : priceText
+              ? t("shareListingMessage", { title, price: priceText })
+              : t("shareListingMessageNoPrice", { title }),
       });
       // Only a share that actually happened. The sheet also resolves when
       // it is dismissed, and counting that would make the number a measure
@@ -676,6 +675,8 @@ export function ProductDetailScreen({ route, navigation }) {
   };
 
   const saleStatus = listing.saleStatus ?? "available";
+  // null when the seller never gave one — see utils/listingPrice.
+  const price = listingPrice(listing, t, language);
 
   return (
     <Container edges={["left", "right", "bottom"]}>
@@ -942,22 +943,26 @@ export function ProductDetailScreen({ route, navigation }) {
           ) : (
             <PriceRow>
               <PriceGroup>
-                <PriceLine>
-                  {/* Tabular figures so the digits sit on a fixed pitch —
-                      a seven-figure price is read in groups, and
-                      proportional numerals make the groups uneven. */}
-                  <PriceAmount style={{ fontVariant: ["tabular-nums"] }}>
-                    {priceFormatter.format(listing.price)}
-                  </PriceAmount>
-                  {/* A rent rendered as a bare total is not a cosmetic gap:
-                      150 000 / month and 150 000 outright are different
-                      offers and were displaying identically. */}
-                  <PriceCurrency>
-                    {isRealEstate && listing.realEstateDeal
-                      ? t(realEstatePriceSuffixKey(listing.realEstateDeal))
-                      : "FCFA"}
-                  </PriceCurrency>
-                </PriceLine>
+                {/* No price is stored as 0, and 0 formatted is "0 FCFA" —
+                    an offer to hand the thing over for nothing. A trade
+                    working sur devis says so; anything else with no price
+                    shows no price line at all. */}
+                {price?.kind === "amount" ? (
+                  <PriceLine>
+                    {/* Tabular figures so the digits sit on a fixed pitch —
+                        a seven-figure price is read in groups, and
+                        proportional numerals make the groups uneven. */}
+                    <PriceAmount style={{ fontVariant: ["tabular-nums"] }}>
+                      {price.amount}
+                    </PriceAmount>
+                    {/* A rent rendered as a bare total is not a cosmetic gap:
+                        150 000 / month and 150 000 outright are different
+                        offers and were displaying identically. */}
+                    <PriceCurrency>{price.suffix.trim()}</PriceCurrency>
+                  </PriceLine>
+                ) : price ? (
+                  <PriceOnRequest>{price.text}</PriceOnRequest>
+                ) : null}
                 {/* Collected by the publish form since the beginning and
                     never shown. Whether a price is firm or negotiable
                     changes how a buyer opens the conversation. */}
@@ -1583,6 +1588,14 @@ const PriceLine = styled.View`
 // the same 26px, so "FCFA" shouted as loudly as the amount and the eye had
 // to do the separating. Tightened tracking as well — large numerals set at
 // default spacing read as loose.
+// Sur devis, set below the amount's weight: it is an answer, not a figure.
+const PriceOnRequest = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 17px;
+  line-height: 22px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
 const PriceAmount = styled.Text`
   font-family: ${fontFamily.bold};
   font-size: 22px;

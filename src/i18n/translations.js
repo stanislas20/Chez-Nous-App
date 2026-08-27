@@ -1515,6 +1515,42 @@ export const translations = {
       "What this work goes for here, to tell a 3 500 job from a 145 000 one before anybody drives across town. It is not a quote \u2014 the specialist confirms once they see the car.",
     keysJobsNotOnType: "Not something a {type} has",
     keysJobsPickAnother: "Pick the kind of key you actually hold.",
+    fleetEyebrow: "Fleet",
+    fleetTitle: "What costs you is the vehicle standing still",
+    fleetIntro:
+      "An expired paper immobilises a vehicle for far longer than a breakdown does. Deadlines first; everything else after.",
+    fleetTabDue: "Due",
+    fleetTabVehicles: "Vehicles",
+    fleetStatVehicles: "Vehicles",
+    fleetStatExpired: "Expired",
+    fleetStatKnown: "Dates known",
+    fleetDueCount: "{count} thing(s) to deal with",
+    fleetDueOrder:
+      "What the law requires comes before what the machine prefers: driving on a lapsed insurance is paid for out of your own pocket after an accident, a late oil change is engine wear. Within each, whatever is furthest gone.",
+    fleetExpired: "expired {days} day(s) ago",
+    fleetSoon: "due in {days} day(s)",
+    fleetValid: "in order",
+    fleetUnknown: "no date given",
+    fleetSetDate: "Add a date",
+    fleetNoPlate: "No plate given",
+    fleetNothingDueTitle: "Nothing falls due",
+    fleetNothingDueCopy:
+      "Nothing you have given a date to is expired or close to it. Papers with no date are on the vehicle itself \u2014 the app only counts what it was told.",
+    fleetEmptyTitle: "No vehicle yet",
+    fleetEmptyCopy:
+      "Add the vehicles you run and the dates on their papers. Nothing here is filled in for you: every date on this screen is one you typed, and it stays on this phone.",
+    fleetAdd: "Add a vehicle",
+    fleetAddSave: "Add",
+    fleetFieldName: "What you call it",
+    fleetFieldNamePlaceholder: "e.g. Hilux, the taxi, van no. 2",
+    fleetFieldPlate: "Plate",
+    fleetFieldPlatePlaceholder: "AB 1234 RB",
+    fleetFieldDriver: "Driver",
+    fleetFieldDriverPlaceholder: "Who drives it",
+    fleetFieldNote:
+      "Only the name is needed. The plate and the driver help when two vehicles look alike on the list.",
+    fleetSafety:
+      "These dates live on this phone and are sent nowhere. That also means a lost phone is a lost list \u2014 keep the papers themselves somewhere safe.",
     gpsEyebrow: "GPS & tracking",
     gpsTitle: "A tracker with no plan tracks nothing",
     gpsIntro:
@@ -3929,6 +3965,42 @@ export const translations = {
     keysJobsNotOnType: "Une {type} n'a pas \u00e7a",
     keysJobsPickAnother:
       "Choisissez le type de cl\u00e9 que vous avez r\u00e9ellement.",
+    fleetEyebrow: "Flotte",
+    fleetTitle: "Ce qui co\u00fbte, c'est le v\u00e9hicule \u00e0 l'arr\u00eat",
+    fleetIntro:
+      "Un papier p\u00e9rim\u00e9 immobilise un v\u00e9hicule bien plus longtemps qu'une panne. Les \u00e9ch\u00e9ances d'abord, le reste ensuite.",
+    fleetTabDue: "\u00c9ch\u00e9ances",
+    fleetTabVehicles: "V\u00e9hicules",
+    fleetStatVehicles: "V\u00e9hicules",
+    fleetStatExpired: "Expir\u00e9s",
+    fleetStatKnown: "Dates connues",
+    fleetDueCount: "{count} chose(s) \u00e0 traiter",
+    fleetDueOrder:
+      "Ce que la loi exige passe avant ce que la m\u00e9canique pr\u00e9f\u00e8re : rouler avec une assurance expir\u00e9e se paie de votre poche apr\u00e8s un accident, une vidange en retard use le moteur. \u00c0 l'int\u00e9rieur de chaque groupe, le plus en retard d'abord.",
+    fleetExpired: "expir\u00e9 depuis {days} jour(s)",
+    fleetSoon: "\u00e0 renouveler dans {days} jour(s)",
+    fleetValid: "en r\u00e8gle",
+    fleetUnknown: "aucune date renseign\u00e9e",
+    fleetSetDate: "Ajouter une date",
+    fleetNoPlate: "Aucune plaque renseign\u00e9e",
+    fleetNothingDueTitle: "Rien n'arrive \u00e0 \u00e9ch\u00e9ance",
+    fleetNothingDueCopy:
+      "Rien de ce que vous avez dat\u00e9 n'est expir\u00e9 ni proche de l'\u00eatre. Les papiers sans date figurent sur le v\u00e9hicule lui-m\u00eame \u2014 l'application ne compte que ce qu'on lui a dit.",
+    fleetEmptyTitle: "Aucun v\u00e9hicule pour l'instant",
+    fleetEmptyCopy:
+      "Ajoutez les v\u00e9hicules que vous exploitez et les dates de leurs papiers. Rien n'est pr\u00e9-rempli : chaque date de cet \u00e9cran est une date que vous avez saisie, et elle reste sur ce t\u00e9l\u00e9phone.",
+    fleetAdd: "Ajouter un v\u00e9hicule",
+    fleetAddSave: "Ajouter",
+    fleetFieldName: "Comment vous l'appelez",
+    fleetFieldNamePlaceholder: "ex. Hilux, le taxi, camionnette n\u00b0 2",
+    fleetFieldPlate: "Plaque",
+    fleetFieldPlatePlaceholder: "AB 1234 RB",
+    fleetFieldDriver: "Chauffeur",
+    fleetFieldDriverPlaceholder: "Qui le conduit",
+    fleetFieldNote:
+      "Seul le nom est n\u00e9cessaire. La plaque et le chauffeur servent quand deux v\u00e9hicules se ressemblent dans la liste.",
+    fleetSafety:
+      "Ces dates restent sur ce t\u00e9l\u00e9phone et ne sont envoy\u00e9es nulle part. Cela veut dire aussi qu'un t\u00e9l\u00e9phone perdu est une liste perdue \u2014 gardez les papiers eux-m\u00eames en lieu s\u00fbr.",
     gpsEyebrow: "GPS & traceur",
     gpsTitle: "Un traceur sans forfait ne trace rien",
     gpsIntro:

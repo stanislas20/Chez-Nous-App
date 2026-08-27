@@ -138,13 +138,20 @@ export const carServicesPrimary = [
   // price, and it is worth paying — a ragged row is a cosmetic cost, a
   // screen nobody can find is the whole screen wasted.
   { key: "keys", icon: "key-outline", route: "Keys" },
+  // The last tile in the tail with somewhere to go, and the odd one out in
+  // this list: every other entry finds somebody. This one finds nothing —
+  // it holds the reader's own vehicles and the dates on their papers.
+  //
+  // It was a text search for "gestion de flotte", which could only ever
+  // return fleet-management companies. Somebody running four taxis does not
+  // want to hire one; they want to know which of the four is uninsured.
+  { key: "fleet", icon: "albums-outline", route: "Fleet" },
 ];
 
 export const carServicesMore = [
   // Was a text search of Services for "gps traceur", which matched every
   // printing shop with a plotter until the matcher learned the difference.
   { key: "gps", icon: "navigate-circle-outline", route: "Tracking" },
-  { key: "fleet", icon: "business-outline", query: "gestion de flotte" },
   { key: "dealers", icon: "storefront-outline", route: "CarDealerships" },
   { key: "drivingSchool", icon: "school-outline", query: "auto-école" },
   { key: "trucks", icon: "bus-outline", query: "camion utilitaire" },

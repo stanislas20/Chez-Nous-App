@@ -5,7 +5,6 @@ import {
   KeyboardAvoidingView,
   Linking,
   Modal,
-  Platform,
   Pressable,
   Share,
   TextInput,
@@ -698,7 +697,15 @@ export function JobDetailScreen({ navigation, route }) {
       >
         <KeyboardAvoidingView
           style={keyboardAvoidingStyle}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          // "padding" on Android too, not "height".
+          //
+          // The app runs adjustPan (app.json, softwareKeyboardLayoutMode
+          // "pan"), so the window never resizes when the keyboard opens and
+          // "height" measures a box that has not changed. The effect on this
+          // sheet — which holds a phone field and a message box — is that it
+          // stays behind the keyboard somebody just opened to type in it.
+          // The papers screen worked this out first.
+          behavior="padding"
         >
           <SheetBackdrop onPress={() => setApplySheetOpen(false)}>
             <Sheet

@@ -528,9 +528,9 @@ const Truth = styled.View`
   gap: 11px;
   padding: 14px ${spacing.md}px;
   border-radius: ${radius.xl}px;
-  background-color: rgba(44, 127, 166, 0.07);
+  background-color: rgba(63, 92, 115, 0.07);
   border-width: 1px;
-  border-color: rgba(44, 127, 166, 0.22);
+  border-color: rgba(63, 92, 115, 0.22);
 `;
 
 const TruthIcon = styled.View`
@@ -707,7 +707,7 @@ const ServiceIcon = styled.View`
   border-radius: 12px;
   align-items: center;
   justify-content: center;
-  background-color: rgba(44, 127, 166, 0.08);
+  background-color: rgba(63, 92, 115, 0.08);
 `;
 
 const ServiceCol = styled.View`
@@ -769,7 +769,7 @@ const Mono = styled.View`
   border-radius: ${radius.lg}px;
   align-items: center;
   justify-content: center;
-  background-color: rgba(44, 127, 166, 0.09);
+  background-color: rgba(63, 92, 115, 0.09);
 `;
 
 const MonoText = styled.Text`
@@ -883,9 +883,9 @@ const GhostButton = styled(Pressable)`
   gap: 7px;
   min-height: 46px;
   border-radius: 999px;
-  background-color: rgba(44, 127, 166, 0.07);
+  background-color: rgba(63, 92, 115, 0.07);
   border-width: 1px;
-  border-color: rgba(44, 127, 166, 0.24);
+  border-color: rgba(63, 92, 115, 0.24);
 `;
 
 const GhostLabel = styled.Text`

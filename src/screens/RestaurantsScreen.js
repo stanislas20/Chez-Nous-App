@@ -734,7 +734,7 @@ export function RestaurantsScreen({ navigation }) {
                         <Ionicons
                           name="logo-whatsapp"
                           size={12}
-                          color="#ffffff"
+                          color={WHATSAPP_DEEP}
                         />
                         <WhatsAppTagLabel>WhatsApp</WhatsAppTagLabel>
                       </WhatsAppTag>
@@ -1336,19 +1336,28 @@ const DeliveryTagLabel = styled.Text`
   color: ${(props) => props.theme.primaryDark};
 `;
 
+// WhatsApp's deep green on its light one, not white on its light one.
+//
+// White on #25d366 is 1.98:1 against a 4.5:1 minimum, and at 10.5px that is
+// not a subtle failure. The same pair was on the listing screen's contact
+// button, where it was reported as looking "dimmed" — which is what
+// illegible looks like when the colours are pleasant. Both are the brand's
+// own greens, so the chip still reads as WhatsApp at a glance.
+const WHATSAPP_DEEP = "#075E54";
+
 const WhatsAppTag = styled(Pressable)`
   flex-direction: row;
   align-items: center;
   gap: 4px;
   padding: 4px 9px;
   border-radius: ${radius.pill}px;
-  background-color: #25d366;
+  background-color: rgba(37, 211, 102, 0.16);
 `;
 
 const WhatsAppTagLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 10.5px;
-  color: #ffffff;
+  color: ${WHATSAPP_DEEP};
 `;
 
 const DishTag = styled.View`

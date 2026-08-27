@@ -698,7 +698,10 @@ export function CarsScreen({ navigation, route }) {
               only an explicit answer earns a badge, and only the two that
               cost the buyer something are worth the corner. */}
           {view.documents === "no" || view.documents === "pending" ? (
-            <CoverWarn tone={getVehicleDocuments(view.documents)?.color}>
+            <CoverWarn
+              tone={getVehicleDocuments(view.documents)?.color}
+              ink={getVehicleDocuments(view.documents)?.ink}
+            >
               {getVehicleDocumentsLabel(view.documents, language)}
             </CoverWarn>
           ) : null}
@@ -2188,7 +2191,8 @@ const CoverWarn = styled.Text`
   padding: 5px 10px;
   border-radius: ${radius.pill}px;
   overflow: hidden;
-  color: #ffffff;
+  /* Both from the same entry, so the ink always belongs to the tone. */
+  color: ${(props) => props.ink ?? "#3A2A12"};
   background-color: ${(props) => props.tone ?? "rgba(217, 164, 65, 0.94)"};
 `;
 

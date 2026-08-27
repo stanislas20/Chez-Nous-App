@@ -31,6 +31,14 @@ import {
 // Ice, and it is the point rather than the decoration: this is the one
 // vehicle screen somebody opens because they are physically uncomfortable.
 const ICE = "#2C7FA6";
+// The same blue, dark enough to be read.
+//
+// ICE is a fill: it makes the hero gradient and the tints behind these
+// pills. As text on those tints it measures around 4.0:1 against a 4.5:1
+// minimum, and white on it as a button fill is 4.47:1 — under by a hair,
+// which is still under. Two values so the fill keeps its colour and the
+// text gets one it can be read in.
+const ICE_INK = "#25708F";
 const DEEP = "#123A52";
 const GOLD = "#D9A441";
 
@@ -692,7 +700,7 @@ const TradePill = styled.View`
 const TradeLabel = styled.Text`
   font-family: ${fontFamily.bold};
   font-size: 10px;
-  color: ${ICE};
+  color: ${ICE_INK};
 `;
 
 const CausesNote = styled.Text`
@@ -936,7 +944,7 @@ const CoversPill = styled.View`
 const CoversLabel = styled.Text`
   font-family: ${fontFamily.bold};
   font-size: 10.5px;
-  color: ${ICE};
+  color: ${ICE_INK};
 `;
 
 const GasPill = styled.View`
@@ -972,7 +980,7 @@ const CallButton = styled(Pressable)`
   gap: 7px;
   min-height: 46px;
   border-radius: 999px;
-  background-color: ${ICE};
+  background-color: ${ICE_INK};
   opacity: ${(props) => (props.disabled ? 0.5 : 1)};
 `;
 
@@ -998,7 +1006,7 @@ const GhostButton = styled(Pressable)`
 const GhostLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 13px;
-  color: ${ICE};
+  color: ${ICE_INK};
 `;
 
 const EmptyCard = styled.View`

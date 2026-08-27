@@ -36,6 +36,10 @@ import {
 // vehicle screens that look identical are three screens somebody has to read
 // the title of to know where they are.
 const BRASS = "#A8762A";
+// The same brass, dark enough to be read — BRASS is a fill, this is ink.
+// As text on its own tint it measures 3.6:1 and white on it as a button
+// fill is 3.97:1, both under the 4.5:1 minimum for text this size.
+const BRASS_INK = "#8A5F1F";
 // The two urgent needs — locked in, lost with no spare — are the ones
 // somebody is reading standing next to the car. They get the app's own
 // terracotta rather than a fourth invented colour.
@@ -622,9 +626,9 @@ const Truth = styled.View`
   gap: 11px;
   padding: 14px ${spacing.md}px;
   border-radius: ${radius.xl}px;
-  background-color: rgba(44, 127, 166, 0.07);
+  background-color: rgba(168, 118, 42, 0.07);
   border-width: 1px;
-  border-color: rgba(44, 127, 166, 0.22);
+  border-color: rgba(168, 118, 42, 0.22);
 `;
 
 const TruthIcon = styled.View`
@@ -838,7 +842,7 @@ const ServiceIcon = styled.View`
   border-radius: 12px;
   align-items: center;
   justify-content: center;
-  background-color: rgba(44, 127, 166, 0.08);
+  background-color: rgba(168, 118, 42, 0.08);
 `;
 
 const ServiceCol = styled.View`
@@ -900,7 +904,7 @@ const Mono = styled.View`
   border-radius: ${radius.lg}px;
   align-items: center;
   justify-content: center;
-  background-color: rgba(44, 127, 166, 0.09);
+  background-color: rgba(168, 118, 42, 0.09);
 `;
 
 const MonoText = styled.Text`
@@ -993,13 +997,13 @@ const TradeRow = styled.View`
 const CoversPill = styled.View`
   padding: 5px 10px;
   border-radius: 999px;
-  background-color: rgba(44, 127, 166, 0.08);
+  background-color: rgba(168, 118, 42, 0.08);
 `;
 
 const CoversLabel = styled.Text`
   font-family: ${fontFamily.bold};
   font-size: 10.5px;
-  color: ${BRASS};
+  color: ${BRASS_INK};
 `;
 
 const ActionRow = styled.View`
@@ -1015,7 +1019,7 @@ const CallButton = styled(Pressable)`
   gap: 7px;
   min-height: 46px;
   border-radius: 999px;
-  background-color: ${BRASS};
+  background-color: ${BRASS_INK};
   opacity: ${(props) => (props.disabled ? 0.5 : 1)};
 `;
 
@@ -1033,15 +1037,15 @@ const GhostButton = styled(Pressable)`
   gap: 7px;
   min-height: 46px;
   border-radius: 999px;
-  background-color: rgba(44, 127, 166, 0.07);
+  background-color: rgba(168, 118, 42, 0.07);
   border-width: 1px;
-  border-color: rgba(44, 127, 166, 0.24);
+  border-color: rgba(168, 118, 42, 0.24);
 `;
 
 const GhostLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 13px;
-  color: ${BRASS};
+  color: ${BRASS_INK};
 `;
 
 const EmptyCard = styled.View`

@@ -20,6 +20,10 @@ import { categories } from "../data/categories";
 
 const EMERALD = "#0B6E4F";
 const TERRACOTTA = "#C1512D";
+// Ink, for the same reason: the app's terracotta on its own tint is 4.1:1,
+// and this is the button that rejects somebody's listing — not a place for
+// text that is nearly readable.
+const TERRACOTTA_INK = "#A8421F";
 
 // Approving a listing without seeing it is a coin toss, so this screen exists
 // to show the thing being judged before the decision is offered.
@@ -683,7 +687,7 @@ const RejectButton = styled(Pressable)`
 const RejectLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 13.5px;
-  color: ${TERRACOTTA};
+  color: ${TERRACOTTA_INK};
 `;
 
 const ErrorCard = styled.View`
@@ -698,7 +702,7 @@ const ErrorCard = styled.View`
 const ErrorTitle = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 15px;
-  color: ${TERRACOTTA};
+  color: ${TERRACOTTA_INK};
   margin-bottom: 6px;
 `;
 

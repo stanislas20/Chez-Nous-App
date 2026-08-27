@@ -392,10 +392,18 @@ export const vehicleDrivetrains = [
 // — a badge that appears by default is not a warning, it is noise, and it
 // quietly accuses honest sellers. Silence is never rendered as a red flag
 // now: only an explicit "non" is.
+// `ink` is the text colour to print on `color`, and it is here rather than
+// in the component because no single colour serves all three. The badge on
+// a vehicle photo was white throughout: 4.69:1 on the terracotta, which is
+// fine, and 2.25:1 on the amber, which is not — and the amber state is
+// "duplicata en cours", one of the two facts a buyer most needs to read
+// before paying. A dark ink fixes the amber and breaks the terracotta at
+// 2.95:1, so the choice belongs to whoever chose the colour.
 export const vehicleDocuments = [
   {
     key: "yes",
     color: "#0B6E4F",
+    ink: "#ffffff",
     labelEn: "Carte grise available",
     labelFr: "Carte grise disponible",
     hintEn: "The registration document is in the seller's name and to hand",
@@ -404,6 +412,7 @@ export const vehicleDocuments = [
   {
     key: "pending",
     color: "#D9A441",
+    ink: "#3A2A12",
     labelEn: "Duplicate in progress",
     labelFr: "Duplicata en cours",
     hintEn: "Requested and not yet issued — ask for the timeline",
@@ -412,6 +421,7 @@ export const vehicleDocuments = [
   {
     key: "no",
     color: "#C1512D",
+    ink: "#ffffff",
     labelEn: "No carte grise",
     labelFr: "Sans carte grise",
     hintEn: "Nothing to transfer the vehicle with — check before paying",

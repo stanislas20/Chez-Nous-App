@@ -117,6 +117,10 @@ export function KeysScreen({ navigation }) {
     () => (need ? jobsFor(need, keyType) : []),
     [need, keyType],
   );
+  const range = useMemo(
+    () => (need ? priceRangeFor(need, keyType) : null),
+    [need, keyType],
+  );
 
   const call = (phone) => {
     if (!phone) return;
@@ -283,6 +287,21 @@ export function KeysScreen({ navigation }) {
             </SectionTitle>
             {jobs.length ? (
               <>
+                {/* The spread for this need on this key, before the
+                    itemised list. Losing every hands-free key runs from
+                    18 000 to 145 000 depending which of the four jobs it
+                    turns out to need — that range is the thing worth
+                    knowing while deciding whether to call anybody. Only
+                    when there is a spread: repeating "8 000 – 8 000" on a
+                    single-job need would be noise. */}
+                {range && range.max > range.min ? (
+                  <RangeLine>
+                    {t("keysRange", {
+                      min: fcfa(range.min),
+                      max: fcfa(range.max),
+                    })}
+                  </RangeLine>
+                ) : null}
                 <ServiceList>
                   {jobs.map((job) => (
                     <ServiceRow key={job.key}>
@@ -681,6 +700,13 @@ const NeedHint = styled.Text`
 // The price and how long it takes, right-aligned against the job. Tabular
 // figures line up down the column, which is what makes the spread between a
 // plain blade and a hands-free key readable at a glance.
+const RangeLine = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 13px;
+  margin-bottom: 10px;
+  color: ${BRASS};
+`;
+
 const PriceCol = styled.View`
   align-items: flex-end;
   margin-left: ${spacing.sm}px;

@@ -1504,6 +1504,7 @@ export const translations = {
     keysTypeLabel: "Your kind of key",
     keysJobsTitle: "What it costs on a {type}",
     keysJobDuration: "about {mins} min",
+    keysRange: "{min} to {max} FCFA, depending which job it turns out to need",
     keysPriceNote:
       "What this work goes for here, to tell a 3 500 job from a 145 000 one before anybody drives across town. It is not a quote \u2014 the specialist confirms once they see the car.",
     keysJobsNotOnType: "Not something a {type} has",
@@ -3878,6 +3879,7 @@ export const translations = {
     keysTypeLabel: "Votre type de cl\u00e9",
     keysJobsTitle: "Ce que \u00e7a co\u00fbte sur une {type}",
     keysJobDuration: "environ {mins} min",
+    keysRange: "{min} \u00e0 {max} FCFA, selon le travail que \u00e7a demande",
     keysPriceNote:
       "Ce que ce travail se pratique ici, pour distinguer un travail de 3 500 d'un travail de 145 000 avant que quiconque traverse la ville. Ce n'est pas un devis \u2014 le sp\u00e9cialiste confirme en voyant la voiture.",
     keysJobsNotOnType: "Une {type} n'a pas \u00e7a",

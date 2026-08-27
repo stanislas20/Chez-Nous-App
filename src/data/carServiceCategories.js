@@ -124,13 +124,23 @@ export const carServicesPrimary = [
   // service, and Accès rapide already opens the same screen two-thirds of a
   // screen higher — it was the one tile here saying something twice.
   { key: "aircon", icon: "snow-outline", route: "Aircon" },
+  // Promoted for the same reason, and it costs the round number.
+  //
+  // Keys was a text search of Services for "clé voiture" and now has a
+  // screen — which made it the one tile in the tail with a destination
+  // sitting behind a collapsed "Plus de services". Somebody standing next
+  // to a locked car does not open an accordion.
+  //
+  // Aircon could take Parc auto's slot because Parc auto was saying
+  // something Accès rapide already said. There is no such passenger left:
+  // all twelve above are their own vertical. So this is a thirteenth, and
+  // the last row of three carries one tile instead of three. That is the
+  // price, and it is worth paying — a ragged row is a cosmetic cost, a
+  // screen nobody can find is the whole screen wasted.
+  { key: "keys", icon: "key-outline", route: "Keys" },
 ];
 
 export const carServicesMore = [
-  // Was a text search of Services for "clé voiture", which finds whatever
-  // happens to contain those words and cannot answer a single question
-  // somebody arrives with.
-  { key: "keys", icon: "key-outline", route: "Keys" },
   { key: "gps", icon: "navigate-circle-outline", query: "gps traceur" },
   { key: "fleet", icon: "business-outline", query: "gestion de flotte" },
   { key: "dealers", icon: "storefront-outline", route: "CarDealerships" },

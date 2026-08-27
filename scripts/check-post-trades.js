@@ -28,12 +28,42 @@
 // Run: node scripts/check-post-trades.js
 const fs = require("fs");
 const path = require("path");
+const failures = [];
+const babel = require("@babel/core");
+const vm = require("vm");
+
+// The second half of this file needs the matchers themselves, not just the
+// form's text: it has to prove a declared trade actually reaches a screen.
+function loadEsm(relative) {
+  const shim = { exports: {} };
+  vm.runInNewContext(
+    babel.transformFileSync(path.join(__dirname, "..", relative), {
+      presets: [["@babel/preset-env", { targets: { node: "current" } }]],
+      babelrc: false,
+      configFile: false,
+    }).code,
+    {
+      module: shim,
+      exports: shim.exports,
+      require: (specifier) =>
+        specifier.endsWith("wordMatch")
+          ? loadEsm("src/utils/wordMatch.js")
+          : {},
+      console,
+    },
+  );
+  return shim.exports;
+}
+
+const check = (label, actual, expected) => {
+  if (actual !== expected) {
+    failures.push(`${label} — got ${actual}, expected ${expected}`);
+  }
+};
 
 const root = path.join(__dirname, "..");
 const formPath = path.join(root, "src", "screens", "CreateListingScreen.js");
 const form = fs.readFileSync(formPath, "utf8");
-
-const failures = [];
 
 function keysOf(objectName) {
   const start = form.indexOf(`const ${objectName} = `);
@@ -123,6 +153,99 @@ for (const key of offered) {
     );
   }
 }
+
+// ── The declared trade has to survive the publish and reach a screen ────
+//
+// The form has always asked a seller what they do, and until now it threw
+// the answer away: nothing was written to the listing, so every trade screen
+// had to infer membership back out of the seller's prose. That is why a
+// plotter in a printing shop had to be argued out of the tracker list, and
+// why somebody who wrote "pose de balises et suivi" appeared nowhere.
+//
+// Two ends, both silent if broken. If the field stops being written the
+// screens quietly fall back to keywords and lose the sellers whose words do
+// not match. If a trade routes nowhere, that seller publishes into a void.
+const createSource = form;
+check(
+  "the listing keeps the trade the seller chose",
+  /\{ trade \}/.test(createSource),
+  true,
+);
+check(
+  "and only on a service",
+  /isServices && trade \? \{ trade \}/.test(createSource),
+  true,
+);
+
+const garage = loadEsm("src/data/garageSpecialties.js");
+const drivers = loadEsm("src/data/drivers.js");
+const wash = loadEsm("src/data/carWash.js");
+const insurers = loadEsm("src/data/insurance.js");
+const parts = loadEsm("src/data/vehicleParts.js");
+
+// Every trade the form offers reaches exactly one of the two mechanisms:
+// a garage specialty, or its own matcher.
+const OWN_MATCHER = {
+  driver: drivers.isDriverListing,
+  wash: wash.isWashListing,
+  insurance: insurers.isInsuranceListing,
+  parts: parts.isPartsSellerListing,
+};
+
+[...offered].forEach((trade) => {
+  const specialty = garage.specialtyForTrade(trade);
+  const own = OWN_MATCHER[trade];
+  check(`"${trade}" routes somewhere`, Boolean(specialty || own), true);
+  if (specialty) {
+    check(
+      `"${trade}" names a specialty that exists`,
+      garage.garageSpecialties.some((item) => item.key === specialty),
+      true,
+    );
+    // The point of the whole change: prose that matches nothing at all
+    // still finds the seller, because they told us.
+    check(
+      `a declared "${trade}" is found with unmatchable prose`,
+      garage.garageSpecialtiesFor("aaa bbb ccc", trade).includes(specialty),
+      true,
+    );
+  }
+  if (own) {
+    check(
+      `a declared "${trade}" is found by its own matcher`,
+      own("aaa bbb", trade),
+      true,
+    );
+    check(
+      `…and an undeclared one is not, on that prose`,
+      own("aaa bbb"),
+      false,
+    );
+  }
+});
+
+// A declaration must not become a skeleton key: choosing one trade puts the
+// seller on that screen, not on every screen.
+check(
+  "declaring one trade does not join another",
+  garage.garageSpecialtiesFor("aaa bbb", "keys").includes("pneu"),
+  false,
+);
+check(
+  "and does not turn a garage into a chauffeur",
+  drivers.isDriverListing("aaa bbb", "garage"),
+  false,
+);
+// The lookalikes still have to be refused when nothing was declared, which
+// is every listing published before this field existed.
+check(
+  "a plotter with no declaration is still not a tracker fitter",
+  garage.matchesGarageSpecialty(
+    "Traceur A0 et plotter, imprimerie et reprographie",
+    "gps",
+  ),
+  false,
+);
 
 if (failures.length) {
   failures.forEach((line) => console.error(`FAIL ${line}`));

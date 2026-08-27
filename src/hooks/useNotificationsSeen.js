@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
-import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
-import { firestore, isFirebaseConfigured } from '../config/firebase';
+import { useCallback, useEffect, useState } from "react";
+import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import { firestore, isFirebaseConfigured } from "../config/firebase";
 
 // Per-user "last opened the Notifications tab" timestamp, stored on their
 // own sellers/{uid} doc. Anything approved after this is what makes up the
@@ -18,15 +18,21 @@ export function useNotificationsSeen(uid) {
       return undefined;
     }
 
-    const ref = doc(firestore, 'sellers', uid);
+    const ref = doc(firestore, "sellers", uid);
     const unsubscribe = onSnapshot(
       ref,
       (snap) => {
         const data = snap.data();
-        const hasField = data && Object.prototype.hasOwnProperty.call(data, 'notificationsLastSeenAt');
+        const hasField =
+          data &&
+          Object.prototype.hasOwnProperty.call(data, "notificationsLastSeenAt");
         if (!hasField) {
           setLastSeenAt(new Date());
-          setDoc(ref, { notificationsLastSeenAt: serverTimestamp() }, { merge: true }).catch(() => {});
+          setDoc(
+            ref,
+            { notificationsLastSeenAt: serverTimestamp() },
+            { merge: true },
+          ).catch(() => {});
           return;
         }
         // A serverTimestamp() we just wrote locally echoes back as null
@@ -44,9 +50,11 @@ export function useNotificationsSeen(uid) {
 
   const markSeen = useCallback(() => {
     if (!isFirebaseConfigured || !uid) return;
-    setDoc(doc(firestore, 'sellers', uid), { notificationsLastSeenAt: serverTimestamp() }, { merge: true }).catch(
-      () => {},
-    );
+    setDoc(
+      doc(firestore, "sellers", uid),
+      { notificationsLastSeenAt: serverTimestamp() },
+      { merge: true },
+    ).catch(() => {});
   }, [uid]);
 
   return { lastSeenAt, markSeen };

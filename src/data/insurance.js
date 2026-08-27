@@ -241,7 +241,11 @@ const NOT_MOTOR = [
   "travel insurance",
 ];
 
-export function isInsuranceListing(text) {
+export function isInsuranceListing(text, declaredTrade) {
+  // The seller's own answer on the posting form, which cannot be a false
+  // positive the way a keyword can. Their prose is still read for everyone
+  // who never came through a trade screen.
+  if (declaredTrade === "insurance") return true;
   // Said it plainly, so it is ours whatever else they write. An agency that
   // covers health AND motor is a motor agency for our purposes — refusing
   // it because it also sells health policies loses a real one.

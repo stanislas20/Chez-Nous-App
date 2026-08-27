@@ -1,6 +1,12 @@
-import { useEffect, useState } from 'react';
-import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import { firestore, isFirebaseConfigured } from '../config/firebase';
+import { useEffect, useState } from "react";
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
+import { firestore, isFirebaseConfigured } from "../config/firebase";
 
 export function useConversations(uid) {
   const [conversations, setConversations] = useState(null);
@@ -12,15 +18,17 @@ export function useConversations(uid) {
     }
 
     const conversationsQuery = query(
-      collection(firestore, 'conversations'),
-      where('participantIds', 'array-contains', uid),
-      orderBy('lastMessageAt', 'desc'),
+      collection(firestore, "conversations"),
+      where("participantIds", "array-contains", uid),
+      orderBy("lastMessageAt", "desc"),
     );
 
     const unsubscribe = onSnapshot(
       conversationsQuery,
       (snapshot) => {
-        setConversations(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+        setConversations(
+          snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+        );
       },
       () => {
         setConversations([]);

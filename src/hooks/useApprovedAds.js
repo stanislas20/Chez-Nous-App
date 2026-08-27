@@ -1,6 +1,12 @@
-import { useEffect, useState } from 'react';
-import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import { firestore, isFirebaseConfigured } from '../config/firebase';
+import { useEffect, useState } from "react";
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
+import { firestore, isFirebaseConfigured } from "../config/firebase";
 
 export function useApprovedAds() {
   const [ads, setAds] = useState(null);
@@ -12,9 +18,9 @@ export function useApprovedAds() {
     }
 
     const adsQuery = query(
-      collection(firestore, 'ads'),
-      where('status', '==', 'approved'),
-      orderBy('createdAt', 'desc'),
+      collection(firestore, "ads"),
+      where("status", "==", "approved"),
+      orderBy("createdAt", "desc"),
     );
 
     const unsubscribe = onSnapshot(adsQuery, (snapshot) => {

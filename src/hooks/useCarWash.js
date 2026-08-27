@@ -24,7 +24,7 @@ export function useCarWash(userCoords) {
     return withoutTestSeed(
       listings
         .filter((listing) => listing.categoryKey === "services")
-        .filter((listing) => isWashListing(searchable(listing)))
+        .filter((listing) => isWashListing(searchable(listing), listing.trade))
         .map((listing) => {
           const cityCoord = cityCoordinates[listing.city];
           return {

@@ -23,7 +23,9 @@ export function useDrivers(userCoords) {
     return withoutTestSeed(
       listings
         .filter((listing) => listing.categoryKey === "services")
-        .filter((listing) => isDriverListing(searchable(listing)))
+        .filter((listing) =>
+          isDriverListing(searchable(listing), listing.trade),
+        )
         .map((listing) => {
           const cityCoord = cityCoordinates[listing.city];
           return {

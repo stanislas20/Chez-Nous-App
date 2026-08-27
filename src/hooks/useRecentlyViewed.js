@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const STORAGE_KEY = 'recentlyViewedListings';
+const STORAGE_KEY = "recentlyViewedListings";
 const MAX_ITEMS = 20;
 
 // A real, on-device history of listings this seller actually opened —

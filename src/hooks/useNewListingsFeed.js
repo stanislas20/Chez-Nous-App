@@ -1,6 +1,13 @@
-import { useEffect, useState } from 'react';
-import { collection, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import { firestore, isFirebaseConfigured } from '../config/firebase';
+import { useEffect, useState } from "react";
+import {
+  collection,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
+import { firestore, isFirebaseConfigured } from "../config/firebase";
 
 const FEED_LIMIT = 30;
 
@@ -23,15 +30,21 @@ export function useNewListingsFeed() {
     }
 
     const feedQuery = query(
-      collection(firestore, 'listings'),
-      where('status', '==', 'approved'),
-      orderBy('approvedAt', 'desc'),
+      collection(firestore, "listings"),
+      where("status", "==", "approved"),
+      orderBy("approvedAt", "desc"),
       limit(FEED_LIMIT),
     );
 
     const unsubscribe = onSnapshot(
       feedQuery,
-      (snapshot) => setListings(snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))),
+      (snapshot) =>
+        setListings(
+          snapshot.docs.map((docSnap) => ({
+            id: docSnap.id,
+            ...docSnap.data(),
+          })),
+        ),
       () => setListings([]),
     );
 

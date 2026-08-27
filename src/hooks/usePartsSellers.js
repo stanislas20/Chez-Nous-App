@@ -29,7 +29,9 @@ export function usePartsSellers(userCoords) {
     return withoutTestSeed(
       listings
         .filter((listing) => listing.categoryKey === "services")
-        .filter((listing) => isPartsSellerListing(searchable(listing)))
+        .filter((listing) =>
+          isPartsSellerListing(searchable(listing), listing.trade),
+        )
         .map((listing) => {
           const cityCoord = cityCoordinates[listing.city];
           const stock = listing.partStock ?? "";

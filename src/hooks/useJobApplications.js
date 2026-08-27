@@ -1,6 +1,12 @@
-import { useEffect, useState } from 'react';
-import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import { firestore, isFirebaseConfigured } from '../config/firebase';
+import { useEffect, useState } from "react";
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
+import { firestore, isFirebaseConfigured } from "../config/firebase";
 
 // Applications a seller has received across all of their job postings,
 // newest first — read by employerUid, not scoped to a single listing, so
@@ -15,14 +21,17 @@ export function useJobApplications(employerUid) {
     }
 
     const applicationsQuery = query(
-      collection(firestore, 'jobApplications'),
-      where('employerUid', '==', employerUid),
-      orderBy('createdAt', 'desc'),
+      collection(firestore, "jobApplications"),
+      where("employerUid", "==", employerUid),
+      orderBy("createdAt", "desc"),
     );
 
     const unsubscribe = onSnapshot(
       applicationsQuery,
-      (snapshot) => setApplications(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))),
+      (snapshot) =>
+        setApplications(
+          snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+        ),
       () => setApplications([]),
     );
 

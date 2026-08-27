@@ -30,12 +30,17 @@ export function useGarageProviders(userCoords) {
 
     return listings
       .filter((listing) => listing.categoryKey === "services")
-      .filter((listing) => isGarageListing(searchableText(listing)))
+      .filter((listing) =>
+        isGarageListing(searchableText(listing), listing.trade),
+      )
       .map((listing) => {
         const cityCoord = cityCoordinates[listing.city];
         return {
           ...listing,
-          specialties: garageSpecialtiesFor(searchableText(listing)),
+          specialties: garageSpecialtiesFor(
+            searchableText(listing),
+            listing.trade,
+          ),
           // Declared by the workshop on the posting form. Empty means they
           // said nothing, which the Climatisation screen reads as "ask them"
           // rather than as "no" — silence is not a refusal.

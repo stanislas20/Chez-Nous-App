@@ -319,7 +319,11 @@ const NOT_DRIVERS = [
   "cours de conduite",
 ];
 
-export function isDriverListing(text) {
+export function isDriverListing(text, declaredTrade) {
+  // The seller's own answer on the posting form, which cannot be a false
+  // positive the way a keyword can. Their prose is still read for everyone
+  // who never came through a trade screen.
+  if (declaredTrade === "driver") return true;
   if (mentionsAnyWord(text, NOT_DRIVERS)) return false;
   return matchesTrade(text, DRIVER_TERMS);
 }

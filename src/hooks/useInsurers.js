@@ -24,7 +24,9 @@ export function useInsurers(userCoords) {
     return withoutTestSeed(
       listings
         .filter((listing) => listing.categoryKey === "services")
-        .filter((listing) => isInsuranceListing(searchable(listing)))
+        .filter((listing) =>
+          isInsuranceListing(searchable(listing), listing.trade),
+        )
         .map((listing) => {
           const cityCoord = cityCoordinates[listing.city];
           return {

@@ -231,8 +231,37 @@ export function mentionsVehicle(text) {
   return mentionsAny(text, AUTO_CONTEXT);
 }
 
+// What the seller chose on the form, in the vocabulary the screens filter
+// on. Two vocabularies exist because they were built for different jobs —
+// the form names trades the way a seller would ("battery", "tyres"), the
+// matcher names specialties the way the listings read ("batt", "pneu") —
+// and this is the one place they have to meet.
+//
+// Trades that are not garage work at all (a chauffeur, a parts shop, an
+// insurer, a car wash) are absent on purpose: each has its own matcher and
+// its own hook, and they honour the declared trade the same way there.
+const TRADE_SPECIALTY = {
+  garage: "meca",
+  bodywork: "carro",
+  electric: "elec",
+  tyres: "pneu",
+  battery: "batt",
+  clim: "clim",
+  keys: "keys",
+  gps: "gps",
+};
+
+export function specialtyForTrade(trade) {
+  return TRADE_SPECIALTY[trade] ?? null;
+}
+
 // True when this listing's own words place it in the given trade.
-export function matchesGarageSpecialty(text, key) {
+export function matchesGarageSpecialty(text, key, declaredTrade) {
+  // What the seller declared outranks what a regex can infer from their
+  // sentence. It cannot produce a false positive the way a keyword can:
+  // nobody picks "serrurier auto" on the form by accident, whereas the word
+  // "clé" turns up in prose about anything.
+  if (declaredTrade && specialtyForTrade(declaredTrade) === key) return true;
   const specialty = getGarageSpecialty(key);
   if (!specialty) return false;
   if (mentionsAny(text, specialty.terms)) return true;
@@ -242,17 +271,17 @@ export function matchesGarageSpecialty(text, key) {
 
 // Which trades a listing covers — a garage that does brakes and tyres
 // appears under both, because it does both.
-export function garageSpecialtiesFor(text) {
+export function garageSpecialtiesFor(text, declaredTrade) {
   return garageSpecialties
-    .filter((item) => matchesGarageSpecialty(text, item.key))
+    .filter((item) => matchesGarageSpecialty(text, item.key, declaredTrade))
     .map((item) => item.key);
 }
 
 // A Services listing that matches no trade is somebody's hairdressing or
 // plumbing ad and has no business on a car-repair screen.
-export function isGarageListing(text) {
+export function isGarageListing(text, declaredTrade) {
   return garageSpecialties.some((item) =>
-    matchesGarageSpecialty(text, item.key),
+    matchesGarageSpecialty(text, item.key, declaredTrade),
   );
 }
 

@@ -351,7 +351,11 @@ const NOT_PARTS = [
   "terrain",
 ];
 
-export function isPartsSellerListing(text) {
+export function isPartsSellerListing(text, declaredTrade) {
+  // The seller's own answer on the posting form, which cannot be a false
+  // positive the way a keyword can. Their prose is still read for everyone
+  // who never came through a trade screen.
+  if (declaredTrade === "parts") return true;
   if (mentionsAnyWord(text, NOT_PARTS)) return false;
   return matchesTrade(text, PARTS_TERMS);
 }

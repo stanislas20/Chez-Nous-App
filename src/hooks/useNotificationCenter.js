@@ -1,7 +1,7 @@
-import { useConversations } from './useConversations';
-import { useNewListingsFeed } from './useNewListingsFeed';
-import { useNotificationsSeen } from './useNotificationsSeen';
-import { useJobApplications } from './useJobApplications';
+import { useConversations } from "./useConversations";
+import { useNewListingsFeed } from "./useNewListingsFeed";
+import { useNotificationsSeen } from "./useNotificationsSeen";
+import { useJobApplications } from "./useJobApplications";
 
 // Single source of truth for everything the notification bell surfaces:
 // unread messages (per-conversation, already tracked elsewhere), newly
@@ -40,7 +40,8 @@ export function useNotificationCenter(uid) {
     jobApplications,
     newJobApplications,
     unreadMessageCount,
-    badgeCount: unreadMessageCount + newListings.length + newJobApplications.length,
+    badgeCount:
+      unreadMessageCount + newListings.length + newJobApplications.length,
     markSeen,
   };
 }

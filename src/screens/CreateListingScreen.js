@@ -1574,6 +1574,20 @@ export function CreateListingScreen({ route, navigation }) {
       const coordsForCity = cityCoordinates[selectedCity] ?? null;
 
       const data = {
+        // What the seller said they do, kept rather than thrown away.
+        //
+        // The form has always asked this — it decides which questions get
+        // shown — and then discarded it at publish, so every trade screen
+        // had to infer membership back out of the seller's prose by keyword.
+        // That is why a plotter in a printing shop had to be argued out of
+        // the tracker list, and why a fitter who wrote "pose de balises et
+        // suivi" appeared on no screen at all: neither of the words the
+        // matcher needed was in it.
+        //
+        // Only on a service, and only when it was actually chosen. The
+        // keyword matchers stay for the listings that predate this field
+        // and for sellers who never came through a trade screen.
+        ...(isServices && trade ? { trade } : {}),
         sellerId: user.uid,
         sellerName: sellerProfile?.fullName ?? "",
         // Denormalized like sellerName — lets ProductDetailScreen and

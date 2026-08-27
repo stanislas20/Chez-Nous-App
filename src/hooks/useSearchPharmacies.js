@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
-import { distanceInKm } from '../utils/geo';
-import { extractPlacePhoto } from '../utils/placePhoto';
+import { useEffect, useState } from "react";
+import { distanceInKm } from "../utils/geo";
+import { extractPlacePhoto } from "../utils/placePhoto";
 
 const PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
 const FIELD_MASK =
-  'places.id,places.displayName,places.location,places.formattedAddress,' +
-  'places.internationalPhoneNumber,places.currentOpeningHours.openNow,places.rating,' +
-  'places.photos';
+  "places.id,places.displayName,places.location,places.formattedAddress," +
+  "places.internationalPhoneNumber,places.currentOpeningHours.openNow,places.rating," +
+  "places.photos";
 
 // The Republic of Bénin's real bounding box. "Benin" in a text query is
 // genuinely ambiguous to Google — it also matches Benin City, Nigeria
@@ -31,55 +31,58 @@ const BENIN_BOUNDS = {
 // keeps that distinction visually explicit for useNearbyPharmacies results,
 // and this reuses the exact same presentation.
 export function useSearchPharmacies(query, coords) {
-  const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'loaded' | 'error'
+  const [status, setStatus] = useState("idle"); // 'idle' | 'loading' | 'loaded' | 'error'
   const [pharmacies, setPharmacies] = useState([]);
 
   useEffect(() => {
     const trimmed = query.trim();
     if (!trimmed) {
-      setStatus('idle');
+      setStatus("idle");
       setPharmacies([]);
       return undefined;
     }
     if (!PLACES_API_KEY) {
-      console.log('[pharmacy text search] no API key configured');
-      setStatus('error');
+      console.log("[pharmacy text search] no API key configured");
+      setStatus("error");
       return undefined;
     }
 
     let cancelled = false;
-    setStatus('loading');
-    console.log('[pharmacy text search] query', trimmed, 'coords', coords);
+    setStatus("loading");
+    console.log("[pharmacy text search] query", trimmed, "coords", coords);
 
     const body = {
       textQuery: `${trimmed} pharmacy Benin`,
-      includedType: 'pharmacy',
+      includedType: "pharmacy",
       maxResultCount: 10,
       locationRestriction: { rectangle: BENIN_BOUNDS },
     };
 
-    fetch('https://places.googleapis.com/v1/places:searchText', {
-      method: 'POST',
+    fetch("https://places.googleapis.com/v1/places:searchText", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': PLACES_API_KEY,
-        'X-Goog-FieldMask': FIELD_MASK,
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": PLACES_API_KEY,
+        "X-Goog-FieldMask": FIELD_MASK,
       },
       body: JSON.stringify(body),
     })
       .then((response) => response.json())
       .then((data) => {
-        console.log('[pharmacy text search] response', JSON.stringify(data).slice(0, 500));
+        console.log(
+          "[pharmacy text search] response",
+          JSON.stringify(data).slice(0, 500),
+        );
         if (cancelled) return;
         if (data.error) {
-          setStatus('error');
+          setStatus("error");
           return;
         }
         const results = (data.places ?? [])
           .filter((place) => place.location)
           .map((place) => ({
             id: place.id,
-            name: place.displayName?.text ?? '',
+            name: place.displayName?.text ?? "",
             address: place.formattedAddress,
             latitude: place.location.latitude,
             longitude: place.location.longitude,
@@ -90,15 +93,18 @@ export function useSearchPharmacies(query, coords) {
             ...extractPlacePhoto(place),
             rating: place.rating ?? null,
             distance: coords
-              ? distanceInKm(coords, { latitude: place.location.latitude, longitude: place.location.longitude })
+              ? distanceInKm(coords, {
+                  latitude: place.location.latitude,
+                  longitude: place.location.longitude,
+                })
               : null,
           }));
         setPharmacies(results);
-        setStatus('loaded');
+        setStatus("loaded");
       })
       .catch((e) => {
-        console.log('[pharmacy text search] fetch failed', e.message);
-        if (!cancelled) setStatus('error');
+        console.log("[pharmacy text search] fetch failed", e.message);
+        if (!cancelled) setStatus("error");
       });
 
     return () => {

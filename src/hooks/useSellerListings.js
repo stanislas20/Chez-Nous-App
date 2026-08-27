@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { firestore, isFirebaseConfigured } from '../config/firebase';
+import { useEffect, useState } from "react";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { firestore, isFirebaseConfigured } from "../config/firebase";
 
 // A seller's other approved listings — safe to query publicly (the same
 // read rule that lets any buyer open one of these listings already allows
@@ -15,15 +15,17 @@ export function useSellerListings(sellerId) {
     }
 
     const listingsQuery = query(
-      collection(firestore, 'listings'),
-      where('sellerId', '==', sellerId),
-      where('status', '==', 'approved'),
+      collection(firestore, "listings"),
+      where("sellerId", "==", sellerId),
+      where("status", "==", "approved"),
     );
 
     const unsubscribe = onSnapshot(
       listingsQuery,
       (snapshot) => {
-        setListings(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+        setListings(
+          snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+        );
       },
       () => setListings([]),
     );

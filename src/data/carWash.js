@@ -294,7 +294,11 @@ const NOT_WASH = [
   "nettoyage industriel",
 ];
 
-export function isWashListing(text) {
+export function isWashListing(text, declaredTrade) {
+  // The seller's own answer on the posting form, which cannot be a false
+  // positive the way a keyword can. Their prose is still read for everyone
+  // who never came through a trade screen.
+  if (declaredTrade === "wash") return true;
   // Said it plainly, so it is ours whatever else they do.
   if (mentionsAnyWord(text, WASH_TERMS.terms)) return true;
   if (mentionsAnyWord(text, NOT_WASH)) return false;

@@ -131,6 +131,10 @@ paperKinds.forEach((kind) => {
 // it to the function and the reminder silently never fires for it, which is
 // the worst possible failure for a feature whose entire job is to fire.
 const reminders = require("../functions/paperReminders").internals;
+const pushSource = require("fs").readFileSync(
+  require("path").join(__dirname, "..", "src", "notifications", "pushToken.js"),
+  "utf8",
+);
 
 const renewableKeys = paperKinds
   .filter((kind) => kind.renewable)
@@ -371,6 +375,55 @@ check(
   paperPlaces.find((place) => place.key === "insurance").site,
   null,
 );
+
+// ── The reminder has to be noticed ─────────────────────────────────────
+//
+// A date that costs money to miss is worth a sound and a buzz. On Android 8
+// and later neither comes from the message: the CHANNEL carries them, and a
+// push that names no channel — which is how these reminders were sent at
+// first — lands in whatever fallback the messaging library provides, at
+// default importance, silently.
+//
+// So two things have to hold together, in two different files, and the whole
+// point of checking is that breaking the link is silent: rename the channel
+// on one side and the reminders keep arriving, just without a sound, and
+// nobody finds out until somebody misses an insurance renewal.
+const push = reminders.buildPush(
+  "token",
+  { title: "t", body: "b" },
+  "insurance",
+);
+
+check("the push asks for high priority", push.android.priority, "high");
+check(
+  "it names the channel the app creates",
+  push.android.notification.channelId,
+  reminders.PAPERS_CHANNEL,
+);
+check("it asks for a sound", push.android.notification.sound, "default");
+check(
+  "it asks to vibrate",
+  push.android.notification.defaultVibrateTimings,
+  true,
+);
+// iOS has no channels; the sound is per message or there is none.
+check("iOS gets a sound too", push.apns.payload.aps.sound, "default");
+// The tap handler routes on this, so a push without it opens nothing.
+check("the payload still says what it is", push.data.type, "paperExpiring");
+
+// The other half of the link, on the app's side.
+check(
+  `the app creates a channel called "${reminders.PAPERS_CHANNEL}"`,
+  new RegExp(`PAPERS_CHANNEL = "${reminders.PAPERS_CHANNEL}"`).test(pushSource),
+  true,
+);
+check(
+  "at high importance, or the phone stays quiet whatever the payload says",
+  /AndroidImportance\.HIGH/.test(pushSource),
+  true,
+);
+check("with a sound", /sound: "default"/.test(pushSource), true);
+check("and a vibration pattern", /vibrationPattern:/.test(pushSource), true);
 
 if (failures.length) {
   failures.forEach((line) => console.error(`FAIL ${line}`));

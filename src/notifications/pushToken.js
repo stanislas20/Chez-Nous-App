@@ -9,6 +9,7 @@ import {
   onTokenRefresh,
   requestPermission,
 } from "@react-native-firebase/messaging";
+import * as Notifications from "expo-notifications";
 import { Alert, PermissionsAndroid, Platform } from "react-native";
 import { doc, setDoc } from "firebase/firestore";
 import { firestore } from "../config/firebase";
@@ -38,6 +39,51 @@ function savePushToken(uid, token) {
 export const PUSH_OK = "ok";
 export const PUSH_DENIED = "denied";
 export const PUSH_UNAVAILABLE = "unavailable";
+
+// On Android 8 and later, a notification's sound and vibration are
+// properties of its CHANNEL, not of the message. A push can ask for
+// `sound: "default"` all it likes; if the channel it lands in was created
+// with importance DEFAULT and no sound, the phone stays silent. That is why
+// the paper reminders arrived without a sound: there was no channel, so they
+// fell into whichever fallback the messaging library provides.
+//
+// Two channels rather than one, because they are not the same kind of
+// interruption and somebody must be able to say so. A paper expiring is
+// worth a sound and a buzz in a pocket; a new message is worth less, and
+// anybody who disagrees can change either one in Android settings — which
+// only works if they are separate channels.
+export const PAPERS_CHANNEL = "papers";
+export const MESSAGES_CHANNEL = "messages";
+
+// A short double buzz: wait, buzz, pause, buzz. Long enough to feel through
+// a pocket, short enough not to read as an alarm — this is a reminder about
+// a date, not an emergency.
+const PAPERS_VIBRATION = [0, 300, 200, 300];
+
+export async function ensureNotificationChannels() {
+  if (Platform.OS !== "android") return;
+  try {
+    await Notifications.setNotificationChannelAsync(PAPERS_CHANNEL, {
+      name: "Papiers & contrôle",
+      description:
+        "Assurance, visite technique et autres dates qui arrivent à échéance.",
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: "default",
+      vibrationPattern: PAPERS_VIBRATION,
+      enableVibrate: true,
+    });
+    await Notifications.setNotificationChannelAsync(MESSAGES_CHANNEL, {
+      name: "Messages",
+      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: "default",
+      enableVibrate: true,
+    });
+  } catch (error) {
+    // A channel that cannot be created costs the sound, never the app.
+    // Android keeps its own copy once created, so this only has to succeed
+    // once per install.
+  }
+}
 
 export async function ensurePushToken(uid) {
   if (!uid) return PUSH_UNAVAILABLE;

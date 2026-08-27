@@ -141,6 +141,42 @@ function sentKey(kind, days) {
   return `${kind}_${days}`;
 }
 
+// The push itself, kept out of the loop so a test can look at it.
+//
+// A reminder somebody asked for, about a date that costs money to miss, is
+// worth a sound and a buzz in a pocket. Neither is free:
+//
+// On Android 8 and later the CHANNEL decides both, not this payload. Asking
+// for a sound in a message that lands in a channel created without one
+// changes nothing — which is why these reminders used to arrive silently.
+// PAPERS_CHANNEL is the id the app creates at HIGH importance with a double
+// vibration, and naming it here is what puts the message in it. Naming a
+// channel the handset does not have costs the sound, not the notification,
+// so an install older than the channel is still told.
+//
+// iOS has no channels: the sound is asked for per message, and the handset's
+// own ring/silent switch has the last word over both platforms.
+const PAPERS_CHANNEL = "papers";
+
+function buildPush(token, message, kind) {
+  return {
+    token,
+    notification: message,
+    data: { type: "paperExpiring", paperKind: kind },
+    android: {
+      priority: "high",
+      notification: {
+        channelId: PAPERS_CHANNEL,
+        sound: "default",
+        defaultVibrateTimings: true,
+      },
+    },
+    apns: {
+      payload: { aps: { sound: "default" } },
+    },
+  };
+}
+
 async function sendReminders(now) {
   const db = admin.firestore();
   const snapshot = await db
@@ -183,11 +219,7 @@ async function sendReminders(now) {
       if (!message) continue;
 
       try {
-        await admin.messaging().send({
-          token,
-          notification: message,
-          data: { type: "paperExpiring", paperKind: kind },
-        });
+        await admin.messaging().send(buildPush(token, message, kind));
         updates[`paperRemindersSent.${key}`] = day;
         sent += 1;
       } catch (error) {
@@ -250,6 +282,8 @@ exports.internals = {
   daysUntil,
   formatDate,
   buildMessage,
+  buildPush,
+  PAPERS_CHANNEL,
   sentKey,
   parseDay,
 };

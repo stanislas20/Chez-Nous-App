@@ -27,6 +27,7 @@ import {
   registerForegroundMessageHandler,
   registerNotificationTapHandlers,
   registerPushToken,
+  ensureNotificationChannels,
 } from "../notifications/pushToken";
 
 const AuthContext = createContext(null);
@@ -108,6 +109,11 @@ export function AuthProvider({ children }) {
         // down any listener from a previous firing first, or a single push
         // stacks up one Alert per listener and dismissing one just reveals
         // the next.
+        // Before any reminder can arrive, and every sign-in rather than
+        // once: Android keeps the channel after the first call, but a
+        // reinstall or a cleared app storage drops it, and a channel that
+        // does not exist is a reminder that arrives without a sound.
+        ensureNotificationChannels();
         unsubscribeForegroundMessages?.();
         unsubscribeForegroundMessages = registerForegroundMessageHandler();
         // Same teardown rule: a second firing would otherwise leave two tap

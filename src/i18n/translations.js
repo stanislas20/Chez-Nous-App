@@ -823,6 +823,9 @@ export const translations = {
     schoolsExamAction: "Register for the exam",
     schoolsPublishLabel: "You run a driving school?",
     schoolsPublishCta: "List it",
+    banksFormerly: "Formerly {name}",
+    banksSourceNote:
+      "The banks licensed by BCEAO to operate in Bénin, read on {date}. Branches are not listed — the map finds the nearest one.",
     dealerNoSite: "No published site",
     // Phrased as a question with a short call, because it lives in the hero
     // bar next to a pill — the full sentence would truncate.
@@ -3326,6 +3329,9 @@ export const translations = {
     schoolsExamAction: "S'inscrire à l'examen",
     schoolsPublishLabel: "Vous tenez une auto-école ?",
     schoolsPublishCta: "Publier",
+    banksFormerly: "Anciennement {name}",
+    banksSourceNote:
+      "Les banques agréées par la BCEAO au Bénin, relevé le {date}. Les agences ne sont pas listées — la carte trouve la plus proche.",
     dealerNoSite: "Pas de site publié",
     dealerSubmitHeroLabel: "Un distributeur manque ?",
     dealerSubmitHeroCta: "Signaler",

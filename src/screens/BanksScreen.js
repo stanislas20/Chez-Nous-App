@@ -7,7 +7,13 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { SearchBar } from "../components/SearchBar";
-import { mockBanks } from "../data/mockBanks";
+import {
+  banksReviewedOn,
+  banksSource,
+  beninBanks,
+  bankSearchTerms,
+  formerNames,
+} from "../data/beninBanks";
 import { queryMatches } from "../utils/search";
 import { useI18n } from "../i18n/I18nContext";
 
@@ -15,19 +21,36 @@ const EMERALD = "#0B6E4F";
 
 export function BanksScreen({ navigation }) {
   const { colors } = useTheme();
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const [query, setQuery] = useState("");
 
-  const banks = mockBanks.filter((bank) =>
-    queryMatches(query, bank.name, bank.city),
+  // Built from its parts: `new Date("2026-08-28")` is parsed as UTC midnight
+  // and formatted locally, which prints the day before west of Greenwich.
+  const reviewed = (() => {
+    const [year, month, day] = banksReviewedOn.split("-").map(Number);
+    return new Intl.DateTimeFormat(language === "en" ? "en-GB" : "fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(new Date(year, month - 1, day));
+  })();
+
+  // Matched on the trading name, the short one people actually say, and any
+  // name the bank used to have — somebody holding a Diamond Bank passbook
+  // does not know it was bought.
+  const banks = beninBanks.filter((bank) =>
+    queryMatches(query, ...bankSearchTerms(bank)),
   );
 
-  // No verified street address/coordinates for these branches, so this
-  // opens a Maps *search* for the name + city rather than pretending to
-  // have a precise pinned location to route to.
+  // A search, not a pin, and now without a city either.
+  //
+  // The old list gave each bank one town and had no source for it. A bank has
+  // branches in many, and naming one sends everybody else to the wrong place.
+  // Searching the name alone lets the map answer with whichever branch is
+  // nearest to the person holding the phone.
   const openInMaps = (bank) => {
-    const query = encodeURIComponent(`${bank.name} ${bank.city} Bénin`);
-    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`);
+    const search = encodeURIComponent(`${bank.name} Bénin`);
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${search}`);
   };
 
   return (
@@ -59,8 +82,17 @@ export function BanksScreen({ navigation }) {
                 <Ionicons name="business-outline" size={20} color={EMERALD} />
               </IconWrap>
               <RowBody>
-                <RowName numberOfLines={1}>{bank.name}</RowName>
-                <RowCity numberOfLines={1}>{bank.city}</RowCity>
+                <RowName numberOfLines={2}>{bank.name}</RowName>
+                {/* The old name, shown only where there is one. It is the
+                    half a rename loses: a directory that knows only the new
+                    name tells the customer their bank does not exist. */}
+                {formerNames(bank.key).length ? (
+                  <RowCity numberOfLines={1}>
+                    {t("banksFormerly", {
+                      name: formerNames(bank.key).join(", "),
+                    })}
+                  </RowCity>
+                ) : null}
               </RowBody>
               <DirectionsButton onPress={() => openInMaps(bank)}>
                 <RowDirectionsLabel>
@@ -70,10 +102,21 @@ export function BanksScreen({ navigation }) {
             </Row>
           ))
         )}
+        {/* Where the list comes from and when it was read. A register is
+            only as good as its date, and this one changes. */}
+        <SourceNote>
+          {t("banksSourceNote", { date: reviewed })}
+        </SourceNote>
       </Body>
     </Container>
   );
 }
+
+const SourceNote = styled.Text`
+  ${type.caption}
+  margin-top: ${spacing.md}px;
+  color: ${(props) => props.theme.textMuted};
+`;
 
 const bodyContentStyle = { padding: spacing.md, paddingBottom: spacing.xl };
 

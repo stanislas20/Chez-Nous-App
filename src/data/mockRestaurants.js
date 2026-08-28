@@ -1,4 +1,4 @@
-// Sample restaurants, on the same terms as mockBanks: enough to build and
+// Sample restaurants, on the terms mockBanks used to be on: enough to build
 // judge the screen against, with nothing invented that would be a claim
 // about a real business.
 //

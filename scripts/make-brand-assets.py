@@ -86,6 +86,20 @@ def mark(draw, ox, oy, span, colour):
         draw.line([(px(x), py(ARC_CY)), (px(x), py(DOOR_BOTTOM))], fill=colour, width=w)
 
 
+def opaque(im):
+    """Drop the alpha channel.
+
+    iOS rejects an app icon that carries one — "the app icon can't contain an
+    alpha channel or transparencies" — and it fails at submission, not at
+    build, so nothing local tells you. The ground here is fully opaque anyway;
+    the channel is just along for the ride until App Store Connect refuses it.
+
+    Only the images with a ground get this. The adaptive foreground, the
+    themed icon and the splash mark are transparent by design.
+    """
+    return im.convert("RGB")
+
+
 def canvas(size, ground=None):
     n = size * SS
     im = Image.new("RGBA", (n, n), ground or (0, 0, 0, 0))
@@ -123,10 +137,10 @@ if __name__ == "__main__":
     out = lambda name: os.path.join(root, "assets", name)
 
     written = [
-        ("icon.png", square_icon(1024, GREEN, WHITE)),
-        ("favicon.png", square_icon(256, GREEN, WHITE)),
+        ("icon.png", opaque(square_icon(1024, GREEN, WHITE))),
+        ("favicon.png", opaque(square_icon(256, GREEN, WHITE))),
         ("android-icon-foreground.png", adaptive_foreground(1024, WHITE)),
-        ("android-icon-background.png", Image.new("RGBA", (1024, 1024), GREEN)),
+        ("android-icon-background.png", opaque(Image.new("RGBA", (1024, 1024), GREEN))),
         # Themed icons are tinted by the system from the alpha channel, so the
         # colour here is only a carrier.
         ("android-icon-monochrome.png", adaptive_foreground(1024, BLACK)),

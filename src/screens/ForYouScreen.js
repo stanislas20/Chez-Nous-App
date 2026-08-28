@@ -56,7 +56,7 @@ import {
   getSector,
 } from "../data/beninCompanies";
 import { beninBanks } from "../data/beninBanks";
-import { companyLogo } from "../data/companyLogos";
+import { companyLogo, hasLogo } from "../data/companyLogos";
 import { getCompanySectorLabel } from "../data/companySectors";
 import {
   experienceLevels,
@@ -1326,7 +1326,15 @@ export function ForYouScreen({ navigation, route }) {
   const dealerships = useDirectory("dealerships", carDealerships);
   const businessCards = useMemo(
     () => [
-      ...dealerships.map((firm) => ({
+      // Only the ones whose mark we actually hold.
+      //
+      // This row is a moving showcase, and a marquee that alternates real
+      // logos with letter plates reads as half-finished rather than as
+      // honest. It is a presentation rule and nothing more: every company is
+      // still on the Entreprises vérifiées screen and every distributor on
+      // Concessionnaires, which are the lists that have to be complete.
+      // Remove the filter the day the remaining logos arrive.
+      ...dealerships.filter((firm) => hasLogo(firm.key)).map((firm) => ({
         id: `dealer-${firm.key}`,
         sponsorName: firm.name,
         verified: true,
@@ -1379,7 +1387,9 @@ export function ForYouScreen({ navigation, route }) {
           emblem: companyEmblem(item),
           sector: "insurer",
         })),
-      ].map((item) => {
+      ]
+        .filter((item) => hasLogo(item.key))
+        .map((item) => {
         const sector = getSector(item.sector);
         return {
           id: `company-${item.sector}-${item.key}`,

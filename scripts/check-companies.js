@@ -128,6 +128,32 @@ const known = new Set([
   check(`the logo "${m[1]}" belongs to a company on a register`, known.has(m[1]), true);
 });
 
+// ── The row filters, the lists do not ─────────────────────────────────
+//
+// The home row shows only companies whose mark we hold, because a marquee
+// alternating real logos with letter plates reads as half-finished. That is a
+// presentation rule, and it is only safe while the complete lists live
+// somewhere else. If the screens ever start filtering the same way, the app
+// would quietly stop naming eight licensed banks and seven ASA members while
+// still calling itself a register.
+const companiesScreen = read("src/screens/VerifiedCompaniesScreen.js");
+const dealersScreen = read("src/screens/CarDealershipsScreen.js");
+check(
+  "the Entreprises vérifiées screen lists everyone, logo or not",
+  /hasLogo/.test(companiesScreen),
+  false,
+);
+check(
+  "and so does Concessionnaires",
+  /hasLogo/.test(dealersScreen),
+  false,
+);
+check(
+  "while the feed row filters on it",
+  /hasLogo/.test(read("src/screens/ForYouScreen.js")),
+  true,
+);
+
 // The specific mistake, kept out by construction rather than by memory.
 check("the fetcher does not read og:image",
   /og:image/.test(fetcher.replace(/^#.*$/gm, "").replace(/"""[\s\S]*?"""/, "")), false);

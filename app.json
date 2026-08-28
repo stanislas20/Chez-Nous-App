@@ -41,6 +41,13 @@
     },
     "plugins": [
       "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#00553A",
+          "dark": { "backgroundColor": "#00553A" }
+        }
+      ],
       "@react-native-firebase/app",
       [
         "expo-build-properties",

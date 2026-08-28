@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
+import { StyleSheet, View } from "react-native";
 import {
   navigationRef,
   onNavigationReady,
@@ -27,6 +28,8 @@ import { I18nProvider } from "./src/i18n/I18nContext";
 import { AuthProvider } from "./src/auth/AuthContext";
 import { ThemeProvider, useTheme } from "./src/theme/ThemeContext";
 import { RootNavigator } from "./src/navigation/RootNavigator";
+import { BrandSplash } from "./src/components/BrandSplash";
+import { useI18n } from "./src/i18n/I18nContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -90,6 +93,29 @@ function ThemedRoot({ children }) {
   );
 }
 
+// The animated opening, over the app rather than before it.
+//
+// It sits inside I18nProvider because its two lines live in the string table
+// with everything else, and above the navigator so the app can mount, fetch
+// and settle underneath while it plays — the alternative is a splash that
+// ends and hands over to a screen still assembling itself.
+//
+// The native splash is a separate thing and stays until the fonts are ready:
+// the wordmark is set in Plus Jakarta Sans, and starting this one before the
+// font loads would swap the letters under the reader mid-animation.
+function SplashOverlay({ onDone }) {
+  const { t } = useI18n();
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <BrandSplash
+        onDone={onDone}
+        tagline={t("splashTagline")}
+        place={t("splashPlace")}
+      />
+    </View>
+  );
+}
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     PlusJakartaSans_400Regular,
@@ -97,6 +123,7 @@ export default function App() {
     PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
   });
+  const [openingDone, setOpeningDone] = useState(false);
 
   useEffect(() => {
     if (fontsLoaded) {
@@ -116,6 +143,9 @@ export default function App() {
             <AuthProvider>
               <AppNavigationContainer />
             </AuthProvider>
+            {openingDone ? null : (
+              <SplashOverlay onDone={() => setOpeningDone(true)} />
+            )}
           </I18nProvider>
         </SafeAreaProvider>
       </ThemedRoot>

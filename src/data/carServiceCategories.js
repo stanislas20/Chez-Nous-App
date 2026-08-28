@@ -146,6 +146,12 @@ export const carServicesPrimary = [
   // return fleet-management companies. Somebody running four taxis does not
   // want to hire one; they want to know which of the four is uninsured.
   { key: "fleet", icon: "albums-outline", route: "Fleet" },
+  // Fifteenth, which closes the ragged row the comment above apologises for:
+  // at three tiles a row, fifteen is five full rows and nothing left over.
+  // It earns the place on its own though — far more people in Bénin need a
+  // licence than need a tracker, and this was a text search for "auto-école"
+  // that returned whatever happened to use the phrase.
+  { key: "drivingSchool", icon: "school-outline", route: "DrivingSchools" },
 ];
 
 export const carServicesMore = [
@@ -153,7 +159,6 @@ export const carServicesMore = [
   // printing shop with a plotter until the matcher learned the difference.
   { key: "gps", icon: "navigate-circle-outline", route: "Tracking" },
   { key: "dealers", icon: "storefront-outline", route: "CarDealerships" },
-  { key: "drivingSchool", icon: "school-outline", query: "auto-école" },
   { key: "trucks", icon: "bus-outline", query: "camion utilitaire" },
   { key: "importation", icon: "boat-outline", query: "importation véhicule" },
   { key: "scrap", icon: "refresh-circle-outline", query: "casse automobile" },

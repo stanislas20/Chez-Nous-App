@@ -280,6 +280,7 @@ const TRADE_HINT_KEYS = {
   // Missing since the Lavage screen shipped: a car washer arriving from it
   // was shown the generic Services example, which is a plumber.
   wash: "sellTitleHint_wash",
+  drivingSchool: "sellTitleHint_drivingSchool",
 };
 
 // The car trades that have a screen of their own, offered inside the form
@@ -316,6 +317,11 @@ const SERVICE_TRADES = [
   { key: "clim", icon: "snow-outline", labelKey: "sellTradeAircon" },
   { key: "keys", icon: "key-outline", labelKey: "sellTradeKeys" },
   { key: "gps", icon: "navigate-circle-outline", labelKey: "sellTradeGps" },
+  {
+    key: "drivingSchool",
+    icon: "school-outline",
+    labelKey: "sellTradeDrivingSchool",
+  },
 ];
 
 // Under Services these two keys describe a workshop, not a product, so the

@@ -794,6 +794,35 @@ export const translations = {
     dealerAddressesLabel: "Addresses",
     dealerDirections: "Directions",
     dealerFilterEmpty: "No official distributor listed for this brand.",
+    // ── Auto-écoles ──────────────────────────────────────────────────
+    schoolsTitle: "Driving schools",
+    schoolsEyebrow: "GETTING YOUR LICENCE",
+    schoolsIntro:
+      "The schools that have listed themselves, and what ANaTT asks of you before the exam.",
+    schoolsFilterLabel: "WHICH LICENCE",
+    schoolsFilterAll: "All",
+    schoolsCount: "{count} schools listed",
+    schoolsCountOne: "1 school listed",
+    schoolsEmpty:
+      "No school has listed itself for this licence yet. Try “All”, or tell a school you know about Chez-Nous.",
+    schoolsNoneAtAll:
+      "No driving school has listed itself yet. The paperwork below is still what you will need.",
+    schoolsMinAge: "From {age} years old",
+    schoolsNeedsB: "Requires you already hold category B",
+    schoolsTeaches: "TEACHES",
+    schoolsNoCategories: "Has not said which licences it prepares",
+    schoolsDossierTitle: "What the exam file must contain",
+    schoolsDossierNote:
+      "Published by ANaTT, read on {date}. Check the agency's own page before you go — this list can change.",
+    schoolsAskTitle: "Ask before you pay",
+    schoolsAskNote:
+      "Chez-Nous cannot check whether a school is approved by ANaTT — we have no register to check against, and a badge we cannot verify is worse than none. Ask to see it.",
+    schoolsPriceNote:
+      "ANaTT does not publish a price: it says the cost varies from school to school. Any figure you see here is the school's own, and a school that gave none shows none.",
+    schoolsAnattAction: "ANaTT — the licence page",
+    schoolsExamAction: "Register for the exam",
+    schoolsPublishLabel: "You run a driving school?",
+    schoolsPublishCta: "List it",
     dealerNoSite: "No published site",
     // Phrased as a question with a short call, because it lives in the hero
     // bar next to a pill — the full sentence would truncate.
@@ -1618,6 +1647,9 @@ export const translations = {
     gpsQuoteNeed: "What I need it for: {need}.",
     gpsQuoteKind: "Kind of box: {kind}.",
     gpsQuoteAsk: "What does a year cost, box, SIM and platform included?",
+    sellTradeDrivingSchool: "Driving school",
+    sellTitleHint_drivingSchool:
+      "e.g. Auto-école Le Progrès — permis A and B, Calavi",
     sellTradeGps: "GPS & tracking",
     sellTitleHint_gps:
       "e.g. Vehicle tracker fitting \u2014 supply, wiring and subscription, Cotonou",
@@ -3265,6 +3297,35 @@ export const translations = {
     dealerAddressesLabel: "Adresses",
     dealerDirections: "Itinéraire",
     dealerFilterEmpty: "Aucun distributeur officiel listé pour cette marque.",
+    // ── Auto-écoles ──────────────────────────────────────────────────
+    schoolsTitle: "Auto-écoles",
+    schoolsEyebrow: "PASSER SON PERMIS",
+    schoolsIntro:
+      "Les auto-écoles qui se sont inscrites, et ce que l'ANaTT demande avant l'examen.",
+    schoolsFilterLabel: "QUEL PERMIS",
+    schoolsFilterAll: "Tous",
+    schoolsCount: "{count} auto-écoles inscrites",
+    schoolsCountOne: "1 auto-école inscrite",
+    schoolsEmpty:
+      "Aucune auto-école inscrite pour ce permis pour l'instant. Essayez « Tous », ou parlez de Chez-Nous à une auto-école que vous connaissez.",
+    schoolsNoneAtAll:
+      "Aucune auto-école ne s'est encore inscrite. Le dossier ci-dessous reste ce qu'il vous faudra.",
+    schoolsMinAge: "À partir de {age} ans",
+    schoolsNeedsB: "Il faut déjà avoir le permis B",
+    schoolsTeaches: "PRÉPARE",
+    schoolsNoCategories: "N'a pas indiqué les permis qu'elle prépare",
+    schoolsDossierTitle: "Ce que doit contenir le dossier d'examen",
+    schoolsDossierNote:
+      "Publié par l'ANaTT, relevé le {date}. Vérifiez sur la page de l'agence avant de vous déplacer — cette liste peut changer.",
+    schoolsAskTitle: "À demander avant de payer",
+    schoolsAskNote:
+      "Chez-Nous ne peut pas vérifier qu'une auto-école est agréée par l'ANaTT — nous n'avons pas de registre pour le contrôler, et un badge invérifiable vaut moins que rien. Demandez à le voir.",
+    schoolsPriceNote:
+      "L'ANaTT ne publie pas de tarif : elle indique que le coût varie d'une auto-école à l'autre. Un prix affiché ici est celui de l'auto-école, et celle qui n'en a pas donné n'en affiche aucun.",
+    schoolsAnattAction: "ANaTT — la page du permis",
+    schoolsExamAction: "S'inscrire à l'examen",
+    schoolsPublishLabel: "Vous tenez une auto-école ?",
+    schoolsPublishCta: "Publier",
     dealerNoSite: "Pas de site publié",
     dealerSubmitHeroLabel: "Un distributeur manque ?",
     dealerSubmitHeroCta: "Signaler",
@@ -4097,6 +4158,9 @@ export const translations = {
     gpsQuoteKind: "Type de bo\u00eetier : {kind}.",
     gpsQuoteAsk:
       "Combien co\u00fbte une ann\u00e9e, bo\u00eetier, SIM et plateforme compris ?",
+    sellTradeDrivingSchool: "Auto-école",
+    sellTitleHint_drivingSchool:
+      "ex. Auto-école Le Progrès — permis A et B, Calavi",
     sellTradeGps: "GPS & traceur",
     sellTitleHint_gps:
       "ex. Pose de traceur GPS \u2014 fourniture, c\u00e2blage et abonnement, Cotonou",

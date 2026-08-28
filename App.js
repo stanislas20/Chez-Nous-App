@@ -103,12 +103,13 @@ function ThemedRoot({ children }) {
 // The native splash is a separate thing and stays until the fonts are ready:
 // the wordmark is set in Plus Jakarta Sans, and starting this one before the
 // font loads would swap the letters under the reader mid-animation.
-function SplashOverlay({ onDone }) {
+function SplashOverlay({ onDone, fontsReady }) {
   const { t } = useI18n();
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <BrandSplash
         onDone={onDone}
+        fontsReady={fontsReady}
         tagline={t("splashTagline")}
         place={t("splashPlace")}
       />
@@ -125,26 +126,40 @@ export default function App() {
   });
   const [openingDone, setOpeningDone] = useState(false);
 
+  // Hand over from the native splash as soon as React can paint, not when
+  // the fonts arrive.
+  //
+  // Waiting for fonts put them on the critical path for nothing: the first
+  // 1.3s of the opening animation is the ground, the ribbons, the plate and
+  // the mark, none of which is text. So the fonts load underneath it and the
+  // wordmark waits for them on its own — see `fontsReady`. What used to be
+  // "bundle, then fonts, then 2.4s" is now "bundle, then 2.4s" with the
+  // fonts inside it.
+  //
+  // This effect runs after the first render, so BrandSplash is already on
+  // screen when the native splash goes: there is no frame in between.
   useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded]);
-
-  if (!fontsLoaded) {
-    return null;
-  }
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
 
   return (
     <ThemeProvider>
       <ThemedRoot>
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
           <I18nProvider>
-            <AuthProvider>
-              <AppNavigationContainer />
-            </AuthProvider>
+            {/* The app itself still waits for the fonts — it is all text,
+                and rendering it in a fallback face only to swap would be a
+                worse first impression than the half-second it saves. */}
+            {fontsLoaded ? (
+              <AuthProvider>
+                <AppNavigationContainer />
+              </AuthProvider>
+            ) : null}
             {openingDone ? null : (
-              <SplashOverlay onDone={() => setOpeningDone(true)} />
+              <SplashOverlay
+                fontsReady={fontsLoaded}
+                onDone={() => setOpeningDone(true)}
+              />
             )}
           </I18nProvider>
         </SafeAreaProvider>

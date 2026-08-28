@@ -38,7 +38,7 @@ export const SPLASH_MS = 2400;
 
 const NAME = "Chez-Nous";
 
-export function BrandSplash({ onDone, tagline, place }) {
+export function BrandSplash({ onDone, tagline, place, fontsReady = true }) {
   const { width, height } = useWindowDimensions();
   const [reduceMotion, setReduceMotion] = useState(null);
 
@@ -69,6 +69,9 @@ export function BrandSplash({ onDone, tagline, place }) {
   const words = useRef(new Animated.Value(0)).current;
   const halo = useRef(new Animated.Value(0)).current;
   const dots = useRef([0, 1, 2].map(() => new Animated.Value(0))).current;
+  // When the choreography started, so the text can find its own place in it
+  // however late the font turns up.
+  const startedAt = useRef(Date.now()).current;
 
   useEffect(() => {
     if (reduceMotion === null) return undefined;
@@ -83,9 +86,8 @@ export function BrandSplash({ onDone, tagline, place }) {
         duration: 260,
         useNativeDriver: true,
       });
-      [plate, roof, door, rule, words, ...letters].forEach((value) =>
-        value.setValue(1),
-      );
+      // The text is set by the effect below, which waits for the font.
+      [plate, roof, door].forEach((value) => value.setValue(1));
       settle.start();
       const timer = setTimeout(() => onDone?.(), 1200);
       return () => clearTimeout(timer);
@@ -111,9 +113,7 @@ export function BrandSplash({ onDone, tagline, place }) {
       // Overshoots and settles: the roof is dropped into place, not faded in.
       at(roof, 800, 850, Easing.bezier(0.3, 1.5, 0.5, 1)),
       at(door, 1150, 700),
-      ...letters.map((value, index) => at(value, 1300 + index * 50, 700)),
       at(rule, 1750, 900),
-      at(words, 2000, 800),
     ]).start();
 
     // The two loops that cover a slow start.
@@ -156,6 +156,50 @@ export function BrandSplash({ onDone, tagline, place }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reduceMotion]);
+
+  // The wordmark waits for its face.
+  //
+  // This is what lets the splash start before the fonts have loaded. The
+  // first 1.3s of the animation is the ground, the ribbons, the plate and the
+  // mark — no text at all — so the font has that long to arrive without
+  // anybody waiting for it, and the app no longer holds the native splash up
+  // until it does.
+  //
+  // If the font is already there, these run at the times the design gives
+  // them. If it turns up later than that, they run at once rather than at a
+  // delay that has already passed — the letters appear a little late, which
+  // is what the reader would have waited for anyway, instead of the wordmark
+  // rendering in the system face and swapping under them.
+  useEffect(() => {
+    if (reduceMotion === null || !fontsReady) return undefined;
+    if (reduceMotion) {
+      [rule, words, ...letters].forEach((value) => value.setValue(1));
+      return undefined;
+    }
+    const elapsed = Date.now() - startedAt;
+    const after = (planned) => Math.max(0, planned - elapsed);
+    const run = Animated.parallel([
+      ...letters.map((value, index) =>
+        Animated.timing(value, {
+          toValue: 1,
+          delay: after(1300 + index * 50),
+          duration: 700,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ),
+      Animated.timing(words, {
+        toValue: 1,
+        delay: after(2000),
+        duration: 800,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]);
+    run.start();
+    return () => run.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reduceMotion, fontsReady]);
 
   // Nothing is drawn until the accessibility setting has been read, so the
   // first frame is never the wrong one.

@@ -25,6 +25,7 @@
 const LOGOS = {
   // Banks — BCEAO register
   atlantique: require("../../assets/logos/atlantique.png"),
+  biic: require("../../assets/logos/biic.png"),
   boa: require("../../assets/logos/boa.png"),
   sgb: require("../../assets/logos/sgb.png"),
   uba: require("../../assets/logos/uba.png"),

@@ -91,7 +91,7 @@ export const beninInsurers = [
   { key: "africaine", emblem: "AFRIC", sector: "insurer", name: "L'Africaine des Assurances", branch: "iard" },
   { key: "afg", url: "https://afgassurances.bj/", emblem: "AFG", sector: "insurer", name: "AFG Assurances Bénin IARDT", branch: "iard" },
   { key: "gab", emblem: "GAB", sector: "insurer", name: "La Générale des Assurances du Bénin", branch: "iard" },
-  { key: "nobila", emblem: "NOBILA", sector: "insurer", name: "NOBILA Assurances", branch: "iard" },
+  { key: "nobila", url: "https://nobilaassurances.com/", emblem: "NOBILA", sector: "insurer", name: "NOBILA Assurances", branch: "iard" },
   { key: "nsia-iard", url: "https://www.nsiaassurancesbenin.com/", emblem: "NSIA", sector: "insurer", name: "NSIA Assurances Bénin", branch: "iard" },
   { key: "sanlam", emblem: "SANLAM", sector: "insurer", name: "SanlamAllianz", branch: "iard" },
   { key: "sunu", url: "https://www.sunu-group.com/", emblem: "SUNU", sector: "insurer", name: "SUNU Assurances Bénin", branch: "iard" },

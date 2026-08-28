@@ -6,11 +6,21 @@ bank or an insurer. This fetches them from the source that is entitled to
 publish them — the company's own homepage — rather than from an image search,
 so what ships is the mark the company puts on its own front door.
 
-Only sites whose <title> identifies the company are listed below. Several
-Bénin sites sit behind Cloudflare and answer a script with 403 (Orabank, NSIA
-Banque) or moved (Ecobank, Banque Atlantique); those keep their monogram
-rather than getting a logo guessed from somewhere else. A wrong logo is worse
-than no logo: it is a different company's mark on this one's card.
+Only sites whose <title> identifies the company are listed below.
+
+What is still missing, and why, so nobody repeats the search:
+
+  Orabank, NSIA Banque, Afriland   Cloudflare answers a script with 403
+  Moov, BSIC, CCEI, GAB, Africaine no domain resolves under any name tried
+  Ecobank, Coris, BGFI, AFG,       site is live but publishes no raster logo
+  NOBILA, Celtiis                  in HTML, CSS, manifest or schema.org
+
+APBEF-Bénin, the banks' own association, looked like it would solve most of
+this in one page. Its domain is compromised: every path returns the same
+spam page serving images from an unrelated gambling brand. Not a source.
+
+Those companies keep their monogram. A wrong logo is worse than no logo — it
+is a different company's mark on this one's card.
 
 Candidates are ordered by what the tag is FOR, and og:image is deliberately
 not among them. It is a social-preview image, and plenty of sites make that a
@@ -58,6 +68,8 @@ SITES = {
     "sunu-vie": "https://www.sunu-group.com/",
     "afg": "https://afgassurances.bj/",
     "afg-vie": "https://afgassurances.bj/",
+    "biic": "https://www.biic-bank.com/fr/",
+    "nobila": "https://nobilaassurances.com/",
     # Car distributors — their own sites, already in carDealerships.js
     "cfao": "https://www.toyota.bj",
     "sonaec": "https://sonaec.com",
@@ -89,6 +101,41 @@ def get(url, binary=False):
     return out if binary else out.decode("utf-8", "replace")
 
 
+def stylesheet_urls(page_url, html):
+    """Logos hidden in CSS.
+
+    Plenty of sites never put the logo in an <img> at all — it is a
+    background-image on a header div. AFG, Ecobank and Celtiis all failed the
+    first pass for exactly this reason, which looked like "no logo" and was
+    really "not looking in the right file".
+    """
+    found = []
+    for match in re.finditer(
+        r'<link[^>]+rel=["\']stylesheet["\'][^>]+href=["\']([^"\']+)', html, re.I
+    ):
+        sheet = urllib.parse.urljoin(page_url, match.group(1))
+        css = get(sheet)
+        for hit in re.finditer(r'url\(\s*["\']?([^"\')]+)["\']?\s*\)', css):
+            asset = urllib.parse.urljoin(sheet, hit.group(1))
+            if "logo" in asset.lower():
+                found.append(asset)
+    return found
+
+
+def structured_logo(page_url, html):
+    """schema.org publishers declare a logo, which is as explicit as it gets."""
+    found = []
+    for match in re.finditer(r'"logo"\s*:\s*"([^"]+)"', html):
+        found.append(urllib.parse.urljoin(page_url, match.group(1).replace("\\/", "/")))
+    for match in re.finditer(
+        r'<link[^>]+rel=["\']manifest["\'][^>]+href=["\']([^"\']+)', html, re.I
+    ):
+        manifest_url = urllib.parse.urljoin(page_url, match.group(1))
+        for hit in re.finditer(r'"src"\s*:\s*"([^"]+)"', get(manifest_url)):
+            found.append(urllib.parse.urljoin(manifest_url, hit.group(1)))
+    return found
+
+
 def candidates(page_url):
     html = get(page_url)
     found = []
@@ -102,6 +149,10 @@ def candidates(page_url):
             url = urllib.parse.urljoin(page_url, match.group(1))
             if url not in found:
                 found.append(url)
+    # Then the places a logo hides when it is not an <img>.
+    for extra in structured_logo(page_url, html) + stylesheet_urls(page_url, html):
+        if extra not in found:
+            found.append(extra)
     return found
 
 

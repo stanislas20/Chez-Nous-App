@@ -28,6 +28,7 @@ export const beninBanks = [
   { key: "atlantique", url: "https://www.banqueatlantique.net/", name: "Banque Atlantique Bénin", shortName: "Atlantique" },
   {
     key: "biic",
+    url: "https://www.biic-bank.com/fr/",
     name: "Banque Internationale pour l'Industrie et le Commerce",
     shortName: "BIIC",
   },

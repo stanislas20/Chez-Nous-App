@@ -31,6 +31,11 @@ const LOGOS = {
   uba: require("../../assets/logos/uba.png"),
   // Mobile operators — ARCEP
   mtn: require("../../assets/logos/mtn.png"),
+  celtiis: require("../../assets/logos/celtiis.png"),
+  // Moov Africa Bénin's own site answers 522 — Cloudflare cannot reach the
+  // origin — so this is the same brand's mark from Moov Africa Côte d'Ivoire.
+  // One company, one published logo, a country where the site is up.
+  moov: require("../../assets/logos/moov.png"),
   // Insurers — ASA Bénin
   "nsia-iard": require("../../assets/logos/nsia-iard.png"),
   "nsia-vie": require("../../assets/logos/nsia-vie.png"),

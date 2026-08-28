@@ -52,6 +52,7 @@ SITES = {
     # Mobile operators — ARCEP
     "mtn": "https://www.mtn.bj/",
     "celtiis": "https://celtiis.bj/",
+    "moov": "https://www.moov-africa.ci/",
     # Banks — BCEAO
     "boa": "https://boabenin.com/",
     "sgb": "https://societegenerale.bj/",
@@ -92,6 +93,23 @@ UA = "Mozilla/5.0"
 #   ecobank     the logo SVG rasterises to an empty frame.
 #   chinadrive  ditto, a blank PNG.
 REJECTED = {"cfao", "sanlam", "chinadrive"}
+
+# Assets the generic extraction cannot reach, each with why it needs naming.
+#
+#   celtiis  the site is Next.js and serves every image through /_next/image
+#            ?url=<encoded>, inside a srcset. The wrapper is what a src regex
+#            captures; the asset itself never appears as a plain URL.
+#   moov     moov-africa.bj answers 522 — Cloudflare cannot reach the origin,
+#            so the Bénin site is down rather than blocking us. Moov Africa is
+#            one brand across its markets and publishes one mark, so this is
+#            taken from Moov Africa Côte d'Ivoire. It is the same company's
+#            own logo from the same company's own site, in a country where
+#            the site is up. Swap it for the .bj asset when that returns.
+DIRECT = {
+    "celtiis": "https://celtiis.bj/celtiis-logo-rounded.svg",
+    "moov": "https://www.moov-africa.ci/wp-content/uploads/2020/11/"
+    "cropped-favicon-moov-01-192x192.png",
+}
 
 
 def get(url, binary=False):
@@ -233,7 +251,9 @@ if __name__ == "__main__":
         if key in REJECTED:
             print(f"  {key:11} skipped — see REJECTED")
             continue
-        url, image = best(candidates(site))
+        url, image = (
+            best([DIRECT[key]]) if key in DIRECT else best(candidates(site))
+        )
         if image is None:
             print(f"  {key:11} no usable image at {site}")
             continue

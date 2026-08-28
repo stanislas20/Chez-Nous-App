@@ -67,6 +67,12 @@ export const beninTelecoms = [
   { key: "mtn", url: "https://www.mtn.bj/", sector: "telecom", name: "MTN Bénin", emblem: "MTN" },
   {
     key: "moov",
+    // No url on purpose. moov-africa.bj answers 522 and the only Moov sites
+    // that respond are other countries' — sending a Bénin customer to the
+    // Ivorian site to check their own tariffs would be worse than the map
+    // search they get instead. The logo is a different matter: one brand
+    // publishes one mark, and a mark is not country-specific the way a
+    // tariff page is.
     sector: "telecom",
     name: "Moov Africa Bénin",
     emblem: "Moov",

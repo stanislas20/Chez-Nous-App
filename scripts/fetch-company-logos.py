@@ -10,10 +10,14 @@ Only sites whose <title> identifies the company are listed below.
 
 What is still missing, and why, so nobody repeats the search:
 
-  Orabank, NSIA Banque, Afriland   Cloudflare answers a script with 403
-  Moov, BSIC, CCEI, GAB, Africaine no domain resolves under any name tried
-  Ecobank, Coris, BGFI, AFG,       site is live but publishes no raster logo
-  NOBILA, Celtiis                  in HTML, CSS, manifest or schema.org
+  BSIC, CCEI, Coris, GAB,          no domain resolves under any name tried
+  L'Africaine
+  AFG, NOBILA, ChinaDrive          site is live but publishes no raster logo
+                                   anywhere — not HTML, CSS, manifest or
+                                   schema.org
+  BGFI                             bgfi.com serves HTML but its logo asset
+                                   answers 522; worth retrying, it may just
+                                   have been down
 
 APBEF-Bénin, the banks' own association, looked like it would solve most of
 this in one page. Its domain is compromised: every path returns the same
@@ -57,7 +61,9 @@ SITES = {
     "boa": "https://boabenin.com/",
     "sgb": "https://societegenerale.bj/",
     "uba": "https://ubabenin.com/",
-    "ecobank": "https://ecobank.com/bj/personal-banking",
+    "ecobank": "https://ecobank.com/",
+    "nsia": "https://groupensia.com/",
+    "bgfi": "https://bgfi.com/",
     "coris": "https://www.corisbank.com/",
     "bgfi": "https://bgfi.com/",
     "atlantique": "https://www.banqueatlantique.net/",
@@ -70,6 +76,9 @@ SITES = {
     "afg": "https://afgassurances.bj/",
     "afg-vie": "https://afgassurances.bj/",
     "biic": "https://www.biic-bank.com/fr/",
+    "sanlam": "https://sanlamallianz.com/",
+    "sanlam-vie": "https://sanlamallianz.com/",
+    "alst": "https://www.africanlease.com/",
     "nobila": "https://nobilaassurances.com/",
     # Car distributors — their own sites, already in carDealerships.js
     "cfao": "https://www.toyota.bj",
@@ -92,7 +101,7 @@ UA = "Mozilla/5.0"
 #               South Africa, which is not Sanlam and not in Bénin.
 #   ecobank     the logo SVG rasterises to an empty frame.
 #   chinadrive  ditto, a blank PNG.
-REJECTED = {"cfao", "sanlam", "chinadrive"}
+REJECTED = {"chinadrive"}
 
 # Assets the generic extraction cannot reach, each with why it needs naming.
 #
@@ -107,6 +116,27 @@ REJECTED = {"cfao", "sanlam", "chinadrive"}
 #            the site is up. Swap it for the .bj asset when that returns.
 DIRECT = {
     "celtiis": "https://celtiis.bj/celtiis-logo-rounded.svg",
+    # ecobank.com's own logo SVG rasterises to an empty frame; the
+    # apple-touch-icon beside it is the same mark and renders.
+    "ecobank": "https://ecobank.com/img/eco/apple-touch-icon.png",
+    # nsiabanque.bj is behind Cloudflare (403). This is the NSIA group's own
+    # mark from groupensia.com, which is the branding NSIA Banque Bénin uses.
+    "nsia": "https://groupensia.com/sites/default/files/LOGO-NSIA-031-1024x470_1.png",
+    # bgfi.com is the group site; BGFIBank Bénin trades under the group mark.
+    "bgfi": "https://bgfi.com/assets/images/logo-bgfi.png",
+    # SanlamAllianz is the brand ASA Bénin lists. sanlam.com — a different
+    # company's site — served the Investment Analysts Society of South
+    # Africa, which is how the first attempt went wrong.
+    "sanlam": "https://www.sanlamallianz.com/uploads/settings/1687440332-logo.svg",
+    "sanlam-vie": "https://www.sanlamallianz.com/uploads/settings/1687440332-logo.svg",
+    # ALST publishes its own mark on its group's site, which our data already
+    # records as "Groupe African Lease".
+    "alst": "https://africanlease.com/wp-content/uploads/2024/10/"
+    "Plan-de-travail-1ALST-logo-1.svg",
+    # CFAO's OWN mark, from CFAO Group. Not toyota.bj — that site is CFAO's
+    # but serves the TOYOTA logo, and on a card headed "CFAO Mobility Bénin"
+    # the manufacturer's mark says the manufacturer is the business.
+    "cfao": "https://www.cfaogroup.com/wp-content/themes/hds_theme/assets/img/logo-noir.svg",
     "moov": "https://www.moov-africa.ci/wp-content/uploads/2020/11/"
     "cropped-favicon-moov-01-192x192.png",
 }

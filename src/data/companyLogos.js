@@ -26,6 +26,10 @@ const LOGOS = {
   // Banks — BCEAO register
   atlantique: require("../../assets/logos/atlantique.png"),
   biic: require("../../assets/logos/biic.png"),
+  ecobank: require("../../assets/logos/ecobank.png"),
+  // NSIA Banque Bénin trades under the NSIA group mark; nsiabanque.bj is
+  // behind Cloudflare, so this comes from groupensia.com.
+  nsia: require("../../assets/logos/nsia.png"),
   boa: require("../../assets/logos/boa.png"),
   sgb: require("../../assets/logos/sgb.png"),
   uba: require("../../assets/logos/uba.png"),
@@ -42,9 +46,23 @@ const LOGOS = {
   // Both SUNU arms carry the group mark, which is what SUNU itself publishes.
   sunu: require("../../assets/logos/sunu.png"),
   "sunu-vie": require("../../assets/logos/sunu.png"),
+  // SanlamAllianz is the brand ASA Bénin lists, and both its arms use it.
+  // Not sanlam.com — that is a different company and served the Investment
+  // Analysts Society of South Africa.
+  sanlam: require("../../assets/logos/sanlam.png"),
+  "sanlam-vie": require("../../assets/logos/sanlam.png"),
   // Car distributors — their own sites, from carDealerships.js
+  //
+  // CFAO's is the group's own mark from cfaogroup.com, NOT the Toyota logo
+  // that toyota.bj serves. That site is CFAO's, but a manufacturer's mark on
+  // a card headed "CFAO Mobility Bénin" says the manufacturer is the
+  // business.
+  cfao: require("../../assets/logos/cfao.png"),
   socar: require("../../assets/logos/socar.png"),
   sonaec: require("../../assets/logos/sonaec.png"),
+  // ALST's own mark, published on its group's site — the group our data
+  // already records for it, "Groupe African Lease".
+  alst: require("../../assets/logos/alst.png"),
 };
 
 export function companyLogo(key) {

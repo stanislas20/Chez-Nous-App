@@ -64,7 +64,7 @@ export function getSector(key) {
 // SBIN, which is why both appear — somebody reading a bill sees one and
 // somebody reading an advert sees the other.
 export const beninTelecoms = [
-  { key: "mtn", sector: "telecom", name: "MTN Bénin", emblem: "MTN" },
+  { key: "mtn", url: "https://www.mtn.bj/", sector: "telecom", name: "MTN Bénin", emblem: "MTN" },
   {
     key: "moov",
     sector: "telecom",
@@ -73,6 +73,7 @@ export const beninTelecoms = [
   },
   {
     key: "celtiis",
+    url: "https://celtiis.bj/",
     sector: "telecom",
     name: "Celtiis",
     fullName: "SBIN",
@@ -88,18 +89,18 @@ export const beninTelecoms = [
 // listed the same insurer twice by mistake.
 export const beninInsurers = [
   { key: "africaine", emblem: "AFRIC", sector: "insurer", name: "L'Africaine des Assurances", branch: "iard" },
-  { key: "afg", emblem: "AFG", sector: "insurer", name: "AFG Assurances Bénin IARDT", branch: "iard" },
+  { key: "afg", url: "https://afgassurances.bj/", emblem: "AFG", sector: "insurer", name: "AFG Assurances Bénin IARDT", branch: "iard" },
   { key: "gab", emblem: "GAB", sector: "insurer", name: "La Générale des Assurances du Bénin", branch: "iard" },
   { key: "nobila", emblem: "NOBILA", sector: "insurer", name: "NOBILA Assurances", branch: "iard" },
-  { key: "nsia-iard", emblem: "NSIA", sector: "insurer", name: "NSIA Assurances Bénin", branch: "iard" },
+  { key: "nsia-iard", url: "https://www.nsiaassurancesbenin.com/", emblem: "NSIA", sector: "insurer", name: "NSIA Assurances Bénin", branch: "iard" },
   { key: "sanlam", emblem: "SANLAM", sector: "insurer", name: "SanlamAllianz", branch: "iard" },
-  { key: "sunu", emblem: "SUNU", sector: "insurer", name: "SUNU Assurances Bénin", branch: "iard" },
+  { key: "sunu", url: "https://www.sunu-group.com/", emblem: "SUNU", sector: "insurer", name: "SUNU Assurances Bénin", branch: "iard" },
   { key: "africaine-vie", emblem: "AFRIC", sector: "insurer", name: "L'Africaine Vie Bénin", branch: "vie" },
-  { key: "afg-vie", emblem: "AFG", sector: "insurer", name: "AFG Assurances Bénin Vie", branch: "vie" },
+  { key: "afg-vie", url: "https://afgassurances.bj/", emblem: "AFG", sector: "insurer", name: "AFG Assurances Bénin Vie", branch: "vie" },
   { key: "cif-vie", emblem: "CIF", sector: "insurer", name: "CIF Assurances Vie Bénin", branch: "vie" },
-  { key: "nsia-vie", emblem: "NSIA", sector: "insurer", name: "NSIA Vie Assurances Bénin", branch: "vie" },
+  { key: "nsia-vie", url: "https://site.nsiaviebenin.com/", emblem: "NSIA", sector: "insurer", name: "NSIA Vie Assurances Bénin", branch: "vie" },
   { key: "sanlam-vie", emblem: "SANLAM", sector: "insurer", name: "SanlamAllianz Vie", branch: "vie" },
-  { key: "sunu-vie", emblem: "SUNU", sector: "insurer", name: "SUNU Assurances Vie Bénin", branch: "vie" },
+  { key: "sunu-vie", url: "https://www.sunu-group.com/", emblem: "SUNU", sector: "insurer", name: "SUNU Assurances Vie Bénin", branch: "vie" },
 ];
 
 export const insuranceBranches = [

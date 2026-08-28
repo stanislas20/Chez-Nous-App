@@ -258,6 +258,15 @@ export function MoreScreen({ navigation }) {
               color={colors.textMuted}
             />
           </CategoryRow>
+          <CategoryRow onPress={() => navigation.navigate("VerifiedCompanies")}>
+            <CategoryEmoji>🏢</CategoryEmoji>
+            <CategoryRowLabel>{t("companiesTitle")}</CategoryRowLabel>
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.textMuted}
+            />
+          </CategoryRow>
           <CategoryRow onPress={() => navigation.navigate("PublicServices")}>
             <CategoryEmoji>🏛️</CategoryEmoji>
             <CategoryRowLabel>{t("menuPublicRow")}</CategoryRowLabel>

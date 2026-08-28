@@ -19,6 +19,7 @@ import {
   insuranceBranches,
 } from "../data/beninCompanies";
 import { beninBanks, formerNames } from "../data/beninBanks";
+import { companyLogo } from "../data/companyLogos";
 import { ScreenFooter } from "../components/ScreenFooter";
 
 const GOLD = "#D9A441";
@@ -29,7 +30,8 @@ const GOLD = "#D9A441";
 // BCEAO", "autorisés par l'ARCEP", "membres de l'ASA Bénin". Without it the
 // list is just names somebody typed, which is what the app had before.
 //
-// No logos, no phone numbers, no branches, no ranking. Alphabetical inside
+// A company's own mark where its own site publishes one, its initials where
+// it does not. No phone numbers, no branches, no ranking. Alphabetical inside
 // each group — ordering licensed companies against each other would be an
 // opinion this app has no standing to hold.
 export function VerifiedCompaniesScreen({ navigation }) {
@@ -45,6 +47,23 @@ export function VerifiedCompaniesScreen({ navigation }) {
 
   const open = (url) => Linking.openURL(url).catch(() => {});
 
+  // Tapping a company does something now. It did not: the rows were plain
+  // views, so only the regulator line above them was pressable and every
+  // company on the screen was inert.
+  //
+  // Its own site where we hold a verified one — meaning the page was opened
+  // and its <title> confirmed whose it is. Otherwise a map search for the
+  // name, which is what the Banks screen already does and is the honest
+  // fallback: it finds the nearest branch instead of guessing a domain.
+  const openCompany = (company) => {
+    if (company.url) {
+      open(company.url);
+      return;
+    }
+    const search = encodeURIComponent(`${company.name} Bénin`);
+    open(`https://www.google.com/maps/search/?api=1&query=${search}`);
+  };
+
   // Banks arrive from their own file — they were verified first and have a
   // screen of their own with search and directions.
   const rowsFor = (sector) => {
@@ -52,6 +71,7 @@ export function VerifiedCompaniesScreen({ navigation }) {
       return beninBanks.map((bank) => ({
         key: bank.key,
         name: bank.name,
+        url: bank.url,
         emblem: bank.shortName,
         note: formerNames(bank.key).length
           ? t("banksFormerly", { name: formerNames(bank.key).join(", ") })
@@ -62,6 +82,7 @@ export function VerifiedCompaniesScreen({ navigation }) {
       return beninTelecoms.map((item) => ({
         key: item.key,
         name: item.name,
+        url: item.url,
         emblem: companyEmblem(item),
         note: item.fullName,
       }));
@@ -119,40 +140,43 @@ export function VerifiedCompaniesScreen({ navigation }) {
                     {beninInsurers
                       .filter((item) => item.branch === branch.key)
                       .map((item) => (
-                        <Row key={item.key}>
-                          <Plate accent={sector.accent}>
-                            <PlateLabel
-                              accent={sector.accent}
-                              numberOfLines={1}
-                              adjustsFontSizeToFit
-                              minimumFontScale={0.5}
-                            >
-                              {companyEmblem(item)}
-                            </PlateLabel>
-                          </Plate>
+                        <Row key={item.key} onPress={() => openCompany(item)}>
+                          <Mark
+                            logo={companyLogo(item.key)}
+                            emblem={companyEmblem(item)}
+                            accent={sector.accent}
+                          />
                           <RowName numberOfLines={2}>{item.name}</RowName>
+                          <Ionicons
+                            name={item.url ? "open-outline" : "navigate-outline"}
+                            size={15}
+                            color={colors.textMuted}
+                          />
                         </Row>
                       ))}
                   </Branch>
                 ))
               : rowsFor(sector.key).map((item) => (
-                  <Row key={item.key}>
-                    <Plate accent={sector.accent}>
-                      <PlateLabel
-                        accent={sector.accent}
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.5}
-                      >
-                        {item.emblem}
-                      </PlateLabel>
-                    </Plate>
+                  <Row key={item.key} onPress={() => openCompany(item)}>
+                    <Mark
+                      logo={companyLogo(item.key)}
+                      emblem={item.emblem}
+                      accent={sector.accent}
+                    />
                     <RowBody>
                       <RowName numberOfLines={2}>{item.name}</RowName>
                       {item.note ? (
                         <RowNote numberOfLines={1}>{item.note}</RowNote>
                       ) : null}
                     </RowBody>
+                    {/* Which one it is, so the tap is not a surprise: a
+                        company with a site opens it, one without opens a map
+                        search for its name. */}
+                    <Ionicons
+                      name={item.url ? "open-outline" : "navigate-outline"}
+                      size={15}
+                      color={colors.textMuted}
+                    />
                   </Row>
                 ))}
           </Section>
@@ -170,6 +194,31 @@ export function VerifiedCompaniesScreen({ navigation }) {
         <ScreenFooter />
       </ScrollView>
     </Container>
+  );
+}
+
+// The company's own mark where we hold one, its initials otherwise. White
+// behind a logo whatever the theme — these are transparent PNGs and most of
+// them are dark.
+function Mark({ logo, emblem, accent }) {
+  if (logo) {
+    return (
+      <LogoPlate>
+        <LogoImage source={logo} resizeMode="contain" />
+      </LogoPlate>
+    );
+  }
+  return (
+    <Plate accent={accent}>
+      <PlateLabel
+        accent={accent}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.5}
+      >
+        {emblem}
+      </PlateLabel>
+    </Plate>
   );
 }
 
@@ -266,7 +315,7 @@ const BranchLabel = styled.Text`
   color: ${(props) => props.theme.textMuted};
 `;
 
-const Row = styled.View`
+const Row = styled(Pressable)`
   flex-direction: row;
   align-items: center;
   gap: 12px;
@@ -277,6 +326,23 @@ const Row = styled.View`
   border-width: 1px;
   border-color: ${(props) => props.theme.border};
   ${shadow.card}
+`;
+
+const LogoPlate = styled.View`
+  width: 56px;
+  height: 46px;
+  border-radius: 13px;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 7px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: rgba(17, 24, 39, 0.08);
+`;
+
+const LogoImage = styled.Image`
+  width: 100%;
+  height: 100%;
 `;
 
 const Plate = styled.View`

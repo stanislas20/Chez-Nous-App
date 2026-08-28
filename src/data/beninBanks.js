@@ -24,8 +24,8 @@ export const banksReviewedOn = "2026-08-28";
 // Alphabetical. Any other order — size, age, preference — would be a ranking
 // this app has no standing to make between licensed banks.
 export const beninBanks = [
-  { key: "boa", name: "Bank of Africa Bénin", shortName: "BOA" },
-  { key: "atlantique", name: "Banque Atlantique Bénin", shortName: "Atlantique" },
+  { key: "boa", url: "https://boabenin.com/", name: "Bank of Africa Bénin", shortName: "BOA" },
+  { key: "atlantique", url: "https://www.banqueatlantique.net/", name: "Banque Atlantique Bénin", shortName: "Atlantique" },
   {
     key: "biic",
     name: "Banque Internationale pour l'Industrie et le Commerce",
@@ -39,15 +39,21 @@ export const beninBanks = [
   { key: "bgfi", name: "BGFIBank Bénin", shortName: "BGFI" },
   { key: "ccei", name: "CCEI Bank Bénin", shortName: "CCEI" },
   { key: "coris", name: "Coris Bank International Bénin", shortName: "Coris" },
-  { key: "ecobank", name: "Ecobank Bénin", shortName: "Ecobank" },
+  { key: "ecobank", url: "https://ecobank.com/bj/personal-banking", name: "Ecobank Bénin", shortName: "Ecobank" },
   // Formerly Diamond Bank SA. Kept as an alias below rather than as a second
   // entry, so somebody searching the old name still finds the bank that holds
   // their account.
   { key: "nsia", name: "NSIA Banque Bénin", shortName: "NSIA" },
   { key: "orabank", name: "Orabank Bénin", shortName: "Orabank" },
-  { key: "sgb", name: "Société Générale Bénin", shortName: "Société Générale" },
-  { key: "uba", name: "United Bank for Africa Bénin", shortName: "UBA" },
+  { key: "sgb", url: "https://societegenerale.bj/", name: "Société Générale Bénin", shortName: "Société Générale" },
+  { key: "uba", url: "https://ubabenin.com/", name: "United Bank for Africa Bénin", shortName: "UBA" },
 ];
+
+// `url` is present only where the bank's own site was opened and its <title>
+// confirmed whose it is. The rest have none rather than a guess: several are
+// behind Cloudflare (Orabank, NSIA Banque answer a script with 403) and a
+// plausible-looking domain that turns out to be a parked page or somebody
+// else's is the one mistake a banking directory cannot make.
 
 // Names a bank used to trade under, so a search for the old one still lands.
 //

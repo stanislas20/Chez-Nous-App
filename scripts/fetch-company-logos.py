@@ -46,7 +46,7 @@ SITES = {
     "boa": "https://boabenin.com/",
     "sgb": "https://societegenerale.bj/",
     "uba": "https://ubabenin.com/",
-    "ecobank": "https://ecobank.com/",
+    "ecobank": "https://ecobank.com/bj/personal-banking",
     "coris": "https://www.corisbank.com/",
     "bgfi": "https://bgfi.com/",
     "atlantique": "https://www.banqueatlantique.net/",
@@ -56,8 +56,8 @@ SITES = {
     "nsia-vie": "https://site.nsiaviebenin.com/",
     "sunu": "https://www.sunu-group.com/",
     "sunu-vie": "https://www.sunu-group.com/",
-    "africaine": "https://www.africaine-vie.com/",
-    "sanlam": "https://www.sanlam.com/",
+    "afg": "https://afgassurances.bj/",
+    "afg-vie": "https://afgassurances.bj/",
     # Car distributors — their own sites, already in carDealerships.js
     "cfao": "https://www.toyota.bj",
     "sonaec": "https://sonaec.com",
@@ -79,7 +79,7 @@ UA = "Mozilla/5.0"
 #               South Africa, which is not Sanlam and not in Bénin.
 #   ecobank     the logo SVG rasterises to an empty frame.
 #   chinadrive  ditto, a blank PNG.
-REJECTED = {"cfao", "sanlam", "ecobank", "chinadrive"}
+REJECTED = {"cfao", "sanlam", "chinadrive"}
 
 
 def get(url, binary=False):

@@ -146,6 +146,48 @@ check(
   false,
 );
 
+// ── The two lines that lost their last word ────────────────────────────
+//
+// The wordmark block used `alignItems: center` and nothing else, so it was
+// only as wide as its widest child — "Chez-Nous" — and the tagline beneath is
+// wider than that. Android laid it into the narrower box and dropped the last
+// word instead of wrapping: "Le Bénin, à portée de". The place label lost
+// "BÉNIN" the same way.
+//
+// Nothing looks clipped when that happens, which is the trap — it reads as
+// copy somebody wrote short, not as a layout fault, and it survived several
+// screenshots and a release build before anyone counted the words.
+//
+// Both lines are stretched to the full width and centred by textAlign now, so
+// neither is ever shrink-wrapped and neither depends on Android measuring
+// letterSpacing correctly.
+for (const [name, block] of [
+  ["the wordmark block", /wordmarkBlock: \{([^}]*)\}/],
+  ["the tagline", /tagline: \{([\s\S]*?)\n  \},/],
+  ["the place label", /place: \{([\s\S]*?)\n  \},/],
+]) {
+  const found = source.match(block);
+  check(`${name} is still styled here`, Boolean(found), true);
+  if (found) {
+    check(
+      `${name} spans the full width rather than shrink-wrapping`,
+      /alignSelf: "stretch"/.test(found[1]),
+      true,
+    );
+  }
+}
+// And the two that carry text centre themselves rather than being centred by
+// a parent that has to measure them first.
+for (const [name, block] of [
+  ["the tagline", /tagline: \{([\s\S]*?)\n  \},/],
+  ["the place label", /place: \{([\s\S]*?)\n  \},/],
+]) {
+  const found = source.match(block);
+  if (found) {
+    check(`${name} centres itself`, /textAlign: "center"/.test(found[1]), true);
+  }
+}
+
 // ── Total ──────────────────────────────────────────────────────────────
 //
 // Not a correctness rule, a judgement: past about five seconds an opening

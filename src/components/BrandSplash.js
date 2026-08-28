@@ -564,7 +564,19 @@ const styles = StyleSheet.create({
     shadowRadius: 26,
     elevation: 16,
   },
-  wordmarkBlock: { alignItems: "center", gap: 9 },
+  // Stretched, not shrink-wrapped.
+  //
+  // With `alignItems: center` alone this column is only as wide as its widest
+  // child — the wordmark — and the tagline underneath is wider than
+  // "Chez-Nous". So the tagline was being laid out into 470px when it needed
+  // about 490, and Android dropped the last word rather than wrapping it: the
+  // line read "Le Bénin, à portée de". Nothing looked clipped, so it read as
+  // copy someone had written short.
+  //
+  // Stretching the column gives both lines the full width and lets textAlign
+  // do the centring, which is also immune to the measurement error Android
+  // makes on letterSpacing — it never has to shrink-wrap the text at all.
+  wordmarkBlock: { alignSelf: "stretch", alignItems: "center", gap: 9 },
   wordmark: { flexDirection: "row" },
   glyph: {
     fontFamily: fontFamily.semiBold,
@@ -577,6 +589,11 @@ const styles = StyleSheet.create({
   ruleBar: { width: 26, height: 5, borderRadius: 3 },
   tagline: {
     marginTop: 3,
+    // Full width, centred by textAlign. Padding was the first attempt and it
+    // made things worse — it took width away from a line that was already
+    // short of it.
+    alignSelf: "stretch",
+    textAlign: "center",
     fontFamily: fontFamily.medium,
     fontSize: 13,
     letterSpacing: 0.4,
@@ -593,6 +610,11 @@ const styles = StyleSheet.create({
   dots: { flexDirection: "row", gap: 9 },
   dot: { width: 7, height: 7, borderRadius: 4 },
   place: {
+    // Same treatment, and it needs it more: at 1.7 the tracking is four times
+    // the tagline's, so "COTONOU · BÉNIN" lost a whole word off a two-word
+    // line even with the width of the screen beneath it.
+    alignSelf: "stretch",
+    textAlign: "center",
     fontFamily: fontFamily.bold,
     fontSize: 10.5,
     letterSpacing: 1.7,

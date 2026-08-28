@@ -14,6 +14,7 @@ import { JobApplicationsScreen } from "../screens/JobApplicationsScreen";
 import { SellerProfileScreen } from "../screens/SellerProfileScreen";
 import { FollowListScreen } from "../screens/FollowListScreen";
 import { DrivingSchoolsScreen } from "../screens/DrivingSchoolsScreen";
+import { PublicServicesScreen } from "../screens/PublicServicesScreen";
 import { SubmitCarParkScreen } from "../screens/SubmitCarParkScreen";
 import { SubmitDealershipScreen } from "../screens/SubmitDealershipScreen";
 import { ChatScreen } from "../screens/ChatScreen";
@@ -150,6 +151,11 @@ export function RootNavigator() {
           <Stack.Screen
             name="CarParks"
             component={CarParksScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="PublicServices"
+            component={PublicServicesScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen

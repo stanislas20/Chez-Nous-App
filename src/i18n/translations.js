@@ -823,6 +823,15 @@ export const translations = {
     schoolsExamAction: "Register for the exam",
     schoolsPublishLabel: "You run a driving school?",
     schoolsPublishCta: "List it",
+    publicTitle: "Public services",
+    publicEyebrow: "OFFICIAL SITES",
+    publicIntro:
+      "The State's own services online — registering a business, paperwork, your licence.",
+    publicSourceNote:
+      "Every link here is one the government publishes about itself on gouv.bj, read on {date}. Check the address in your browser before entering personal details.",
+    publicNotAffiliated:
+      "A directory, not a partnership. Chez-Nous is not part of the government and speaks for no institution here.",
+    menuPublicRow: "Public services",
     banksFormerly: "Formerly {name}",
     banksSourceNote:
       "The banks licensed by BCEAO to operate in Bénin, read on {date}. Branches are not listed — the map finds the nearest one.",
@@ -3329,6 +3338,15 @@ export const translations = {
     schoolsExamAction: "S'inscrire à l'examen",
     schoolsPublishLabel: "Vous tenez une auto-école ?",
     schoolsPublishCta: "Publier",
+    publicTitle: "Services publics",
+    publicEyebrow: "SITES OFFICIELS",
+    publicIntro:
+      "Les services de l'État en ligne — créer son entreprise, ses démarches, son permis.",
+    publicSourceNote:
+      "Chaque lien vient de ce que le gouvernement publie lui-même sur gouv.bj, relevé le {date}. Vérifiez l'adresse dans votre navigateur avant de saisir des informations personnelles.",
+    publicNotAffiliated:
+      "Un annuaire, pas un partenariat. Chez-Nous ne fait pas partie du gouvernement et ne parle au nom d'aucune institution ici.",
+    menuPublicRow: "Services publics",
     banksFormerly: "Anciennement {name}",
     banksSourceNote:
       "Les banques agréées par la BCEAO au Bénin, relevé le {date}. Les agences ne sont pas listées — la carte trouve la plus proche.",

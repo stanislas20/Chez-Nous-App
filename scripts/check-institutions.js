@@ -153,6 +153,14 @@ check(
   /beninInstitutions/.test(forYou),
   false,
 );
+// The row DOES carry regulated companies — banks, operators, insurers — and
+// that is the difference. They are businesses on a public register; the State
+// is neither.
+check(
+  "though it does carry the regulated companies",
+  /beninBanks|beninTelecoms|beninInsurers/.test(forYou),
+  true,
+);
 check(
   "and the screen says plainly it is not a partnership",
   /publicNotAffiliated/.test(screen),

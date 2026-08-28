@@ -49,6 +49,14 @@ import {
   dealerEmblem,
 } from "../data/carDealerships";
 import { brandLogo } from "../data/vehicleBrandLogos";
+import {
+  beninInsurers,
+  beninTelecoms,
+  companyEmblem,
+  getSector,
+} from "../data/beninCompanies";
+import { beninBanks } from "../data/beninBanks";
+import { companyLogo } from "../data/companyLogos";
 import { getCompanySectorLabel } from "../data/companySectors";
 import {
   experienceLevels,
@@ -840,12 +848,20 @@ function BusinessCard({ ad, navigation }) {
           </MarqueRow>
         </>
       ) : (
-        <BusinessLogoPlate>
-          {ad.photoUrl ? (
+        <BusinessLogoPlate light={Boolean(ad.logo)}>
+          {ad.logo ? (
+            // contain, not cover: a logo cropped to fill is a logo damaged.
+            <LogoImage source={ad.logo} resizeMode="contain" />
+          ) : ad.photoUrl ? (
             <BusinessPhoto source={{ uri: ad.photoUrl }} resizeMode="cover" />
           ) : (
+            /* A regulated company gets its sector's colour, so the banks do
+               not all arrive looking like the same firm. Anything without one
+               keeps the house gradient. */
             <BusinessLogo
-              colors={[EMERALD, GOLD]}
+              colors={
+                ad.accent ? [ad.accent, shade(ad.accent, 0.35)] : [EMERALD, GOLD]
+              }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
@@ -1318,6 +1334,51 @@ export function ForYouScreen({ navigation, route }) {
         // it does not, and nothing invented for the four that have neither.
         tagline: firm.tagline ?? firm.group ?? t("dealerBusinessSector"),
       })),
+      // The banks, operators and insurers a regulator names.
+      //
+      // The row was six car distributors and nothing else, which made a strip
+      // about verification look like a strip about cars. These come from the
+      // same standard the distributors do — a published register, read on a
+      // date — and they carry their regulator as the line under the name, so
+      // the card says who vouched rather than leaving "vérifiée" to imply we
+      // did.
+      ...[
+        ...beninBanks.map((bank) => ({
+          key: bank.key,
+          name: bank.name,
+          emblem: bank.shortName,
+          sector: "bank",
+        })),
+        ...beninTelecoms.map((item) => ({
+          key: item.key,
+          name: item.name,
+          emblem: companyEmblem(item),
+          sector: "telecom",
+        })),
+        ...beninInsurers.map((item) => ({
+          key: item.key,
+          name: item.name,
+          emblem: companyEmblem(item),
+          sector: "insurer",
+        })),
+      ].map((item) => {
+        const sector = getSector(item.sector);
+        return {
+          id: `company-${item.sector}-${item.key}`,
+          sponsorName: item.name,
+          verified: true,
+          route: "VerifiedCompanies",
+          emblem: item.emblem,
+          accent: sector.accent,
+          // Who says so, in the slot the distributors use for their tagline.
+          tagline: language === "en" ? sector.authorityEn : sector.authorityFr,
+          // The company's own mark where we hold one, downloaded from its own
+          // site; otherwise the plate carries its name. Nothing in between —
+          // no mark found somewhere else.
+          logo: companyLogo(item.key),
+          photoUrl: null,
+        };
+      }),
       ...(verifiedCompanies ?? []).map((company) => ({
         id: `company-${company.id}`,
         sponsorName: company.companyName,
@@ -3260,6 +3321,13 @@ const BusinessCity = styled.Text`
   color: ${(props) => props.theme.textMuted};
 `;
 
+// Inset inside the white plate: these marks arrive trimmed to their own
+// bounds, so without padding they touch the edges and read as cramped.
+const LogoImage = styled.Image`
+  width: 74%;
+  height: 74%;
+`;
+
 const BusinessLogoPlate = styled.View`
   width: ${BUSINESS_LOGO_SIZE}px;
   height: ${BUSINESS_LOGO_SIZE}px;
@@ -3267,7 +3335,10 @@ const BusinessLogoPlate = styled.View`
   justify-content: center;
   border-radius: 26px;
   margin-bottom: ${spacing.sm}px;
-  background-color: ${(props) => props.theme.surface};
+  /* White under a real logo, whatever the theme. These marks are transparent
+     PNGs and most of them are dark — on the dark surface they vanish. */
+  background-color: ${(props) =>
+    props.light ? "#ffffff" : props.theme.surface};
   ${shadow.card}
 `;
 

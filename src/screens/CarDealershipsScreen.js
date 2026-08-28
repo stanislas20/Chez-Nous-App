@@ -18,6 +18,7 @@ import {
   dealerEmblem,
 } from "../data/carDealerships";
 import { brandLogo, isWideLogo } from "../data/vehicleBrandLogos";
+import { companyLogo } from "../data/companyLogos";
 import { HeroPostBar } from "../components/HeroPostBar";
 import { ScreenFooter } from "../components/ScreenFooter";
 import { useDirectory } from "../hooks/useDirectory";
@@ -188,9 +189,22 @@ export function CarDealershipsScreen({ navigation }) {
               >
                 <BandTop>
                   <BandCol>
-                    <DealerEmblem numberOfLines={1}>
-                      {dealerEmblem(item.name)}
-                    </DealerEmblem>
+                    {/* The firm's own mark where its site publishes one,
+                        otherwise its short name. Not the marque's mark: CFAO's
+                        site serves the Toyota logo, and on a card headed CFAO
+                        that would say the manufacturer is the business. */}
+                    {companyLogo(item.key) ? (
+                      <DealerLogoPlate>
+                        <DealerLogoImage
+                          source={companyLogo(item.key)}
+                          resizeMode="contain"
+                        />
+                      </DealerLogoPlate>
+                    ) : (
+                      <DealerEmblem numberOfLines={1}>
+                        {dealerEmblem(item.name)}
+                      </DealerEmblem>
+                    )}
                     <DealerName numberOfLines={2}>{item.name}</DealerName>
                     {item.group ? (
                       <DealerGroup numberOfLines={1}>{item.group}</DealerGroup>
@@ -479,6 +493,22 @@ const DealerEmblem = styled.Text`
   font-size: 22px;
   letter-spacing: 0.4px;
   color: #ffffff;
+`;
+
+const DealerLogoPlate = styled.View`
+  width: 92px;
+  height: 40px;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 8px;
+  margin-bottom: 4px;
+  background-color: #ffffff;
+`;
+
+const DealerLogoImage = styled.Image`
+  width: 100%;
+  height: 100%;
 `;
 
 const DealerName = styled.Text`

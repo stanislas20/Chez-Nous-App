@@ -823,6 +823,14 @@ export const translations = {
     schoolsExamAction: "Register for the exam",
     schoolsPublishLabel: "You run a driving school?",
     schoolsPublishCta: "List it",
+    companiesTitle: "Verified businesses",
+    companiesEyebrow: "ON A PUBLIC REGISTER",
+    companiesIntro:
+      "Companies a regulator names — the banks, the mobile operators and the insurers.",
+    companiesSourceNote:
+      "Read from each regulator's own list on {date}. Being on it is the whole claim: it does not mean the company is on Chez-Nous.",
+    companiesNotEndorsement:
+      "A register, not a recommendation. They are listed alphabetically and Chez-Nous ranks none of them.",
     publicTitle: "Public services",
     publicEyebrow: "OFFICIAL SITES",
     publicIntro:
@@ -3338,6 +3346,14 @@ export const translations = {
     schoolsExamAction: "S'inscrire à l'examen",
     schoolsPublishLabel: "Vous tenez une auto-école ?",
     schoolsPublishCta: "Publier",
+    companiesTitle: "Entreprises vérifiées",
+    companiesEyebrow: "INSCRITES À UN REGISTRE",
+    companiesIntro:
+      "Les entreprises qu'un régulateur nomme — banques, opérateurs mobiles et assurances.",
+    companiesSourceNote:
+      "Relevé sur la liste de chaque régulateur le {date}. Y figurer est toute la revendication : cela ne veut pas dire que l'entreprise est sur Chez-Nous.",
+    companiesNotEndorsement:
+      "Un registre, pas une recommandation. Elles sont classées par ordre alphabétique et Chez-Nous n'en classe aucune.",
     publicTitle: "Services publics",
     publicEyebrow: "SITES OFFICIELS",
     publicIntro:

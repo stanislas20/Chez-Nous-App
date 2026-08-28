@@ -36,6 +36,19 @@ const MARK_GREEN = "#008751";
 
 export const SPLASH_MS = 2400;
 
+// The hand-off to the app.
+//
+// It used to be a cut: onDone unmounted the splash in a single frame, so the
+// brand was replaced by the feed with nothing in between. The app is already
+// mounted and settled underneath by then, so fading the splash out is a
+// genuine cross-dissolve rather than a curtain — the home screen is not
+// arriving, it is being revealed.
+//
+// Long enough to read as deliberate, short enough not to be a delay. It costs
+// nothing in perceived speed: the app is behind it, fully drawn, from the
+// first frame of the fade.
+export const SPLASH_EXIT_MS = 520;
+
 const NAME = "Chez-Nous";
 
 export function BrandSplash({ onDone, tagline, place, fontsReady = true }) {
@@ -79,11 +92,27 @@ export function BrandSplash({ onDone, tagline, place, fontsReady = true }) {
   // When the choreography started, so the text can find its own place in it
   // however late the font turns up.
   const startedAt = useRef(Date.now()).current;
+  // Drives the whole screen out. Separate from every other value here, which
+  // brings things in.
+  const exit = useRef(new Animated.Value(1)).current;
+
+  // Fade out, then hand over. onDone is called from the completion callback
+  // whether or not the animation finished cleanly — an interrupted fade that
+  // never reported back would leave the splash on screen forever, which is a
+  // worse failure than a fade that skips.
+  const leave = () => {
+    Animated.timing(exit, {
+      toValue: 0,
+      duration: reduceMotion ? 220 : SPLASH_EXIT_MS,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start(() => onDone?.());
+  };
 
   useEffect(() => {
     if (reduceMotion === null) return undefined;
 
-    // Reduce motion is not "no splash" — the brand still has to appear, and
+    // Reduce motion is not "no splash"" — the brand still has to appear, and
     // a screen that blinks straight to the app is its own kind of jolt. It
     // is the travel that goes: everything fades up in place, and the
     // ribbons, the breath and the halo never run.
@@ -96,7 +125,7 @@ export function BrandSplash({ onDone, tagline, place, fontsReady = true }) {
       // The text is set by the effect below, which waits for the font.
       [plate, roof, door, foot].forEach((value) => value.setValue(1));
       settle.start();
-      const timer = setTimeout(() => onDone?.(), 1200);
+      const timer = setTimeout(() => leave(), 1200);
       return () => clearTimeout(timer);
     }
 
@@ -156,7 +185,7 @@ export function BrandSplash({ onDone, tagline, place, fontsReady = true }) {
     haloLoop.start();
     dotLoops.forEach((loop) => loop.start());
 
-    const timer = setTimeout(() => onDone?.(), SPLASH_MS);
+    const timer = setTimeout(() => leave(), SPLASH_MS);
     return () => {
       clearTimeout(timer);
       haloLoop.stop();
@@ -237,7 +266,7 @@ export function BrandSplash({ onDone, tagline, place, fontsReady = true }) {
   });
 
   return (
-    <View style={styles.ground}>
+    <Animated.View style={[styles.ground, { opacity: exit }]}>
       <Animated.View
         style={[
           StyleSheet.absoluteFill,
@@ -474,7 +503,7 @@ export function BrandSplash({ onDone, tagline, place, fontsReady = true }) {
           {place}
         </Animated.Text>
       </Animated.View>
-    </View>
+    </Animated.View>
   );
 }
 

@@ -68,6 +68,13 @@ export function BrandSplash({ onDone, tagline, place, fontsReady = true }) {
   const rule = useRef(new Animated.Value(0)).current;
   const words = useRef(new Animated.Value(0)).current;
   const halo = useRef(new Animated.Value(0)).current;
+  // The dots have their own driver, separate from the text.
+  //
+  // They shared `words` until the fonts came off the critical path, and that
+  // put them behind the font — which is backwards. The dots are the "still
+  // working" signal, so the one start where they matter most is the slow one,
+  // which is exactly the start where a font is most likely to be late.
+  const foot = useRef(new Animated.Value(0)).current;
   const dots = useRef([0, 1, 2].map(() => new Animated.Value(0))).current;
   // When the choreography started, so the text can find its own place in it
   // however late the font turns up.
@@ -87,7 +94,7 @@ export function BrandSplash({ onDone, tagline, place, fontsReady = true }) {
         useNativeDriver: true,
       });
       // The text is set by the effect below, which waits for the font.
-      [plate, roof, door].forEach((value) => value.setValue(1));
+      [plate, roof, door, foot].forEach((value) => value.setValue(1));
       settle.start();
       const timer = setTimeout(() => onDone?.(), 1200);
       return () => clearTimeout(timer);
@@ -114,6 +121,7 @@ export function BrandSplash({ onDone, tagline, place, fontsReady = true }) {
       at(roof, 800, 850, Easing.bezier(0.3, 1.5, 0.5, 1)),
       at(door, 1150, 700),
       at(rule, 1750, 900),
+      at(foot, 1900, 700),
     ]).start();
 
     // The two loops that cover a slow start.
@@ -434,7 +442,7 @@ export function BrandSplash({ onDone, tagline, place, fontsReady = true }) {
         </View>
       </View>
 
-      <Animated.View style={[styles.foot, { opacity: words }]}>
+      <Animated.View style={[styles.foot, { opacity: foot }]}>
         <View style={styles.dots}>
           {[GLOW, YELLOW, RED].map((colour, index) => (
             <Animated.View
@@ -460,7 +468,11 @@ export function BrandSplash({ onDone, tagline, place, fontsReady = true }) {
             />
           ))}
         </View>
-        <Animated.Text style={styles.place}>{place}</Animated.Text>
+        {/* The label is text and waits for the face; the dots above it do
+            not. */}
+        <Animated.Text style={[styles.place, { opacity: words }]}>
+          {place}
+        </Animated.Text>
       </Animated.View>
     </View>
   );

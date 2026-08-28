@@ -34,7 +34,27 @@ const YELLOW = "#FCD116";
 const RED = "#E8112D";
 const MARK_GREEN = "#008751";
 
-export const SPLASH_MS = 2400;
+// When the last thing to arrive has arrived.
+//
+// The tagline is it, at 2000ms + 800ms. The design doc's total was 2400, which
+// meant the splash began fading while it was still assembling itself — the
+// rule settles at 2650 and the tagline at 2800, so the last two elements were
+// being faded out as they faded in. Nothing about a screenshot would show
+// that, which is why it survived; it only exists in motion.
+const COMPOSED_MS = 2800;
+
+// Then a beat of stillness on the finished brand before anything moves.
+//
+// This is the whole point of a splash and it is the part that was missing:
+// without it the screen is only ever mid-assembly or mid-departure, and the
+// composition the design is actually about is never once just sat there to be
+// looked at.
+export const SPLASH_HOLD_MS = 700;
+
+// So the brand is on screen, complete and still, and only then leaves.
+// scripts/check-splash.js pins COMPOSED_MS to what the animations actually
+// do: adding a later element, or shortening one, would silently eat the hold.
+export const SPLASH_MS = COMPOSED_MS + SPLASH_HOLD_MS;
 
 // The hand-off to the app.
 //

@@ -30,7 +30,11 @@ export function ScreenFooter({ style }) {
     <Footer style={style}>
       <Rule />
       <Wordmark>{APP_NAME.toUpperCase()}</Wordmark>
-      <Line>{t("footerLine")}</Line>
+      {/* The same line the opening screen carries. It was a second,
+          differently-worded one, which is two brand lines and therefore two
+          brands — the reader meets this one at the bottom of every screen
+          and that one every cold start. */}
+      <Line>{t("splashTagline")}</Line>
       <Version>{`v${APP_VERSION}`}</Version>
     </Footer>
   );

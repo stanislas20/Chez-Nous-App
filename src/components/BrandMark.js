@@ -13,6 +13,22 @@ import { Animated, View } from "react-native";
 //
 // The door is an arch on purpose: a rectangle reads as a closed box, and the
 // whole point of the name is a door standing open.
+//
+// ONE STROKE AT EVERY SIZE, and it is 4.6.
+//
+// The design doc previews a heavier 6.4 for 20px, on the reasonable theory
+// that a thin stroke disappears when small. Rendered at 20, 24, 32 and 48 and
+// downsampled the way an OS rasterises an icon, the opposite is true: 4.6
+// survives 20px intact, and 6.4 is visibly too heavy by 48 — the roof and the
+// door close up on each other.
+//
+// That gap between them is not decoration, it is the whole mark. Ionicons'
+// `home-outline` — a roof joined to a body — is the icon in this app's own
+// tab bar under "Pour vous". What keeps the brand from reading as that button
+// is the daylight under the roof, and a heavier stroke spends it: 2.6px of
+// clearance at 20px becomes 2.0px. scripts/check-brand-mark.js holds the
+// floor, because "make the logo a bit bolder" is the most reasonable-sounding
+// way this gets lost.
 const BOX = 64;
 const STROKE = 4.6;
 
@@ -38,6 +54,22 @@ const ARC_CY = 37.5;
 const DOOR_W = DOOR_RIGHT - DOOR_LEFT + STROKE;
 const DOOR_TOP = ARC_CY - ARC_R - STROKE / 2;
 const DOOR_H = DOOR_BOTTOM - DOOR_TOP;
+
+// The smallest the mark is ever drawn — app icon, notification badge, the
+// 20px proof in the design doc.
+export const MARK_MIN_PX = 20;
+
+// Daylight between the underside of the roof and the top of the door, in
+// artboard units. Both edges move toward each other as the stroke grows, so
+// this shrinks twice as fast as the stroke does.
+export function roofToDoorGap(stroke = STROKE) {
+  const pitch = Math.atan2(EAVE_Y - APEX_Y, APEX_X - EAVE_X);
+  // At the apex the bar is cut across its width, so its underside sits half a
+  // stroke below the centre line measured perpendicular to the slope.
+  const roofUnderside = APEX_Y + stroke / 2 / Math.cos(pitch);
+  const doorTopEdge = ARC_CY - ARC_R - stroke / 2;
+  return doorTopEdge - roofUnderside;
+}
 
 export function BrandMark({ size = 64, color = "#0B6E4F", style, roofStyle, doorStyle }) {
   const u = size / BOX;

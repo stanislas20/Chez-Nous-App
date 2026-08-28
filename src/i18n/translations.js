@@ -647,10 +647,10 @@ export const translations = {
     verifiedBusinessesSectionTitle: "Verified businesses",
     // Describes what the app does. Not a superlative — nothing here claims
     // to be the biggest or the only one.
-    footerLine: "Buy, sell and find a service in Bénin.",
-    // The opening screen. Kept in French in both languages: it is the brand
-    // line, and a brand line that changes with the interface language is two
-    // brands. Same reason the wordmark is not translated.
+    // The brand line, carried by the opening screen and by the footer of
+    // every long screen. Kept in French in both languages: a brand line that
+    // changes with the interface is two brands, the same reason the wordmark
+    // is not translated.
     splashTagline: "Le Bénin, à portée de main",
     splashPlace: "COTONOU · BÉNIN",
     // What a distributor is, in the same slot a company shows its sector.
@@ -3122,7 +3122,6 @@ export const translations = {
     searchCityPlaceholder: "Rechercher une ville",
     useMyLocationCity: "Utiliser ma position actuelle",
     verifiedBusinessesSectionTitle: "Entreprises vérifiées",
-    footerLine: "Acheter, vendre et trouver un service au Bénin.",
     splashTagline: "Le Bénin, à portée de main",
     splashPlace: "COTONOU · BÉNIN",
     dealerBusinessSector: "Distributeur officiel",

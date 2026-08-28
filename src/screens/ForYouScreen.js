@@ -828,9 +828,22 @@ function BusinessCard({ ad, navigation }) {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <FirmEmblem numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
-              {initials}
-            </FirmEmblem>
+            {/* The mark on a white plate where we hold one, the wordmark
+                otherwise — a logo dropped straight onto the accent would sit
+                on whatever colour that firm happens to have. */}
+            {ad.logo ? (
+              <FirmLogoPlate>
+                <FirmLogoImage source={ad.logo} resizeMode="contain" />
+              </FirmLogoPlate>
+            ) : (
+              <FirmEmblem
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.5}
+              >
+                {initials}
+              </FirmEmblem>
+            )}
           </FirmBand>
 
           {/* Only the marques we hold a mark for. A row that fell back to
@@ -1328,6 +1341,11 @@ export function ForYouScreen({ navigation, route }) {
         // them instead of from a badge nobody can source.
         photoUrl: null,
         emblem: dealerEmblem(firm.name),
+        // The firm's own mark where its site publishes one. This was wired
+        // into the Concessionnaires screen and missed here, so the
+        // distributors kept their wordmark bands in the feed while the banks
+        // beside them had picked up real logos.
+        logo: companyLogo(firm.key),
         accent: dealerAccent(firm.key),
         marques: (firm.brands ?? []).map(dealerBrandKey),
         // The firm's own published words where it has any, its group where
@@ -3257,6 +3275,21 @@ const FirmBand = styled(LinearGradient)`
   justify-content: center;
   padding-horizontal: 14px;
   margin-bottom: 12px;
+`;
+
+const FirmLogoPlate = styled.View`
+  width: 78%;
+  height: 74%;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 9px;
+  background-color: #ffffff;
+`;
+
+const FirmLogoImage = styled.Image`
+  width: 100%;
+  height: 100%;
 `;
 
 const FirmEmblem = styled.Text`

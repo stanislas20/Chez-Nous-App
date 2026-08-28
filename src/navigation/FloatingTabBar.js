@@ -15,6 +15,19 @@ const TAB_ICONS = {
   Messages: "chatbubbles-outline",
 };
 
+// Filled when you are on it, outlined when you are not.
+//
+// Ionicons pairs every outline with a solid of the same base name, so the
+// active icon is the name minus the suffix — no second table to keep in step
+// with the first, and adding a tab cannot forget to add its filled twin.
+//
+// Colour alone was carrying the whole burden of "which tab am I on", and it
+// is the weakest signal available: the tint is the same green as half the
+// app, and at this size a thin outline in green and a thin outline in grey
+// are hard to tell apart at a glance. Weight is the difference you see
+// without looking.
+const filled = (name) => name.replace("-outline", "");
+
 // A floating, blurred pill tab bar (replacing the platform-default bar
 // docked flush to the screen edge) — matches the onboarding/home mockup,
 // which shows this same rounded, translucent bar on every tab screen.
@@ -59,7 +72,11 @@ export function FloatingTabBar({ state, descriptors, navigation }) {
               <TabItem key={route.key} onPress={onPress} hitSlop={4}>
                 <IconWrap active={isFocused}>
                   <Ionicons
-                    name={TAB_ICONS[route.name]}
+                    name={
+                      isFocused
+                        ? filled(TAB_ICONS[route.name])
+                        : TAB_ICONS[route.name]
+                    }
                     size={20}
                     color={isFocused ? colors.primary : colors.textMuted}
                   />

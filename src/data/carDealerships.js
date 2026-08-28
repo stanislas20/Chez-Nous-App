@@ -35,6 +35,12 @@ import { canonicalBrand } from "./vehicles";
 //
 // Bump it when the list is next reviewed. check-dealerships refuses a date
 // in the future and refuses a missing one.
+// Only two of the six publish a line about themselves, and only those two
+// carry one. The rest have `tagline` absent rather than a sentence written
+// on their behalf: a distributor's own words are the one thing on these
+// cards that cannot be derived from the marques and the city, so inventing
+// them would be inventing the only part that sounds like the company.
+// CFAO and SOCAR publish none; MIG and ALST publish no site at all.
 export const dealershipsReviewedOn = "2026-08-21";
 
 // Marques here that are deliberately not in vehicleBrands, and what they are.
@@ -71,6 +77,10 @@ export const carDealerships = [
   {
     key: "sonaec",
     name: "SONAEC Automobiles",
+    // What the acronym stands for, printed across the top of their own
+    // site. Not a slogan they wrote for us — the expansion of the name,
+    // which is the most a firm that publishes no tagline actually says.
+    tagline: "Société Nouvelle d'Automobiles, d'Équipements et de Commerce",
     brands: ["Nissan", "Hyundai", "Renault"],
     city: "Cotonou",
     area: "Akpakpa, route de Porto-Novo",
@@ -97,6 +107,10 @@ export const carDealerships = [
   {
     key: "chinadrive",
     name: "ChinaDrive",
+    // Their own headline, verbatim. Sentence case rather than the shouted
+    // capitals it is set in on the site, because here it sits in running
+    // text and the caps would read as our emphasis rather than theirs.
+    tagline: "Le futur de l'automobile",
     brands: ["BYD", "Geely", "Chery", "MG"],
     city: "Cotonou",
     area: "Carrefour des 3 banques",

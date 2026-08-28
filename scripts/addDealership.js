@@ -76,6 +76,12 @@ function toDocument(firm) {
     area: firm.area ?? null,
     alsoIn: firm.alsoIn ?? [],
     group: firm.group ?? null,
+    // The firm's own published line, for the ones that publish any. Added
+    // after the collection was already seeded, which is exactly the trap
+    // this script documents: the app reads the collection, so a field that
+    // exists only in the bundle is a field the app never sees. Re-run
+    // --seed after adding one.
+    tagline: firm.tagline ?? null,
     website: firm.website ?? null,
     order: firm.order,
   };

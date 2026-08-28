@@ -42,7 +42,13 @@ import { businessCategories } from "../data/businessCategories";
 import { useApprovedAds } from "../hooks/useApprovedAds";
 import { useVerifiedCompanies } from "../hooks/useVerifiedCompanies";
 import { useDirectory } from "../hooks/useDirectory";
-import { carDealerships, dealerEmblem } from "../data/carDealerships";
+import {
+  carDealerships,
+  dealerAccent,
+  dealerBrandKey,
+  dealerEmblem,
+} from "../data/carDealerships";
+import { brandLogo } from "../data/vehicleBrandLogos";
 import { getCompanySectorLabel } from "../data/companySectors";
 import {
   experienceLevels,
@@ -431,6 +437,17 @@ const REC_IMAGE_HEIGHT = 118;
 // marquee scrolls by exactly one card-plus-gap, so a width that drifts from
 // the style desyncs the loop.
 const BUSINESS_CARD_WIDTH = 220;
+// The second stop of each firm's band. Not a fixed dark colour: mixing every
+// accent toward the same near-black gave six bands that all ended the same
+// way, which is the opposite of the point. This keeps the hue and takes the
+// light out of it, so SOCAR's blue stays blue and MIG's plum stays plum.
+const shade = (hex, amount = 0.55) => {
+  const value = hex.replace("#", "");
+  const channel = (at) =>
+    Math.round(parseInt(value.slice(at, at + 2), 16) * (1 - amount));
+  return `rgb(${channel(0)}, ${channel(2)}, ${channel(4)})`;
+};
+const MUTED_INK = "#6B7280";
 // The logo and the initials placeholder share a size: a company that adds a
 // logo should not watch its card shrink, which is what happened when the
 // image was 46px and the placeholder it replaced was 56px.
@@ -790,47 +807,94 @@ function BusinessCard({ ad, navigation }) {
         if (ad.linkUrl) Linking.openURL(ad.linkUrl);
       }}
     >
-      <BusinessLogoPlate>
-        {ad.photoUrl ? (
-          <BusinessPhoto source={{ uri: ad.photoUrl }} resizeMode="cover" />
-        ) : (
-          <BusinessLogo
-            colors={[EMERALD, GOLD]}
+      {/* A distributor card is built from the two things that actually
+          differ between these firms: the colour the directory already gives
+          each one, and the marques it carries. Nothing here is a logo we
+          invented — the marks are the manufacturers' own, which we already
+          ship, and they are what makes CFAO's card unmistakable next to
+          ChinaDrive's without either of them having sent us anything. */}
+      {ad.marques ? (
+        <>
+          <FirmBand
+            colors={[ad.accent, shade(ad.accent)]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            {/* Shrinks to fit rather than truncating: "SONAEC" is six
-                characters where a person's initials are two, and a plate
-                reading "SONAE…" identifies nothing. */}
-            <BusinessLogoLabel
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.5}
-            >
+            <FirmEmblem numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
               {initials}
-            </BusinessLogoLabel>
-          </BusinessLogo>
-        )}
-      </BusinessLogoPlate>
+            </FirmEmblem>
+          </FirmBand>
+
+          {/* Only the marques we hold a mark for. A row that fell back to
+              text for the others would read as two kinds of thing; the
+              full list is on the card this opens. */}
+          <MarqueRow>
+            {ad.marques
+              .filter((marque) => brandLogo(marque))
+              .slice(0, 4)
+              .map((marque) => (
+                <MarquePlate key={marque}>
+                  <MarqueMark source={brandLogo(marque)} resizeMode="contain" />
+                </MarquePlate>
+              ))}
+          </MarqueRow>
+        </>
+      ) : (
+        <BusinessLogoPlate>
+          {ad.photoUrl ? (
+            <BusinessPhoto source={{ uri: ad.photoUrl }} resizeMode="cover" />
+          ) : (
+            <BusinessLogo
+              colors={[EMERALD, GOLD]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              {/* Shrinks to fit rather than truncating: "SONAEC" is six
+                  characters where a person's initials are two, and a plate
+                  reading "SONAE…" identifies nothing. */}
+              <BusinessLogoLabel
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.5}
+              >
+                {initials}
+              </BusinessLogoLabel>
+            </BusinessLogo>
+          )}
+        </BusinessLogoPlate>
+      )}
 
       <BusinessName numberOfLines={2}>{name}</BusinessName>
 
-      {categoryLabel || ad.city ? (
-        <BusinessMetaLine numberOfLines={1}>
-          {[categoryLabel, ad.city].filter(Boolean).join(" · ")}
-        </BusinessMetaLine>
+      {/* The firm's own sentence where it publishes one, its group where it
+          does not. Two lines, because "Société Nouvelle d'Automobiles,
+          d'Équipements et de Commerce" is what SONAEC actually says and
+          cutting it to one line would leave "Société Nouvelle d'Auto…". */}
+      {ad.tagline ? (
+        <FirmTagline numberOfLines={2}>{ad.tagline}</FirmTagline>
+      ) : categoryLabel ? (
+        <BusinessMetaLine numberOfLines={1}>{categoryLabel}</BusinessMetaLine>
       ) : null}
 
-      {/* Only a company a human actually approved gets this. Paid ad
-          placements share the strip but have been through no review at all,
-          and stamping them "verified" is the same misrepresentation as
-          listing a pending company here. */}
-      {ad.verified ? (
-        <VerifiedPill>
-          <Ionicons name="checkmark-circle" size={12} color={EMERALD} />
-          <VerifiedPillLabel>{t("companyVerifiedBadge")}</VerifiedPillLabel>
-        </VerifiedPill>
-      ) : null}
+      <BusinessFootRow>
+        {ad.city ? (
+          <BusinessCityRow>
+            <Ionicons name="location-outline" size={11} color={MUTED_INK} />
+            <BusinessCity numberOfLines={1}>{ad.city}</BusinessCity>
+          </BusinessCityRow>
+        ) : null}
+
+        {/* Only a company a human actually approved gets this. Paid ad
+            placements share the strip but have been through no review at
+            all, and stamping them "verified" is the same misrepresentation
+            as listing a pending company here. */}
+        {ad.verified ? (
+          <VerifiedPill>
+            <Ionicons name="checkmark-circle" size={12} color={EMERALD} />
+            <VerifiedPillLabel>{t("companyVerifiedBadge")}</VerifiedPillLabel>
+          </VerifiedPill>
+        ) : null}
+      </BusinessFootRow>
     </BusinessPressable>
   );
 }
@@ -1236,22 +1300,23 @@ export function ForYouScreen({ navigation, route }) {
       ...dealerships.map((firm) => ({
         id: `dealer-${firm.key}`,
         sponsorName: firm.name,
-        categoryLabel: t("dealerBusinessSector"),
         verified: true,
         // Not a sellerId: these firms have no account. The whole directory
         // opens instead, where the brands, the addresses and the "annuaire,
         // pas un partenariat" note all live.
         route: "CarDealerships",
         city: firm.city ?? null,
-        // No logo. We hold none for these firms and a distributor's mark is
-        // not ours to invent — the same reason the Concessionnaires cards
-        // use a tint rather than a badge. The marque logos we DO hold are
-        // Toyota's and Ford's, and putting one on a CFAO card would say the
-        // manufacturer is the verified business.
+        // Still no company logo: we hold none, and a distributor's mark is
+        // not ours to draw. What we DO hold is the marques — and those are
+        // the firm's real distinguishing fact, so the card is built from
+        // them instead of from a badge nobody can source.
         photoUrl: null,
-        // So the plate is worth reading: "CFAO", not the first two letters
-        // of it. dealerEmblem is what the directory's own cards use.
         emblem: dealerEmblem(firm.name),
+        accent: dealerAccent(firm.key),
+        marques: (firm.brands ?? []).map(dealerBrandKey),
+        // The firm's own published words where it has any, its group where
+        // it does not, and nothing invented for the four that have neither.
+        tagline: firm.tagline ?? firm.group ?? t("dealerBusinessSector"),
       })),
       ...(verifiedCompanies ?? []).map((company) => ({
         id: `company-${company.id}`,
@@ -3119,6 +3184,82 @@ const BusinessPressable = styled(Tappable)`
   ${shadow.card}
 `;
 
+// The firm's own colour across the head of the card. This is what makes six
+// cards look like six companies rather than six copies — the accent is the
+// same one the Concessionnaires screen gives each firm, so a person who has
+// seen one screen recognises the other.
+const FirmBand = styled(LinearGradient)`
+  width: 100%;
+  height: 68px;
+  border-radius: ${radius.lg}px;
+  align-items: center;
+  justify-content: center;
+  padding-horizontal: 14px;
+  margin-bottom: 12px;
+`;
+
+const FirmEmblem = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 24px;
+  letter-spacing: 0.5px;
+  width: 100%;
+  text-align: center;
+  color: #ffffff;
+`;
+
+// Real manufacturer marks on white plates, the same treatment the
+// Concessionnaires cards use. Four is what fits at this width; the rest are
+// on the screen this opens.
+const MarqueRow = styled.View`
+  flex-direction: row;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 12px;
+`;
+
+const MarquePlate = styled.View`
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: rgba(17, 24, 39, 0.08);
+`;
+
+const MarqueMark = styled.Image`
+  width: 26px;
+  height: 26px;
+`;
+
+const FirmTagline = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 11.5px;
+  line-height: 15px;
+  text-align: center;
+  margin-top: 3px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+const BusinessFootRow = styled.View`
+  align-items: center;
+  margin-top: 10px;
+  gap: 7px;
+`;
+
+const BusinessCityRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 3px;
+`;
+
+const BusinessCity = styled.Text`
+  font-family: ${fontFamily.medium};
+  font-size: 11px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
 const BusinessLogoPlate = styled.View`
   width: ${BUSINESS_LOGO_SIZE}px;
   height: ${BUSINESS_LOGO_SIZE}px;
@@ -3152,7 +3293,6 @@ const VerifiedPill = styled.View`
   flex-direction: row;
   align-items: center;
   gap: 4px;
-  margin-top: 10px;
   padding: 4px 10px;
   border-radius: ${radius.pill}px;
   background-color: ${(props) => props.theme.primaryLight};

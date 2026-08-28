@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import styled from "styled-components/native";
 import { radius, shadow, spacing } from "../theme/colors";
@@ -10,6 +9,7 @@ import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
 import { useMyListings } from "../hooks/useMyListings";
 import { openListing } from "../utils/openListing";
+import { TabSafeAreaView } from "../components/TabSafeAreaView";
 
 const WEEKS_TO_SHOW = 8;
 const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
@@ -207,7 +207,7 @@ export function SellerInsightsScreen({ navigation }) {
   };
 
   return (
-    <Container edges={["left", "right", "bottom"]}>
+    <Container edges={["left", "right"]}>
       <Content>
         <Card>
           <CalendarHeader>
@@ -373,7 +373,7 @@ export function SellerInsightsScreen({ navigation }) {
   );
 }
 
-const Container = styled(SafeAreaView)`
+const Container = styled(TabSafeAreaView)`
   flex: 1;
   background-color: ${(props) => props.theme.background};
 `;

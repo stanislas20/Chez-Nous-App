@@ -11,6 +11,7 @@ import { fontFamily, type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { LanguageSwitch } from "../components/LanguageSwitch";
 import { closeAccountGate } from "../utils/openAccountGate";
+import { TabSafeAreaView } from "../components/TabSafeAreaView";
 
 const EMERALD = "#0B6E4F";
 // Bénin's actual flag colors — used for the small flag glyph and the
@@ -62,7 +63,7 @@ export function AccountTypeScreen({ navigation, route }) {
   const { t } = useI18n();
 
   return (
-    <Container edges={["left", "right", "bottom"]}>
+    <Container edges={["left", "right"]}>
       <HeaderRow topInset={topInset}>
         <BackButton onPress={handleBack} hitSlop={12}>
           <Ionicons name="arrow-back" size={20} color={colors.text} />
@@ -186,7 +187,7 @@ const LoginRowAction = styled.Text`
   color: ${EMERALD};
 `;
 
-const Container = styled(SafeAreaView)`
+const Container = styled(TabSafeAreaView)`
   flex: 1;
   background-color: ${(props) => props.theme.background};
 `;

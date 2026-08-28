@@ -50,6 +50,7 @@ import {
   openingDays,
 } from "../data/openingDays";
 import { getLinkKindLabel, restaurantLinkKinds } from "../data/restaurantLinks";
+import { TabSafeAreaView } from "../components/TabSafeAreaView";
 import {
   getCuisineLabel,
   getPriceBandHint,
@@ -2313,7 +2314,7 @@ export function CreateListingScreen({ route, navigation }) {
   // existing listing is untouched, which is why this guards creation only.
   if (!editing && blockedFromPosting) {
     return (
-      <Container edges={["top", "left", "right", "bottom"]}>
+      <Container edges={["top", "left", "right"]}>
         <HeaderRow>
           <BackButton onPress={leaveForm} hitSlop={8}>
             <Ionicons name="arrow-back" size={20} color={colors.text} />
@@ -2365,7 +2366,7 @@ export function CreateListingScreen({ route, navigation }) {
 
   return (
     <Flex behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <Container edges={["top", "left", "right", "bottom"]}>
+      <Container edges={["top", "left", "right"]}>
         <HeaderRow>
           <BackButton onPress={leaveForm} hitSlop={8}>
             <Ionicons name="arrow-back" size={20} color={colors.text} />
@@ -6472,7 +6473,7 @@ const Flex = styled.KeyboardAvoidingView`
   flex: 1;
 `;
 
-const Container = styled(SafeAreaView)`
+const Container = styled(TabSafeAreaView)`
   flex: 1;
   background-color: ${(props) => props.theme.background};
 `;

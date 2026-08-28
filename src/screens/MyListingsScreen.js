@@ -28,6 +28,7 @@ import { firestore, storage } from "../config/firebase";
 import { getDutyLabel } from "../utils/pharmacyDuty";
 import { listingPriceText } from "../utils/listingPrice";
 import { openListing } from "../utils/openListing";
+import { TabSafeAreaView } from "../components/TabSafeAreaView";
 
 const listContentStyle = { padding: spacing.md };
 
@@ -198,7 +199,7 @@ export function MyListingsScreen() {
   };
 
   return (
-    <Container edges={["left", "right", "bottom"]}>
+    <Container edges={["left", "right"]}>
       <FilterRow>
         {FILTERS.map((option) => (
           <FilterChip
@@ -552,7 +553,7 @@ export function MyListingsScreen() {
   );
 }
 
-const Container = styled(SafeAreaView)`
+const Container = styled(TabSafeAreaView)`
   flex: 1;
   background-color: ${(props) => props.theme.background};
 `;

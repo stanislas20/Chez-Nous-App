@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Alert, Pressable, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { doc, setDoc } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
@@ -15,6 +14,7 @@ import { firestore, storage } from "../config/firebase";
 import { companySectors, getCompanySectorLabel } from "../data/companySectors";
 import { restaurantLinkKinds } from "../data/restaurantLinks";
 import { cities } from "../data/cities";
+import { TabSafeAreaView } from "../components/TabSafeAreaView";
 
 // Everything a company can correct after signup. Before this screen existed
 // the only editable field in the whole profile was the logo — a business
@@ -106,7 +106,7 @@ export function CompanyProfileEditScreen({ navigation }) {
   };
 
   return (
-    <Container edges={["top", "left", "right", "bottom"]}>
+    <Container edges={["top", "left", "right"]}>
       <Header>
         <BackButton onPress={() => navigation.goBack()} hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color={colors.text} />
@@ -279,7 +279,7 @@ export function CompanyProfileEditScreen({ navigation }) {
 
 const bodyContentStyle = { padding: spacing.md, paddingBottom: spacing.xl };
 
-const Container = styled(SafeAreaView)`
+const Container = styled(TabSafeAreaView)`
   flex: 1;
   background-color: ${(props) => props.theme.background};
 `;

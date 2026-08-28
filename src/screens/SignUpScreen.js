@@ -34,6 +34,7 @@ import {
 import { LanguageSwitch } from "../components/LanguageSwitch";
 import { closeAccountGate } from "../utils/openAccountGate";
 import { cities } from "../data/cities";
+import { TabSafeAreaView } from "../components/TabSafeAreaView";
 import {
   companySectors,
   getCompanySectorLabel,
@@ -535,7 +536,7 @@ export function SignUpScreen({ navigation, route }) {
   // that looks editable but isn't.
   if (showCompanyChecking) {
     return (
-      <Container edges={["left", "right", "bottom"]}>
+      <Container edges={["left", "right"]}>
         <HeaderRow topInset={topInset}>
           <HeaderSpacer />
           <LanguageSwitch />
@@ -551,7 +552,7 @@ export function SignUpScreen({ navigation, route }) {
 
   return (
     <Flex behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <Container edges={["left", "right", "bottom"]}>
+      <Container edges={["left", "right"]}>
         <HeaderRow topInset={topInset}>
           <BackButton onPress={handleBack} hitSlop={12}>
             <Ionicons name="arrow-back" size={20} color={colors.text} />
@@ -1355,7 +1356,7 @@ const Flex = styled.KeyboardAvoidingView`
   flex: 1;
 `;
 
-const Container = styled(SafeAreaView)`
+const Container = styled(TabSafeAreaView)`
   flex: 1;
   background-color: ${(props) => props.theme.background};
 `;

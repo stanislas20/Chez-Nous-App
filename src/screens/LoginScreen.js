@@ -25,6 +25,7 @@ import { isPossibleNationalNumber, mapAuthErrorToKey } from "../auth/phoneAuth";
 import { LanguageSwitch } from "../components/LanguageSwitch";
 import { closeAccountGate } from "../utils/openAccountGate";
 import { selectionTick } from "../utils/haptics";
+import { TabSafeAreaView } from "../components/TabSafeAreaView";
 
 // Cross-links between sign-up and log-in navigate rather than replace.
 // `replace` drops the screen you came from, so the back arrow afterwards
@@ -159,7 +160,7 @@ export function LoginScreen({ navigation, route }) {
 
   return (
     <Flex behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <Container edges={["left", "right", "bottom"]}>
+      <Container edges={["left", "right"]}>
         <HeaderRow topInset={topInset}>
           <BackLink
             onPress={() => closeAccountGate(navigation, originKey)}
@@ -365,7 +366,7 @@ const Flex = styled.KeyboardAvoidingView`
   flex: 1;
 `;
 
-const Container = styled(SafeAreaView)`
+const Container = styled(TabSafeAreaView)`
   flex: 1;
   background-color: ${(props) => props.theme.background};
 `;

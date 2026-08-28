@@ -1,5 +1,4 @@
 import { ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import styled from "styled-components/native";
@@ -7,6 +6,7 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
+import { TabSafeAreaView } from "../components/TabSafeAreaView";
 
 // Fixed brand accents (same convention as ForYouScreen's header) — used for
 // the decorative hero card and benefit icons, not theme-reactive.
@@ -149,7 +149,7 @@ export function SellGateScreen({ navigation }) {
   );
 }
 
-const Container = styled(SafeAreaView)`
+const Container = styled(TabSafeAreaView)`
   flex: 1;
   background-color: ${(props) => props.theme.background};
 `;

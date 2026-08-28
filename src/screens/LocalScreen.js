@@ -41,6 +41,7 @@ import { useFavorites } from "../hooks/useFavorites";
 import { distanceInKm } from "../utils/geo";
 import { queryMatches } from "../utils/search";
 import { useI18n } from "../i18n/I18nContext";
+import { TabSafeAreaView } from "../components/TabSafeAreaView";
 
 const EMERALD = "#0B6E4F";
 // Module-level so its identity is stable across renders — it feeds useMemo
@@ -717,7 +718,7 @@ export function LocalScreen({ navigation }) {
   );
 }
 
-const Container = styled(SafeAreaView)`
+const Container = styled(TabSafeAreaView)`
   flex: 1;
   background-color: ${(props) => props.theme.background};
 `;

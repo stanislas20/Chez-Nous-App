@@ -1,5 +1,4 @@
 import { FlatList, Pressable } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
@@ -10,6 +9,7 @@ import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
 import { useConversations } from "../hooks/useConversations";
 import { openAccountGate } from "../utils/openAccountGate";
+import { TabSafeAreaView } from "../components/TabSafeAreaView";
 
 // Same avatar gradient the job cards and seller tiles use, so a listing
 // with no photo reads as intentional rather than as a broken image.
@@ -128,7 +128,7 @@ export function ChatListScreen({ navigation }) {
   );
 }
 
-const Container = styled(SafeAreaView)`
+const Container = styled(TabSafeAreaView)`
   flex: 1;
   background-color: ${(props) => props.theme.background};
 `;

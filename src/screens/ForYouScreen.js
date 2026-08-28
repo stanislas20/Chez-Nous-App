@@ -67,6 +67,7 @@ import { normalizeJobListing } from "../utils/normalizeJobListing";
 import { listingPriceText } from "../utils/listingPrice";
 import { openListing } from "../utils/openListing";
 import { useSearchPharmacies } from "../hooks/useSearchPharmacies";
+import { TabSafeAreaView } from "../components/TabSafeAreaView";
 
 // Fixed brand accents from the design mockup (not theme-reactive, like the
 // onboarding screen's Benin flag colors) — used for small decorative surfaces
@@ -2383,7 +2384,7 @@ export function ForYouScreen({ navigation, route }) {
   );
 }
 
-const Container = styled(SafeAreaView)`
+const Container = styled(TabSafeAreaView)`
   flex: 1;
   background-color: ${(props) => props.theme.background};
 `;

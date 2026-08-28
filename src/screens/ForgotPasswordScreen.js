@@ -26,6 +26,7 @@ import {
   mapResetPasswordErrorToKey,
 } from "../auth/passwordReset";
 import { LanguageSwitch } from "../components/LanguageSwitch";
+import { TabSafeAreaView } from "../components/TabSafeAreaView";
 
 const EMERALD = "#0B6E4F";
 const FLAG_GREEN = "#008751";
@@ -347,7 +348,7 @@ export function ForgotPasswordScreen({ navigation, route }) {
 
   return (
     <Flex behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <Container edges={["left", "right", "bottom"]}>
+      <Container edges={["left", "right"]}>
         <HeaderRow topInset={topInset}>
           <BackButton onPress={handleBack} hitSlop={12}>
             <Ionicons name="arrow-back" size={20} color={colors.text} />
@@ -808,7 +809,7 @@ const Flex = styled.KeyboardAvoidingView`
   flex: 1;
 `;
 
-const Container = styled(SafeAreaView)`
+const Container = styled(TabSafeAreaView)`
   flex: 1;
   background-color: ${(props) => props.theme.background};
 `;

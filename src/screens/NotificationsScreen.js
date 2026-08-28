@@ -1,6 +1,5 @@
 import { useCallback } from "react";
 import { FlatList, Pressable } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import styled from "styled-components/native";
@@ -11,6 +10,7 @@ import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
 import { useNotificationCenter } from "../hooks/useNotificationCenter";
 import { openListing } from "../utils/openListing";
+import { TabSafeAreaView } from "../components/TabSafeAreaView";
 
 const listContentStyle = { padding: spacing.md, flexGrow: 1 };
 
@@ -223,7 +223,7 @@ export function NotificationsScreen() {
   );
 }
 
-const Container = styled(SafeAreaView)`
+const Container = styled(TabSafeAreaView)`
   flex: 1;
   background-color: ${(props) => props.theme.background};
 `;

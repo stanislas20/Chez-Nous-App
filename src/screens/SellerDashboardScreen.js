@@ -43,6 +43,7 @@ import {
   isListingExpiringSoon,
 } from "../utils/listingLifecycle";
 import { withViewHeat } from "../utils/viewHeat";
+import { TabSafeAreaView } from "../components/TabSafeAreaView";
 
 const EMERALD = "#0B6E4F";
 const GOLD = "#D9A441";
@@ -646,7 +647,7 @@ export function SellerDashboardScreen({ navigation }) {
     isCompanyAccount && sellerProfile?.verificationStatus === "rejected";
 
   return (
-    <Container edges={["left", "right", "bottom"]}>
+    <Container edges={["left", "right"]}>
       <Header
         colors={["#0B6E4F", "#07362A", "#05261D"]}
         start={{ x: 0, y: 0 }}
@@ -1180,7 +1181,7 @@ export function SellerDashboardScreen({ navigation }) {
   );
 }
 
-const Container = styled(SafeAreaView)`
+const Container = styled(TabSafeAreaView)`
   flex: 1;
   background-color: ${(props) => props.theme.background};
 `;

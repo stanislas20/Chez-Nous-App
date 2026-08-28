@@ -70,7 +70,7 @@ export function LoginScreen({ navigation, route }) {
   const topInset = Math.max(insets.top, Platform.OS === "ios" ? 56 : 8);
   const signUpRoute = route?.params?.signUpRoute ?? "SellSignUp";
   const loginRoute = route?.params?.loginRoute ?? "SellLogin";
-  const originKey = route?.params?.originKey ?? null;
+  const originName = route?.params?.originName ?? null;
   const forgotRoute = route?.params?.forgotRoute ?? "ForgotPassword";
 
   // Both screens rely on AuthContext flipping `user` and SellStack swapping
@@ -80,8 +80,8 @@ export function LoginScreen({ navigation, route }) {
   // account, however deep the auth flow went.
   const { user: authedUser } = useAuth();
   useEffect(() => {
-    if (authedUser && originKey) navigation.navigate({ key: originKey });
-  }, [authedUser, originKey, navigation]);
+    if (authedUser && originName) navigation.navigate(originName);
+  }, [authedUser, originName, navigation]);
 
   // Presentation only. Both account types authenticate identically — a
   // phone number and a password — and which type a number belongs to isn't
@@ -163,7 +163,7 @@ export function LoginScreen({ navigation, route }) {
       <Container edges={["left", "right"]}>
         <HeaderRow topInset={topInset}>
           <BackLink
-            onPress={() => closeAccountGate(navigation, originKey)}
+            onPress={() => closeAccountGate(navigation, originName)}
             hitSlop={12}
           >
             <Ionicons name="chevron-back" size={17} color={colors.text} />
@@ -328,7 +328,7 @@ export function LoginScreen({ navigation, route }) {
               onPress={() =>
                 navigation.navigate(signUpRoute, {
                   accountType,
-                  originKey,
+                  originName,
                   signUpRoute,
                   loginRoute,
                   forgotRoute,

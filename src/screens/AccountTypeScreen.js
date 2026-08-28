@@ -44,13 +44,13 @@ export function AccountTypeScreen({ navigation, route }) {
   const signUpRoute = route?.params?.signUpRoute ?? "SellSignUp";
   const loginRoute = route?.params?.loginRoute ?? "SellLogin";
   const forgotRoute = route?.params?.forgotRoute ?? "ForgotPassword";
-  const originKey = route?.params?.originKey ?? null;
+  const originName = route?.params?.originName ?? null;
 
   // Reached two ways: by tapping Vendre (history behind it) or by a jump
   // from Report/Message/Save. The old fallback here named "SellGate", a
   // route that exists only inside the Sell tab — so from the root-stack copy
   // it resolved to nothing and the arrow genuinely did nothing.
-  const handleBack = () => closeAccountGate(navigation, originKey);
+  const handleBack = () => closeAccountGate(navigation, originName);
 
   const insets = useSafeAreaInsets();
   // Floor, because a zero reading is a real failure mode on iOS (the first
@@ -86,7 +86,7 @@ export function AccountTypeScreen({ navigation, route }) {
           onPress={() =>
             navigation.navigate(signUpRoute, {
               accountType: "individual",
-              originKey,
+              originName,
               loginRoute,
               signUpRoute,
               forgotRoute,
@@ -110,7 +110,7 @@ export function AccountTypeScreen({ navigation, route }) {
           onPress={() =>
             navigation.navigate(signUpRoute, {
               accountType: "company",
-              originKey,
+              originName,
               loginRoute,
               signUpRoute,
               forgotRoute,
@@ -143,7 +143,7 @@ export function AccountTypeScreen({ navigation, route }) {
         <LoginRow
           onPress={() =>
             navigation.navigate(loginRoute, {
-              originKey,
+              originName,
               loginRoute,
               signUpRoute,
               forgotRoute,

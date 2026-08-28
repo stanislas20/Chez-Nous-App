@@ -116,7 +116,7 @@ export function SignUpScreen({ navigation, route }) {
   // Which stack this copy lives in — see openAccountGate.
   const signUpRoute = route.params?.signUpRoute ?? "SellSignUp";
   const loginRoute = route.params?.loginRoute ?? "SellLogin";
-  const originKey = route.params?.originKey ?? null;
+  const originName = route.params?.originName ?? null;
   const forgotRoute = route.params?.forgotRoute ?? "ForgotPassword";
 
   // Both screens rely on AuthContext flipping `user` and SellStack swapping
@@ -126,8 +126,8 @@ export function SignUpScreen({ navigation, route }) {
   // account, however deep the auth flow went.
   const { user: authedUser } = useAuth();
   useEffect(() => {
-    if (authedUser && originKey) navigation.navigate({ key: originKey });
-  }, [authedUser, originKey, navigation]);
+    if (authedUser && originName) navigation.navigate(originName);
+  }, [authedUser, originName, navigation]);
 
   // A company registers its business first and its sign-in credentials
   // last: the legal identifiers are the point of the account, so the flow
@@ -262,7 +262,7 @@ export function SignUpScreen({ navigation, route }) {
     }
     // Shared with the other two auth screens so all three agree and none
     // can dead-end — see closeAccountGate.
-    closeAccountGate(navigation, originKey);
+    closeAccountGate(navigation, originName);
   };
 
   useEffect(() => {
@@ -466,7 +466,7 @@ export function SignUpScreen({ navigation, route }) {
             onPress: () =>
               navigation.navigate(loginRoute, {
                 accountType: "company",
-                originKey,
+                originName,
                 signUpRoute,
                 loginRoute,
                 forgotRoute,
@@ -667,7 +667,7 @@ export function SignUpScreen({ navigation, route }) {
                     <Pressable
                       onPress={() =>
                         navigation.navigate(loginRoute, {
-                          originKey,
+                          originName,
                           signUpRoute,
                           loginRoute,
                           forgotRoute,

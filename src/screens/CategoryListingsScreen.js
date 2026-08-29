@@ -41,6 +41,8 @@ import { distanceInKm } from "../utils/geo";
 import { getDutyLabel } from "../utils/pharmacyDuty";
 import { queryMatches } from "../utils/search";
 
+const pharmacyMark = require("../../assets/pharmacy-mark.png");
+
 const listContentStyle = {
   paddingHorizontal: spacing.md,
   paddingTop: spacing.lg,
@@ -332,7 +334,11 @@ function NearestPharmacyCard({ status, nearest, onRequestLocation }) {
       <NearestKicker>{t("nearestPharmacyTitle")}</NearestKicker>
       <NearestBodyRow>
         <HeroIconBox>
-          <Ionicons name="medkit" size={22} color="#ffffff" />
+          {/* The coupe d'Hygie, not a first-aid case. "medkit" is a doctor's
+              bag; the sign over a pharmacie here is the serpent and the
+              chalice. Drawn in scripts/make-pharmacy-mark.py — there is no
+              react-native-svg in this project, so it ships as an asset. */}
+          <PharmacyMark source={pharmacyMark} resizeMode="contain" />
         </HeroIconBox>
         <PharmacyRowBody>
           <NearestName numberOfLines={1}>{title}</NearestName>
@@ -711,14 +717,19 @@ export function CategoryListingsScreen({ route, navigation }) {
                     selected={pharmacyTab === "duty"}
                     onPress={() => setPharmacyTab("duty")}
                   >
-                    <Ionicons
-                      name="medkit"
-                      size={15}
-                      color={
-                        pharmacyTab === "duty"
-                          ? colors.textInverse
-                          : colors.textMuted
-                      }
+                    {/* Same mark as the card above, tinted: the tab is white
+                        on green when chosen and grey when not, and the asset
+                        carries its shape in the alpha channel so a tint is
+                        all it takes. */}
+                    <PharmacyTabMark
+                      source={pharmacyMark}
+                      resizeMode="contain"
+                      style={{
+                        tintColor:
+                          pharmacyTab === "duty"
+                            ? colors.textInverse
+                            : colors.textMuted,
+                      }}
                     />
                     <PharmacyTabLabel
                       selected={pharmacyTab === "duty"}
@@ -1180,6 +1191,21 @@ const HeroIconBox = styled.View`
   background-color: ${(props) => props.theme.primary};
   align-items: center;
   justify-content: center;
+`;
+
+// The asset is white with its shape in the alpha channel, so tintColor can
+// recolour it wherever it needs to sit on something other than the green.
+const PharmacyMark = styled.Image`
+  width: 25px;
+  height: 25px;
+`;
+
+// A shade larger than the 15px Ionicon it replaces: the glyph is mostly
+// outline where the medkit was a solid block, so it needs the extra pixel
+// or two to carry the same weight beside the label.
+const PharmacyTabMark = styled.Image`
+  width: 16px;
+  height: 16px;
 `;
 
 const NearestName = styled.Text`

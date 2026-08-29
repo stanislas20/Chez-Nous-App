@@ -116,6 +116,7 @@ import {
   vehicleSellerKinds,
   vehicleTransmissions,
 } from "../data/vehicles";
+import { goodsBodyTypes } from "../data/truckTransport";
 import { carParks } from "../data/carParks";
 import { modelsForBrand } from "../data/vehicleModels";
 import {
@@ -802,7 +803,12 @@ export function CreateListingScreen({ route, navigation }) {
   const [mileage, setMileage] = useState(seedText("mileage", ""));
   const [fuel, setFuel] = useState(seed("fuel", null));
   const [transmission, setTransmission] = useState(seed("transmission", null));
-  const [bodyType, setBodyType] = useState(seed("bodyType", null));
+  // Preset when the seller arrived from a screen that already knows the
+  // shape of the thing — Camions & utilitaires, whose whole subject is a
+  // body type. Same mechanism as vehiclePurpose above.
+  const [bodyType, setBodyType] = useState(
+    seed("bodyType", route.params?.bodyType ?? null),
+  );
   const [sellerKind, setSellerKind] = useState(seed("sellerKind", null));
   const [documents, setDocuments] = useState(seed("documents", null));
   const [carPark, setCarPark] = useState(seed("carPark", null));
@@ -2588,6 +2594,14 @@ export function CreateListingScreen({ route, navigation }) {
               placeholder={t(
                 (isServices ? SERVICE_TRADE_HINT_KEYS[trade] : null) ??
                   TRADE_HINT_KEYS[trade] ??
+                  // A camion is not a Corolla. Vehicles' own example names a
+                  // saloon and its mileage, which is the wrong thing to show
+                  // somebody publishing a three-tonne flatbed from Camions &
+                  // utilitaires — they need to be asked for payload, not for
+                  // how far it has been driven to the office.
+                  (isVehicle && goodsBodyTypes.includes(bodyType)
+                    ? "sellTitleHint_goodsVehicle"
+                    : null) ??
                   TITLE_HINT_KEYS[selectedCategory] ??
                   "sellFieldTitlePlaceholder",
               )}

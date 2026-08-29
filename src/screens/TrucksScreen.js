@@ -13,6 +13,7 @@ import {
   ANATT_LICENCE_URL,
   ANATT_TRANSPORT_CARD_URL,
   authorisationConditions,
+  bodiesForLoad,
   goodsLicence,
   loadSizes,
   transportCard,
@@ -65,13 +66,35 @@ export function TrucksScreen({ navigation }) {
 
   const visible = isHaul ? hauliers : mode === "rent" ? forHire : forSale;
 
+  // Publishing from here opened the plain vehicle form, which asks a car's
+  // questions and offers a saloon as its worked example — somebody
+  // publishing a three-tonne flatbed was shown "Toyota Corolla 2015,
+  // 120 000 km". So the form is told two things it can only learn here.
+  //
+  // The body comes from the load already chosen. With none chosen it is
+  // "truck", named here rather than taken as bodiesForLoad(null)[0] — that
+  // is "pickup", by an accident of the order the array happens to be
+  // written in, and a default nobody decided is a default nobody can
+  // change on purpose.
+  //
+  // Some body is passed either way, because a blank one is the single
+  // answer that is certainly wrong on a screen about goods vehicles: it is
+  // what sends the seller back to the saloon example. It preselects a
+  // chip, it does not claim anything — one tap changes it to fourgon.
+  //
+  // The purpose is the seller's side of the tab they are reading: on
+  // Acheter they are selling, on Louer they are renting out.
   const openPostForm = () =>
     isHaul
       ? navigation.navigate("CreateListing", {
           categoryKey: "services",
           trade: "haulier",
         })
-      : navigation.navigate("CreateListing", { categoryKey: "vehicles" });
+      : navigation.navigate("CreateListing", {
+          categoryKey: "vehicles",
+          bodyType: load ? bodiesForLoad(load)[0] : "truck",
+          vehiclePurpose: mode === "rent" ? "rent" : "sell",
+        });
 
   const { remember } = useAccountGateIntent(user, openPostForm);
   const mayPublish = !user || canPublish(user);

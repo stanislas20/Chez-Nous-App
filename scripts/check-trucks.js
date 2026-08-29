@@ -259,6 +259,42 @@ check(
   /categoryKey: "vehicles"/.test(screen),
   true,
 );
+// A camion is not a Corolla, and for a while the form could not tell:
+// publishing from here opened the plain vehicle form, whose worked example
+// is a saloon and its mileage. The screen has to hand over the two things
+// only it knows — which body, and which side of the deal the seller is on.
+check(
+  "the form is told the body type",
+  /bodyType: load \? bodiesForLoad\(load\)\[0\] : "truck"/.test(screen),
+  true,
+);
+check(
+  "and which side of the deal the publisher is on",
+  /vehiclePurpose: mode === "rent" \? "rent" : "sell"/.test(screen),
+  true,
+);
+const form = read("src/screens/CreateListingScreen.js");
+check(
+  "the form accepts a body type from the route",
+  /seed\("bodyType", route\.params\?\.bodyType \?\? null\)/.test(form),
+  true,
+);
+// And having accepted it, shows a goods example instead of the saloon.
+check(
+  "and shows a goods-vehicle example for those bodies",
+  /goodsBodyTypes\.includes\(bodyType\)[\s\S]{0,80}sellTitleHint_goodsVehicle/.test(
+    form,
+  ),
+  true,
+);
+// One list of which bodies carry goods, imported rather than retyped: two
+// copies drift, and the copy in the form is the one that decides whether
+// the seller sees the right example.
+check(
+  "the form reads the same goods-body list, not its own copy",
+  /import \{ goodsBodyTypes \} from "\.\.\/data\/truckTransport"/.test(form),
+  true,
+);
 
 // ── And the tile goes to the screen, not to a search ───────────────────
 check(

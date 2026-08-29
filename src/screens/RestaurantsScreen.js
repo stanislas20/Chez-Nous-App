@@ -219,10 +219,6 @@ export function RestaurantsScreen({ navigation }) {
     userCoords,
   ]);
 
-  // The promoted row is lifted out of the list so it can't appear twice —
-  // once in its own slot and again further down. It still respects every
-  // active filter: a paid placement that ignores the cuisine you asked for
-  // is an advert, not a result.
   // A Google record has no page here to open — there is no listing behind
   // it. Maps is where its hours, reviews and directions actually live, so
   // that is where the tap goes rather than to a stub of our own.
@@ -233,6 +229,14 @@ export function RestaurantsScreen({ navigation }) {
     ).catch(() => {});
   };
 
+  // The promoted row is lifted out of the list so it can't appear twice —
+  // once in its own slot and again further down. It still respects every
+  // active filter: a paid placement that ignores the cuisine you asked for
+  // is an advert, not a result.
+  //
+  // One slot, and `find` takes the first in the current sort order. Two
+  // promoted restaurants do not get two cards; the loser falls back into
+  // the ordinary list.
   const promoted = restaurants.find((item) => item.promoted) ?? null;
 
   // Google's, minus anyone who has published here. A restaurant with a

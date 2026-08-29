@@ -44,6 +44,7 @@ import {
 } from "../utils/listingLifecycle";
 import { withViewHeat } from "../utils/viewHeat";
 import { TabSafeAreaView } from "../components/TabSafeAreaView";
+import { useBannerStatusBar } from "../hooks/useBannerStatusBar";
 
 const EMERALD = "#0B6E4F";
 const GOLD = "#D9A441";
@@ -126,6 +127,7 @@ const quickActionsGridStyle = {
 export function SellerDashboardScreen({ navigation }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  useBannerStatusBar();
   const { language, t, resetLanguage } = useI18n();
   const { user, sellerProfile, logOut } = useAuth();
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -648,10 +650,16 @@ export function SellerDashboardScreen({ navigation }) {
 
   return (
     <Container edges={["left", "right"]}>
+      {/* The navigation header above this used to hold the title and a
+          logout button; it is off now, so the banner starts at the top of
+          the screen and pays the status bar inset itself. Nothing was lost
+          with it — the greeting says whose dashboard this is better than a
+          title did, and logout still lives one tap away behind the gear. */}
       <Header
         colors={["#0B6E4F", "#07362A", "#05261D"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
+        style={{ paddingTop: insets.top + spacing.md }}
       >
         <HeaderRow>
           <AvatarButton onPress={pickAvatar} disabled={isUploadingAvatar}>

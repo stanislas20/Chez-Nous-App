@@ -1,7 +1,5 @@
-import { ActivityIndicator, Alert, Pressable, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { Ionicons } from "@expo/vector-icons";
-import { spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
@@ -21,38 +19,6 @@ import { SellerInsightsScreen } from "../screens/SellerInsightsScreen";
 import { categories } from "../data/categories";
 
 const Stack = createNativeStackNavigator();
-
-function LogoutButton() {
-  const { colors } = useTheme();
-  const { t, resetLanguage } = useI18n();
-  const { logOut } = useAuth();
-
-  // Resetting the language sends the user back to LanguageSelectScreen —
-  // RootNavigator swaps its whole tree to it whenever no language is set,
-  // so logout lands on the app's actual first landing screen instead of
-  // leaving them on a gated/empty version of the current tab.
-  const handleLogout = () => {
-    logOut();
-    resetLanguage();
-  };
-
-  const handlePress = () => {
-    Alert.alert(t("logoutConfirmTitle"), t("logoutConfirmMessage"), [
-      { text: t("cancel"), style: "cancel" },
-      { text: t("logoutButton"), style: "destructive", onPress: handleLogout },
-    ]);
-  };
-
-  return (
-    <Pressable
-      onPress={handlePress}
-      hitSlop={8}
-      style={{ marginRight: spacing.md }}
-    >
-      <Ionicons name="log-out-outline" size={22} color={colors.primary} />
-    </Pressable>
-  );
-}
 
 export function SellStack() {
   const { colors } = useTheme();
@@ -120,10 +86,11 @@ export function SellStack() {
           <Stack.Screen
             name="SellerDashboard"
             component={SellerDashboardScreen}
-            options={{
-              title: t("sellerDashboardTitle"),
-              headerRight: () => <LogoutButton />,
-            }}
+            // No navigation header: the dashboard's own emerald banner runs
+            // to the top of the screen, and a white bar above it split the
+            // two. Logout moved into the account sheet behind the gear,
+            // where it already had a row.
+            options={{ headerShown: false }}
           />
           <Stack.Screen
             name="CompanyProfileEdit"

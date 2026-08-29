@@ -42,6 +42,7 @@ import { distanceInKm } from "../utils/geo";
 import { queryMatches } from "../utils/search";
 import { useI18n } from "../i18n/I18nContext";
 import { TabSafeAreaView } from "../components/TabSafeAreaView";
+import { useBannerStatusBar } from "../hooks/useBannerStatusBar";
 
 const EMERALD = "#0B6E4F";
 // Module-level so its identity is stable across renders — it feeds useMemo
@@ -63,6 +64,7 @@ const sheetScrollContentStyle = { paddingHorizontal: spacing.md };
 
 export function LocalScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  useBannerStatusBar();
   const { colors } = useTheme();
   const { language, setLanguage, t } = useI18n();
   const { user } = useAuth();
@@ -280,8 +282,10 @@ export function LocalScreen({ navigation }) {
     : t("localAllCities");
 
   return (
-    <Container edges={["top", "left", "right"]}>
-      <Header>
+    <Container edges={["left", "right"]}>
+      {/* See ForYouScreen: the banner owns the status bar strip, so the
+          SafeAreaView must not also pay for it in white. */}
+      <Header style={{ paddingTop: insets.top + spacing.lg }}>
         {/* Depth, not decoration for its own sake: a flat gradient this
             large reads as a coloured rectangle, and two very faint discs
             catching the light off the top-right corner give it a surface.

@@ -83,6 +83,7 @@ import { listingPriceText } from "../utils/listingPrice";
 import { openListing } from "../utils/openListing";
 import { useSearchPharmacies } from "../hooks/useSearchPharmacies";
 import { TabSafeAreaView } from "../components/TabSafeAreaView";
+import { useBannerStatusBar } from "../hooks/useBannerStatusBar";
 
 // Fixed brand accents from the design mockup (not theme-reactive, like the
 // onboarding screen's Benin flag colors) — used for small decorative surfaces
@@ -987,6 +988,7 @@ export function ForYouScreen({ navigation, route }) {
   const { user, sellerProfile, advertiserProfile } = useAuth();
   const { width: windowWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  useBannerStatusBar();
   const { coords: userCoords, requestLocation } = useCurrentLocation();
   const [query, setQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -1586,8 +1588,13 @@ export function ForYouScreen({ navigation, route }) {
   );
 
   return (
-    <Container edges={["top", "left", "right"]}>
-      <HeaderCard>
+    <Container edges={["left", "right"]}>
+      {/* The gradient runs under the status bar, so "top" comes off the
+          SafeAreaView and is paid back as padding here — the same way the
+          Restaurants and Pneus heroes already do it. Left on the
+          SafeAreaView it was paid in theme.background, which drew a white
+          strip above the banner and made the two read as separate bars. */}
+      <HeaderCard style={{ paddingTop: insets.top + spacing.lg }}>
         <HeaderRow>
           {/* The account holder's own photo when they have uploaded one.
               The gradient monogram stays as the fallback rather than being

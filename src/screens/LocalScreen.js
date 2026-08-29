@@ -27,6 +27,7 @@ import { cities } from "../data/cities";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { nearestKnownCity } from "../utils/nearestCity";
 import { categories } from "../data/categories";
+import { listingSearchParts } from "../data/customCategories";
 import { LinearGradient } from "expo-linear-gradient";
 import { useApprovedListingsState } from "../hooks/useApprovedListings";
 import { getDutyLabel } from "../utils/pharmacyDuty";
@@ -237,7 +238,12 @@ export function LocalScreen({ navigation }) {
     if (query.trim().length > 0) {
       result = result.filter((listing) => {
         const title = language === "en" ? listing.titleEn : listing.titleFr;
-        return queryMatches(query, title, listing.city);
+        return queryMatches(
+          query,
+          title,
+          listing.city,
+          ...listingSearchParts(listing),
+        );
       });
     }
     if (priceSort) {

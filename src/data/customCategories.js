@@ -86,10 +86,43 @@ export function customCategoriesFrom(listings, { field = "customCategory" } = {}
   );
 }
 
+// The seller's own word for what this is, whichever question asked it.
+//
+// "Autre" at the category level answers customCategory; "Autre métier"
+// under Services answers customTrade. Both are the same act — a seller
+// naming something the app's own list did not — so everything that shows or
+// searches one should show and search the other, and asking through one
+// function is what keeps that true.
+export function listingSubLabel(listing) {
+  for (const field of ["customCategory", "customTrade"]) {
+    const label = normalizeCategoryLabel(listing?.[field]);
+    if (isUsableCategoryLabel(label)) return label;
+  }
+  return null;
+}
+
+// The words a listing should be findable by, beyond its title and city.
+//
+// Returned as an array to be spread into queryMatches, which takes any
+// number of text parts. The point of asking a seller to "name it the way a
+// buyer would search for it" is that the buyer can then search for it; until
+// this was passed in, that sentence in the form was not true.
+export function listingSearchParts(listing) {
+  return [listing?.customCategory, listing?.customTrade].filter(Boolean);
+}
+
 // What to call a listing whose category is "other": the seller's own word if
 // they gave one, and only then the generic label. A card reading "Autre" is
 // the app admitting it did not ask.
 export function categoryLabelFor(listing, fallback) {
   const custom = normalizeCategoryLabel(listing?.customCategory);
-  return isUsableCategoryLabel(custom) ? custom : fallback;
+  if (isUsableCategoryLabel(custom)) return custom;
+  // A service names a trade rather than replacing its category: it really is
+  // a service, and "Soudure" alone would lose that. Read as "Services ·
+  // Soudure" the way the moderation card reads.
+  const trade = normalizeCategoryLabel(listing?.customTrade);
+  if (isUsableCategoryLabel(trade)) {
+    return fallback ? `${fallback} · ${trade}` : trade;
+  }
+  return fallback;
 }

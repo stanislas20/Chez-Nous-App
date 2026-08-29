@@ -85,6 +85,7 @@ import { useSearchPharmacies } from "../hooks/useSearchPharmacies";
 import { TabSafeAreaView } from "../components/TabSafeAreaView";
 import { useBannerStatusBar } from "../hooks/useBannerStatusBar";
 import { isPromotionLive } from "../data/promotion";
+import { listingSearchParts } from "../data/customCategories";
 
 // Fixed brand accents from the design mockup (not theme-reactive, like the
 // onboarding screen's Benin flag colors) — used for small decorative surfaces
@@ -1348,7 +1349,14 @@ export function ForYouScreen({ navigation, route }) {
   );
   const filteredListings = searchableListings.filter((listing) => {
     const title = language === "en" ? listing.titleEn : listing.titleFr;
-    const isQueryMatch = queryMatches(query, title, listing.city);
+    const isQueryMatch = queryMatches(
+      query,
+      title,
+      listing.city,
+      // The form tells sellers to name it the way a buyer would search for
+      // it. This is the line that makes that sentence true.
+      ...listingSearchParts(listing),
+    );
     const matchesCategory =
       !selectedCategoryKey || listing.categoryKey === selectedCategoryKey;
     // `sellerVerified` is stamped onto the listing at write time, so this

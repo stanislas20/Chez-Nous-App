@@ -33,6 +33,7 @@ import { useApprovedListings } from "../hooks/useApprovedListings";
 import {
   customCategoriesFrom,
   foldCategoryLabel,
+  listingSearchParts,
 } from "../data/customCategories";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { openListing } from "../utils/openListing";
@@ -487,7 +488,12 @@ export function CategoryListingsScreen({ route, navigation }) {
     ? cityFilteredListings.filter((listing) => {
         const title =
           (language === "en" ? listing.titleEn : listing.titleFr) ?? "";
-        return queryMatches(query, title, listing.city);
+        return queryMatches(
+          query,
+          title,
+          listing.city,
+          ...listingSearchParts(listing),
+        );
       })
     : cityFilteredListings;
 

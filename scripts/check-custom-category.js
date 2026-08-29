@@ -126,7 +126,57 @@ const failures = [];
   }
 }
 
-// 4. The ceiling is in the rules, where it holds against the SDK.
+// 4. The word is searchable, everywhere listings are searched.
+//
+//    The form tells sellers "name it the way a buyer would search for it".
+//    Until the label was passed to queryMatches that sentence was false: a
+//    buyer typing the exact words a seller had chosen found nothing, which
+//    is the flow contradicting its own instructions.
+{
+  const SEARCHERS = [
+    "src/screens/CategoryListingsScreen.js",
+    "src/screens/ForYouScreen.js",
+    "src/screens/LocalScreen.js",
+  ];
+  for (const rel of SEARCHERS) {
+    const source = read(rel);
+    // Only the calls that search listings — the pharmacy one searches Places
+    // results, which have no seller-written category.
+    const calls = [...source.matchAll(/queryMatches\(([\s\S]{0,220}?)\)/g)]
+      .map((match) => match[1])
+      .filter((args) => /\blisting\.city\b/.test(args));
+    if (calls.length === 0) {
+      failures.push(`${rel} no longer searches listings at all`);
+      continue;
+    }
+    for (const args of calls) {
+      // No closing paren in the test: the capture above is non-greedy and
+      // ends at the FIRST ")", which is the one inside
+      // listingSearchParts(listing) itself.
+      if (!/listingSearchParts\(/.test(args)) {
+        failures.push(
+          `${rel} searches listings without their seller-written category, ` +
+            `so "name it the way a buyer would search for it" is a lie`,
+        );
+        break;
+      }
+    }
+  }
+}
+
+// 5. And a service's trade is shown, not only collected. It reached the
+//    next seller's chips and stopped there — no buyer ever saw it.
+{
+  const detail = read("src/screens/ProductDetailScreen.js");
+  if (!/categoryLabelFor\(/.test(detail)) {
+    failures.push(
+      "ProductDetailScreen does not use categoryLabelFor, so a listing the " +
+        "seller named reads back as \"Autre\"",
+    );
+  }
+}
+
+// 6. The ceiling is in the rules, where it holds against the SDK.
 {
   const rules = read("firestore.rules");
   if (!/function customCategoryOk/.test(rules)) {
@@ -153,7 +203,7 @@ const failures = [];
   }
 }
 
-// 5. And the folding, run rather than read. This is the part that decides
+// 7. And the folding, run rather than read. This is the part that decides
 //    whether the list converges on one word or grows a synonym per seller.
 {
   const code = babel.transformSync(raw("src/data/customCategories.js"), {
@@ -230,6 +280,29 @@ const failures = [];
     }
   }
 
+  const { listingSubLabel, listingSearchParts } = sandbox.module.exports;
+  if (listingSubLabel({ customTrade: "Soudure" }) !== "Soudure") {
+    failures.push("listingSubLabel misses customTrade");
+  }
+  if (listingSubLabel({ customCategory: " " , customTrade: "Soudure" }) !== "Soudure") {
+    failures.push("listingSubLabel is blocked by an empty customCategory");
+  }
+  if (listingSubLabel({}) !== null) {
+    failures.push("listingSubLabel invents a label");
+  }
+  if (listingSearchParts({ customTrade: "Soudure" }).join() !== "Soudure") {
+    failures.push("listingSearchParts drops customTrade");
+  }
+  if (listingSearchParts({}).length !== 0) {
+    failures.push("listingSearchParts returns blanks, which widen every search");
+  }
+  // A service keeps its category and adds its trade: "Soudure" alone would
+  // lose the fact that it is a service at all.
+  if (categoryLabelFor({ customTrade: "Soudure" }, "Services") !== "Services · Soudure") {
+    failures.push(
+      "a custom trade replaces the category instead of qualifying it",
+    );
+  }
   if (categoryLabelFor({ customCategory: "Soudure" }, "Autre") !== "Soudure") {
     failures.push("categoryLabelFor shows the generic label over the seller's");
   }

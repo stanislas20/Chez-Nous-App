@@ -30,6 +30,10 @@ import { SearchBar } from "../components/SearchBar";
 import { mockListings } from "../data/mockListings";
 import { cities } from "../data/cities";
 import { useApprovedListings } from "../hooks/useApprovedListings";
+import {
+  customCategoriesFrom,
+  foldCategoryLabel,
+} from "../data/customCategories";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { openListing } from "../utils/openListing";
 import { buildPlacePhotoUrl } from "../utils/placePhoto";
@@ -418,6 +422,11 @@ export function CategoryListingsScreen({ route, navigation }) {
   const [citySearch, setCitySearch] = useState("");
   const [sortMode, setSortMode] = useState("distance"); // 'distance' | 'city'
   const groupByLocation = categoryKey === "pharmacyOnDuty";
+  // Everything a seller could not find a category for arrives here, in one
+  // aisle. Their own words are the only thing separating a saxophone from a
+  // welding torch, so those words become the filter.
+  const isOtherCategory = categoryKey === "other";
+  const [customFilter, setCustomFilter] = useState(null);
 
   useLayoutEffect(() => {
     navigation.setOptions({ title: categoryLabel });
@@ -455,10 +464,24 @@ export function CategoryListingsScreen({ route, navigation }) {
     });
   }, [categoryKey, categoryListings]);
 
+  // The same list the publish form offers, built from the same function, so
+  // the chip a seller tapped is the chip a buyer taps. Commonest first.
+  const customAisles = useMemo(
+    () => (isOtherCategory ? customCategoriesFrom(categoryListings) : []),
+    [isOtherCategory, categoryListings],
+  );
+
+  const aisleFilteredListings =
+    isOtherCategory && customFilter
+      ? categoryListings.filter(
+          (listing) => foldCategoryLabel(listing.customCategory) === customFilter,
+        )
+      : categoryListings;
+
   const cityFilteredListings =
     groupByLocation && selectedCity
-      ? categoryListings.filter((listing) => listing.city === selectedCity)
-      : categoryListings;
+      ? aisleFilteredListings.filter((listing) => listing.city === selectedCity)
+      : aisleFilteredListings;
 
   const listings = query.trim()
     ? cityFilteredListings.filter((listing) => {
@@ -491,6 +514,54 @@ export function CategoryListingsScreen({ route, navigation }) {
   // choice was "distance".
   const effectiveSortMode =
     sortMode === "distance" && coords ? "distance" : "city";
+
+  // Rendered by the grid layout, which is the one every non-pharmacy
+  // category uses — the pharmacy layout has a header of its own and no
+  // "Autre" listings to sort.
+  //
+  // Only when there is more than one aisle: a single chip is not a filter,
+  // it is the whole list with a button on it.
+  const renderAisleRow = () =>
+    isOtherCategory && customAisles.length > 1 ? (
+      <AisleRow
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={aisleRowStyle}
+      >
+        <AisleChip
+          selected={!customFilter}
+          onPress={() => setCustomFilter(null)}
+        >
+          <AisleChipLabel selected={!customFilter}>
+            {t("otherAisleAll")}
+          </AisleChipLabel>
+          <AisleChipCount selected={!customFilter}>
+            <AisleChipCountLabel selected={!customFilter}>
+              {categoryListings.length}
+            </AisleChipCountLabel>
+          </AisleChipCount>
+        </AisleChip>
+        {customAisles.map((aisle) => {
+          const active = customFilter === aisle.key;
+          return (
+            <AisleChip
+              key={aisle.key}
+              selected={active}
+              onPress={() => setCustomFilter(active ? null : aisle.key)}
+            >
+              <AisleChipLabel selected={active} numberOfLines={1}>
+                {aisle.label}
+              </AisleChipLabel>
+              <AisleChipCount selected={active}>
+                <AisleChipCountLabel selected={active}>
+                  {aisle.count}
+                </AisleChipCountLabel>
+              </AisleChipCount>
+            </AisleChip>
+          );
+        })}
+      </AisleRow>
+    ) : null;
 
   const filteredSheetCities = cities.filter((city) =>
     city.toLowerCase().includes(citySearch.trim().toLowerCase()),
@@ -922,6 +993,7 @@ export function CategoryListingsScreen({ route, navigation }) {
           keyExtractor={(item) => item.id}
           numColumns={2}
           columnWrapperStyle={rowStyle}
+          ListHeaderComponent={renderAisleRow}
           contentContainerStyle={listContentStyle}
           refreshControl={refreshControl}
           showsVerticalScrollIndicator={false}
@@ -1044,6 +1116,56 @@ const EmptyActionLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 13px;
   color: ${(props) => props.theme.primaryDark};
+`;
+
+// Horizontal, not wrapped: there is no bound on how many words sellers
+// invent, and a wrapping row of forty would push the listings off the
+// screen it is meant to filter.
+const AisleRow = styled.ScrollView`
+  margin: ${spacing.sm}px 0 ${spacing.sm}px;
+`;
+
+const aisleRowStyle = {
+  paddingHorizontal: spacing.md,
+  gap: spacing.sm,
+  alignItems: "center",
+};
+
+const AisleChip = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  max-width: 240px;
+  padding: 9px 13px;
+  border-radius: ${radius.pill}px;
+  background-color: ${(props) =>
+    props.selected ? props.theme.primary : props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) =>
+    props.selected ? props.theme.primary : props.theme.border};
+`;
+
+const AisleChipLabel = styled.Text`
+  flex-shrink: 1;
+  font-family: ${(props) =>
+    props.selected ? fontFamily.bold : fontFamily.medium};
+  font-size: 13px;
+  color: ${(props) =>
+    props.selected ? props.theme.textInverse : props.theme.text};
+`;
+
+const AisleChipCount = styled.View`
+  padding: 1px 6px;
+  border-radius: ${radius.pill}px;
+  background-color: ${(props) =>
+    props.selected ? "rgba(255, 255, 255, 0.24)" : props.theme.surfaceAlt};
+`;
+
+const AisleChipCountLabel = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 11px;
+  color: ${(props) =>
+    props.selected ? props.theme.textInverse : props.theme.textMuted};
 `;
 
 const PharmacyTabRow = styled.View`

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Alert, Image, Linking, Modal, Pressable } from "react-native";
 import {
   SafeAreaView,
@@ -23,7 +23,11 @@ import { useAuth } from "../auth/AuthContext";
 import { useIsModerator } from "../hooks/useIsModerator";
 import { useModerationQueue } from "../hooks/useModerationQueue";
 import { categories } from "../data/categories";
-import { categoryLabelFor } from "../data/customCategories";
+import {
+  categoryLabelFor,
+  customCategoriesFrom,
+} from "../data/customCategories";
+import { useApprovedListings } from "../hooks/useApprovedListings";
 
 const EMERALD = "#0B6E4F";
 const TERRACOTTA = "#C1512D";
@@ -127,6 +131,19 @@ export function ModerationScreen({ navigation }) {
     loading,
     error: queueError,
   } = useModerationQueue(isModerator);
+
+  // Which words sellers keep reaching for, over every approved listing.
+  //
+  // A label here is not a category — it has no icon, no screen and no filter
+  // beyond the chips on the Autre aisle. Making one real is a code change,
+  // so it cannot happen automatically; what can happen is knowing which one
+  // has earned it, which is otherwise invisible until somebody thinks to
+  // count by hand.
+  const approvedListings = useApprovedListings();
+  const customTally = useMemo(
+    () => customCategoriesFrom(approvedListings).slice(0, 8),
+    [approvedListings],
+  );
 
   const [openId, setOpenId] = useState(null);
   const [rejectFor, setRejectFor] = useState(null);
@@ -498,7 +515,25 @@ export function ModerationScreen({ navigation }) {
             <EmptyCopy>{t("moderationQueueFailedCopy")}</EmptyCopy>
             <ErrorCode>{queueError}</ErrorCode>
           </ErrorCard>
-        ) : pending.length === 0 && !loading ? (
+        ) : null}
+
+        {isModerator && !queueError && customTally.length ? (
+          <TallyCard>
+            <TallyTitle>{t("moderationCustomTallyTitle")}</TallyTitle>
+            <TallyCopy>{t("moderationCustomTallyCopy")}</TallyCopy>
+            {customTally.map((entry) => (
+              <TallyRow key={entry.key}>
+                <TallyLabel numberOfLines={1}>{entry.label}</TallyLabel>
+                <TallyCount>
+                  <TallyCountLabel>{entry.count}</TallyCountLabel>
+                </TallyCount>
+              </TallyRow>
+            ))}
+          </TallyCard>
+        ) : null}
+
+        {!isModerator || queueError ? null : pending.length === 0 &&
+          !loading ? (
           <EmptyCard>
             <EmptyTitle>{t("moderationEmpty")}</EmptyTitle>
             <EmptyCopy>{t("moderationEmptyCopy")}</EmptyCopy>
@@ -746,6 +781,60 @@ const Description = styled.Text`
 // The promotion control sits on its own line under the decision buttons.
 // It is not a third verdict — the listing is already approved by the time
 // this appears — and putting it in the same row would read as one.
+// A tally, not a control. Nothing here is tappable, because promoting a
+// label to a real category means writing an icon, a colour and a screen —
+// it is a code change, and a button implying otherwise would be lying.
+const TallyCard = styled.View`
+  padding: ${spacing.md}px;
+  margin-bottom: ${spacing.md}px;
+  border-radius: ${radius.lg}px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+`;
+
+const TallyTitle = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 14px;
+  color: ${(props) => props.theme.text};
+`;
+
+const TallyCopy = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 12px;
+  line-height: 17px;
+  margin: 4px 0 ${spacing.sm}px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+const TallyRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.sm}px;
+  padding: 7px 0;
+  border-top-width: 1px;
+  border-top-color: ${(props) => props.theme.border};
+`;
+
+const TallyLabel = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.medium};
+  font-size: 13px;
+  color: ${(props) => props.theme.text};
+`;
+
+const TallyCount = styled.View`
+  padding: 2px 9px;
+  border-radius: ${radius.pill}px;
+  background-color: ${(props) => props.theme.surfaceAlt};
+`;
+
+const TallyCountLabel = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 12px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
 const PromoteRow = styled.View`
   margin-top: ${spacing.sm}px;
 `;

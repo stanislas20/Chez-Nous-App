@@ -2033,6 +2033,10 @@ export const translations = {
       "This is a placeholder shown while the directory fills up — there is no real restaurant behind it yet. Real listings open their own page.",
     restoSampleNote:
       "Sample listings, shown while the directory is being built. No ratings or menu prices are shown — we have none to verify.",
+    otherAisleAll: "Everything",
+    moderationCustomTallyTitle: "Categories sellers are asking for",
+    moderationCustomTallyCopy:
+      "Words sellers typed under \u201cOther\u201d, across approved listings. A word that keeps coming back has earned a category of its own \u2014 which is a code change, not a button here.",
     sellFieldCustomCategory: "What is it?",
     sellFieldCustomCategoryHint:
       "Name it the way a buyer would search for it. What you write here is offered to the next seller who gets this far.",
@@ -4668,6 +4672,10 @@ export const translations = {
       "Ceci est un exemple affiché en attendant que l’annuaire se remplisse — aucun restaurant réel ne se cache derrière. Les vraies annonces ouvrent leur propre fiche.",
     restoSampleNote:
       "Exemples affichés en attendant que l’annuaire se remplisse. Aucune note ni prix de menu : nous n’avons rien de vérifiable.",
+    otherAisleAll: "Tout",
+    moderationCustomTallyTitle: "Cat\u00e9gories demand\u00e9es par les vendeurs",
+    moderationCustomTallyCopy:
+      "Mots saisis sous \u00ab\u202fAutre\u202f\u00bb, sur les annonces approuv\u00e9es. Un mot qui revient souvent m\u00e9rite sa propre cat\u00e9gorie \u2014 ce qui demande une modification du code, pas un bouton ici.",
     sellFieldCustomCategory: "C\u2019est quoi\u00a0?",
     sellFieldCustomCategoryHint:
       "Nommez-le comme un acheteur le chercherait. Ce que vous \u00e9crivez ici sera propos\u00e9 au prochain vendeur qui arrivera jusqu\u2019ici.",

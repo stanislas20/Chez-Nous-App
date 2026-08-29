@@ -90,7 +90,43 @@ const failures = [];
   }
 }
 
-// 3. The ceiling is in the rules, where it holds against the SDK.
+// 3. The buyer's half. Collecting the words and never showing them to
+//    anyone but the next seller is half a feature: every "Autre" listing
+//    lands in one aisle, and without the filter a saxophone and a welding
+//    torch are the same row.
+{
+  const browse = read("src/screens/CategoryListingsScreen.js");
+  if (!/customCategoriesFrom\(categoryListings\)/.test(browse)) {
+    failures.push(
+      "CategoryListingsScreen does not build sub-aisles from the sellers' " +
+        "own words, so everything under Autre is one undifferentiated list",
+    );
+  }
+  if (!/foldCategoryLabel\(listing\.customCategory\)/.test(browse)) {
+    failures.push(
+      "the Autre filter matches on the raw label rather than the folded " +
+        "one, so \"Décoration\" and \"decoration\" filter to different lists " +
+        "even though they share a chip",
+    );
+  }
+  // The same function on both sides, or the chip a seller tapped is not the
+  // chip a buyer taps.
+  const form = read("src/screens/CreateListingScreen.js");
+  if (!/customCategoriesFrom/.test(form) || !/customCategoriesFrom/.test(browse)) {
+    failures.push(
+      "the form and the browse screen no longer share customCategoriesFrom",
+    );
+  }
+  const moderation = read("src/screens/ModerationScreen.js");
+  if (!/customCategoriesFrom\(approvedListings\)/.test(moderation)) {
+    failures.push(
+      "ModerationScreen no longer tallies the custom categories, so which " +
+        "word has earned a real category of its own is invisible again",
+    );
+  }
+}
+
+// 4. The ceiling is in the rules, where it holds against the SDK.
 {
   const rules = read("firestore.rules");
   if (!/function customCategoryOk/.test(rules)) {
@@ -117,7 +153,7 @@ const failures = [];
   }
 }
 
-// 4. And the folding, run rather than read. This is the part that decides
+// 5. And the folding, run rather than read. This is the part that decides
 //    whether the list converges on one word or grows a synonym per seller.
 {
   const code = babel.transformSync(raw("src/data/customCategories.js"), {

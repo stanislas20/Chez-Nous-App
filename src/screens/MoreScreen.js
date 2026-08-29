@@ -35,8 +35,12 @@ const CATEGORY_EMOJI = {
   sports: "⚽",
   agriculture: "🌾",
   services: "🛠️",
+  restaurants: "🍽️",
   community: "👥",
   jobs: "💼",
+  // Without this the row rendered with a blank where every other one has a
+  // mark, which reads as a broken line rather than a category.
+  other: "🗂️",
 };
 const TOP_CATEGORIES = NON_PHARMACY_CATEGORIES.slice(0, 5);
 const REMAINING_CATEGORIES = NON_PHARMACY_CATEGORIES.slice(5);

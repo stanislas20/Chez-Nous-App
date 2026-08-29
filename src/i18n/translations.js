@@ -376,7 +376,7 @@ export const translations = {
     shareDutyPharmacyMessage:
       '"{title}" is on duty tonight on Chez-Nous! Call {phone}.',
     shareJobMessage: '"{title}" at {company} is hiring on Chez-Nous!',
-    pharmacyOpenUntil: "On duty day and night until {date}",
+    pharmacyOpenUntil: "Open overnight until {date}",
     pharmacyAlwaysOpen: "Open 24/7",
     pharmacyLastKnownSchedule: "As of {date} · call to confirm",
     contactOnWhatsApp: "Message on WhatsApp",
@@ -2901,7 +2901,7 @@ export const translations = {
     shareDutyPharmacyMessage:
       '"{title}" est de garde ce soir sur Chez-Nous ! Appelez le {phone}.',
     shareJobMessage: '"{title}" chez {company} recrute sur Chez-Nous !',
-    pharmacyOpenUntil: "De garde jour et nuit jusqu'au {date}",
+    pharmacyOpenUntil: "De garde la nuit jusqu'au {date}",
     pharmacyAlwaysOpen: "Ouvert 24h/24",
     pharmacyLastKnownSchedule: "Au {date} · à confirmer par tél.",
     contactOnWhatsApp: "Écrire sur WhatsApp",

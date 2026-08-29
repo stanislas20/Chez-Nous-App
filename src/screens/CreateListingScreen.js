@@ -69,6 +69,8 @@ import {
   commercialPricePer,
   realEstateHasCapacity,
   amenitiesFor,
+  eventSettings,
+  getEventSettingLabel,
   ROOM_COUNTS,
   realEstateDeals,
   realEstateHasDeposit,
@@ -843,6 +845,7 @@ export function CreateListingScreen({ route, navigation }) {
   // on what a seller ticked, never on what they left blank.
   const [features, setFeatures] = useState(seed("features", []));
   const [capacity, setCapacity] = useState(seedText("capacity", ""));
+  const [eventSetting, setEventSetting] = useState(seed("eventSetting", null));
   const [propertyType, setPropertyType] = useState(seed("propertyType", null));
   const [surfaceArea, setSurfaceArea] = useState(seedText("surfaceArea", ""));
   const [bedrooms, setBedrooms] = useState(seed("bedrooms", null));
@@ -1904,6 +1907,9 @@ export function CreateListingScreen({ route, navigation }) {
               // Guests, not square metres: a hall is booked on how many
               // people it seats.
               capacity: Number(capacity) || null,
+              // Only a hall has one; anything else would be storing an
+              // answer to a question it was never asked.
+              eventSetting: eventSetting ?? null,
               surfaceArea: Number(surfaceArea) || null,
               bedrooms,
               bathrooms,
@@ -3181,6 +3187,57 @@ export function CreateListingScreen({ route, navigation }) {
                               </CurrencyTagLabel>
                             </CurrencyTag>
                           </PriceFieldRow>
+
+                          {/* Capacity and surface say how big. Neither says
+                              whether it is a room or a garden, which is what
+                              decides whether rain cancels the day and
+                              whether the climatisation below is even
+                              relevant. */}
+                          <Label>{t("sellFieldEventSetting")}</Label>
+                          <PickerGrid>
+                            {eventSettings.map((option, index) => {
+                              const active = eventSetting === option.key;
+                              return (
+                                <PickerCard
+                                  key={option.key}
+                                  full={isPickerCardFull(
+                                    index,
+                                    eventSettings.length,
+                                  )}
+                                  selected={active}
+                                  accent={option.color}
+                                  tint={sectorTint(option.color, 0.09)}
+                                  onPress={() =>
+                                    setEventSetting(active ? null : option.key)
+                                  }
+                                >
+                                  <CategoryIconWrap
+                                    small
+                                    tint={sectorTint(
+                                      option.color,
+                                      active ? 0.22 : 0.12,
+                                    )}
+                                  >
+                                    <Ionicons
+                                      name={option.icon}
+                                      size={17}
+                                      color={option.color}
+                                    />
+                                  </CategoryIconWrap>
+                                  <PickerCardLabel
+                                    full={isPickerCardFull(
+                                      index,
+                                      eventSettings.length,
+                                    )}
+                                    selected={active}
+                                    numberOfLines={2}
+                                  >
+                                    {getEventSettingLabel(option.key, language)}
+                                  </PickerCardLabel>
+                                </PickerCard>
+                              );
+                            })}
+                          </PickerGrid>
                         </>
                       ) : null}
                     </>

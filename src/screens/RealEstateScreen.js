@@ -41,6 +41,7 @@ import {
 import {
   commercialTypes,
   getCommercialTypeLabel,
+  getEventSettingLabel,
   commercialPricePer,
   realEstateHasCapacity,
 } from "../data/realEstate";
@@ -244,7 +245,7 @@ export function RealEstateScreen({ navigation, route }) {
         // Property type and room count were being collected by the filter
         // sheet, counted in its badge, and then never applied.
         if (propertyType && item.propertyType !== propertyType) return false;
-        if (rooms && String(item.rooms ?? "") !== String(rooms)) return false;
+        if (rooms && String(item.bedrooms ?? "") !== String(rooms)) return false;
         if (withCarOnly && !item.withCar) return false;
         return true;
       });
@@ -1220,7 +1221,12 @@ export function buildPropertyView(listing, language, t) {
         t("realEstateCapacityGuests", { count: Number(listing.capacity) }),
       );
     }
-    if (Number(listing.surface) > 0) parts.push(`${listing.surface} m²`);
+    if (Number(listing.surfaceArea) > 0) parts.push(`${listing.surfaceArea} m²`);
+    // Jardin or salle, said on the card. It is what people choose a venue
+    // on, and it is the difference between a booking and a wasted deposit
+    // when it rains.
+    const setting = getEventSettingLabel(listing.eventSetting, language);
+    if (setting) parts.push(setting);
     subPrice = parts.length ? parts.join(" · ") : null;
   } else if (deal === "rent" || isCommercialLease) {
     const parts = [t("realEstateRentPerMonth", { amount: fcfa(price) })];
@@ -1235,12 +1241,12 @@ export function buildPropertyView(listing, language, t) {
       );
     }
     subPrice = parts.join(" · ");
-  } else if (deal === "land" && Number(listing.surface) > 0) {
+  } else if (deal === "land" && Number(listing.surfaceArea) > 0) {
     subPrice = t("realEstatePerSquareMetre", {
-      amount: fcfa(price / Number(listing.surface)),
+      amount: fcfa(price / Number(listing.surfaceArea)),
     });
-  } else if (listing.rooms && listing.surface) {
-    subPrice = `${t("realEstateFactRooms", { count: listing.rooms })} · ${listing.surface} m²`;
+  } else if (listing.bedrooms && listing.surfaceArea) {
+    subPrice = `${t("realEstateFactRooms", { count: listing.bedrooms })} · ${listing.surfaceArea} m²`;
   }
 
   return {
@@ -1317,21 +1323,23 @@ function PropertyCard({
         </CardHeadCol>
       </CardTopRow>
 
-      <CardTitle numberOfLines={1}>{listing.title}</CardTitle>
+      <CardTitle numberOfLines={1}>
+        {(language === "en" ? listing.titleEn : listing.titleFr) ?? ""}
+      </CardTitle>
 
       <FactRow>
-        {!isLand && listing.rooms ? (
+        {!isLand && listing.bedrooms ? (
           <Fact>
             <Feather name="layout" size={13} color={dealColor} />
             <FactLabel>
-              {t("realEstateFactRooms", { count: listing.rooms })}
+              {t("realEstateFactRooms", { count: listing.bedrooms })}
             </FactLabel>
           </Fact>
         ) : null}
-        {listing.surface ? (
+        {listing.surfaceArea ? (
           <Fact>
             <Feather name="maximize" size={13} color={dealColor} />
-            <FactLabel>{listing.surface} m²</FactLabel>
+            <FactLabel>{listing.surfaceArea} m²</FactLabel>
           </Fact>
         ) : null}
         {isLand ? (
@@ -1395,7 +1403,8 @@ function PropertyCard({
             onPress={() =>
               openChat({
                 listing,
-                listingTitle: listing.title,
+                listingTitle:
+                  (language === "en" ? listing.titleEn : listing.titleFr) ?? "",
                 user,
                 navigation,
                 t,

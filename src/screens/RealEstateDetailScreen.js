@@ -26,6 +26,7 @@ import {
   getPropertyTypeLabel,
   getRealEstateDealGlyph,
   getRealEstateDealLabel,
+  getEventSettingLabel,
 } from "../data/realEstate";
 import { buildLinkUrl } from "../data/restaurantLinks";
 import { openChat } from "../utils/openChat";
@@ -77,6 +78,14 @@ function ZoomableImage({ uri }) {
 
 export function RealEstateDetailScreen({ route, navigation }) {
   const { listing } = route.params;
+  // A published listing stores its words twice, once per language — there
+  // is no listing.title or listing.description on one. Reading those was
+  // why this page rendered a blank heading and never showed the
+  // description a seller had written.
+  const listingTitle =
+    (language === "en" ? listing.titleEn : listing.titleFr) ?? "";
+  const listingDescription =
+    (language === "en" ? listing.descriptionEn : listing.descriptionFr) ?? "";
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { language, t } = useI18n();
@@ -146,11 +155,11 @@ export function RealEstateDetailScreen({ route, navigation }) {
           value: getPropertyTypeLabel(listing.propertyType, language),
         }
       : null,
-    listing.rooms && !isLand
+    listing.bedrooms && !isLand
       ? {
           key: "rooms",
           label: t("realEstateSpecRooms"),
-          value: String(listing.rooms),
+          value: String(listing.bedrooms),
         }
       : null,
     listing.bathrooms && !isLand
@@ -160,11 +169,20 @@ export function RealEstateDetailScreen({ route, navigation }) {
           value: String(listing.bathrooms),
         }
       : null,
-    listing.surface
+    listing.surfaceArea
       ? {
           key: "surface",
           label: t("realEstateSpecSurface"),
-          value: `${listing.surface} m²`,
+          value: `${listing.surfaceArea} m²`,
+        }
+      : null,
+    // Only a hall answers this, and an unanswered row is absent rather
+    // than shown as a dash — same rule as every other spec here.
+    getEventSettingLabel(listing.eventSetting, language)
+      ? {
+          key: "setting",
+          label: t("realEstateSpecSetting"),
+          value: getEventSettingLabel(listing.eventSetting, language),
         }
       : null,
     isLand
@@ -313,7 +331,7 @@ export function RealEstateDetailScreen({ route, navigation }) {
           <HeadlineUnit>{view.headlineUnit}</HeadlineUnit>
         </HeadlineRow>
         {view.subPrice ? <SubPrice>{view.subPrice}</SubPrice> : null}
-        <Title>{listing.title}</Title>
+        <Title>{listingTitle}</Title>
 
         <BadgeRow>
           {view.document ? (
@@ -393,10 +411,10 @@ export function RealEstateDetailScreen({ route, navigation }) {
           </WarnBox>
         ) : null}
 
-        {listing.description ? (
+        {listingDescription ? (
           <>
             <SectionLabel>{t("realEstateSectionDescription")}</SectionLabel>
-            <Description>{listing.description}</Description>
+            <Description>{listingDescription}</Description>
           </>
         ) : null}
 
@@ -435,7 +453,7 @@ export function RealEstateDetailScreen({ route, navigation }) {
             onPress={() =>
               openChat({
                 listing,
-                listingTitle: listing.title,
+                listingTitle,
                 user,
                 navigation,
                 t,

@@ -7,6 +7,12 @@
 //
 // The deal type is the root of it: it decides the price unit and which of
 // the remaining fields make sense at all.
+const WATER = '#2F6BB5';
+const ENERGY = '#D9A441';
+const COMFORT = '#A15AC4';
+const SECURITY = '#0B6E4F';
+const ACCESS = '#C1512D';
+
 export const realEstateDeals = [
   {
     key: "rent",
@@ -145,6 +151,60 @@ export const commercialTypes = [
   },
 ];
 
+// Where the party actually happens, asked only of an event hall.
+//
+// Capacity and surface said how big; nothing said whether it was a room or
+// a garden, and for a hall that is not a detail. It decides whether rain
+// cancels the day, whether the climatisation on the amenity list is even
+// relevant, and how late the music can run before the neighbours are a
+// problem. The halls advertised here lead with it — "jardin", "salle
+// climatisée", "rooftop" — because it is what people choose on.
+//
+// One answer, not a set of toggles: a venue is one of these, and "salle +
+// jardin" is its own thing rather than both boxes ticked.
+export const eventSettings = [
+  {
+    key: "indoor",
+    color: COMFORT,
+    icon: "home-outline",
+    labelEn: "Indoor hall",
+    labelFr: "Salle couverte",
+  },
+  {
+    key: "garden",
+    color: SECURITY,
+    icon: "leaf-outline",
+    labelEn: "Garden, open air",
+    labelFr: "Jardin, plein air",
+  },
+  {
+    key: "rooftop",
+    color: ENERGY,
+    icon: "sunny-outline",
+    labelEn: "Rooftop / terrace",
+    labelFr: "Rooftop / terrasse",
+  },
+  {
+    // Common enough here to deserve its own answer: the ceremony sits
+    // inside and the reception spills into the garden.
+    key: "mixed",
+    color: ACCESS,
+    icon: "albums-outline",
+    labelEn: "Hall and garden",
+    labelFr: "Salle et jardin",
+  },
+];
+
+export function getEventSetting(key) {
+  return eventSettings.find((item) => item.key === key) ?? null;
+}
+
+export function getEventSettingLabel(key, language) {
+  const setting = getEventSetting(key);
+  if (!setting) return "";
+  return language === "fr" ? setting.labelFr : setting.labelEn;
+}
+
 export function getCommercialType(key) {
   return commercialTypes.find((item) => item.key === key) ?? null;
 }
@@ -186,11 +246,6 @@ export const propertyTypes = [
 // gold, comfort violet, security emerald, access terracotta. Twenty chips
 // in one flat grey block gets skimmed; the same twenty in five colour
 // families can be scanned for the one thing you care about.
-const WATER = '#2F6BB5';
-const ENERGY = '#D9A441';
-const COMFORT = '#A15AC4';
-const SECURITY = '#0B6E4F';
-const ACCESS = '#C1512D';
 
 export const propertyAmenities = [
   // Ordered by what people here actually ask on the phone before visiting.

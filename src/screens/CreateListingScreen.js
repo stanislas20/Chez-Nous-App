@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -139,7 +139,14 @@ import {
   serviceRateTypes,
 } from "../data/serviceRateTypes";
 import { sectorTint } from "../data/companySectors";
+import { useApprovedListings } from "../hooks/useApprovedListings";
 import { getQuartiers } from "../data/quartiers";
+import {
+  CUSTOM_CATEGORY_MAX,
+  customCategoriesFrom,
+  isUsableCategoryLabel,
+  normalizeCategoryLabel,
+} from "../data/customCategories";
 import {
   getEquipmentLabel,
   roadsideEquipment,
@@ -866,6 +873,14 @@ export function CreateListingScreen({ route, navigation }) {
   );
   const [landDocument, setLandDocument] = useState(seed("landDocument", null));
   const [quartier, setQuartier] = useState(seed("quartier", null));
+  // What the seller calls it when none of the fourteen categories does.
+  const [customCategory, setCustomCategory] = useState(
+    seed("customCategory", ""),
+  );
+  // And the same question under Services, where "Autre" was already an
+  // option and already stored nothing: a hairdresser and a welder both came
+  // out as a service with no trade at all.
+  const [customTrade, setCustomTrade] = useState(seed("customTrade", ""));
   const [isLotti, setIsLotti] = useState(seed("isLotti", false));
   const [listerKind, setListerKind] = useState(seed("listerKind", null));
   const [amenities, setAmenities] = useState(seed("amenities", []));
@@ -945,6 +960,7 @@ export function CreateListingScreen({ route, navigation }) {
   const isCommunity = selectedCategory === "community";
   // A service isn't an object: it has no condition, and it's usually priced
   // by the hour or quoted after contact rather than sold for a fixed sum.
+  const isOther = selectedCategory === "other";
   const isServices = selectedCategory === "services";
   // Mixed category: equipment is a second-hand good, produce and livestock
   // are not. What's asked for depends on which.
@@ -1289,6 +1305,27 @@ export function CreateListingScreen({ route, navigation }) {
       : vehiclePricePerUnit === "month"
         ? t("sellPriceSuffix_perMonth")
         : "FCFA";
+  // What previous sellers called their "Autre" listings, commonest first.
+  //
+  // Only approved listings feed this — useApprovedListings is already an
+  // onSnapshot on status == 'approved' — so nothing reaches the next
+  // seller's screen without a moderator having read it first.
+  const approvedListings = useApprovedListings();
+  const customCategorySuggestions = useMemo(
+    () => customCategoriesFrom(approvedListings).slice(0, 12),
+    [approvedListings],
+  );
+  const customTradeSuggestions = useMemo(
+    () =>
+      customCategoriesFrom(
+        (approvedListings ?? []).filter(
+          (listing) => listing.categoryKey === "services",
+        ),
+        { field: "customTrade" },
+      ).slice(0, 12),
+    [approvedListings],
+  );
+
   const selectedCategoryDef =
     categories.find((category) => category.key === selectedCategory) ?? null;
 
@@ -1386,6 +1423,18 @@ export function CreateListingScreen({ route, navigation }) {
       Alert.alert(t("sellFormTitle"), t("errorRequiredFields"));
       return;
     }
+    // "Autre" without a word for it is the question dodged, and it is the
+    // one category that cannot be understood from the aisle it is in. The
+    // listing would arrive filed under nothing.
+    if (isOther && !isUsableCategoryLabel(customCategory)) {
+      Alert.alert(t("sellFormTitle"), t("errorCustomCategory"));
+      return;
+    }
+    if (isServices && trade === "other" && !isUsableCategoryLabel(customTrade)) {
+      Alert.alert(t("sellFormTitle"), t("errorCustomTrade"));
+      return;
+    }
+
     // A job post has nothing to photograph the way a physical item does —
     // a company logo is a nice-to-have, not something to block on.
     if (!assets.length && !isJobs && !isCommunity && !isServices) {
@@ -2012,6 +2061,14 @@ export function CreateListingScreen({ route, navigation }) {
             }
           : {}),
         categoryKey: selectedCategory,
+        // Stored as a label, never as a key. Tidied rather than rewritten:
+        // whitespace collapses and the length is capped, but "TV & Hi-Fi"
+        // keeps its own casing.
+        customCategory: isOther ? normalizeCategoryLabel(customCategory) : null,
+        customTrade:
+          isServices && trade === "other"
+            ? normalizeCategoryLabel(customTrade)
+            : null,
         media,
         mediaType: cover?.mediaType ?? null,
         mediaUrl: cover?.mediaUrl ?? null,
@@ -2740,6 +2797,56 @@ export function CreateListingScreen({ route, navigation }) {
             </SelectorRow>
           )}
 
+          {/* Picking "Autre" has to ask the obvious next question. Without
+              it the listing arrives filed under nothing, and the category
+              that was missing stays missing — nobody can add what nobody
+              records. */}
+          {isOther ? (
+            <>
+              <Label>{t("sellFieldCustomCategory")}</Label>
+              <FieldNote>{t("sellFieldCustomCategoryHint")}</FieldNote>
+              {/* What other sellers already called theirs, commonest first.
+                  Offered before the text box on purpose: a tap on somebody
+                  else's word is how the list converges instead of growing a
+                  synonym per seller. */}
+              {customCategorySuggestions.length ? (
+                <ChipWrapRow>
+                  {customCategorySuggestions.map((option) => {
+                    const active =
+                      normalizeCategoryLabel(customCategory) === option.label;
+                    return (
+                      <TradeChip
+                        key={option.key}
+                        selected={active}
+                        onPress={() =>
+                          setCustomCategory(active ? "" : option.label)
+                        }
+                      >
+                        <TradeChipLabel selected={active}>
+                          {option.label}
+                        </TradeChipLabel>
+                      </TradeChip>
+                    );
+                  })}
+                </ChipWrapRow>
+              ) : null}
+              <InputRow>
+                <Ionicons
+                  name="pricetag-outline"
+                  size={20}
+                  color={colors.textMuted}
+                />
+                <Input
+                  value={customCategory}
+                  onChangeText={setCustomCategory}
+                  placeholder={t("sellFieldCustomCategoryPlaceholder")}
+                  placeholderTextColor={colors.textMuted}
+                  maxLength={CUSTOM_CATEGORY_MAX}
+                />
+              </InputRow>
+            </>
+          ) : null}
+
           {/* Services covers plumbers, hairdressers and mechanics alike, so
               the category alone cannot choose an example or a service list.
               Optional on purpose: most services are not car trades, and
@@ -2769,12 +2876,61 @@ export function CreateListingScreen({ route, navigation }) {
                     </TradeChip>
                   );
                 })}
-                <TradeChip selected={!trade} onPress={() => setTrade(null)}>
-                  <TradeChipLabel selected={!trade}>
+                {/* "Autre" used to be the absence of a choice — it set
+                    trade to null, which is also what the form starts at, so
+                    a welder and somebody who had not answered yet were the
+                    same listing. It is a value now, and it asks what the
+                    trade is. */}
+                <TradeChip
+                  selected={trade === "other"}
+                  onPress={() => setTrade(trade === "other" ? null : "other")}
+                >
+                  <TradeChipLabel selected={trade === "other"}>
                     {t("sellTradeOther")}
                   </TradeChipLabel>
                 </TradeChip>
               </ChipWrapRow>
+
+              {trade === "other" ? (
+                <>
+                  <Label>{t("sellFieldCustomTrade")}</Label>
+                  {customTradeSuggestions.length ? (
+                    <ChipWrapRow>
+                      {customTradeSuggestions.map((option) => {
+                        const active =
+                          normalizeCategoryLabel(customTrade) === option.label;
+                        return (
+                          <TradeChip
+                            key={option.key}
+                            selected={active}
+                            onPress={() =>
+                              setCustomTrade(active ? "" : option.label)
+                            }
+                          >
+                            <TradeChipLabel selected={active}>
+                              {option.label}
+                            </TradeChipLabel>
+                          </TradeChip>
+                        );
+                      })}
+                    </ChipWrapRow>
+                  ) : null}
+                  <InputRow>
+                    <Ionicons
+                      name="construct-outline"
+                      size={20}
+                      color={colors.textMuted}
+                    />
+                    <Input
+                      value={customTrade}
+                      onChangeText={setCustomTrade}
+                      placeholder={t("sellFieldCustomTradePlaceholder")}
+                      placeholderTextColor={colors.textMuted}
+                      maxLength={CUSTOM_CATEGORY_MAX}
+                    />
+                  </InputRow>
+                </>
+              ) : null}
             </>
           ) : null}
 

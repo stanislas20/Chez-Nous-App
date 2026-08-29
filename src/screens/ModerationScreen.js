@@ -23,6 +23,7 @@ import { useAuth } from "../auth/AuthContext";
 import { useIsModerator } from "../hooks/useIsModerator";
 import { useModerationQueue } from "../hooks/useModerationQueue";
 import { categories } from "../data/categories";
+import { categoryLabelFor } from "../data/customCategories";
 
 const EMERALD = "#0B6E4F";
 const TERRACOTTA = "#C1512D";
@@ -142,7 +143,12 @@ export function ModerationScreen({ navigation }) {
   const categoryOf = (item) => {
     const found = categories.find((entry) => entry.key === item.categoryKey);
     if (!found) return item.categoryKey ?? "—";
-    return language === "en" ? found.labelEn : found.labelFr;
+    const label = language === "en" ? found.labelEn : found.labelFr;
+    // The moderator is the one person who has to see the word the seller
+    // typed, because approving the listing is what puts it in front of the
+    // next seller as a suggestion.
+    const custom = categoryLabelFor(item, null);
+    return custom ? `${label} · ${custom}` : label;
   };
 
   const goBackSafely = () => {

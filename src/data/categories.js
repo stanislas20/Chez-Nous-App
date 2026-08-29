@@ -25,4 +25,13 @@ export const categories = [
   { key: 'services', hintEn: 'Plumbing, hairdressing, transport', hintFr: 'Plomberie, coiffure, transport', icon: 'construct-outline', labelEn: 'Services', labelFr: 'Services', color: '#6B7A94' },
   { key: 'community', hintEn: 'Notices, events, mutual help', hintFr: 'Annonces, événements, entraide', icon: 'people-outline', labelEn: 'Community', labelFr: 'Communauté', color: '#1A9AAC' },
   { key: 'jobs', hintEn: 'Job offers and gigs', hintFr: 'Offres d’emploi et missions', icon: 'briefcase-outline', labelEn: 'Jobs', labelFr: 'Emplois', color: '#12876A' },
+  // Last on purpose, and grey: it is where you go when none of the above
+  // fits, not a fifteenth aisle competing with them.
+  //
+  // Picking it asks what the thing actually is, and that answer is stored
+  // on the listing as a label and offered to the next seller who gets here.
+  // The key stays 'other' — a categoryKey is what routes a listing to its
+  // detail screen and what every browse screen filters on, so it cannot be
+  // a word somebody typed. See src/data/customCategories.js.
+  { key: 'other', hintEn: 'Anything the list above misses', hintFr: 'Tout ce que la liste ci-dessus oublie', icon: 'ellipsis-horizontal-circle-outline', labelEn: 'Other', labelFr: 'Autre', color: '#7C8794' },
 ];

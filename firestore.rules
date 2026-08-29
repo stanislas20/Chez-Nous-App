@@ -97,6 +97,13 @@ service cloud.firestore {
         && resource.data.status != 'approved';
     }
 
+    // Null is the ordinary case: the field only exists on a listing whose
+    // category or trade is "other".
+    function customCategoryOk(data, field) {
+      return data.get(field, null) == null
+        || (data[field] is string && data[field].size() <= 40);
+    }
+
     match /listings/{listingId} {
       allow read: if resource.data.status == 'approved'
         || (request.auth != null && request.auth.uid == resource.data.sellerId)
@@ -129,7 +136,14 @@ service cloud.firestore {
         && request.resource.data.sellerId == request.auth.uid
         && request.resource.data.status == 'pending'
         && request.resource.data.get('isPromoted', false) == false
-        && !request.resource.data.keys().hasAny(['promotedUntil']);
+        && !request.resource.data.keys().hasAny(['promotedUntil'])
+        // Free text the seller writes, which every future seller is then
+        // offered as a suggestion. That is the reason for the ceiling: an
+        // unbounded "category" is a paragraph pasted into a chip row, on
+        // everyone's screen, for as long as the listing is approved.
+        // Matches CUSTOM_CATEGORY_MAX in src/data/customCategories.js.
+        && customCategoryOk(request.resource.data, 'customCategory')
+        && customCategoryOk(request.resource.data, 'customTrade');
 
       allow update: if request.auth != null
         && request.auth.uid == resource.data.sellerId

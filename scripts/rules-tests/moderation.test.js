@@ -227,6 +227,51 @@ async function main() {
       }),
     ),
   );
+  // --- the category a seller writes for themselves
+  //
+  // Whatever they type here is offered to every future seller who picks
+  // "Autre", so an unbounded one is a paragraph in everyone's chip row.
+  await check(
+    "a seller can name their own category",
+    assertSucceeds(
+      setDoc(doc(asSeller, "listings/customCat"), {
+        ...listing,
+        categoryKey: "other",
+        customCategory: "Instruments de musique",
+      }),
+    ),
+  );
+  await check(
+    "a category label longer than the cap is refused",
+    assertFails(
+      setDoc(doc(asSeller, "listings/customCatLong"), {
+        ...listing,
+        categoryKey: "other",
+        customCategory: "x".repeat(41),
+      }),
+    ),
+  );
+  await check(
+    "a category label that is not a string is refused",
+    assertFails(
+      setDoc(doc(asSeller, "listings/customCatType"), {
+        ...listing,
+        categoryKey: "other",
+        customCategory: { paragraph: "x".repeat(200) },
+      }),
+    ),
+  );
+  await check(
+    "a trade label longer than the cap is refused",
+    assertFails(
+      setDoc(doc(asSeller, "listings/customTradeLong"), {
+        ...listing,
+        categoryKey: "services",
+        customTrade: "x".repeat(41),
+      }),
+    ),
+  );
+
   await check(
     "the seller can still ask to be featured",
     assertSucceeds(

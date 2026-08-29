@@ -65,6 +65,7 @@ import {
   getRealEstateDealLabel,
 } from "../data/realEstate";
 import { categories } from "../data/categories";
+import { categoryLabelFor } from "../data/customCategories";
 import { openChat } from "../utils/openChat";
 import {
   contactButtonLabelKey,
@@ -512,11 +513,12 @@ export function ProductDetailScreen({ route, navigation }) {
     : [];
   const duty = isPharmacy ? getDutyLabel(listing, language, t) : null;
   const category = categoryByKey[listing.categoryKey];
-  const categoryLabel = category
-    ? language === "en"
-      ? category.labelEn
-      : category.labelFr
-    : null;
+  // A listing filed under "Autre" says "Autre" here, which is the app
+  // repeating the question back. The seller answered it; show their answer.
+  const categoryLabel = categoryLabelFor(
+    listing,
+    category ? (language === "en" ? category.labelEn : category.labelFr) : null,
+  );
   const initialCoords = {
     latitude:
       listing.latitude ??

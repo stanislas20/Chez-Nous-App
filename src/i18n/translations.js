@@ -1336,7 +1336,7 @@ export const translations = {
     sellInsuranceDeliveryPlaceholder: "e.g. Same day, over the counter",
     sellFieldInsuranceMomo: "I accept Mobile Money",
     sellTradeBattery: "Battery",
-    sellTradeOther: "None of these",
+    sellTradeOther: "Other trade",
     sellTitleHint_tyreShop: "e.g. Pneus Ganhi — fitting, balancing, alignment",
     sellTitleHint_batteryShop:
       "e.g. Batterie Express — testing, jump start, fitting",
@@ -2033,6 +2033,14 @@ export const translations = {
       "This is a placeholder shown while the directory fills up — there is no real restaurant behind it yet. Real listings open their own page.",
     restoSampleNote:
       "Sample listings, shown while the directory is being built. No ratings or menu prices are shown — we have none to verify.",
+    sellFieldCustomCategory: "What is it?",
+    sellFieldCustomCategoryHint:
+      "Name it the way a buyer would search for it. What you write here is offered to the next seller who gets this far.",
+    sellFieldCustomCategoryPlaceholder: "e.g. Musical instruments",
+    sellFieldCustomTrade: "Which trade?",
+    sellFieldCustomTradePlaceholder: "e.g. Welding",
+    errorCustomCategory: "Say what the category is \u2014 a word or two is enough.",
+    errorCustomTrade: "Say what the trade is \u2014 a word or two is enough.",
     restoTabListed: "Listed here",
     restoTabNearby: "Nearby",
     restoNearbyTitle: "Not listed here yet",
@@ -3950,7 +3958,7 @@ export const translations = {
     sellInsuranceDeliveryPlaceholder: "ex. Le jour même, au guichet",
     sellFieldInsuranceMomo: "J’accepte le Mobile Money",
     sellTradeBattery: "Batterie",
-    sellTradeOther: "Aucun de ceux-ci",
+    sellTradeOther: "Autre m\u00e9tier",
     sellTitleHint_tyreShop: "ex. Pneus Ganhi — montage, équilibrage, géométrie",
     sellTitleHint_batteryShop: "ex. Batterie Express — test, démarrage, pose",
     sellTradeUnplaced:
@@ -4660,6 +4668,16 @@ export const translations = {
       "Ceci est un exemple affiché en attendant que l’annuaire se remplisse — aucun restaurant réel ne se cache derrière. Les vraies annonces ouvrent leur propre fiche.",
     restoSampleNote:
       "Exemples affichés en attendant que l’annuaire se remplisse. Aucune note ni prix de menu : nous n’avons rien de vérifiable.",
+    sellFieldCustomCategory: "C\u2019est quoi\u00a0?",
+    sellFieldCustomCategoryHint:
+      "Nommez-le comme un acheteur le chercherait. Ce que vous \u00e9crivez ici sera propos\u00e9 au prochain vendeur qui arrivera jusqu\u2019ici.",
+    sellFieldCustomCategoryPlaceholder: "ex.\u00a0: Instruments de musique",
+    sellFieldCustomTrade: "Quel m\u00e9tier\u00a0?",
+    sellFieldCustomTradePlaceholder: "ex.\u00a0: Soudure",
+    errorCustomCategory:
+      "Dites de quelle cat\u00e9gorie il s\u2019agit\u00a0\u2014 un mot ou deux suffisent.",
+    errorCustomTrade:
+      "Dites de quel m\u00e9tier il s\u2019agit\u00a0\u2014 un mot ou deux suffisent.",
     restoTabListed: "Sur Chez-Nous",
     restoTabNearby: "\u00c0 proximit\u00e9",
     restoNearbyTitle: "Pas encore sur Chez-Nous",

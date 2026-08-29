@@ -419,6 +419,24 @@ const TITLE_HINT_KEYS = {
 // Only the categories whose description genuinely differs — the goods
 // categories all share the default, and inventing five near-identical
 // variants of "describe your item" would be noise.
+// Camions & utilitaires posts into this form from two of its three tabs,
+// and they are not the same errand. Selling one is a question about the
+// vehicle: what it carries, what its papers say. Renting it out is a
+// question about the day — how many kilometres, who buys the fuel, is a
+// driver included — which is exactly what that tab's own copy promises the
+// reader will be on the listing. Without this the two produced identical
+// forms and a rental described itself like a sale.
+const GOODS_VEHICLE_HINTS = {
+  sell: {
+    title: "sellTitleHint_goodsVehicle",
+    desc: "sellDescHint_goodsVehicle",
+  },
+  rent: {
+    title: "sellTitleHint_goodsVehicleRent",
+    desc: "sellDescHint_goodsVehicleRent",
+  },
+};
+
 const DESC_HINT_KEYS = {
   jobs: "sellDescHint_jobs",
   services: "sellDescHint_services",
@@ -964,6 +982,12 @@ export function CreateListingScreen({ route, navigation }) {
   };
 
   const isVehicle = selectedCategory === "vehicles";
+  // Only for the bodies that carry goods: a saloon rental is still a car,
+  // and the car examples are right for it.
+  const goodsHints =
+    isVehicle && goodsBodyTypes.includes(bodyType)
+      ? GOODS_VEHICLE_HINTS[vehiclePurpose === "rent" ? "rent" : "sell"]
+      : null;
   const isTyreOffer = isVehicle && partType === "tyre";
   const isBatteryOffer = isVehicle && partType === "battery";
   const isPartOffer = isTyreOffer || isBatteryOffer;
@@ -2608,9 +2632,7 @@ export function CreateListingScreen({ route, navigation }) {
                   // somebody publishing a three-tonne flatbed from Camions &
                   // utilitaires — they need to be asked for payload, not for
                   // how far it has been driven to the office.
-                  (isVehicle && goodsBodyTypes.includes(bodyType)
-                    ? "sellTitleHint_goodsVehicle"
-                    : null) ??
+                  goodsHints?.title ??
                   TITLE_HINT_KEYS[selectedCategory] ??
                   "sellFieldTitlePlaceholder",
               )}
@@ -6307,6 +6329,7 @@ export function CreateListingScreen({ route, navigation }) {
               onChangeText={setDescription}
               placeholder={t(
                 TRADE_DESC_HINT_KEYS[trade] ??
+                  goodsHints?.desc ??
                   DESC_HINT_KEYS[selectedCategory] ??
                   "sellFieldDescriptionPlaceholder",
               )}

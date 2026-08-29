@@ -123,6 +123,12 @@ export const translations = {
     sellTitleHint_vehicles: "e.g. Toyota Corolla 2015, 120,000 km",
     sellTitleHint_goodsVehicle:
       "e.g. Mitsubishi Canter 2014 — flatbed, 3 t payload",
+    sellTitleHint_goodsVehicleRent:
+      "e.g. 12 m³ van for hire — by the day, Cotonou",
+    sellDescHint_goodsVehicle:
+      "What it carries, and what the papers say: payload, body, mileage, and whether the visite technique and carte grise are up to date.",
+    sellDescHint_goodsVehicleRent:
+      "Say what a day includes — how many kilometres, who pays for fuel, whether a driver comes with it, and what it costs past the limit. That is what people compare.",
     sellTitleHint_realEstate: "e.g. 2-bedroom flat, Cotonou",
     sellTitleHint_electronics: "e.g. iPhone 12 Pro 128 GB",
     sellTitleHint_fashion: "e.g. Wax dress, size M",
@@ -2693,6 +2699,12 @@ export const translations = {
     sellTitleHint_vehicles: "ex. Toyota Corolla 2015, 120 000 km",
     sellTitleHint_goodsVehicle:
       "ex. Mitsubishi Canter 2014 — plateau, charge utile 3 t",
+    sellTitleHint_goodsVehicleRent:
+      "ex. Fourgon 12 m³ en location — à la journée, Cotonou",
+    sellDescHint_goodsVehicle:
+      "Ce qu'il porte et ce que disent les papiers : charge utile, carrosserie, kilométrage, et si la visite technique et la carte grise sont à jour.",
+    sellDescHint_goodsVehicleRent:
+      "Dites ce que la journée comprend : combien de kilomètres, qui paie le carburant, si un chauffeur vient avec, et le tarif au-delà. C'est ce que les gens comparent.",
     sellTitleHint_realEstate: "ex. Appartement 2 chambres, Cotonou",
     sellTitleHint_electronics: "ex. iPhone 12 Pro 128 Go",
     sellTitleHint_fashion: "ex. Robe en wax, taille M",

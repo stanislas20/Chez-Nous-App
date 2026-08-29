@@ -279,12 +279,35 @@ check(
   /seed\("bodyType", route\.params\?\.bodyType \?\? null\)/.test(form),
   true,
 );
-// And having accepted it, shows a goods example instead of the saloon.
+// And having accepted it, shows a goods example instead of the saloon —
+// a different one per tab, because selling one and hiring it out are not
+// the same errand. Selling asks about the vehicle; hiring asks about the
+// day, which is what the Louer tab's own copy promises will be on the
+// listing. Identical hints made that promise and then never collected it.
 check(
   "and shows a goods-vehicle example for those bodies",
-  /goodsBodyTypes\.includes\(bodyType\)[\s\S]{0,80}sellTitleHint_goodsVehicle/.test(
+  /goodsBodyTypes\.includes\(bodyType\)[\s\S]{0,120}vehiclePurpose === "rent"/.test(
     form,
   ),
+  true,
+);
+["sell", "rent"].forEach((purpose) => {
+  const pair = form.match(
+    new RegExp(`${purpose}: \\{[\\s\\S]{0,160}?\\}`),
+  )?.[0];
+  check(`the ${purpose} tab has its own title example`, /title: "sell/.test(pair ?? ""), true);
+  check(`the ${purpose} tab has its own description prompt`, /desc: "sell/.test(pair ?? ""), true);
+});
+// Both hint chains have to consult it; wiring one and not the other is how
+// a rental ends up titled correctly and then described like a sale.
+check(
+  "the title field reads the pair",
+  /goodsHints\?\.title/.test(form),
+  true,
+);
+check(
+  "and so does the description field",
+  /goodsHints\?\.desc/.test(form),
   true,
 );
 // The framing advice is the other place the form assumed a car. "Centre it

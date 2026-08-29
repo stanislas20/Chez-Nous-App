@@ -63,6 +63,10 @@ async function main() {
     "sellerApprove",
     "sellerForge",
     "outsider",
+    "promote",
+    "promoteForever",
+    "promoteSelf",
+    "unpromote",
   ];
   await env.withSecurityRulesDisabled(async (ctx) => {
     await Promise.all(
@@ -72,6 +76,22 @@ async function main() {
       ...listing,
       sellerId: MOD,
     });
+    // Featuring only ever happens on something already public, so these
+    // start where the real ones would.
+    await Promise.all(
+      ["promote", "promoteForever", "promoteSelf", "unpromote"].map((id) =>
+        setDoc(doc(ctx.firestore(), `listings/${id}`), {
+          ...listing,
+          status: "approved",
+          ...(id === "unpromote"
+            ? {
+                isPromoted: true,
+                promotedUntil: new Date(Date.now() + 10 * 86400000),
+              }
+            : {}),
+        }),
+      ),
+    );
   });
 
   const asModerator = env
@@ -136,6 +156,88 @@ async function main() {
       }),
     ),
   );
+  // --- featuring
+  //
+  // The whole point of the change: a seller could set isPromoted themselves,
+  // free and for ever, because the rules had never heard of the field.
+  const inDays = (n) => new Date(Date.now() + n * 86400000);
+
+  await check(
+    "moderator can feature an approved listing, with an end date",
+    assertSucceeds(
+      updateDoc(doc(asModerator, "listings/promote"), {
+        status: "approved",
+        isPromoted: true,
+        promotedUntil: inDays(30),
+        moderatedBy: MOD,
+        moderatedAt: new Date(),
+      }),
+    ),
+  );
+  await check(
+    "a promotion cannot be granted for longer than the cap",
+    assertFails(
+      updateDoc(doc(asModerator, "listings/promoteForever"), {
+        status: "approved",
+        isPromoted: true,
+        promotedUntil: inDays(365),
+        moderatedBy: MOD,
+        moderatedAt: new Date(),
+      }),
+    ),
+  );
+  await check(
+    "a promotion cannot be granted without an end date",
+    assertFails(
+      updateDoc(doc(asModerator, "listings/promoteSelf"), {
+        status: "approved",
+        isPromoted: true,
+        moderatedBy: MOD,
+        moderatedAt: new Date(),
+      }),
+    ),
+  );
+  await check(
+    "moderator can stop featuring",
+    assertSucceeds(
+      updateDoc(doc(asModerator, "listings/unpromote"), {
+        status: "approved",
+        isPromoted: false,
+        promotedUntil: null,
+        moderatedBy: MOD,
+        moderatedAt: new Date(),
+      }),
+    ),
+  );
+  await check(
+    "the seller cannot feature their own listing by editing it",
+    assertFails(
+      updateDoc(doc(asSeller, "listings/promoteSelf"), {
+        isPromoted: true,
+        promotedUntil: inDays(30),
+      }),
+    ),
+  );
+  await check(
+    "the seller cannot publish a listing already featured",
+    assertFails(
+      setDoc(doc(asSeller, "listings/newPromoted"), {
+        ...listing,
+        isPromoted: true,
+      }),
+    ),
+  );
+  await check(
+    "the seller can still ask to be featured",
+    assertSucceeds(
+      setDoc(doc(asSeller, "listings/newRequest"), {
+        ...listing,
+        isPromoted: false,
+        promotionRequested: true,
+      }),
+    ),
+  );
+
   await check(
     "moderator cannot edit a price while approving",
     assertFails(

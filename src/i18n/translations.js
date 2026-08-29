@@ -102,7 +102,18 @@ export const translations = {
     dashboardAccountSettingsRow: "Settings",
     dashboardAccountHelpRow: "Help",
     dashboardHelpComingSoon: "Coming soon.",
-    promotedFormBanner: "This will be a promoted listing",
+    promotedFormBanner:
+      "You are asking for this listing to be featured. A moderator decides, and a granted placement lasts {days} days.",
+    moderationPromote: "Feature this listing",
+    moderationPromoteRequested: "Feature this listing (requested)",
+    moderationPromotedFor: "Featured \u2014 {days} day(s) left",
+    moderationPromoteTitle: "Feature this listing?",
+    moderationPromoteBody:
+      "\u201c{title}\u201d takes the featured slot for {days} days. It lapses on its own after that.",
+    moderationUnpromote: "Stop featuring",
+    moderationUnpromoteTitle: "Stop featuring this listing?",
+    moderationUnpromoteBody:
+      "\u201c{title}\u201d goes back to the ordinary list straight away.",
     sellFormEyebrow: "POST A LISTING",
     sellFormHeadline: "Tell buyers what you’re selling",
     sellFormCopy:
@@ -2693,7 +2704,18 @@ export const translations = {
     dashboardAccountSettingsRow: "Paramètres",
     dashboardAccountHelpRow: "Aide",
     dashboardHelpComingSoon: "Bientôt disponible.",
-    promotedFormBanner: "Cette annonce sera une annonce promue",
+    promotedFormBanner:
+      "Vous demandez la mise en avant de cette annonce. Un mod\u00e9rateur d\u00e9cide, et une mise en avant accord\u00e9e dure {days} jours.",
+    moderationPromote: "Mettre en avant",
+    moderationPromoteRequested: "Mettre en avant (demand\u00e9)",
+    moderationPromotedFor: "En avant \u2014 {days} jour(s) restant(s)",
+    moderationPromoteTitle: "Mettre cette annonce en avant\u00a0?",
+    moderationPromoteBody:
+      "\u00ab\u202f{title}\u202f\u00bb prend la place mise en avant pendant {days} jours. Elle expire ensuite d\u2019elle-m\u00eame.",
+    moderationUnpromote: "Retirer la mise en avant",
+    moderationUnpromoteTitle: "Retirer la mise en avant\u00a0?",
+    moderationUnpromoteBody:
+      "\u00ab\u202f{title}\u202f\u00bb repasse imm\u00e9diatement dans la liste ordinaire.",
     sellFormEyebrow: "PUBLIER UNE ANNONCE",
     sellFormHeadline: "Dites aux acheteurs ce que vous vendez",
     sellFormCopy:

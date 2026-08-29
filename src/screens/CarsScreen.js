@@ -28,6 +28,7 @@ import { useApprovedListings } from "../hooks/useApprovedListings";
 import { useApprovedAds } from "../hooks/useApprovedAds";
 import { useAuth } from "../auth/AuthContext";
 import { carParks } from "../data/carParks";
+import { isPromotionLive } from "../data/promotion";
 import {
   carHelpOptions,
   carServicesMore,
@@ -577,7 +578,7 @@ export function CarsScreen({ navigation, route }) {
             item.categoryKey === "vehicles" &&
             !["tyre", "battery"].includes(item.partType) &&
             !["tyre", "battery"].includes(item.partType) &&
-            item.isPromoted,
+            isPromotionLive(item),
         )
         .slice(0, 4),
     [listings],

@@ -7,6 +7,12 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import {
+  PROMOTION_DAYS,
+  isPromotionLive,
+  promotionDaysLeft,
+  promotionExpiry,
+} from "../data/promotion";
 import styled from "styled-components/native";
 import { firestore } from "../config/firebase";
 import { radius, spacing } from "../theme/colors";
@@ -182,6 +188,57 @@ export function ModerationScreen({ navigation }) {
     }
   };
 
+  // Granting a promotion, which nobody but a moderator can do.
+  //
+  // It rides on the same rule as a decision, so it has to carry the same
+  // audit fields — status is written back unchanged, and moderatedBy is
+  // checked against the signed-in uid there. That is deliberate: being
+  // featured is a decision about somebody's listing, and it should leave
+  // the same trace as approving one.
+  //
+  // The end date is written now rather than left open. A grant nobody
+  // renews lapses by itself; the rules cap any single one at ninety days.
+  const setPromotion = async (item, promote) => {
+    setBusyId(item.id);
+    try {
+      await updateDoc(doc(firestore, "listings", item.id), {
+        status: item.status,
+        isPromoted: promote,
+        promotedUntil: promote ? promotionExpiry(PROMOTION_DAYS) : null,
+        moderatedBy: user.uid,
+        moderatedAt: serverTimestamp(),
+      });
+      setOpenId(null);
+    } catch (error) {
+      Alert.alert(
+        t("moderationTitle"),
+        `${t("moderationFailed")}\n\n${error?.code ?? error?.message ?? "unknown"}`,
+      );
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const confirmPromote = (item) => {
+    const live = isPromotionLive(item);
+    Alert.alert(
+      t(live ? "moderationUnpromoteTitle" : "moderationPromoteTitle"),
+      live
+        ? t("moderationUnpromoteBody", { title: titleOf(item) })
+        : t("moderationPromoteBody", {
+            title: titleOf(item),
+            days: PROMOTION_DAYS,
+          }),
+      [
+        { text: t("cancel"), style: "cancel" },
+        {
+          text: t(live ? "moderationUnpromote" : "moderationPromote"),
+          onPress: () => setPromotion(item, !live),
+        },
+      ],
+    );
+  };
+
   const confirmApprove = (item) =>
     Alert.alert(
       t("moderationApproveConfirmTitle"),
@@ -352,6 +409,35 @@ export function ModerationScreen({ navigation }) {
                 </ApproveButton>
               </ActionRow>
             )}
+
+            {/* Only on a listing that is already public. Featuring
+                something still pending would put it in the slot before
+                anybody had judged it, and rejecting it afterwards would
+                leave the promotion behind. */}
+            {!isOwn && item.status === "approved" ? (
+              <PromoteRow>
+                <PromoteButton
+                  onPress={() => confirmPromote(item)}
+                  disabled={busyId === item.id}
+                  live={isPromotionLive(item)}
+                >
+                  <Ionicons
+                    name="megaphone-outline"
+                    size={15}
+                    color={isPromotionLive(item) ? colors.accentDark : colors.primary}
+                  />
+                  <PromoteLabel live={isPromotionLive(item)}>
+                    {isPromotionLive(item)
+                      ? t("moderationPromotedFor", {
+                          days: promotionDaysLeft(item),
+                        })
+                      : item.promotionRequested
+                        ? t("moderationPromoteRequested")
+                        : t("moderationPromote")}
+                  </PromoteLabel>
+                </PromoteButton>
+              </PromoteRow>
+            ) : null}
           </>
         ) : null}
       </Card>
@@ -649,6 +735,34 @@ const Description = styled.Text`
   font-size: 13px;
   line-height: 19px;
   color: ${(props) => props.theme.text};
+`;
+
+// The promotion control sits on its own line under the decision buttons.
+// It is not a third verdict — the listing is already approved by the time
+// this appears — and putting it in the same row would read as one.
+const PromoteRow = styled.View`
+  margin-top: ${spacing.sm}px;
+`;
+
+const PromoteButton = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px;
+  border-radius: ${radius.md}px;
+  border-width: 1px;
+  border-color: ${(props) =>
+    props.live ? props.theme.accentDark : props.theme.border};
+  background-color: ${(props) =>
+    props.live ? props.theme.accentLight : props.theme.surface};
+`;
+
+const PromoteLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 13px;
+  color: ${(props) =>
+    props.live ? props.theme.accentDark : props.theme.primary};
 `;
 
 const ActionRow = styled.View`

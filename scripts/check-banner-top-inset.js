@@ -18,14 +18,11 @@
 // Run: node scripts/check-banner-top-inset.js
 const fs = require("fs");
 const path = require("path");
+const { stripComments } = require("./lib/stripComments");
 
 const root = path.join(__dirname, "..");
 const screensDir = path.join(root, "src/screens");
-const read = (file) =>
-  fs
-    .readFileSync(file, "utf8")
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/\/\/[^\n]*/g, "");
+const read = (file) => stripComments(fs.readFileSync(file, "utf8"));
 
 const failures = [];
 

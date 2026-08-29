@@ -17,9 +17,11 @@
 // Run: node scripts/check-real-estate-fields.js
 const fs = require("fs");
 const path = require("path");
+const { stripComments } = require("./lib/stripComments");
 
 const root = path.join(__dirname, "..");
 const read = (rel) => fs.readFileSync(path.join(root, rel), "utf8");
+const readCode = (rel) => stripComments(read(rel));
 
 const form = read("src/screens/CreateListingScreen.js");
 const readers = [
@@ -75,9 +77,7 @@ const OPTIONAL = new Set([
 // Comments are stripped first. The note explaining this very bug names the
 // wrong fields in prose, and the first run of this check duly reported them.
 for (const rel of readers) {
-  const source = read(rel)
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/\/\/[^\n]*/g, "");
+  const source = readCode(rel);
   const seen = new Set();
   for (const match of source.matchAll(/\blisting\.(\w+)/g)) {
     const field = match[1];
@@ -94,9 +94,7 @@ for (const rel of readers) {
 // And the one that started it, named directly so the message says what to
 // do rather than only that something is wrong.
 readers.forEach((rel) => {
-  const code = read(rel)
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/\/\/[^\n]*/g, "");
+  const code = readCode(rel);
   if (/listing\.surface\b/.test(code)) {
     failures.push(
       `${rel} still reads listing.surface — the form writes surfaceArea`,
@@ -113,9 +111,7 @@ readers.forEach((rel) => {
 // names cannot simply be written out: this app's own quartier file says the
 // list is unverified, and INStaD's roll is a scanned PDF.
 {
-  const code = form
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/\/\/[^\n]*/g, "");
+  const code = stripComments(form);
   if (/\{getQuartiers\(selectedCity\)\.length \? \(/.test(code)) {
     failures.push(
       "CreateListingScreen gates the quartier field on the curated list — " +

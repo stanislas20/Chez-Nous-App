@@ -9,6 +9,7 @@ import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { saleStatusLabelKey } from "../data/saleStatuses";
+import { isPromotionLive } from "../data/promotion";
 import { useAuth } from "../auth/AuthContext";
 import { categories } from "../data/categories";
 import { listingPrice, listingPriceText } from "../utils/listingPrice";
@@ -122,7 +123,7 @@ export function ListingCard({ listing, style, isFavorite, onToggleFavorite }) {
               <Ionicons name="play" size={14} color={colors.textInverse} />
             </PlayBadge>
           ) : null}
-          {listing.isPromoted ? (
+          {isPromotionLive(listing) ? (
             <PromotedBadge>
               <PromotedBadgeLabel>{t("sponsoredLabel")}</PromotedBadgeLabel>
             </PromotedBadge>

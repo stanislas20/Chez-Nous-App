@@ -173,6 +173,7 @@ import {
 } from "../data/batteries";
 import { nearestKnownCity } from "../utils/nearestCity";
 import { postingTitleKey } from "../data/postingTitles";
+import { PROMOTION_DAYS } from "../data/promotion";
 import { accountCountry, canPublish } from "../utils/canPublish";
 import { POSTING_DIAL } from "../data/countries";
 import { electricServices } from "../data/carElectrics";
@@ -2015,7 +2016,11 @@ export function CreateListingScreen({ route, navigation }) {
         mediaType: cover?.mediaType ?? null,
         mediaUrl: cover?.mediaUrl ?? null,
         mediaPath: cover?.mediaPath ?? null,
-        isPromoted: !!isPromoted,
+        // Asked for, not granted. The route param says the seller came in
+        // through the megaphone; the rules refuse a client-written
+        // isPromoted, and a moderator decides. See src/data/promotion.js.
+        isPromoted: false,
+        promotionRequested: !!isPromoted,
         popular: false,
         status: "pending",
         createdAt: serverTimestamp(),
@@ -2039,6 +2044,8 @@ export function CreateListingScreen({ route, navigation }) {
           status: _status,
           createdAt: _createdAt,
           isPromoted: _promoted,
+          promotedUntil: _promotedUntil,
+          promotionRequested: _promotionRequested,
           popular: _popular,
           ...editable
         } = data;
@@ -2358,7 +2365,11 @@ export function CreateListingScreen({ route, navigation }) {
     })),
     mediaType: previewCover?.type === "video" ? "video" : "image",
     mediaUrl: previewCover?.uri,
-    isPromoted: !!isPromoted,
+    // "this is what buyers will see" has to stay true. A Sponsorisé badge
+    // here would be showing them a placement they have asked for and not
+    // been granted — the card they get is the ordinary one until a
+    // moderator says otherwise.
+    isPromoted: false,
     popular: false,
     saleStatus: "available",
     createdAt: null,
@@ -2505,7 +2516,7 @@ export function CreateListingScreen({ route, navigation }) {
                 color={colors.accentDark}
               />
               <PromotedBannerLabel>
-                {t("promotedFormBanner")}
+                {t("promotedFormBanner", { days: PROMOTION_DAYS })}
               </PromotedBannerLabel>
             </PromotedBanner>
           ) : null}

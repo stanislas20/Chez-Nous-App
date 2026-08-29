@@ -118,10 +118,18 @@ service cloud.firestore {
       // browse everything, message any seller and call any number; they
       // cannot add to the market, because we cannot put an SMS through to
       // their handset and an unreachable seller is where the scams start.
+      // A seller may ask to be featured. They may not grant it to
+      // themselves. The publish form used to write isPromoted straight from
+      // its route params, and nothing here disagreed — so the "paid
+      // placement" the code talks about cost nothing and never ended.
+      // promotionRequested is the seller's half and says only that they
+      // asked; isPromoted and promotedUntil are a moderator's to write.
       allow create: if request.auth != null
         && request.auth.token.canPost == true
         && request.resource.data.sellerId == request.auth.uid
-        && request.resource.data.status == 'pending';
+        && request.resource.data.status == 'pending'
+        && request.resource.data.get('isPromoted', false) == false
+        && !request.resource.data.keys().hasAny(['promotedUntil']);
 
       allow update: if request.auth != null
         && request.auth.uid == resource.data.sellerId
@@ -131,9 +139,13 @@ service cloud.firestore {
         // one person with a motive to forge them — the rule only ever
         // restricted `status`, so everything else on the document was fair
         // game. Found by the emulator test, not by reading the rule.
+        //
+        // isPromoted and promotedUntil sit in the same list for the same
+        // reason: they are somebody else's decision about this listing, and
+        // the seller is the one person with a motive to rewrite them.
         && !request.resource.data.diff(resource.data).affectedKeys()
               .hasAny(['moderatedBy', 'moderatedAt', 'approvedAt',
-                       'moderationNote']);
+                       'moderationNote', 'isPromoted', 'promotedUntil']);
 
       // Moderation, from inside the app rather than from a laptop.
       //
@@ -157,8 +169,29 @@ service cloud.firestore {
         && request.auth.uid != resource.data.sellerId
         && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['status', 'approvedAt', 'moderationNote',
-                       'moderatedBy', 'moderatedAt'])
+                       'moderatedBy', 'moderatedAt',
+                       'isPromoted', 'promotedUntil'])
         && request.resource.data.status in ['approved', 'rejected', 'pending']
+        // A promotion has to end. Granting one writes the date it ends on,
+        // and that date is bounded here rather than trusted from the
+        // client: a moderator may renew as often as they like, and may not
+        // hand out a decade by mistyping a number. Ninety days matches
+        // PROMOTION_MAX_DAYS in src/data/promotion.js.
+        //
+        // The get() defaults matter. An update that leaves these fields
+        // alone carries the previous values through request.resource.data,
+        // so a listing that has never been promoted has no promotedUntil at
+        // all and a bare read would fail the whole rule — which would block
+        // ordinary approvals, not just promotions.
+        && (
+          request.resource.data.get('isPromoted', false) == false
+          || (
+            request.resource.data.promotedUntil is timestamp
+            && request.resource.data.promotedUntil > request.time
+            && request.resource.data.promotedUntil
+                 < request.time + duration.value(90, 'd')
+          )
+        )
         // Who decided, recorded as the uid of whoever is signed in — not a
         // value the client chooses. With one moderator this is redundant;
         // with two it is the only answer to "who let that through?", and it

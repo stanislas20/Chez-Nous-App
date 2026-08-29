@@ -109,12 +109,36 @@ if (!/request\.auth\.token\.moderator == true/.test(modBlock)) {
 if (!/request\.auth\.uid != resource\.data\.sellerId/.test(modBlock)) {
   fail("firestore.rules: a moderator can approve their own listing");
 }
+// isPromoted and promotedUntil joined this list on purpose, and the check
+// failing first is what made it a decision instead of a slip. Featuring a
+// listing is a judgement about it, like approving one, and it has to be a
+// moderator's because the alternative was every seller granting it to
+// themselves free and for ever. See src/data/promotion.js.
 if (
-  !/hasOnly\(\[\s*'status',\s*'approvedAt',\s*'moderationNote',\s*'moderatedBy',\s*'moderatedAt'\s*\]\)/.test(
+  !/hasOnly\(\[\s*'status',\s*'approvedAt',\s*'moderationNote',\s*'moderatedBy',\s*'moderatedAt',\s*'isPromoted',\s*'promotedUntil'\s*\]\)/.test(
     modBlock.replace(/\n\s*/g, " "),
   )
 ) {
-  fail("firestore.rules: moderation is not limited to the status fields");
+  fail("firestore.rules: moderation is not limited to the fields it should be");
+}
+// The list only ever grows by someone editing the line above, so name the
+// fields that must never appear on it. A moderator judges a listing; they do
+// not get to change what it says or who it belongs to.
+for (const field of [
+  "price",
+  "phone",
+  "whatsapp",
+  "titleFr",
+  "titleEn",
+  "media",
+  "sellerId",
+]) {
+  if (new RegExp(`hasOnly\\([^)]*'${field}'`).test(modBlock.replace(/\n\s*/g, " "))) {
+    fail(
+      `firestore.rules: a moderator can write ${field} — that is not ` +
+        `moderation, that is editing somebody's listing`,
+    );
+  }
 }
 
 // The audit field has to be the signed-in uid, not whatever the client sends,

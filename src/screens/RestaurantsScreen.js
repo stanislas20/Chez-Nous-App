@@ -19,6 +19,7 @@ import { BeninFlag } from "../components/BeninFlag";
 import { HeroPostBar } from "../components/HeroPostBar";
 import { ScreenFooter } from "../components/ScreenFooter";
 import { buildPlacePhotoUrl } from "../utils/placePhoto";
+import { isPromotionLive } from "../data/promotion";
 import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
@@ -149,7 +150,7 @@ export function RestaurantsScreen({ navigation }) {
         openTime: listing.openTime ?? null,
         closeTime: listing.closeTime ?? null,
         dishes: [],
-        promoted: !!listing.isPromoted,
+        promoted: isPromotionLive(listing),
         verified: !!listing.sellerVerified,
         isSample: false,
       }));

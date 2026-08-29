@@ -84,6 +84,7 @@ import { openListing } from "../utils/openListing";
 import { useSearchPharmacies } from "../hooks/useSearchPharmacies";
 import { TabSafeAreaView } from "../components/TabSafeAreaView";
 import { useBannerStatusBar } from "../hooks/useBannerStatusBar";
+import { isPromotionLive } from "../data/promotion";
 
 // Fixed brand accents from the design mockup (not theme-reactive, like the
 // onboarding screen's Benin flag colors) — used for small decorative surfaces
@@ -541,7 +542,7 @@ function RecommendedCard({
               ))}
             </ScrollView>
           ) : null}
-          {listing.isPromoted ? (
+          {isPromotionLive(listing) ? (
             <RecPromotedBadge>
               <RecPromotedLabel>{t("sponsoredLabel")}</RecPromotedLabel>
             </RecPromotedBadge>

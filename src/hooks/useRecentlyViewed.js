@@ -32,6 +32,14 @@ export async function recordRecentlyViewed(listing) {
     sellerId: listing.sellerId ?? null,
     popular: !!listing.popular,
     isPromoted: !!listing.isPromoted,
+    // Stored as millis, not the Timestamp: this snapshot goes through
+    // JSON.stringify into AsyncStorage. Without it a promoted listing you
+    // looked at yesterday could never show its badge again, because
+    // isPromotionLive has no end date to check.
+    promotedUntil:
+      typeof listing.promotedUntil?.toMillis === "function"
+        ? listing.promotedUntil.toMillis()
+        : (listing.promotedUntil ?? null),
     saleStatus: listing.saleStatus ?? null,
     viewedAt: Date.now(),
   };

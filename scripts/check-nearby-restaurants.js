@@ -15,15 +15,13 @@
 // Run: node scripts/check-nearby-restaurants.js
 const fs = require("fs");
 const path = require("path");
+const { stripComments } = require("./lib/stripComments");
 
 const root = path.join(__dirname, "..");
 // Comments are stripped before anything is matched. Two earlier guards read
 // their own explanatory prose as the offence they were looking for.
 const read = (rel) =>
-  fs
-    .readFileSync(path.join(root, rel), "utf8")
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/\/\/[^\n]*/g, "");
+  stripComments(fs.readFileSync(path.join(root, rel), "utf8"));
 
 const screen = read("src/screens/RestaurantsScreen.js");
 const hook = read("src/hooks/useNearbyRestaurants.js");

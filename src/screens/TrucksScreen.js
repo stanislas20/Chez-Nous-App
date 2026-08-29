@@ -168,11 +168,12 @@ export function TrucksScreen({ navigation }) {
         {isHaul ? null : (
           <>
             <FieldLabel>{t("trucksLoadLabel")}</FieldLabel>
-            <FilterScroll
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 8, paddingRight: spacing.md }}
-            >
+            {/* Wrapped, not scrolled. Four chips with French labels this
+                long overflow the width, and a horizontal scroller answers
+                that by cutting the last one at the edge — "De la
+                marchandise" appeared as "D" with nothing to say there was
+                more. A filter you cannot see is a filter nobody uses. */}
+            <ChipWrap>
               <Chip active={!load} onPress={() => setLoad(null)}>
                 <ChipLabel active={!load}>{t("trucksLoadAll")}</ChipLabel>
               </Chip>
@@ -190,7 +191,7 @@ export function TrucksScreen({ navigation }) {
                   </Chip>
                 );
               })}
-            </FilterScroll>
+            </ChipWrap>
             {load ? (
               <LoadExample>
                 {language === "en"
@@ -351,18 +352,33 @@ export function TrucksScreen({ navigation }) {
           <NoteText>{t("trucksNoTonnageNote")}</NoteText>
         </Note>
 
-        <LinkButton onPress={() => open(ANATT_TRANSPORT_CARD_URL)}>
-          <Ionicons name="open-outline" size={15} color={INK} />
-          <LinkLabel>{t("trucksCardAction")}</LinkLabel>
-        </LinkButton>
-        <LinkButton onPress={() => open(ANATT_AUTHORISATION_URL)}>
-          <Ionicons name="open-outline" size={15} color={INK} />
-          <LinkLabel>{t("trucksAuthorisationAction")}</LinkLabel>
-        </LinkButton>
-        <LinkButton onPress={() => open(ANATT_LICENCE_URL)}>
-          <Ionicons name="open-outline" size={15} color={INK} />
-          <LinkLabel>{t("trucksLicenceAction")}</LinkLabel>
-        </LinkButton>
+        {/* Three centred full-width slabs, each opening "ANaTT — ", was
+            the agency's name said three times and the destination said
+            small. Named once at the top and the pages listed under it, the
+            block reads as the citation it is — and the labels get to be
+            the thing you are actually going to. */}
+        <SectionHeading>{t("trucksSourceTitle")}</SectionHeading>
+        <SourceCard>
+          <SourcePlate>
+            <SourcePlateLabel>ANaTT</SourcePlateLabel>
+          </SourcePlate>
+          <SourceCol>
+            <SourceName numberOfLines={2}>{t("trucksSourceName")}</SourceName>
+            <SourceSub>{t("trucksSourceSub", { date: reviewed })}</SourceSub>
+          </SourceCol>
+        </SourceCard>
+        <Panel>
+          {[
+            [t("trucksCardAction"), ANATT_TRANSPORT_CARD_URL],
+            [t("trucksAuthorisationAction"), ANATT_AUTHORISATION_URL],
+            [t("trucksLicenceAction"), ANATT_LICENCE_URL],
+          ].map(([label, url]) => (
+            <LinkRow key={url} onPress={() => open(url)}>
+              <LinkRowLabel>{label}</LinkRowLabel>
+              <Ionicons name="open-outline" size={15} color={INK} />
+            </LinkRow>
+          ))}
+        </Panel>
 
         <ScreenFooter />
       </ScrollView>
@@ -462,7 +478,10 @@ const FieldLabel = styled.Text`
   color: ${(props) => props.theme.textMuted};
 `;
 
-const FilterScroll = styled.ScrollView`
+const ChipWrap = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: ${spacing.sm}px;
 `;
 
@@ -470,12 +489,11 @@ const Chip = styled(Pressable)`
   flex-direction: row;
   align-items: center;
   gap: 6px;
-  padding: 9px 14px;
+  padding: 9px 15px;
   border-radius: 999px;
   background-color: ${(props) => (props.active ? INK : props.theme.surface)};
   border-width: 1px;
-  border-color: ${(props) =>
-    props.active ? INK : props.theme.border};
+  border-color: ${(props) => (props.active ? INK : props.theme.border)};
 `;
 
 const ChipLabel = styled.Text`
@@ -628,21 +646,71 @@ const NoteText = styled.Text`
   color: ${(props) => props.theme.text};
 `;
 
-const LinkButton = styled(Pressable)`
+const SourceCard = styled.View`
   flex-direction: row;
   align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 46px;
+  gap: 12px;
+  padding: ${spacing.md}px;
   border-radius: ${radius.lg}px;
-  margin-top: ${spacing.sm}px;
-  background-color: ${(props) => props.theme.surface};
+  background-color: rgba(30, 92, 82, 0.06);
   border-width: 1px;
-  border-color: rgba(30, 92, 82, 0.28);
+  border-color: rgba(30, 92, 82, 0.2);
 `;
 
-const LinkLabel = styled.Text`
+// A plate, not a logo. ANaTT publishes no mark this app is entitled to
+// redraw, and its initials are what appears on the papers anyway.
+//
+// Named ...Plate rather than ...Mark so check-contrast can see it: the
+// guard pairs a label with the nearest container whose name it extends,
+// and with no container suffix this surface was invisible — the white
+// initials were measured against the card behind it and read 1.10:1.
+const SourcePlate = styled.View`
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  align-items: center;
+  justify-content: center;
+  background-color: ${INK};
+`;
+
+const SourcePlateLabel = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  color: #ffffff;
+`;
+
+const SourceCol = styled.View`
+  flex: 1;
+  gap: 3px;
+`;
+
+const SourceName = styled.Text`
   font-family: ${fontFamily.semiBold};
-  font-size: 13px;
+  font-size: 13.5px;
+  line-height: 18px;
+  color: ${(props) => props.theme.text};
+`;
+
+const SourceSub = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 11.5px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+// A row in the panel rather than a slab of its own: the label carries the
+// weight and the icon only says "this leaves the app".
+const LinkRow = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 12px 0;
+`;
+
+const LinkRowLabel = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.semiBold};
+  font-size: 13.5px;
   color: ${INK};
 `;

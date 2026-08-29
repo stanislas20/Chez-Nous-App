@@ -800,6 +800,46 @@ export const translations = {
     dealerDirections: "Directions",
     dealerFilterEmpty: "No official distributor listed for this brand.",
     // ── Auto-écoles ──────────────────────────────────────────────────
+    trucksEyebrow: "TRUCKS & VANS",
+    trucksTitle_buy: "What it can carry",
+    trucksTitle_rent: "Hire by the day",
+    trucksTitle_haul: "Have a load moved",
+    trucksIntro_buy:
+      "A vehicle's plated weight is not what it carries — the body and the fuel come out of the same figure. Choose by the load you actually move.",
+    trucksIntro_rent:
+      "What a day includes — kilometres, fuel, a driver — differs by owner. It is on each listing, in their words.",
+    trucksIntro_haul:
+      "The price quoted usually covers the trip. Loading and unloading are often billed apart, so agree both before anything moves.",
+    trucksPublishVehicle: "Do you have a truck or van to list?",
+    trucksPublishHaul: "Do you carry goods?",
+    trucksLoadLabel: "What are you moving?",
+    trucksLoadAll: "Anything",
+    trucksCount_vehicle: "{count} vehicles",
+    trucksCountOne_vehicle: "1 vehicle",
+    trucksCount_haul: "{count} carriers",
+    trucksCountOne_haul: "1 carrier",
+    trucksNoPrice: "Price on request",
+    trucksEmptyVehicle:
+      "Nothing published for this load yet. Try a different size, or list yours.",
+    trucksEmptyHaul:
+      "No carrier has listed itself here yet. If you carry goods, this is where people will look.",
+    trucksLawTitle: "What a carrier must hold",
+    trucksLawNote:
+      "ANaTT's own conditions for a transport authorisation, read on {date}. Ask to see them before you hand over goods.",
+    trucksCardTitle: "The carte de transport",
+    trucksCardValidity: "Valid for {months} months — not for a single trip",
+    trucksCardProcessing: "Issued in about {hours} hours",
+    trucksCardNote:
+      "Fees are listed separately on purpose: the total depends on how many countries the card covers and whether it is urgent, so a single figure would be wrong for most people.",
+    trucksCardAction: "ANaTT — carte de transport",
+    trucksAuthorisationAction: "ANaTT — transport authorisations",
+    trucksLicenceTitle: "The licence to drive it",
+    trucksLicenceCovers: "Category {category} — {covers}",
+    trucksLicenceAge: "From {age} years old",
+    trucksLicenceNeedsB: "You must already hold category B",
+    trucksLicenceAction: "ANaTT — driving licence",
+    trucksNoTonnageNote:
+      "No weight threshold appears above because ANaTT's page states none. Where a tonnage decides what you may drive or carry, confirm it with the agency rather than with a listing.",
     schoolsTitle: "Driving schools",
     schoolsEyebrow: "GETTING YOUR LICENCE",
     schoolsIntro:
@@ -1675,6 +1715,9 @@ export const translations = {
     sellTradeDrivingSchool: "Driving school",
     sellTitleHint_drivingSchool:
       "e.g. Auto-école Le Progrès — permis A and B, Calavi",
+    sellTradeHaulier: "Goods transport",
+    sellTitleHint_haulier:
+      "e.g. Transport Calavi — 3 t flatbed, moves and market runs",
     sellTradeGps: "GPS & tracking",
     sellTitleHint_gps:
       "e.g. Vehicle tracker fitting \u2014 supply, wiring and subscription, Cotonou",
@@ -3328,6 +3371,47 @@ export const translations = {
     dealerAddressesLabel: "Adresses",
     dealerDirections: "Itinéraire",
     dealerFilterEmpty: "Aucun distributeur officiel listé pour cette marque.",
+    // ── Camions & utilitaires ────────────────────────────────────────
+    trucksEyebrow: "CAMIONS & UTILITAIRES",
+    trucksTitle_buy: "Ce qu'il peut vraiment porter",
+    trucksTitle_rent: "Louer à la journée",
+    trucksTitle_haul: "Faire transporter un chargement",
+    trucksIntro_buy:
+      "Le poids inscrit sur la carte grise n'est pas ce que le véhicule transporte : la caisse et le carburant sortent du même chiffre. Choisissez selon ce que vous chargez.",
+    trucksIntro_rent:
+      "Ce que la journée comprend — kilomètres, carburant, chauffeur — change d'un propriétaire à l'autre. C'est sur chaque annonce, dans ses mots.",
+    trucksIntro_haul:
+      "Le prix annoncé couvre le trajet. Le chargement et le déchargement se facturent souvent à part : mettez-vous d'accord sur les deux avant que rien ne bouge.",
+    trucksPublishVehicle: "Vous avez un camion ou un utilitaire ?",
+    trucksPublishHaul: "Vous transportez des marchandises ?",
+    trucksLoadLabel: "Que transportez-vous ?",
+    trucksLoadAll: "Peu importe",
+    trucksCount_vehicle: "{count} véhicules",
+    trucksCountOne_vehicle: "1 véhicule",
+    trucksCount_haul: "{count} transporteurs",
+    trucksCountOne_haul: "1 transporteur",
+    trucksNoPrice: "Prix sur demande",
+    trucksEmptyVehicle:
+      "Rien de publié pour ce chargement. Essayez une autre taille, ou publiez le vôtre.",
+    trucksEmptyHaul:
+      "Aucun transporteur ne s'est encore inscrit ici. Si vous transportez des marchandises, c'est ici qu'on vous cherchera.",
+    trucksLawTitle: "Ce qu'un transporteur doit détenir",
+    trucksLawNote:
+      "Conditions de l'ANaTT pour une autorisation de transport, relevées le {date}. Demandez à les voir avant de confier votre marchandise.",
+    trucksCardTitle: "La carte de transport",
+    trucksCardValidity: "Valable {months} mois — pas pour un seul trajet",
+    trucksCardProcessing: "Délivrée en {hours} heures environ",
+    trucksCardNote:
+      "Les frais sont listés séparément à dessein : le total dépend du nombre de pays couverts et de l'urgence, donc un chiffre unique serait faux pour la plupart des gens.",
+    trucksCardAction: "ANaTT — carte de transport",
+    trucksAuthorisationAction: "ANaTT — autorisations de transport",
+    trucksLicenceTitle: "Le permis pour le conduire",
+    trucksLicenceCovers: "Permis {category} — {covers}",
+    trucksLicenceAge: "À partir de {age} ans",
+    trucksLicenceNeedsB: "Il faut déjà être titulaire du permis B",
+    trucksLicenceAction: "ANaTT — permis de conduire",
+    trucksNoTonnageNote:
+      "Aucun seuil de tonnage n'apparaît ci-dessus parce que la page de l'ANaTT n'en donne aucun. Là où un tonnage décide de ce que vous pouvez conduire ou charger, confirmez-le auprès de l'agence et non auprès d'une annonce.",
     // ── Auto-écoles ──────────────────────────────────────────────────
     schoolsTitle: "Auto-écoles",
     schoolsEyebrow: "PASSER SON PERMIS",
@@ -4212,6 +4296,9 @@ export const translations = {
     sellTradeDrivingSchool: "Auto-école",
     sellTitleHint_drivingSchool:
       "ex. Auto-école Le Progrès — permis A et B, Calavi",
+    sellTradeHaulier: "Transport de marchandises",
+    sellTitleHint_haulier:
+      "ex. Transport Calavi — plateau 3 t, déménagements et marché",
     sellTradeGps: "GPS & traceur",
     sellTitleHint_gps:
       "ex. Pose de traceur GPS \u2014 fourniture, c\u00e2blage et abonnement, Cotonou",

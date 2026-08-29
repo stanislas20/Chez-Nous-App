@@ -285,6 +285,7 @@ const TRADE_HINT_KEYS = {
   // was shown the generic Services example, which is a plumber.
   wash: "sellTitleHint_wash",
   drivingSchool: "sellTitleHint_drivingSchool",
+  haulier: "sellTitleHint_haulier",
 };
 
 // The car trades that have a screen of their own, offered inside the form
@@ -326,6 +327,10 @@ const SERVICE_TRADES = [
     icon: "school-outline",
     labelKey: "sellTradeDrivingSchool",
   },
+  // Carrying goods for other people. Distinct from "driver", which is a
+  // person driving passengers in a car: this one owns a load bed and is
+  // found from the Camions screen's third tab.
+  { key: "haulier", icon: "cube-outline", labelKey: "sellTradeHaulier" },
 ];
 
 // Under Services these two keys describe a workshop, not a product, so the

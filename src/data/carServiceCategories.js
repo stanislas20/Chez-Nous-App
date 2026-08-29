@@ -159,7 +159,11 @@ export const carServicesMore = [
   // printing shop with a plotter until the matcher learned the difference.
   { key: "gps", icon: "navigate-circle-outline", route: "Tracking" },
   { key: "dealers", icon: "storefront-outline", route: "CarDealerships" },
-  { key: "trucks", icon: "bus-outline", query: "camion utilitaire" },
+  // Was a text search for "camion utilitaire", which matched every garage
+  // that repairs one and every shop selling their tyres. It is a vertical
+  // now, and the errand it could never reach — paying somebody to carry a
+  // load — is a tab on it.
+  { key: "trucks", icon: "bus-outline", route: "Trucks" },
   { key: "importation", icon: "boat-outline", query: "importation véhicule" },
   { key: "scrap", icon: "refresh-circle-outline", query: "casse automobile" },
   // Was a text search in Services for "séjour voiture", which could never

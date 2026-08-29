@@ -45,7 +45,7 @@ import {
   commercialPricePer,
   realEstateHasCapacity,
 } from "../data/realEstate";
-import { getAllQuartiers, getQuartiers } from "../data/quartiers";
+import { quartiersFor } from "../data/quartiers";
 import {
   getLandDocument,
   getRealEstateDeal,
@@ -209,7 +209,10 @@ export function RealEstateScreen({ navigation, route }) {
   const [contactFor, setContactFor] = useState(null);
 
   const bands = BUDGET_BANDS[deal] ?? [];
-  const quartiers = city ? getQuartiers(city) : getAllQuartiers();
+  // Curated names plus whatever sellers have actually typed in this city.
+  // With four communes curated out of sixty-one, the second half is where
+  // most of the list comes from outside Cotonou and Calavi.
+  const quartiers = quartiersFor(city, listings);
 
   const results = useMemo(() => {
     const selectedBand = bands.find((item) => item.key === band);

@@ -104,6 +104,39 @@ readers.forEach((rel) => {
   }
 });
 
+// The quartier has to be answerable in every commune.
+//
+// Four of the sixty-one cities have curated quartiers. Gating the field on
+// that list meant a seller in Bohicon could not say where the property was
+// beyond the commune — reported as the picker not showing the quartiers for
+// the chosen city, which is what it looks like when there are none. The
+// names cannot simply be written out: this app's own quartier file says the
+// list is unverified, and INStaD's roll is a scanned PDF.
+{
+  const code = form
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/[^\n]*/g, "");
+  if (/\{getQuartiers\(selectedCity\)\.length \? \(/.test(code)) {
+    failures.push(
+      "CreateListingScreen gates the quartier field on the curated list — " +
+        "sellers in the other 57 communes get no field at all",
+    );
+  }
+  if (!/sellFieldQuartierPlaceholder/.test(code)) {
+    failures.push(
+      "CreateListingScreen has no free-text quartier input, so the list can " +
+        "never grow beyond the four curated communes",
+    );
+  }
+  const filter = read("src/screens/RealEstateScreen.js");
+  if (!/quartiersFor\(city, listings\)/.test(filter)) {
+    failures.push(
+      "RealEstateScreen does not build its quartier filter from listings, " +
+        "so what sellers type is never offered to buyers",
+    );
+  }
+}
+
 if (failures.length) {
   failures.forEach((line) => console.error(`FAIL ${line}`));
   console.error(`\n${failures.length} failing`);

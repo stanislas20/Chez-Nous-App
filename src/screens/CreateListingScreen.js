@@ -3455,9 +3455,16 @@ export function CreateListingScreen({ route, navigation }) {
                       Godomey and Calavi centre are the same commune and a
                       different market. Only offered for cities we have
                       quartiers for; elsewhere the city stands alone. */}
-                  {getQuartiers(selectedCity).length ? (
+                  {selectedCity ? (
                     <>
                       <Label>{t("sellFieldQuartier")}</Label>
+                      {/* Chips where we have names for the city, and a text
+                          field always. Only four of the sixty-one communes
+                          are curated, so for most sellers the chips do not
+                          exist and this used to leave them no way to say
+                          where the property is at all. They know their own
+                          quartier; the list on the filter screen grows from
+                          what they type. */}
                       <PickerGrid>
                         {getQuartiers(selectedCity).map((name, index, list) => {
                           const active = quartier === name;
@@ -3482,6 +3489,19 @@ export function CreateListingScreen({ route, navigation }) {
                           );
                         })}
                       </PickerGrid>
+                      <InputRow>
+                        <Ionicons
+                          name="map-outline"
+                          size={20}
+                          color={colors.textMuted}
+                        />
+                        <Input
+                          value={quartier ?? ""}
+                          onChangeText={(value) => setQuartier(value || null)}
+                          placeholder={t("sellFieldQuartierPlaceholder")}
+                          placeholderTextColor={colors.textMuted}
+                        />
+                      </InputRow>
                     </>
                   ) : null}
 

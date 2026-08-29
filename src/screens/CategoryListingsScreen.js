@@ -253,8 +253,13 @@ function NearbyPharmacyRow({ place }) {
           </NearbyMetaRow>
         ) : null}
         {place.phone ? (
+          // fit: this sits inside the row's flex:1 body, which is a column
+          // and stretches what it holds — a Google Places number is nearly
+          // always a single one, so without this "Appeler" spans the whole
+          // body with its label adrift in the centre.
           <PhoneCallButtons
             phone={place.phone}
+            fit
             style={{ marginTop: spacing.xs }}
           />
         ) : null}
@@ -345,12 +350,27 @@ function NearestPharmacyCard({ status, nearest, onRequestLocation }) {
           </NearestDistanceText>
         </PharmacyRowBody>
       </NearestBodyRow>
+      {/* One wrapping row for every action, two to a line, each taking an
+          equal share of it. `flow` hands the numbers over as bare siblings
+          rather than inside their own row, so "Obtenir l'itinéraire" is part
+          of the same sequence and takes the place beside the last chip; the
+          shared basis is what makes the two halves match instead of each
+          button being as wide as its own label happened to be. */}
       <NearestActionsColumn>
         {listing.phone ? (
-          <PhoneCallButtons phone={listing.phone} size="md" />
+          <PhoneCallButtons
+            phone={listing.phone}
+            size="md"
+            flow
+            itemStyle={actionGridItem}
+          />
         ) : null}
         {cityCoord ? (
-          <NearestActionButton secondary onPress={handleDirections}>
+          <NearestActionButton
+            secondary
+            style={actionGridItem}
+            onPress={handleDirections}
+          >
             <Ionicons
               name="navigate-outline"
               size={15}
@@ -1200,14 +1220,48 @@ const NearestLocatingText = styled.Text`
   flex: 1;
 `;
 
-// Column, not row: PhoneCallButtons needs the card's full width to lay
-// multiple phone-number chips out horizontally. Sharing a row 50/50 with
-// the "Get Directions" button squeezed it so tightly that every chip wrapped
-// onto its own line, which just looked like a vertical stack of numbers.
+// Row when the actions fit on one, column when they do not.
+//
+// It was always a column, for a good reason: PhoneCallButtons needs the
+// card's full width to lay multiple phone-number chips out horizontally, and
+// sharing a row 50/50 with "Itinéraire" squeezed it until every chip wrapped
+// onto its own line — a vertical stack of numbers.
+//
+// But that reason only holds when there ARE several numbers. With one, the
+// column stretched a short "Appeler" and a short "Itinéraire" to the full
+// width of the card, one above the other: two green bands with their labels
+// stranded in the middle and a lot of nothing on either side.
+//
+// One wrapping row holding every action on the card.
+//
+// It used to be a plain column, which stretched what it held: a short
+// "Appeler" and a short "Itinéraire" each became a full-width band with its
+// label stranded in the middle. Making them a column of content-sized buttons
+// fixed the bands but not the emptiness — Tanguiéta's three numbers wrapped
+// 2 + 1, and the directions button, living in a container of its own, could
+// not rise into the gap beside the third chip.
+//
+// So they all share this row and wrap as one sequence. align-items: center
+// rather than flex-start: this is the cross axis here, and the chips are a
+// couple of pixels shorter than the outlined button beside them.
 const NearestActionsColumn = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
   gap: ${spacing.sm}px;
   margin-top: ${spacing.xs}px;
 `;
+
+// Two to a line, each taking half of it.
+//
+// A basis of 45% is the trick: two of them plus the gap fit on one line and
+// a third cannot, so the row breaks two-up. flex-grow then spends the
+// remainder equally, which both squares the halves against each other and
+// lets a lone button on the last line take the whole width instead of
+// leaving a stub. Without the shared basis each button is as wide as its own
+// label — a six-digit chip against "Obtenir l'itinéraire" — and the card
+// reads as ragged.
+const actionGridItem = { flexGrow: 1, flexBasis: "45%" };
 
 const NearestActionButton = styled(Pressable)`
   flex-direction: row;

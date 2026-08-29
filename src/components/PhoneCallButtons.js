@@ -17,7 +17,32 @@ export function splitPhoneNumbers(phone) {
 // A single number gets one full "Appeler" button; multiple slash-separated
 // numbers (e.g. "0198677272/0157281097") each get their own button showing
 // the actual digits, since the user needs to pick which one to dial.
-export function PhoneCallButtons({ phone, size = 'md', style }) {
+//
+// `fit` sizes the single-number button to its label instead of letting it
+// stretch. A plain View column stretches its children, which turned a 14px
+// "Appeler" into a full-card slab of green with the words marooned in the
+// middle — it reads as a loading placeholder rather than something to press.
+//
+// `flow` drops the wrapper entirely and returns the buttons as siblings, for
+// a caller whose own wrapping row should lay them out alongside its other
+// actions. Tanguiéta prints three numbers: they wrapped 2 + 1, and because
+// "Obtenir l'itinéraire" lived in a different container it could not rise
+// into the gap beside the third chip, so the card carried an empty half-row
+// and then a half-empty one. Sharing one row lets the button take that space.
+//
+// `itemStyle` is applied to each button rather than to a wrapper, so a caller
+// laying them out as a grid can give every one the same flex basis. The point
+// is that a two-up row is two equal halves: sized by their own labels, a
+// six-digit chip and "Obtenir l'itinéraire" sit side by side at obviously
+// different widths and the row reads as ragged rather than arranged.
+export function PhoneCallButtons({
+  phone,
+  size = 'md',
+  style,
+  fit = false,
+  flow = false,
+  itemStyle,
+}) {
   const { colors } = useTheme();
   const { t } = useI18n();
   const numbers = splitPhoneNumbers(phone);
@@ -40,26 +65,41 @@ export function PhoneCallButtons({ phone, size = 'md', style }) {
 
   if (numbers.length === 1) {
     return (
-      <CallButton size={size} style={style} onPress={() => call(numbers[0])} hitSlop={6}>
+      <CallButton
+        size={size}
+        fit={fit}
+        style={[style, itemStyle]}
+        onPress={() => call(numbers[0])}
+        hitSlop={6}
+      >
         <Ionicons name="call" size={size === 'lg' ? 18 : 14} color={colors.textInverse} />
         <CallButtonLabel size={size}>{t('callButtonLabel')}</CallButtonLabel>
       </CallButton>
     );
   }
 
-  return (
-    <ChipsRow style={style}>
-      {numbers.map((number) => (
-        <CallChip key={number} size={size} onPress={() => call(number)} hitSlop={6}>
-          <Ionicons name="call" size={size === 'lg' ? 15 : 12} color={colors.textInverse} />
-          <CallChipLabel size={size}>{number}</CallChipLabel>
-        </CallChip>
-      ))}
-    </ChipsRow>
-  );
+  const chips = numbers.map((number) => (
+    <CallChip
+      key={number}
+      size={size}
+      style={itemStyle}
+      onPress={() => call(number)}
+      hitSlop={6}
+    >
+      <Ionicons name="call" size={size === 'lg' ? 15 : 12} color={colors.textInverse} />
+      <CallChipLabel size={size}>{number}</CallChipLabel>
+    </CallChip>
+  ));
+
+  // No wrapper: the caller's own row is the wrapping context, so its other
+  // actions can share a line with the last chip instead of starting a new one.
+  if (flow) return <>{chips}</>;
+
+  return <ChipsRow style={style}>{chips}</ChipsRow>;
 }
 
 const CallButton = styled(Pressable)`
+  ${(props) => (props.fit ? 'align-self: flex-start;' : '')}
   flex-direction: row;
   align-items: center;
   justify-content: center;
@@ -75,7 +115,12 @@ const CallButtonLabel = styled.Text`
   color: ${(props) => props.theme.textInverse};
 `;
 
+// Stretch stated rather than inherited. It is what a default View parent
+// gives this anyway, but the pharmacy cards now set align-items: flex-start
+// so their buttons stop stretching — and a wrapping row that shrink-wraps
+// lays every number on one line and runs off the edge of the card.
 const ChipsRow = styled.View`
+  align-self: stretch;
   flex-direction: row;
   flex-wrap: wrap;
   gap: ${spacing.xs}px;
@@ -84,6 +129,9 @@ const ChipsRow = styled.View`
 const CallChip = styled(Pressable)`
   flex-direction: row;
   align-items: center;
+  /* A no-op while the chip is sized by its own label; it centres the digits
+     when a caller gives every button an equal share of the row instead. */
+  justify-content: center;
   gap: 6px;
   background-color: ${(props) => props.theme.primary};
   border-radius: ${radius.pill}px;

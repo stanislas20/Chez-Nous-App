@@ -2022,6 +2022,18 @@ export const translations = {
       "This is a placeholder shown while the directory fills up — there is no real restaurant behind it yet. Real listings open their own page.",
     restoSampleNote:
       "Sample listings, shown while the directory is being built. No ratings or menu prices are shown — we have none to verify.",
+    restoTabListed: "Listed here",
+    restoTabNearby: "Nearby",
+    restoNearbyTitle: "Not listed here yet",
+    restoNearbyNote:
+      "Found on Google Maps, not listed here. Nobody at Chez-Nous has checked them, and the opening state is Google\u2019s reading of their hours \u2014 call before you go.",
+    restoNearbyNoLocation: "Turn on location to see what is around you",
+    restoNearbyEnable: "Use my location",
+    restoNearbyError: "Could not load the restaurants around you.",
+    restoNearbyEmpty: "No restaurant found within 5 km.",
+    restoNearbyDistance: "{km} km away",
+    restoNearbyRating: "{rating} on Google ({count})",
+    restoNearbyPhotoCredit: "Photo: {name} \u2014 Google",
     restoEmptyTitle: "No restaurant matches",
     restoEmptyCopy: "Try another cuisine, or widen the area.",
     restoOwnerCardTitle: "List my restaurant",
@@ -4626,6 +4638,19 @@ export const translations = {
       "Ceci est un exemple affiché en attendant que l’annuaire se remplisse — aucun restaurant réel ne se cache derrière. Les vraies annonces ouvrent leur propre fiche.",
     restoSampleNote:
       "Exemples affichés en attendant que l’annuaire se remplisse. Aucune note ni prix de menu : nous n’avons rien de vérifiable.",
+    restoTabListed: "Sur Chez-Nous",
+    restoTabNearby: "\u00c0 proximit\u00e9",
+    restoNearbyTitle: "Pas encore sur Chez-Nous",
+    restoNearbyNote:
+      "Trouv\u00e9s sur Google Maps, pas r\u00e9f\u00e9renc\u00e9s ici. Personne chez Chez-Nous ne les a v\u00e9rifi\u00e9s, et l\u2019ouverture est celle que Google lit dans leurs horaires \u2014 appelez avant de vous d\u00e9placer.",
+    restoNearbyNoLocation:
+      "Activez la localisation pour voir ce qui vous entoure",
+    restoNearbyEnable: "Utiliser ma position",
+    restoNearbyError: "Impossible de charger les restaurants autour de vous.",
+    restoNearbyEmpty: "Aucun restaurant trouv\u00e9 dans un rayon de 5 km.",
+    restoNearbyDistance: "\u00c0 {km} km",
+    restoNearbyRating: "{rating} sur Google ({count})",
+    restoNearbyPhotoCredit: "Photo\u00a0: {name} \u2014 Google",
     restoEmptyTitle: "Aucun restaurant ne correspond",
     restoEmptyCopy: "Essayez une autre cuisine, ou élargissez la zone.",
     restoOwnerCardTitle: "Référencer mon restaurant",

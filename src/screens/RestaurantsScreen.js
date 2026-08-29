@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Image, Linking, Modal, Pressable } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Linking,
+  Modal,
+  Pressable,
+} from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -11,6 +18,7 @@ import styled from "styled-components/native";
 import { BeninFlag } from "../components/BeninFlag";
 import { HeroPostBar } from "../components/HeroPostBar";
 import { ScreenFooter } from "../components/ScreenFooter";
+import { buildPlacePhotoUrl } from "../utils/placePhoto";
 import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
@@ -32,6 +40,10 @@ import { distanceInKm } from "../utils/geo";
 import { queryMatches } from "../utils/search";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useApprovedListings } from "../hooks/useApprovedListings";
+import {
+  useNearbyRestaurants,
+  withoutListed,
+} from "../hooks/useNearbyRestaurants";
 import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
 import { openAccountGate } from "../utils/openAccountGate";
@@ -105,6 +117,11 @@ export function RestaurantsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { coords: userCoords, requestLocation } = useCurrentLocation();
   const liveListings = useApprovedListings();
+  const [tab, setTab] = useState("listed");
+  // Only asked for once the reader has a position. No location, no call —
+  // this is a paid lookup and a radius around nothing is worth nothing.
+  const { status: nearbyStatus, restaurants: nearbyPlaces } =
+    useNearbyRestaurants(userCoords);
 
   // Real, approved restaurant listings, mapped onto the shape the cards
   // already speak. Samples stay only while there are none — the moment a
@@ -206,7 +223,29 @@ export function RestaurantsScreen({ navigation }) {
   // once in its own slot and again further down. It still respects every
   // active filter: a paid placement that ignores the cuisine you asked for
   // is an advert, not a result.
+  // A Google record has no page here to open — there is no listing behind
+  // it. Maps is where its hours, reviews and directions actually live, so
+  // that is where the tap goes rather than to a stub of our own.
+  const openNearbyPlace = (place) => {
+    const query = encodeURIComponent(`${place.name} ${place.address ?? ""}`);
+    Linking.openURL(
+      `https://www.google.com/maps/search/?api=1&query=${query}`,
+    ).catch(() => {});
+  };
+
   const promoted = restaurants.find((item) => item.promoted) ?? null;
+
+  // Google's, minus anyone who has published here. A restaurant with a
+  // listing would otherwise appear twice — its own words and Google's, side
+  // by side, reading as two places of the same name — and the listing wins
+  // because it is the owner speaking.
+  //
+  // Deduped against the samples too while they are what is on screen: it
+  // costs nothing and stops a sample colliding with a real place.
+  const nearby = useMemo(
+    () => withoutListed(nearbyPlaces, restaurants),
+    [nearbyPlaces, restaurants],
+  );
 
   // Open now AND closest — not merely closest. The list is already sorted by
   // distance, so a "nearest" card would just restate its first row in a
@@ -508,7 +547,42 @@ export function RestaurantsScreen({ navigation }) {
           </MapCard>
         ) : null}
 
-        {showingSamples ? (
+        {/* Two lists, never one. The left tab is restaurants that chose to
+            be here and wrote their own entry; the right is Google's index of
+            what is physically nearby. Merging them would put an unchecked
+            record under the same heading as an owner's own words. */}
+        <TabRow>
+          <TabButton
+            active={tab === "listed"}
+            onPress={() => setTab("listed")}
+          >
+            <TabLabel active={tab === "listed"} numberOfLines={1}>
+              {t("restoTabListed")}
+            </TabLabel>
+            <TabCount active={tab === "listed"}>
+              <TabCountLabel active={tab === "listed"}>
+                {restaurants.length}
+              </TabCountLabel>
+            </TabCount>
+          </TabButton>
+          <TabButton
+            active={tab === "nearby"}
+            onPress={() => setTab("nearby")}
+          >
+            <TabLabel active={tab === "nearby"} numberOfLines={1}>
+              {t("restoTabNearby")}
+            </TabLabel>
+            {nearby.length ? (
+              <TabCount active={tab === "nearby"}>
+                <TabCountLabel active={tab === "nearby"}>
+                  {nearby.length}
+                </TabCountLabel>
+              </TabCount>
+            ) : null}
+          </TabButton>
+        </TabRow>
+
+        {showingSamples && tab === "listed" ? (
           <SampleNote>
             <SampleNoteIcon>
               <Ionicons
@@ -545,7 +619,10 @@ export function RestaurantsScreen({ navigation }) {
           </NearestCard>
         ) : null}
 
-        {promoted ? (
+        {/* Belongs to the listed side. It is a Chez-Nous listing (a sample
+            one, while the directory fills), and showing it above Google's
+            results made the two look like one ranked list. */}
+        {tab === "listed" && promoted ? (
           <PromotedCard onPress={() => openRestaurant(promoted)}>
             <PromotedGradient
               colors={[EMERALD, "#0a5e43"]}
@@ -631,6 +708,135 @@ export function RestaurantsScreen({ navigation }) {
           </PromotedCard>
         ) : null}
 
+        {tab === "nearby" ? (
+          <>
+            <SectionHeader>
+              <SectionTitle>{t("restoNearbyTitle")}</SectionTitle>
+            </SectionHeader>
+            {/* Said before the list, not after it: these are Google's
+                records, not entries anybody here checked, and the opening
+                state is Google's reading of their hours rather than the
+                restaurant's own word. */}
+            <SampleNote>
+              <SampleNoteIcon>
+                <Ionicons
+                  name="information-circle-outline"
+                  size={15}
+                  color={EMERALD}
+                />
+              </SampleNoteIcon>
+              <SampleNoteLabel>{t("restoNearbyNote")}</SampleNoteLabel>
+            </SampleNote>
+
+            {!userCoords ? (
+              <EmptyWrap>
+                <Ionicons
+                  name="location-outline"
+                  size={30}
+                  color={colors.textMuted}
+                />
+                <EmptyTitle>{t("restoNearbyNoLocation")}</EmptyTitle>
+                <NearbyAction onPress={requestLocation}>
+                  <NearbyActionLabel>
+                    {t("restoNearbyEnable")}
+                  </NearbyActionLabel>
+                </NearbyAction>
+              </EmptyWrap>
+            ) : nearbyStatus === "loading" ? (
+              <EmptyWrap>
+                <ActivityIndicator color={EMERALD} />
+              </EmptyWrap>
+            ) : nearbyStatus === "error" ? (
+              <EmptyWrap>
+                <Ionicons
+                  name="cloud-offline-outline"
+                  size={30}
+                  color={colors.textMuted}
+                />
+                <EmptyCopy>{t("restoNearbyError")}</EmptyCopy>
+              </EmptyWrap>
+            ) : nearby.length === 0 ? (
+              <EmptyWrap>
+                <Ionicons
+                  name="restaurant-outline"
+                  size={30}
+                  color={colors.textMuted}
+                />
+                <EmptyCopy>{t("restoNearbyEmpty")}</EmptyCopy>
+              </EmptyWrap>
+            ) : (
+              nearby.map((place) => (
+                <RestoCard
+                  key={place.id}
+                  onPress={() => openNearbyPlace(place)}
+                >
+                  <AccentEdge accent={EMERALD} />
+                  {place.photoName ? (
+                    <RestoPhotoWrap>
+                      <RestoPhoto
+                        source={{ uri: buildPlacePhotoUrl(place.photoName) }}
+                        resizeMode="cover"
+                      />
+                    </RestoPhotoWrap>
+                  ) : (
+                    <RestoThumb
+                      colors={getCuisineGradient("beninese")}
+                      start={gradStart}
+                      end={gradEnd}
+                    >
+                      <Ionicons
+                        name="restaurant-outline"
+                        size={27}
+                        color="#ffffff"
+                      />
+                    </RestoThumb>
+                  )}
+                  <RestoBody>
+                    <RestoNameRow>
+                      <RestoName numberOfLines={1}>{place.name}</RestoName>
+                      {place.isOpenNow != null ? (
+                        <OpenBadge open={place.isOpenNow}>
+                          <OpenBadgeLabel open={place.isOpenNow}>
+                            {t(
+                              place.isOpenNow
+                                ? "placeOpenNow"
+                                : "placeClosedNow",
+                            )}
+                          </OpenBadgeLabel>
+                        </OpenBadge>
+                      ) : null}
+                    </RestoNameRow>
+                    <NearbyMeta numberOfLines={2}>
+                      {place.address}
+                    </NearbyMeta>
+                    <NearbyMeta>
+                      {t("restoNearbyDistance", {
+                        km: place.distance.toFixed(1),
+                      })}
+                      {place.rating != null
+                        ? ` · ${t("restoNearbyRating", {
+                            rating: place.rating.toFixed(1),
+                            count: place.ratingCount ?? 0,
+                          })}`
+                        : ""}
+                    </NearbyMeta>
+                    {/* Google requires the contributor to be credited
+                        wherever their photo appears. No credit, no photo —
+                        extractPlacePhoto drops those upstream. */}
+                    {place.photoName ? (
+                      <PhotoCredit numberOfLines={1}>
+                        {t("restoNearbyPhotoCredit", {
+                          name: place.photoAttribution,
+                        })}
+                      </PhotoCredit>
+                    ) : null}
+                  </RestoBody>
+                </RestoCard>
+              ))
+            )}
+          </>
+        ) : (
+          <>
         {/* A titled header with a count chip, rather than a lone grey
             number that read as one more muted line among several. */}
         <SectionHeader>
@@ -762,6 +968,8 @@ export function RestaurantsScreen({ navigation }) {
               </RestoCard>
             );
           })
+        )}
+          </>
         )}
 
         <ScreenFooter />
@@ -1470,4 +1678,73 @@ const SheetRowLabel = styled.Text`
   font-family: ${(props) => (props.selected ? fontFamily.semiBold : fontFamily.medium)};
   font-size: 14px;
   color: ${(props) => props.theme.text};
+`;
+
+const TabRow = styled.View`
+  flex-direction: row;
+  gap: 8px;
+  margin-bottom: ${spacing.md}px;
+`;
+
+const TabButton = styled(Pressable)`
+  flex-grow: 1;
+  flex-basis: 45%;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 11px 12px;
+  border-radius: ${radius.lg}px;
+  background-color: ${(props) => (props.active ? EMERALD : props.theme.surface)};
+  border-width: 1px;
+  border-color: ${(props) => (props.active ? EMERALD : props.theme.border)};
+`;
+
+const TabLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 13px;
+  color: ${(props) => (props.active ? "#ffffff" : props.theme.text)};
+`;
+
+const TabCount = styled.View`
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: ${(props) =>
+    props.active ? "rgba(255,255,255,0.22)" : props.theme.surfaceAlt};
+`;
+
+const TabCountLabel = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 11px;
+  color: ${(props) => (props.active ? "#ffffff" : props.theme.textMuted)};
+`;
+
+const NearbyMeta = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 12px;
+  line-height: 17px;
+  margin-top: 3px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+// Small and quiet, but never absent when a photo is shown: Google's terms
+// require the contributor to be named beside their picture.
+const PhotoCredit = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 10.5px;
+  margin-top: 5px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+const NearbyAction = styled(Pressable)`
+  margin-top: ${spacing.sm}px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background-color: ${EMERALD};
+`;
+
+const NearbyActionLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 13px;
+  color: #ffffff;
 `;

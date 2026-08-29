@@ -838,14 +838,41 @@ async function syncPharmacyRosters(apiKey) {
         },
       });
 
+      // Fall back to the title's dates when the image's did not parse.
+      //
+      // This matters more than it looks. All five regions currently hold a
+      // null lastDutyUntil, because it was written only from the vision
+      // model's weekRangeText and that has never parsed — and a null quietly
+      // switches OFF the two guards that depend on it: rosterStaleness loses
+      // its precise "duty ended N days ago" test and drops to the loose
+      // 14-day ingest-age fallback, and isRosterSuperseded returns false
+      // before it looks at anything. Two guards, disabled by an absent field,
+      // with nothing in the logs to say so.
+      //
+      // The title parses perfectly well — titleWeekEndDate is right here,
+      // already computed for the mismatch warning above.
+      //
+      // State only. The draft keeps the image-derived date, null and warned
+      // about, because that is the one a human reviews against the photograph
+      // and it is what becomes listing data. This value never leaves the
+      // state document; it exists so the sync can reason about its own
+      // freshness, which is a question the title is good enough to answer.
+      const freshnessDate = weekEndDate ?? titleWeekEndDate;
       await stateRef.set({
         lastProcessedPostUrl: latest.postUrl,
         lastProcessedAt: admin.firestore.FieldValue.serverTimestamp(),
         // Carried onto the state doc so a later run can ask "has this roster
         // outlived itself?" without reading back the draft it came from.
-        lastDutyUntil: weekEndDate
-          ? admin.firestore.Timestamp.fromDate(weekEndDate)
+        lastDutyUntil: freshnessDate
+          ? admin.firestore.Timestamp.fromDate(freshnessDate)
           : null,
+        // Which of the two it came from, so a reader of this document is
+        // never left guessing whether the date was transcribed or inferred.
+        lastDutyUntilSource: weekEndDate
+          ? "image"
+          : titleWeekEndDate
+            ? "title"
+            : null,
         // What the post was showing when we transcribed it. Tomorrow's run
         // compares against this to notice a re-photographed table arriving
         // at a URL we have already seen.

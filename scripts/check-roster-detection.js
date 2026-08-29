@@ -166,12 +166,49 @@ if (!/isRevision = true/.test(source)) {
   failures.push("a changed image set must fall through to transcription");
 }
 
+// --- the field both guards hang off must actually get written
+//
+// Every region held a null lastDutyUntil in production, because it was
+// written only from the vision model's weekRangeText and that never parsed.
+// A null there disables rosterStaleness's precise test AND isRosterSuperseded
+// entirely, silently, with nothing in the logs. The post title parses fine
+// and is already computed, so it is the fallback.
+if (!/const freshnessDate = weekEndDate \?\? titleWeekEndDate/.test(source)) {
+  failures.push(
+    "the state's duty date must fall back to the title when the image's fails",
+  );
+}
+if (!/lastDutyUntil: freshnessDate/.test(source)) {
+  failures.push("the state doc must store the fallback, not the image date alone");
+}
+// The DRAFT must not take the fallback. That date is reviewed against the
+// photograph and becomes listing data; a date inferred from a headline has no
+// business there, and noWeekRangeParsed exists to make its absence loud.
+// Anchored forward from the draft write, not to the first stateRef.set in
+// the file — there is an earlier one now (the baseline backfill on the
+// unchanged path), and slicing to that gives an empty block that passes
+// every test in it by matching nothing.
+const draftStart = source.indexOf('collection("pharmacyRosterDrafts")');
+const draftBlock = source.slice(
+  draftStart,
+  source.indexOf("\n      });", draftStart),
+);
+if (draftStart === -1 || draftBlock.length < 200) {
+  failures.push("could not isolate the draft write — this check proves nothing");
+}
+if (/freshnessDate/.test(draftBlock)) {
+  failures.push("the draft must keep the image-derived date, not the fallback");
+}
+if (!/dutyUntil: weekEndDate/.test(draftBlock)) {
+  failures.push("the draft's dutyUntil must come from the transcribed image");
+}
+
 if (failures.length) {
   failures.forEach((line) => console.error(line));
   console.error(`\n${failures.length} problem(s)`);
   process.exit(1);
 }
 console.log(
-  "clean: roster detection — 20 cases; an older post is refused, a " +
+  "clean: roster detection — 25 cases; an older post is refused, a " +
     "same-week correction is not, and a re-photographed post is re-read",
 );

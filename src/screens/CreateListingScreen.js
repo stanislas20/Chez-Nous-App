@@ -5886,6 +5886,33 @@ export function CreateListingScreen({ route, navigation }) {
                     </>
                   ) : null}
 
+                  {/* Asked before the brand, because it is the question
+                      the other answers hang off — a Canter and a Corolla
+                      share a maker and share nothing else. It used to sit
+                      eighth, after brand, model, year, mileage, fuel and
+                      gearbox, which is why somebody publishing a camion
+                      reported there was no way to say so: by the time the
+                      field appeared they had already answered a car's
+                      questions and stopped looking. */}
+                  <Label>{t("sellFieldBodyType")}</Label>
+                  <ChipWrap>
+                    {vehicleBodyTypes.map((option) => (
+                      <ScrollChip
+                        key={option.key}
+                        selected={bodyType === option.key}
+                        onPress={() =>
+                          setBodyType(
+                            bodyType === option.key ? null : option.key,
+                          )
+                        }
+                      >
+                        <ScrollChipLabel selected={bodyType === option.key}>
+                          {getVehicleBodyTypeLabel(option.key, language)}
+                        </ScrollChipLabel>
+                      </ScrollChip>
+                    ))}
+                  </ChipWrap>
+
                   <Label>{t("sellFieldBrand")}</Label>
                   <ChipWrap>
                     {vehicleBrands.map((option) => (
@@ -6024,25 +6051,6 @@ export function CreateListingScreen({ route, navigation }) {
                       </ConditionPill>
                     ))}
                   </ConditionRow>
-
-                  <Label>{t("sellFieldBodyType")}</Label>
-                  <ChipWrap>
-                    {vehicleBodyTypes.map((option) => (
-                      <ScrollChip
-                        key={option.key}
-                        selected={bodyType === option.key}
-                        onPress={() =>
-                          setBodyType(
-                            bodyType === option.key ? null : option.key,
-                          )
-                        }
-                      >
-                        <ScrollChipLabel selected={bodyType === option.key}>
-                          {getVehicleBodyTypeLabel(option.key, language)}
-                        </ScrollChipLabel>
-                      </ScrollChip>
-                    ))}
-                  </ChipWrap>
 
                   <Label>{t("sellFieldColor")}</Label>
                   <ChipWrap>

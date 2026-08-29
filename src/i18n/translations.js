@@ -281,7 +281,7 @@ export const translations = {
     sellFieldMileagePlaceholder: "e.g. 78000",
     sellFieldFuel: "Fuel",
     sellFieldTransmission: "Transmission",
-    sellFieldBodyType: "Body type",
+    sellFieldBodyType: "Vehicle type",
     sellFieldSellerKind: "You are selling as",
     sellSellerKindHint:
       "Shown on your listing as you describe yourself. It is not a check by Chez-Nous.",
@@ -2860,7 +2860,7 @@ export const translations = {
     sellFieldMileagePlaceholder: "ex. 78000",
     sellFieldFuel: "Carburant",
     sellFieldTransmission: "Boîte de vitesses",
-    sellFieldBodyType: "Carrosserie",
+    sellFieldBodyType: "Type de véhicule",
     sellFieldSellerKind: "Vous vendez en tant que",
     sellSellerKindHint:
       "Affiché sur votre annonce tel que vous vous décrivez. Ce n’est pas un contrôle effectué par Chez-Nous.",

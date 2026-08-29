@@ -279,6 +279,32 @@ check(
   /seed\("bodyType", route\.params\?\.bodyType \?\? null\)/.test(form),
   true,
 );
+
+// A seller has to be able to say "this is a camion" — and be able to find
+// where to say it.
+//
+// The field existed all along and was reported missing, which is the same
+// thing from the seller's side. It sat eighth, after brand, model, year,
+// mileage, fuel and gearbox, so a camion had answered a car's questions
+// before the question that distinguishes them ever appeared.
+check(
+  "the vehicle-type field is asked before the brand",
+  form.indexOf('t("sellFieldBodyType")') < form.indexOf('t("sellFieldBrand")'),
+  true,
+);
+// And it is not called "Carrosserie". This app already uses that word for
+// the panel-beating trade — it is a tile on the car-services grid and a
+// trade in this very form — so as a field label it asks about a repair
+// shop, not about what the vehicle is.
+const fr = read("src/i18n/translations.js")
+  .split("sellFieldBodyType:")
+  .slice(1)
+  .map((chunk) => chunk.split(",")[0].trim());
+check(
+  "and it is not labelled with the bodywork trade's name",
+  fr.some((label) => /Carrosserie/i.test(label)),
+  false,
+);
 // And having accepted it, shows a goods example instead of the saloon —
 // a different one per tab, because selling one and hiring it out are not
 // the same errand. Selling asks about the vehicle; hiring asks about the

@@ -586,6 +586,11 @@ export const translations = {
     sortByCityLabel: "Sort by city",
     sortByDistanceLabel: "Sort by distance",
     pharmacyUpdatedJustNow: "Updated just now",
+    pharmacyRosterLapsedTitle: "This roster has run out",
+    pharmacyRosterLapsedBody:
+      "ONPB has not published a newer rotation yet, so every pharmacy below is from the last one we could verify. Overnight cover still exists — check one of these before travelling.",
+    pharmacyRosterLapsedOnpb: "ONPB — the official rota",
+    pharmacyRosterLapsedPharmap: "Ask PharMap on WhatsApp",
     pharmacyUpdatedMinutesAgo: "Updated {minutes} min ago",
     pharmacyUpdatedHoursAgo: "Updated {hours}h ago",
     pharmacyDetailTitle: "On-duty pharmacy",
@@ -3112,6 +3117,11 @@ export const translations = {
     sortByCityLabel: "Trier par ville",
     sortByDistanceLabel: "Trier par distance",
     pharmacyUpdatedJustNow: "Mis à jour à l'instant",
+    pharmacyRosterLapsedTitle: "Ce tour de garde est terminé",
+    pharmacyRosterLapsedBody:
+      "L'ONPB n'a pas encore publié de nouveau tour, donc les pharmacies ci-dessous viennent du dernier que nous avons pu vérifier. Une garde existe toujours — vérifiez par l'un de ces moyens avant de vous déplacer.",
+    pharmacyRosterLapsedOnpb: "ONPB — le tour officiel",
+    pharmacyRosterLapsedPharmap: "Demander à PharMap sur WhatsApp",
     pharmacyUpdatedMinutesAgo: "Mis à jour il y a {minutes} min",
     pharmacyUpdatedHoursAgo: "Mis à jour il y a {hours}h",
     pharmacyDetailTitle: "Pharmacie de garde",

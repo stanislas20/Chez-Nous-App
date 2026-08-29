@@ -408,6 +408,27 @@ export function CategoryListingsScreen({ route, navigation }) {
       !(categoryKey === "pharmacyOnDuty" && listing.isPermanentDuty),
   );
 
+  // Has the whole rotation lapsed?
+  //
+  // ONPB publishes weekly and sometimes simply stops — nineteen days, once,
+  // with the sync running perfectly and correctly reporting there was nothing
+  // to fetch. When that happens every card falls back to "last known
+  // schedule, call to confirm", which is honest but a dead end: the reader is
+  // holding a three-week-old list at two in the morning with nowhere to go.
+  //
+  // Permanent-duty pharmacies are excluded above, so if nothing here is still
+  // in date, the rotation itself has run out.
+  const rosterLapsed = useMemo(() => {
+    if (categoryKey !== "pharmacyOnDuty" || categoryListings.length === 0) {
+      return false;
+    }
+    const now = Date.now();
+    return !categoryListings.some((listing) => {
+      const until = listing.dutyUntil?.toDate?.();
+      return until && until.getTime() > now;
+    });
+  }, [categoryKey, categoryListings]);
+
   const cityFilteredListings =
     groupByLocation && selectedCity
       ? categoryListings.filter((listing) => listing.city === selectedCity)
@@ -601,6 +622,54 @@ export function CategoryListingsScreen({ route, navigation }) {
                     color={colors.textMuted}
                   />
                 </LocationRow>
+              ) : null}
+              {/* Only when the rotation has actually run out. Two ways
+                  through that do not depend on us: the register itself, and
+                  a service that answers a message. */}
+              {rosterLapsed ? (
+                <LapsedCard>
+                  <LapsedTop>
+                    <Ionicons
+                      name="alert-circle-outline"
+                      size={16}
+                      color={colors.accentDark}
+                    />
+                    <LapsedTitle>{t("pharmacyRosterLapsedTitle")}</LapsedTitle>
+                  </LapsedTop>
+                  <LapsedBody>{t("pharmacyRosterLapsedBody")}</LapsedBody>
+                  <LapsedAction
+                    onPress={() =>
+                      Linking.openURL(
+                        "https://onpb.bj/category/tour-de-garde/",
+                      ).catch(() => {})
+                    }
+                  >
+                    <Ionicons
+                      name="open-outline"
+                      size={15}
+                      color={colors.primary}
+                    />
+                    <LapsedActionLabel>
+                      {t("pharmacyRosterLapsedOnpb")}
+                    </LapsedActionLabel>
+                  </LapsedAction>
+                  <LapsedAction
+                    onPress={() =>
+                      Linking.openURL(
+                        "https://wa.me/22956191919",
+                      ).catch(() => {})
+                    }
+                  >
+                    <Ionicons
+                      name="logo-whatsapp"
+                      size={15}
+                      color={colors.primary}
+                    />
+                    <LapsedActionLabel>
+                      {t("pharmacyRosterLapsedPharmap")}
+                    </LapsedActionLabel>
+                  </LapsedAction>
+                </LapsedCard>
               ) : null}
               {groupByLocation ? (
                 <NearestPharmacyCard
@@ -996,6 +1065,54 @@ const RefreshHintRow = styled.View`
   gap: 4px;
   padding-horizontal: ${spacing.md}px;
   padding-top: 6px;
+`;
+
+const LapsedCard = styled.View`
+  padding: 14px 15px;
+  border-radius: 18px;
+  margin-bottom: ${spacing.sm}px;
+  gap: 8px;
+  background-color: rgba(217, 164, 65, 0.1);
+  border-width: 1px;
+  border-color: rgba(217, 164, 65, 0.32);
+`;
+
+const LapsedTop = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+`;
+
+const LapsedTitle = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.semiBold};
+  font-size: 13.5px;
+  color: ${(props) => props.theme.text};
+`;
+
+const LapsedBody = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 12px;
+  line-height: 17px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+const LapsedAction = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+`;
+
+const LapsedActionLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 12.5px;
+  color: ${(props) => props.theme.primary};
 `;
 
 const LocationRow = styled(Pressable)`

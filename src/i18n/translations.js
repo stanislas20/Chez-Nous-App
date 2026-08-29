@@ -336,6 +336,8 @@ export const translations = {
       "Up to {max} photos or videos · the first will be your cover",
     sellMediaFramingCars:
       "Shoot the car in landscape, filling the middle of the frame. The first photo is shown cropped to 4:3 in the listings.",
+    sellMediaFramingGoodsVehicle:
+      "Shoot the vehicle in landscape, and show the load area: the bed, the tailgate, the rear doors. That is what a buyer is coming to check, and a photo of the cab does not show it.",
     sellMediaFramingParts:
       "Photograph the shop itself — the shelves, the counter, the stock on them. A buyer is deciding whether the journey across town is worth making, and one part held in a hand does not answer that.",
     sellMediaFramingDriver:
@@ -2908,6 +2910,8 @@ export const translations = {
       "Jusqu'à {max} photos ou vidéos · la première sera votre couverture",
     sellMediaFramingCars:
       "Photographiez la voiture en paysage, bien au centre du cadre. La première photo est recadrée en 4:3 dans les annonces.",
+    sellMediaFramingGoodsVehicle:
+      "Photographiez le véhicule en paysage, et montrez la zone de chargement : plateau, hayon, portes arrière. C'est ce que l'acheteur vient vérifier, et une photo de la cabine ne le montre pas.",
     sellMediaFramingParts:
       "Photographiez la boutique elle-même — les rayons, le comptoir, le stock qui s’y trouve. L’acheteur décide si le déplacement à travers la ville en vaut la peine, et une pièce tenue à la main ne répond pas à cette question.",
     sellMediaFramingDriver:

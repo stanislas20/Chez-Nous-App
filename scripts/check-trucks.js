@@ -287,6 +287,16 @@ check(
   ),
   true,
 );
+// The framing advice is the other place the form assumed a car. "Centre it
+// in landscape" is a saloon's advice; a buyer of a flatbed is coming to see
+// the bed and the tailgate, which a flattering shot of the cab omits.
+check(
+  "and goods-vehicle framing advice, not a car's",
+  /goodsBodyTypes\.includes\(bodyType\)[\s\S]{0,80}sellMediaFramingGoodsVehicle/.test(
+    form,
+  ),
+  true,
+);
 // One list of which bodies carry goods, imported rather than retyped: two
 // copies drift, and the copy in the form is the one that decides whether
 // the seller sees the right example.

@@ -2518,7 +2518,16 @@ export function CreateListingScreen({ route, navigation }) {
                                 ? "sellMediaFramingTyreUsed"
                                 : "sellMediaFramingTyre",
                             )
-                          : t("sellMediaFramingCars")}
+                          : // A camion is not a car here either. The car
+                            // advice is to centre it in landscape; the thing
+                            // a buyer of a flatbed needs to see is the bed
+                            // and the tailgate, which a flattering
+                            // three-quarter shot of the cab leaves out.
+                            t(
+                              goodsBodyTypes.includes(bodyType)
+                                ? "sellMediaFramingGoodsVehicle"
+                                : "sellMediaFramingCars",
+                            )}
               </FramingHintText>
             </FramingHint>
           ) : null}

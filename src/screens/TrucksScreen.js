@@ -168,37 +168,43 @@ export function TrucksScreen({ navigation }) {
         {isHaul ? null : (
           <>
             <FieldLabel>{t("trucksLoadLabel")}</FieldLabel>
-            {/* Wrapped, not scrolled. Four chips with French labels this
-                long overflow the width, and a horizontal scroller answers
-                that by cutting the last one at the edge — "De la
-                marchandise" appeared as "D" with nothing to say there was
-                more. A filter you cannot see is a filter nobody uses. */}
-            <ChipWrap>
-              <Chip active={!load} onPress={() => setLoad(null)}>
-                <ChipLabel active={!load}>{t("trucksLoadAll")}</ChipLabel>
-              </Chip>
+            {/* Four tiles of one width, two to a line.
+
+                They were pills sized to their own labels, which made four
+                ragged widths and — in a horizontal scroller — cut "De la
+                marchandise" to a bare "D" at the screen edge. A shared
+                flex basis breaks the row two-up and spends the remainder
+                evenly, so the grid is square whatever the labels say.
+
+                The example moved inside the tile. It used to appear under
+                the row only once a chip was chosen, which is backwards:
+                "quelques cartons" is what tells you to pick "des colis" in
+                the first place. */}
+            <LoadGrid>
+              <LoadTile active={!load} onPress={() => setLoad(null)}>
+                <LoadTileLabel active={!load}>
+                  {t("trucksLoadAll")}
+                </LoadTileLabel>
+                <LoadTileSub active={!load}>{t("trucksLoadAllSub")}</LoadTileSub>
+              </LoadTile>
               {loadSizes.map((size) => {
                 const active = load === size.key;
                 return (
-                  <Chip
+                  <LoadTile
                     key={size.key}
                     active={active}
                     onPress={() => setLoad(active ? null : size.key)}
                   >
-                    <ChipLabel active={active}>
+                    <LoadTileLabel active={active}>
                       {language === "en" ? size.labelEn : size.labelFr}
-                    </ChipLabel>
-                  </Chip>
+                    </LoadTileLabel>
+                    <LoadTileSub active={active} numberOfLines={2}>
+                      {language === "en" ? size.exampleEn : size.exampleFr}
+                    </LoadTileSub>
+                  </LoadTile>
                 );
               })}
-            </ChipWrap>
-            {load ? (
-              <LoadExample>
-                {language === "en"
-                  ? loadSizes.find((s) => s.key === load).exampleEn
-                  : loadSizes.find((s) => s.key === load).exampleFr}
-              </LoadExample>
-            ) : null}
+            </LoadGrid>
           </>
         )}
 
@@ -478,35 +484,41 @@ const FieldLabel = styled.Text`
   color: ${(props) => props.theme.textMuted};
 `;
 
-const ChipWrap = styled.View`
+const LoadGrid = styled.View`
   flex-direction: row;
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: ${spacing.sm}px;
 `;
 
-const Chip = styled(Pressable)`
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 15px;
-  border-radius: 999px;
+// 45% is what breaks the row two-up: two tiles plus the gap fit a line and
+// a third cannot. flex-grow then spends the remainder equally, so the pair
+// is square no matter how long "Un déménagement" is.
+const LoadTile = styled(Pressable)`
+  flex-grow: 1;
+  flex-basis: 45%;
+  gap: 3px;
+  padding: 12px 14px;
+  border-radius: ${radius.md}px;
   background-color: ${(props) => (props.active ? INK : props.theme.surface)};
   border-width: 1px;
   border-color: ${(props) => (props.active ? INK : props.theme.border)};
 `;
 
-const ChipLabel = styled.Text`
+const LoadTileLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
-  font-size: 12.5px;
+  font-size: 13px;
   color: ${(props) => (props.active ? "#ffffff" : props.theme.text)};
 `;
 
-const LoadExample = styled.Text`
+// A fixed light tint on the chosen tile rather than white at an opacity:
+// #D6E4E0 on the ink clears AA at this size, and an alpha would leave the
+// contrast guard nothing literal to measure.
+const LoadTileSub = styled.Text`
   font-family: ${fontFamily.regular};
-  font-size: 12px;
-  margin: 2px 2px ${spacing.sm}px;
-  color: ${(props) => props.theme.textMuted};
+  font-size: 11px;
+  line-height: 15px;
+  color: ${(props) => (props.active ? "#D6E4E0" : props.theme.textMuted)};
 `;
 
 const CountRow = styled.Text`

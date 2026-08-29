@@ -2507,7 +2507,8 @@ export const translations = {
       "Your phone verification expired. Please verify your number again.",
     errorInvalidPrice: "Please enter a valid price.",
     errorPhoneRequired: "Please enter a phone number.",
-    errorInvalidDutyHours: "Please enter how many hours you'll be on duty.",
+    errorInvalidDutyHours:
+      "Enter how many hours the duty lasts — at most 240 (ten days). A tour de garde runs a week.",
   },
   fr: {
     languagePickerTitle: "Choisissez votre langue",
@@ -5062,6 +5063,6 @@ export const translations = {
     errorInvalidPrice: "Veuillez entrer un prix valide.",
     errorPhoneRequired: "Veuillez entrer un numéro de téléphone.",
     errorInvalidDutyHours:
-      "Veuillez indiquer combien d'heures vous serez de garde.",
+      "Indiquez la durée de la garde en heures — 240 au maximum (dix jours). Un tour de garde dure une semaine.",
   },
 };

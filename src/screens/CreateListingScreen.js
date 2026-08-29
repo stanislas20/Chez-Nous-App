@@ -265,6 +265,10 @@ function getPickerCardWidth(index, total) {
 // dressers and mechanics, so its generic hint ("ex. Plombier — dépannage et
 // installation") is actively wrong for someone who arrived by tapping "Faire
 // figurer mon garage".
+// Ten days. A duty roster is weekly; anything longer is a typo or an import
+// bug, and either way it pins a pharmacy on the screen long after it closed.
+export const MAX_DUTY_HOURS = 240;
+
 const TRADE_HINT_KEYS = {
   garage: "sellTitleHint_garage",
   tyres: "sellTitleHint_tyres",
@@ -1378,10 +1382,20 @@ export function CreateListingScreen({ route, navigation }) {
         return;
       }
       numericDutyHours = Number(dutyHours);
+      // Bounded at both ends. Only ">0" was checked, and a one-year window
+      // got through: 24 pharmacies imported for the week of 2 August 2026
+      // were written with dutyUntil in August 2027 and sat on the screen
+      // claiming to be open all night for three weeks. Somebody drives across
+      // town at 2am on the strength of that.
+      //
+      // A tour de garde runs a week, so ten days is already generous — it
+      // covers a roster published a couple of days early without letting
+      // anything outlive the rota it came from.
       if (
         !dutyHours.trim() ||
         Number.isNaN(numericDutyHours) ||
-        numericDutyHours <= 0
+        numericDutyHours <= 0 ||
+        numericDutyHours > MAX_DUTY_HOURS
       ) {
         Alert.alert(t("sellFormTitle"), t("errorInvalidDutyHours"));
         return;

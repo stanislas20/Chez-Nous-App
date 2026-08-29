@@ -7,6 +7,7 @@ import {
   Image,
   Linking,
   Modal,
+  PanResponder,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -680,6 +681,12 @@ function BusinessMarquee({ ads, navigation }) {
   const setWidth = ads.length * BUSINESS_ITEM_WIDTH;
 
   const runMarquee = () => {
+    // Stop whatever is running first. Both the touch handlers and the pan
+    // responder can call this on the same gesture — a tap that turned into
+    // a drag ends with onTouchEnd and onPanResponderRelease — and two live
+    // animations on one value fight each other. Stopping is safe: it fires
+    // the callback with finished:false, which returns before recursing.
+    animationRef.current?.stop();
     const remaining = Math.max(0, setWidth - travelledRef.current);
     startedAtRef.current = Date.now();
     animationRef.current = Animated.timing(translateX, {
@@ -706,6 +713,51 @@ function BusinessMarquee({ ads, navigation }) {
       travelledRef.current + elapsedSec * MARQUEE_SPEED_PX_PER_SEC,
     );
   };
+
+  // Drag it yourself.
+  //
+  // The row carries the reader past a company they wanted, and waiting for
+  // a full lap to bring it back is the whole complaint. So the same
+  // translateX the loop drives can be dragged, and the loop picks up from
+  // wherever the finger left it.
+  //
+  // Modulo, not a clamp. The content is the list twice over, so any
+  // travelled distance in [0, setWidth) shows a seamless row — wrapping
+  // means dragging backwards past the start reveals the tail rather than
+  // hitting a wall, and there is no edge to bump into in either direction.
+  const dragOriginRef = useRef(0);
+
+  // Above the two early returns below, and memoised on setWidth rather than
+  // held in a ref. A responder built once captures the first render's
+  // setWidth for good, so the wrap would still be measuring the old list
+  // after the verified companies load and the row grows.
+  //
+  // Claimed on movement, never on touch-down, and only when the gesture is
+  // more sideways than not: a plain tap has to keep reaching the card
+  // underneath, and a vertical swipe belongs to the feed this row sits in.
+  const pan = useMemo(() => {
+    const wrap = (value) => ((value % setWidth) + setWidth) % setWidth;
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_event, gesture) =>
+        Math.abs(gesture.dx) > 6 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
+      onPanResponderGrant: () => {
+        bankProgress();
+        animationRef.current?.stop();
+        dragOriginRef.current = travelledRef.current;
+      },
+      onPanResponderMove: (_event, gesture) => {
+        // Dragging right pulls the row back towards what has already gone
+        // past, so it subtracts from the distance travelled.
+        const next = wrap(dragOriginRef.current - gesture.dx);
+        travelledRef.current = next;
+        translateX.setValue(-next);
+      },
+      onPanResponderRelease: () => runMarquee(),
+      onPanResponderTerminate: () => runMarquee(),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setWidth]);
 
   useEffect(() => {
     travelledRef.current = 0;
@@ -754,6 +806,7 @@ function BusinessMarquee({ ads, navigation }) {
       onTouchStart={pause}
       onTouchEnd={resume}
       onTouchCancel={resume}
+      {...pan.panHandlers}
     >
       <MarqueeRow style={{ transform: [{ translateX }] }}>
         {ads.concat(ads).map((ad, index) => (

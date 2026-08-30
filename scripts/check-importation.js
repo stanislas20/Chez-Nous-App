@@ -260,6 +260,34 @@ const failures = [];
   }
 }
 
+// 7. And the form asks them their own questions.
+//
+//    check-post-trades.js says plainly what it cannot catch: a screen that
+//    passes a VALID trade belonging to somebody else. This is the other
+//    half of that, for the two trades this feature added — both were being
+//    shown the roadside block, so a customs broker at the port and an
+//    importer in Brussels were asked how fast they usually arrive and
+//    whether they bring a flatbed and a winch. Found on a device, like the
+//    tracker fitter before them, because nothing mechanical can see it.
+{
+  const form = read("src/screens/CreateListingScreen.js");
+  const gate = form.match(/const showRoadsideFields =[\s\S]{0,400}?;/);
+  if (!gate) {
+    failures.push("showRoadsideFields has moved and this guard cannot find it");
+  } else if (!/!isImportTrade/.test(gate[0])) {
+    failures.push(
+      "the roadside block is shown to the import trades again — a " +
+        "transitaire is asked their response time and offered a winch",
+    );
+  }
+  if (!/trade === "transitaire" \|\| trade === "importateur"/.test(form)) {
+    failures.push(
+      "isImportTrade no longer covers both import trades, so one of them " +
+        "still gets the dépannage questions",
+    );
+  }
+}
+
 if (failures.length) {
   failures.forEach((line) => console.error(`FAIL ${line}`));
   console.error(`\n${failures.length} failing`);

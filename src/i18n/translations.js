@@ -1299,7 +1299,7 @@ export const translations = {
     countryPickerTitle: "Country",
     countryPickerSearch: "Search a country or dial code",
     countryPickerEmpty: "No country matches that.",
-    sellFieldTrade: "Is this a car trade?",
+    sellFieldTrade: "A particular trade?",
     sellFieldTradeHint:
       "Optional. Choosing one gives you the right fields and lists you on that screen.",
     sellTradeGarage: "Mechanic",
@@ -3982,7 +3982,7 @@ export const translations = {
     countryPickerTitle: "Pays",
     countryPickerSearch: "Chercher un pays ou un indicatif",
     countryPickerEmpty: "Aucun pays ne correspond.",
-    sellFieldTrade: "Est-ce un métier auto ?",
+    sellFieldTrade: "Un métier en particulier ?",
     sellFieldTradeHint:
       "Facultatif. En choisir un vous donne les bons champs et vous place sur cet écran.",
     sellTradeGarage: "Mécanicien",

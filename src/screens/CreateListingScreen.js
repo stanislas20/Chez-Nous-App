@@ -1255,11 +1255,26 @@ export function CreateListingScreen({ route, navigation }) {
   // out of it.
   const isTrackerFitter = isServices && trade === "gps";
 
+  // Neither import trade attends anything. A transitaire works at a desk in
+  // the port; an importateur is in Brussels or Dubaï. "Sous quel délai
+  // intervenez-vous" is a dispatch question asked of somebody nobody
+  // dispatches, and "un plateau ou un treuil" offers recovery gear to a
+  // person whose cargo is on a ship — the same failure the tracker fitter
+  // above was found to have, on a device, one screen later.
+  //
+  // Keyed on the trade rather than the words, for the reason given there:
+  // a matcher would also catch the general garage that happens to mention
+  // "importation", and stripping the roadside questions from a garage is
+  // the mistake this whole list is careful not to make.
+  const isImportTrade =
+    isServices && (trade === "transitaire" || trade === "importateur");
+
   const showRoadsideFields =
     (!mentionsDriver &&
       !mentionsParts &&
       !mentionsInsurance &&
-      !isTrackerFitter) ||
+      !isTrackerFitter &&
+      !isImportTrade) ||
     matchesGarageSpecialty(`${title} ${description}`, "depan");
 
   // Hidden rather than optional: an unanswerable question left on the page
@@ -2906,6 +2921,13 @@ export function CreateListingScreen({ route, navigation }) {
               question. */}
           {isServices ? (
             <>
+              {/* Not "un métier auto" any more, and the list is why. It was
+                  accurate while every entry was a garage trade; it now holds
+                  a customs broker and somebody in Brussels shipping
+                  containers, and neither is answering a question about cars.
+                  A seller reading a question that does not describe them
+                  skips it, and skipping it is what keeps them off the screen
+                  that would have found them. */}
               <Label>{t("sellFieldTrade")}</Label>
               <FieldNote>{t("sellFieldTradeHint")}</FieldNote>
               <ChipWrapRow>

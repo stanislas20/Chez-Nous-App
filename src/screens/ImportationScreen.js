@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Linking, Modal, Pressable } from "react-native";
 import {
   SafeAreaView,
@@ -92,30 +92,41 @@ export function ImportationScreen({ navigation }) {
   // Two trades, and the door has to open on the right one. A diaspora
   // importer sent to the transitaire form would be asked a broker's
   // questions, which is the exact failure check-post-trades.js exists for.
-  const [postTrade, setPostTrade] = useState(null);
+  //
+  // A ref, not state, and that is the whole point of it. This value is read
+  // by the resume that runs after somebody signs in — and with state, the
+  // resume closure the hook is holding is whichever one the last render
+  // produced, while setPostTrade, remember() and the navigation all happen
+  // in the same tick. It would work by ordering rather than by design, and
+  // silently open the wrong trade's form the day that ordering changed. A
+  // ref is written and read in the same tick, so the trade somebody tapped
+  // before they had an account is the trade the form opens on after they
+  // have one. Every other screen here resumes to a constant trade and never
+  // had to answer this; this is the first with two.
+  const postTradeRef = useRef("transitaire");
   const [chooserOpen, setChooserOpen] = useState(false);
 
   const openPostForm = () =>
     navigation.navigate("CreateListing", {
       categoryKey: "services",
-      trade: postTrade ?? "transitaire",
+      trade: postTradeRef.current,
     });
 
   const { remember } = useAccountGateIntent(user, openPostForm);
   const mayPublish = !user || canPublish(user);
 
   const startPosting = (trade) => {
-    setPostTrade(trade);
+    postTradeRef.current = trade;
     setChooserOpen(false);
     if (!user) {
       remember();
       openAccountGate(navigation);
       return;
     }
-    navigation.navigate("CreateListing", {
-      categoryKey: "services",
-      trade,
-    });
+    // The same call the resume makes, rather than a second copy of it —
+    // two spellings of "open the form" is how the signed-in and just-signed-
+    // in paths drift apart.
+    openPostForm();
   };
 
   const call = (phone) => {

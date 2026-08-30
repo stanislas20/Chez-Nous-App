@@ -2,11 +2,13 @@
 //
 // Every listing is created with status 'pending' (see CreateListingScreen)
 // and firestore.rules pins it there: the create rule only accepts
-// 'pending', and the seller's own update rule requires
-// `request.resource.data.status == resource.data.status`, so a seller can
-// edit their listing but can never publish it. Nothing in the app or in
-// functions/ flips that field either — this script is the only thing that
-// does, which is what makes moderation a real gate rather than a label.
+// 'pending', and the seller's own update rule holds the status equal —
+// with one exception, rejected -> pending, which lets a seller answer a
+// rejection instead of being stuck with it. That exception cannot reach
+// 'approved' from anywhere, so a seller can edit their listing, and can
+// ask again, and can still never publish it. Approving remains this
+// script's job and the in-app moderator's, which is what makes moderation
+// a real gate rather than a label.
 //
 // Either outcome fires notifyListingModerated, which tells the seller and
 // — on approval — stamps `approvedAt`, the field the "new listings" feed

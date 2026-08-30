@@ -94,7 +94,6 @@ import {
   getVehicleFuelLabel,
   getVehicleSellerKindLabel,
   getVehicleTransmissionLabel,
-  isBeyondImportAge,
   vehicleBodyTypes,
   vehicleBrands,
   vehicleFuels,
@@ -297,6 +296,8 @@ const TRADE_HINT_KEYS = {
   wash: "sellTitleHint_wash",
   drivingSchool: "sellTitleHint_drivingSchool",
   haulier: "sellTitleHint_haulier",
+  transitaire: "sellTitleHint_transitaire",
+  importateur: "sellTitleHint_importateur",
 };
 
 // The car trades that have a screen of their own, offered inside the form
@@ -342,6 +343,17 @@ const SERVICE_TRADES = [
   // person driving passengers in a car: this one owns a load bed and is
   // found from the Camions screen's third tab.
   { key: "haulier", icon: "cube-outline", labelKey: "sellTradeHaulier" },
+  // Clearing somebody else's cargo through the port. Not a haulier, who
+  // owns a load bed and moves goods that are already in the country: this
+  // one files the declaration, and the two are found from opposite ends of
+  // the same journey.
+  { key: "transitaire", icon: "boat-outline", labelKey: "sellTradeTransitaire" },
+  // The other end of the same journey: somebody abroad who buys the vehicle
+  // or the goods and ships them here, either as their own stock to sell or
+  // on order for a buyer in Bénin. Distinct from "transitaire" on purpose —
+  // the two are found from the same screen and asked different questions,
+  // and half the transitaire listings say "importation" too.
+  { key: "importateur", icon: "airplane-outline", labelKey: "sellTradeImportateur" },
 ];
 
 // Under Services these two keys describe a workshop, not a product, so the
@@ -6528,12 +6540,6 @@ export function CreateListingScreen({ route, navigation }) {
                       </ChipWrap>
                       <FieldNote>{t("sellCarParkHint")}</FieldNote>
                     </>
-                  ) : null}
-
-                  {/* Only when it matters: an importer listing a car already
-                      past the cap. On any other listing this would be noise. */}
-                  {sellerKind === "importer" && isBeyondImportAge(year) ? (
-                    <FieldNote>{t("sellImportAgeHint")}</FieldNote>
                   ) : null}
 
                   {/* Three states, one of which must be chosen. The old

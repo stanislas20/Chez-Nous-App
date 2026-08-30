@@ -211,17 +211,21 @@ export const VEHICLE_BUDGET_BANDS = {
   ],
 };
 
-// Since 2025 a light vehicle over seven years old cannot be imported. This is
-// the single most useful fact for anyone buying from an importer, and unlike
-// the duty rates it does not move with a tariff schedule — so it is the one
-// import figure worth stating in the app.
-export const MAX_IMPORT_AGE_YEARS = 7;
-
-export function isBeyondImportAge(year) {
-  const value = Number(year);
-  if (!Number.isFinite(value) || value <= 0) return false;
-  return new Date().getFullYear() - value > MAX_IMPORT_AGE_YEARS;
-}
+// There was a MAX_IMPORT_AGE_YEARS here, set to 7, described as "the one
+// import figure worth stating in the app" because an age cap is a rule
+// rather than a tariff. The rule does not exist. Bénin does not refuse a
+// vehicle on its age, and the port's used-car trade is built on exactly the
+// stock that constant declared unimportable.
+//
+// It was not inert. A seller listing an eight-year-old car was told it "can
+// no longer be imported", and every buyer looking at one was shown a warning
+// triangle — the app inventing a legal obstacle and then advising people to
+// be suspicious of sellers who had not hit it. Nothing here is more damaging
+// than a confident false fact about somebody else's paperwork.
+//
+// Removed rather than corrected to a different number, because there is no
+// number: the next person to want one should go and read the actual tariff,
+// not adjust a constant somebody guessed at.
 
 export function getVehicleDeal(key) {
   return vehicleDeals.find((item) => item.key === key) ?? null;

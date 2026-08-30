@@ -280,6 +280,21 @@ export function MoreScreen({ navigation }) {
               color={colors.textMuted}
             />
           </CategoryRow>
+          {/* A second door, and it is not decoration. The Voitures grid
+              carries this screen too, but somebody importing a container
+              will never look under Voitures for it — the cargo decides
+              where they go hunting, and only one of the two cargoes is a
+              car. One screen, two entrances, because the journey is shared
+              and the reader's mental filing is not. */}
+          <CategoryRow onPress={() => navigation.navigate("Importation")}>
+            <CategoryEmoji>🚢</CategoryEmoji>
+            <CategoryRowLabel>{t("menuImportRow")}</CategoryRowLabel>
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.textMuted}
+            />
+          </CategoryRow>
           <CategoryRow onPress={() => navigation.navigate("Banks")}>
             <CategoryEmoji>🏦</CategoryEmoji>
             <CategoryRowLabel>{t("menuBanksRow")}</CategoryRowLabel>

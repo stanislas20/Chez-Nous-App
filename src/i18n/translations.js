@@ -296,8 +296,6 @@ export const translations = {
     sellFieldSellerKind: "You are selling as",
     sellSellerKindHint:
       "Shown on your listing as you describe yourself. It is not a check by Chez-Nous.",
-    sellImportAgeHint:
-      "This vehicle is over 7 years old. Light vehicles above that age can no longer be imported — buyers will ask when it entered the country.",
     sellFieldDocuments: "Carte grise",
     sellDocumentsHint:
       "Required. Buyers ask about the registration document before anything else.",
@@ -1323,6 +1321,12 @@ export const translations = {
     sellFieldAirconServices: "What do you do?",
     sellAirconServicesHint:
       "Leak detection is the one drivers are told to ask for — say so if you do it.",
+    sellTradeImportateur: "Buyer abroad",
+    sellTitleHint_importateur:
+      "e.g. Cars from Belgium — bought to order, shipped to Cotonou",
+    sellTradeTransitaire: "Customs broker",
+    sellTitleHint_transitaire:
+      "e.g. Customs clearance — vehicles and containers, Port of Cotonou",
     sellTradeInsurance: "Insurance agency",
     sellTitleHint_insurance: "e.g. Motor insurance — all companies",
     sellTitleNote_insurance:
@@ -1776,6 +1780,49 @@ export const translations = {
     sellTradeKeys: "Keys and locks",
     sellTitleHint_keys: "e.g. Auto locksmith — keys cut and coded, Cotonou",
     airconEyebrow: "Air conditioning",
+    menuImportRow: "Importing",
+    importLead_sourcer:
+      "This is who you need first — nothing ships until somebody buys it.",
+    importLead_broker:
+      "This is who you need now — the declaration is theirs to file.",
+    importHelperCount: "{count} listed",
+    importBuysFrom: "Buys from {country}",
+    importOfferUnknown: "Did not say what they offer — ask",
+    importChooserTitle: "Which are you?",
+    importChooserCopy:
+      "The two are asked different questions, so the form needs to know before it opens.",
+    importChooserBroker: "I clear cargo in Bénin",
+    importChooserBrokerHint: "Transitaire, commissionnaire en douane",
+    importChooserSourcer: "I buy abroad and ship here",
+    importChooserSourcerHint:
+      "Your own stock to sell, or buying to order for somebody here",
+    importBescTitle: "Open the BESC before the ship sails",
+    importBescCopy:
+      "The cargo tracking note is issued before departure, not on arrival. Opening it late is the most common avoidable hold-up at clearance — ask your transitaire for it as soon as you buy, not when the ship lands.",
+    importEyebrow: "IMPORTING",
+    importTitle: "Bringing it in through Cotonou",
+    importIntro:
+      "Who buys it for you abroad, who clears it here, and what the delay is costing you.",
+    importPostPrompt: "You help people import?",
+    importPost: "List",
+    importNoFigureTitle: "No duty figure here, on purpose",
+    importNoFigureCopy:
+      "Duty depends on the declared value, the age and the engine, with several taxes stacked on top, and those rates move. A number printed here would go quietly out of date and you would budget against it. A transitaire quotes for your actual shipment.",
+    importCargoTitle: "What are you importing?",
+    importStageTitle: "Where is it now?",
+    importClockTitle: "The storage clock is running",
+    importClockCopy:
+      "Storage is free for a period after the ship arrives, then charged by the day. Ask your transitaire for the arrival date and when the free period ends — it runs whether or not anyone is dealing with it.",
+    importPapersTitle: "The papers",
+    importPapersNote:
+      "What is asked for either way, then what your cargo adds. Confirm against the customs office before you rely on it.",
+    importBrokerTitle: "Transitaires",
+    importBrokerCount: "{count} listed",
+    importBrokerEmptyTitle: "Nobody listed yet",
+    importBrokerEmptyCopy:
+      "No customs broker has published here. This list is built from real listings, never from a directory we keep by hand — so it is empty rather than out of date.",
+    importScopeUnknown: "Did not say what they handle — ask",
+    importCall: "Call",
     airconTitle: "It runs, but nothing comes out cold",
     airconIntro:
       "Half of what stops a car cooling is not the gas, and several of these are not air-conditioning jobs at all. Pick the symptom and we name the trade.",
@@ -1972,8 +2019,6 @@ export const translations = {
     carsUnitPerMonth: "/ month",
     carsFactMileage: "{km} km",
     carsDocsToCheck: "Documents to check",
-    carsImportAgeWarning:
-      "Over 7 years old — light vehicles above that age can no longer be imported. Ask when it entered the country.",
     carsViewCta: "View",
     carsCount: "{count} vehicle(s)",
     carsLoading: "Loading…",
@@ -2921,8 +2966,6 @@ export const translations = {
     sellFieldSellerKind: "Vous vendez en tant que",
     sellSellerKindHint:
       "Affiché sur votre annonce tel que vous vous décrivez. Ce n’est pas un contrôle effectué par Chez-Nous.",
-    sellImportAgeHint:
-      "Ce véhicule a plus de 7 ans. Au-delà de cet âge un véhicule léger ne peut plus être importé — les acheteurs demanderont sa date d’entrée au pays.",
     sellFieldDocuments: "Carte grise",
     sellDocumentsHint:
       "Obligatoire. Les acheteurs demandent la carte grise avant tout le reste.",
@@ -3959,6 +4002,12 @@ export const translations = {
     sellFieldAirconServices: "Que faites-vous ?",
     sellAirconServicesHint:
       "La recherche de fuite est ce qu’on conseille aux automobilistes de demander — dites-le si vous la faites.",
+    sellTradeImportateur: "Acheteur à l’étranger",
+    sellTitleHint_importateur:
+      "ex. Voitures depuis la Belgique — sur commande, expédiées à Cotonou",
+    sellTradeTransitaire: "Transitaire",
+    sellTitleHint_transitaire:
+      "ex. Dédouanement — véhicules et conteneurs, Port de Cotonou",
     sellTradeInsurance: "Agence d’assurance",
     sellTitleHint_insurance: "ex. Assurance auto — toutes compagnies",
     sellTitleNote_insurance:
@@ -4419,6 +4468,49 @@ export const translations = {
     sellTradeKeys: "Clés et serrures",
     sellTitleHint_keys: "ex. Serrurier auto — clés taillées et codées, Cotonou",
     airconEyebrow: "Climatisation",
+    menuImportRow: "Importation",
+    importLead_sourcer:
+      "C'est d'eux que vous avez besoin d'abord — rien ne part tant que personne n'a acheté.",
+    importLead_broker:
+      "C'est d'eux que vous avez besoin maintenant — la déclaration, c'est leur métier.",
+    importHelperCount: "{count} inscrits",
+    importBuysFrom: "Achète depuis {country}",
+    importOfferUnknown: "N'a pas précisé ce qu'il propose — demandez",
+    importChooserTitle: "Vous êtes lequel ?",
+    importChooserCopy:
+      "On ne pose pas les mêmes questions aux deux : le formulaire doit le savoir avant de s'ouvrir.",
+    importChooserBroker: "Je dédouane au Bénin",
+    importChooserBrokerHint: "Transitaire, commissionnaire en douane",
+    importChooserSourcer: "J'achète à l'étranger et j'expédie",
+    importChooserSourcerHint:
+      "Votre propre stock à revendre, ou l'achat sur commande pour quelqu'un ici",
+    importBescTitle: "Le BESC s'ouvre avant le départ du navire",
+    importBescCopy:
+      "Le bordereau de suivi se délivre avant l'embarquement, pas à l'arrivée. L'ouvrir en retard est le blocage le plus courant et le plus évitable au dédouanement — demandez-le à votre transitaire dès l'achat, pas quand le navire accoste.",
+    importEyebrow: "IMPORTATION",
+    importTitle: "Le faire entrer par Cotonou",
+    importIntro:
+      "Qui l'achète pour vous à l'étranger, qui le dédouane ici, et ce que l'attente vous coûte.",
+    importPostPrompt: "Vous aidez à importer ?",
+    importPost: "Publier",
+    importNoFigureTitle: "Aucun montant ici, volontairement",
+    importNoFigureCopy:
+      "Les droits dépendent de la valeur déclarée, de l'âge et du moteur, avec plusieurs taxes qui s'ajoutent, et ces taux bougent. Un chiffre écrit ici vieillirait sans que rien ne le signale, et vous établiriez votre budget dessus. Un transitaire chiffre votre expédition réelle.",
+    importCargoTitle: "Qu'importez-vous ?",
+    importStageTitle: "Où en est-il ?",
+    importClockTitle: "Le magasinage court",
+    importClockCopy:
+      "Le stockage est gratuit pendant un délai après l'arrivée du navire, puis facturé au jour. Demandez à votre transitaire la date d'arrivée et la fin de la franchise — elle court, que quelqu'un s'en occupe ou non.",
+    importPapersTitle: "Les papiers",
+    importPapersNote:
+      "Ce qui est demandé dans tous les cas, puis ce que votre cargaison ajoute. À confirmer auprès de la douane avant de vous y fier.",
+    importBrokerTitle: "Transitaires",
+    importBrokerCount: "{count} inscrits",
+    importBrokerEmptyTitle: "Personne pour l'instant",
+    importBrokerEmptyCopy:
+      "Aucun transitaire n'a encore publié ici. Cette liste est faite d'annonces réelles, jamais d'un annuaire tenu à la main — elle est donc vide plutôt que périmée.",
+    importScopeUnknown: "N'a pas précisé ce qu'il traite — demandez",
+    importCall: "Appeler",
     airconTitle: "Elle tourne, mais rien ne sort de froid",
     airconIntro:
       "La moitié des pannes de clim ne vient pas du gaz, et plusieurs d’entre elles ne sont pas des travaux de clim du tout. Choisissez le symptôme, nous nommons le métier.",
@@ -4619,8 +4711,6 @@ export const translations = {
     carsUnitPerMonth: "/ mois",
     carsFactMileage: "{km} km",
     carsDocsToCheck: "Documents à vérifier",
-    carsImportAgeWarning:
-      "Plus de 7 ans — au-delà de cet âge un véhicule léger ne peut plus être importé. Demandez sa date d’entrée au pays.",
     carsViewCta: "Voir la fiche",
     carsCount: "{count} véhicule(s)",
     carsLoading: "Chargement…",

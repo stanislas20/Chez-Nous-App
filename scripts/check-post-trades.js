@@ -184,6 +184,7 @@ const insurers = loadEsm("src/data/insurance.js");
 const parts = loadEsm("src/data/vehicleParts.js");
 const schools = loadEsm("src/data/drivingSchools.js");
 const trucks = loadEsm("src/data/truckTransport.js");
+const importation = loadEsm("src/data/importation.js");
 
 // Every trade the form offers reaches exactly one of the two mechanisms:
 // a garage specialty, or its own matcher.
@@ -194,6 +195,8 @@ const OWN_MATCHER = {
   parts: parts.isPartsSellerListing,
   drivingSchool: schools.isDrivingSchoolListing,
   haulier: trucks.isHaulierListing,
+  transitaire: importation.isTransitaireListing,
+  importateur: importation.isOverseasBuyerListing,
 };
 
 [...offered].forEach((trade) => {

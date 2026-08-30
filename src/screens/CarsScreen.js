@@ -59,7 +59,6 @@ import {
   getVehicleSellerKind,
   getVehicleSellerKindLabel,
   getVehicleTransmissionLabel,
-  isBeyondImportAge,
   resolveVehicleDocuments,
   vehicleBrandTint,
   vehicleBrands,
@@ -168,10 +167,6 @@ export function buildVehicleView(listing, language, t) {
     // null when the seller never answered — which is most legacy rows, and
     // must not read as "no papers". See resolveVehicleDocuments.
     documents: resolveVehicleDocuments(listing),
-    // Only for importers, and only when the year puts it past the cap — a
-    // warning on every old car would be noise.
-    importAgeWarning:
-      listing.sellerKind === "importer" && isBeyondImportAge(listing.year),
     phone: listing.phone ?? null,
     // Most of this trade is actually conducted over WhatsApp here, so it gets
     // an action of its own rather than hiding behind a phone number the buyer
@@ -731,12 +726,6 @@ export function CarsScreen({ navigation, route }) {
             ) : null}
           </FootPriceRow>
         </CardFoot>
-        {view.importAgeWarning ? (
-          <ImportFoot>
-            <Ionicons name="alert-circle-outline" size={13} color={GOLD} />
-            <ImportNoteText>{t("carsImportAgeWarning")}</ImportNoteText>
-          </ImportFoot>
-        ) : null}
       </Card>
     );
   };
@@ -2170,17 +2159,6 @@ const FootUnit = styled.Text`
   color: ${EMERALD};
 `;
 
-const ImportFoot = styled.View`
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 7px;
-  margin: 0px 14px 14px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background-color: rgba(217, 164, 65, 0.1);
-  border-width: 1px;
-  border-color: rgba(217, 164, 65, 0.3);
-`;
 
 const CoverWarn = styled.Text`
   position: absolute;
@@ -2212,13 +2190,6 @@ const CoverTag = styled.Text`
   overflow: hidden;
 `;
 
-const ImportNoteText = styled.Text`
-  flex: 1;
-  font-family: ${fontFamily.regular};
-  font-size: 11px;
-  line-height: 16px;
-  color: #6b5a2e;
-`;
 
 const Empty = styled.View`
   align-items: center;

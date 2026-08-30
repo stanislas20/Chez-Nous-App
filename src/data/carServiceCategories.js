@@ -164,7 +164,14 @@ export const carServicesMore = [
   // now, and the errand it could never reach — paying somebody to carry a
   // load — is a tab on it.
   { key: "trucks", icon: "bus-outline", route: "Trucks" },
-  { key: "importation", icon: "boat-outline", query: "importation véhicule" },
+  // Was a text search of Services for "importation véhicule", which is the
+  // shape this file keeps replacing. The search could only ever return
+  // whoever had written those two words, and the reader's question is not
+  // "who says importation" — it is "what does it cost me on top, what
+  // papers do I need, and who files them". A list cannot hold an answer to
+  // any of the three. See data/importation.js for why the first one is
+  // answered with a person rather than a figure.
+  { key: "importation", icon: "boat-outline", route: "Importation" },
   { key: "scrap", icon: "refresh-circle-outline", query: "casse automobile" },
   // Was a text search in Services for "séjour voiture", which could never
   // match anything: the thing it describes is a property, Services holds

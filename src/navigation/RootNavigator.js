@@ -38,6 +38,7 @@ import { CreateListingScreen } from "../screens/CreateListingScreen";
 import { DriversScreen } from "../screens/DriversScreen";
 import { PartsScreen } from "../screens/PartsScreen";
 import { CarWashScreen } from "../screens/CarWashScreen";
+import { ImportationScreen } from "../screens/ImportationScreen";
 import { PapersScreen } from "../screens/PapersScreen";
 import { InsuranceScreen } from "../screens/InsuranceScreen";
 import { AirconScreen } from "../screens/AirconScreen";
@@ -218,6 +219,11 @@ export function RootNavigator() {
           <Stack.Screen
             name="CarWash"
             component={CarWashScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Importation"
+            component={ImportationScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen

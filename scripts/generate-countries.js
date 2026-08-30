@@ -11,7 +11,14 @@
 
 const fs = require("fs");
 const path = require("path");
-const { getCountries, getCountryCallingCode } = require("libphonenumber-js");
+const {
+  getCountries,
+  getCountryCallingCode,
+  getExampleNumber,
+} = require("libphonenumber-js");
+// Mobile examples specifically: every account here is a handset that has to
+// receive an SMS, so a landline example would be the wrong shape to copy.
+const phoneExamples = require("libphonenumber-js/examples.mobile.json");
 
 const en = new Intl.DisplayNames(["en"], { type: "region" });
 const fr = new Intl.DisplayNames(["fr"], { type: "region" });
@@ -27,6 +34,12 @@ const rows = getCountries()
     flag: flagOf(code),
     nameEn: en.of(code),
     nameFr: fr.of(code),
+    // The placeholder under the field, in this country's own national
+    // format. Generated from the same library as the dial code and the
+    // length check, for the reason the header gives: a hint that disagrees
+    // with the validator teaches people to type a number the form then
+    // refuses.
+    example: getExampleNumber(code, phoneExamples)?.formatNational() ?? null,
   }))
   // A code with no readable name is an ISO entry nobody would recognise in a
   // picker; libphonenumber carries a few.
@@ -37,16 +50,22 @@ const body = rows
   .map(
     (row) =>
       `  { code: "${row.code}", dial: "${row.dial}", flag: "${row.flag}", ` +
-      `nameEn: ${JSON.stringify(row.nameEn)}, nameFr: ${JSON.stringify(row.nameFr)} },`,
+      `nameEn: ${JSON.stringify(row.nameEn)}, nameFr: ${JSON.stringify(row.nameFr)}, ` +
+      `example: ${JSON.stringify(row.example)} },`,
   )
   .join("\n");
 
 const file = `// Every country a phone number can be registered in.
 //
 // GENERATED — run \`node scripts/generate-countries.js\` to rebuild. Do not
-// edit by hand: the dial codes here and the length validation at sign-up both
-// come from libphonenumber-js, and hand-editing one of them is how a picker
-// comes to offer a country whose numbers are then rejected.
+// edit by hand: the dial codes here, the example under the field and the
+// length validation at sign-up all come from libphonenumber-js, and
+// hand-editing one of them is how a picker comes to offer a country whose
+// numbers are then rejected.
+//
+// \`example\` is that country's own national format. The field used to show a
+// Beninese one to everybody — pick France and the hint still read "01 23 45
+// 67 89" while the validator was checking against +33.
 //
 // Anyone in the world may hold an account. Publishing is a separate question,
 // answered by POSTING_COUNTRY below and enforced in Firestore rules — see
@@ -64,6 +83,17 @@ ${body}
 
 export function findCountryByCode(code) {
   return countries.find((item) => item.code === code) ?? null;
+}
+
+// The placeholder to print under a phone field, for whichever country the
+// picker is on.
+//
+// Nullable on purpose. libphonenumber has no mobile example for a handful of
+// territories, and inventing one would put us back where this started —
+// showing somebody a format their own number does not have. Callers fall
+// back to the generic wording when this returns null.
+export function phoneExampleFor(code) {
+  return findCountryByCode(code)?.example ?? null;
 }
 
 // Longest dial code first, so +229 is not shadowed by +22 and Canada's +1

@@ -17,6 +17,7 @@ import {
   confirmOtp,
   mapPhoneAuthErrorToKey,
 } from "../auth/phoneVerification";
+import { POSTING_COUNTRY, phoneExampleFor } from "../data/countries";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 const contentContainerStyle = { padding: spacing.lg };
@@ -144,7 +145,9 @@ export function AdvertiseSignUpScreen({ navigation }) {
               <Input
                 value={phone}
                 onChangeText={setPhone}
-                placeholder={t("fieldPhonePlaceholder")}
+                placeholder={t("fieldPhoneExample", {
+              example: phoneExampleFor(POSTING_COUNTRY),
+            })}
                 placeholderTextColor={colors.textMuted}
                 keyboardType="phone-pad"
                 maxLength={10}

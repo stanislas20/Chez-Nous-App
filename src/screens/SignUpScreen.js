@@ -206,6 +206,14 @@ export function SignUpScreen({ navigation, route }) {
 
   const country =
     countries.find((item) => item.code === countryCode) ?? countries[0];
+  // The hint under the field follows the picker above it. It used to be one
+  // hardcoded Beninese example shown to all 245 countries, so choosing
+  // France left "01 23 45 67 89" sitting under a field the validator was
+  // checking against +33 — the form describing a number it would then
+  // refuse. See phoneExampleFor.
+  const phonePlaceholder = country.example
+    ? t("fieldPhoneExample", { example: country.example })
+    : t("fieldPhonePlaceholder");
   const phoneDigits = phone.replace(/\D/g, "");
   // Checked against the chosen country's real length rather than a blanket
   // eight digits, so a dropped digit is caught here instead of coming back
@@ -620,7 +628,7 @@ export function SignUpScreen({ navigation, route }) {
                         setPhoneTouched(true);
                       }}
                       onBlur={() => setPhoneTouched(true)}
-                      placeholder={t("fieldPhonePlaceholder")}
+                      placeholder={phonePlaceholder}
                       placeholderTextColor={colors.textMuted}
                       keyboardType="phone-pad"
                       maxLength={10}
@@ -1113,7 +1121,7 @@ export function SignUpScreen({ navigation, route }) {
                             setPhoneTouched(true);
                           }}
                           onBlur={() => setPhoneTouched(true)}
-                          placeholder={t("fieldPhonePlaceholder")}
+                          placeholder={phonePlaceholder}
                           placeholderTextColor={colors.textMuted}
                           keyboardType="phone-pad"
                           maxLength={10}

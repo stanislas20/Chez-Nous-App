@@ -8,6 +8,7 @@ import { type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
 import { isValidPhone, mapAuthErrorToKey } from "../auth/phoneAuth";
+import { POSTING_COUNTRY, phoneExampleFor } from "../data/countries";
 
 const contentContainerStyle = { padding: spacing.lg };
 
@@ -54,7 +55,9 @@ export function AdvertiseLoginScreen({ navigation }) {
           <Input
             value={phone}
             onChangeText={setPhone}
-            placeholder={t("fieldPhonePlaceholder")}
+            placeholder={t("fieldPhoneExample", {
+              example: phoneExampleFor(POSTING_COUNTRY),
+            })}
             placeholderTextColor={colors.textMuted}
             keyboardType="phone-pad"
             maxLength={10}

@@ -72,6 +72,26 @@ async function main() {
     const db = ctx.firestore();
     await Promise.all([
       setDoc(doc(db, "listings/pendingA"), listing),
+      setDoc(doc(db, "listings/rejectedA"), {
+        ...listing,
+        status: "rejected",
+        moderationNote: "La photo ne montre pas l'article.",
+        moderatedBy: "moderator-uid",
+        moderatedAt: new Date(),
+      }),
+      setDoc(doc(db, "listings/rejectedB"), {
+        ...listing,
+        status: "rejected",
+        moderatedBy: "moderator-uid",
+        moderatedAt: new Date(),
+      }),
+      setDoc(doc(db, "listings/rejectedC"), {
+        ...listing,
+        sellerId: FOREIGN,
+        status: "rejected",
+        moderatedBy: "moderator-uid",
+        moderatedAt: new Date(),
+      }),
       setDoc(doc(db, "listings/live"), {
         ...listing,
         status: "approved",
@@ -235,6 +255,63 @@ async function main() {
   await check(
     "a stranger cannot read a pending listing",
     assertFails(getDoc(doc(asOutsider, "listings/pendingA"))),
+  );
+
+  // ── The way back from a rejection ───────────────────────────────────────
+  // Rejection used to be terminal: the status equality held in both
+  // directions, so a seller could correct exactly what they were told to
+  // correct and the listing stayed invisible forever. These pin the one
+  // door that opened, and that it is the only one.
+  await check(
+    "a seller resubmits a rejected listing",
+    assertSucceeds(
+      updateDoc(doc(asSeller, "listings/rejectedA"), {
+        status: "pending",
+        titleFr: "Annonce corrigée",
+      }),
+    ),
+  );
+  await check(
+    "resubmitting needs no material change — a corrected phone is enough",
+    assertSucceeds(
+      updateDoc(doc(asSeller, "listings/rejectedB"), {
+        status: "pending",
+        phone: "+2290146464674",
+      }),
+    ),
+  );
+  await check(
+    "a seller cannot rewrite why they were rejected on the way back",
+    assertFails(
+      updateDoc(doc(asSeller, "listings/rejectedA"), {
+        status: "pending",
+        moderationNote: "Approuvée",
+      }),
+    ),
+  );
+  await check(
+    "a seller cannot jump the queue from rejected straight to approved",
+    assertFails(
+      updateDoc(doc(asSeller, "listings/rejectedA"), { status: "approved" }),
+    ),
+  );
+  await check(
+    "an account without canPost cannot resubmit — re-entering the queue is publishing",
+    assertFails(
+      updateDoc(doc(asForeign, "listings/rejectedC"), { status: "pending" }),
+    ),
+  );
+  await check(
+    "a stranger cannot resubmit somebody else's rejected listing",
+    assertFails(
+      updateDoc(doc(asOutsider, "listings/rejectedB"), { status: "pending" }),
+    ),
+  );
+  await check(
+    "the door is one-way: an approved listing cannot be pushed to rejected by its seller",
+    assertFails(
+      updateDoc(doc(asSeller, "listings/live"), { status: "rejected" }),
+    ),
   );
 
   // ── The counters a reader is allowed to touch ───────────────────────────

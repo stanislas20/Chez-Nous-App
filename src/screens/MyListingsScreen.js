@@ -295,9 +295,20 @@ export function MyListingsScreen() {
                   ) : null}
                 </PillRow>
                 {isRejected ? (
-                  <RejectionNote numberOfLines={3}>
-                    {item.moderationNote || t("listingRejectedNoReason")}
-                  </RejectionNote>
+                  <>
+                    <RejectionNote numberOfLines={3}>
+                      {item.moderationNote || t("listingRejectedNoReason")}
+                    </RejectionNote>
+                    {/* Said every time, not only when moderation left no
+                        reason. The sentence used to be the tail of
+                        listingRejectedNoReason, so the sellers who were
+                        given a reason — the ones who can actually act on
+                        it — were the only ones never told what to do with
+                        it. */}
+                    <RejectionHint>
+                      {t("listingRejectedResubmitHint")}
+                    </RejectionHint>
+                  </>
                 ) : null}
               </RowBody>
             </Row>
@@ -649,6 +660,18 @@ const RejectionNote = styled.Text`
   font-size: 11.5px;
   line-height: 16px;
   margin-top: ${spacing.xs}px;
+`;
+
+// The reason is grey because it is somebody else's verdict; the way out is
+// the app's own voice, so it carries the primary colour and the medium
+// weight. Two greys stacked would read as one paragraph of bad news.
+const RejectionHint = styled.Text`
+  ${type.caption}
+  font-family: ${fontFamily.medium};
+  color: ${(props) => props.theme.primaryDark};
+  font-size: 11.5px;
+  line-height: 16px;
+  margin-top: 2px;
 `;
 
 const saleStatusTint = (theme) => ({

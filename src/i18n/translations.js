@@ -376,8 +376,11 @@ export const translations = {
     listingStatusPending: "Pending",
     listingStatusApproved: "Approved",
     listingStatusRejected: "Not approved",
-    listingRejectedNoReason:
-      "This listing wasn’t approved. Edit it and it will be reviewed again.",
+    listingRejectedNoReason: "This listing wasn’t approved. No reason was given.",
+    listingRejectedResubmitHint: "Edit it and it goes back for review.",
+    moderationPreviousRejection: "Previously not approved: {reason}",
+    moderationPreviousRejectionNoReason:
+      "Previously not approved, with no reason recorded.",
     mapSaveLocationButton: "Save location",
     getDirectionsButton: "Get directions",
     mapAdjustLocationHint: "Drag the pin to adjust the exact location.",
@@ -982,6 +985,11 @@ export const translations = {
       "You changed the listing itself, so it returns to review before going back online. It keeps its place and its history.",
     editSavedMessage:
       "Your listing has been updated. It keeps its place and its history.",
+    editResubmittedTitle: "Sent back for review",
+    editResubmittedMessage:
+      "Your changes have been saved and the listing is in the queue again. It keeps its place and its history — you did not have to start over.",
+    editRejectedBanner:
+      "This listing wasn’t approved. Saving any change sends it back for review.",
     batteryEyebrow: "My battery",
     batteryTitle: "Will it start tomorrow?",
     batteryIntro:
@@ -2997,7 +3005,12 @@ export const translations = {
     listingStatusApproved: "Approuvée",
     listingStatusRejected: "Refusée",
     listingRejectedNoReason:
-      "Cette annonce n’a pas été approuvée. Modifiez-la et elle sera réexaminée.",
+      "Cette annonce n’a pas été approuvée. Aucun motif n’a été donné.",
+    listingRejectedResubmitHint:
+      "Modifiez-la et elle repart en révision.",
+    moderationPreviousRejection: "Refusée précédemment : {reason}",
+    moderationPreviousRejectionNoReason:
+      "Refusée précédemment, sans motif enregistré.",
     mapSaveLocationButton: "Enregistrer l'emplacement",
     getDirectionsButton: "Obtenir l'itinéraire",
     mapAdjustLocationHint:
@@ -3605,6 +3618,11 @@ export const translations = {
       "Vous avez modifié l’annonce elle-même : elle repasse en révision avant d’être remise en ligne. Elle conserve sa place et son historique.",
     editSavedMessage:
       "Votre annonce est à jour. Elle conserve sa place et son historique.",
+    editResubmittedTitle: "Renvoyée en révision",
+    editResubmittedMessage:
+      "Vos modifications sont enregistrées et l’annonce est de nouveau dans la file. Elle conserve sa place et son historique — vous n’avez pas eu à tout recommencer.",
+    editRejectedBanner:
+      "Cette annonce n’a pas été approuvée. Enregistrer une modification la renvoie en révision.",
     batteryEyebrow: "Ma batterie",
     batteryTitle: "Elle tiendra demain ?",
     batteryIntro:

@@ -583,7 +583,13 @@ async function shouldNotifyNow(db) {
   return true;
 }
 
-async function notifyModeratorOfQueue(listing, listingId, isEdit) {
+// `arrival` says how the listing got here: "new", "edited" (an approved
+// listing pulled back by a material change) or "resubmitted" (a rejected one
+// answered). It was a boolean while there were two of those, and the third
+// is not a shade of either — a resubmission is the one arrival a moderator
+// has already ruled on, and the only one where the card carries a note in
+// their own words.
+async function notifyModeratorOfQueue(listing, listingId, arrival) {
   const db = admin.firestore();
 
   const tokens = await moderatorPushTokens();
@@ -615,9 +621,12 @@ async function notifyModeratorOfQueue(listing, listingId, isEdit) {
         .send({
           token,
           notification: {
-            title: isEdit
-              ? "Annonce modifiée à revoir"
-              : "Nouvelle annonce à valider",
+            title:
+              arrival === "resubmitted"
+                ? "Annonce corrigée à revoir"
+                : arrival === "edited"
+                  ? "Annonce modifiée à revoir"
+                  : "Nouvelle annonce à valider",
             body,
           },
           data: { type: "listingPendingReview", listingId },
@@ -652,22 +661,35 @@ exports.notifyModeratorOfNewListing = onDocumentCreated(
       return;
     }
 
-    await notifyModeratorOfQueue(listing, event.params.listingId, false);
+    await notifyModeratorOfQueue(listing, event.params.listingId, "new");
   },
 );
 
 // A material edit sends an approved listing back to pending, and that was as
 // silent as a new one — arguably worse, because the listing stays visible in
 // its old form until somebody looks.
+//
+// A rejected listing that its seller has fixed arrives the same way and was
+// missed for the same reason: this trigger asked for before.status ===
+// 'approved', which is exactly the one path that existed when it was
+// written. Without this, the way back out of a rejection ends in a queue
+// nobody is called to — the seller is told their correction is in review,
+// and it waits until a moderator happens to open the screen. That is the
+// failure the seller is least able to see and least able to chase.
 exports.notifyModeratorOfEditedListing = onDocumentUpdated(
   "listings/{listingId}",
   async (event) => {
     const before = event.data?.before?.data();
     const after = event.data?.after?.data();
     if (!before || !after) return;
-    if (before.status !== "approved" || after.status !== "pending") return;
+    if (after.status !== "pending") return;
+    if (before.status !== "approved" && before.status !== "rejected") return;
 
-    await notifyModeratorOfQueue(after, event.params.listingId, true);
+    await notifyModeratorOfQueue(
+      after,
+      event.params.listingId,
+      before.status === "rejected" ? "resubmitted" : "edited",
+    );
   },
 );
 

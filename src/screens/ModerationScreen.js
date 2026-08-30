@@ -176,6 +176,18 @@ export function ModerationScreen({ navigation }) {
     navigation.navigate("MainTabs");
   };
 
+  // Closing the reject sheet has to drop what was typed into it. It did
+  // not, and `note` is the same state decide() reads on the way to an
+  // APPROVAL — so a moderator who started writing a reason, thought better
+  // of it and approved the listing instead stamped that half-written reason
+  // onto the approval. The seller never sees it there, which is why it went
+  // unnoticed; the moderator reading the resubmission now would, and would
+  // read it as the reason the listing came back.
+  const closeReject = () => {
+    setRejectFor(null);
+    setNote("");
+  };
+
   const decide = async (item, status) => {
     setBusyId(item.id);
     try {
@@ -336,6 +348,39 @@ export function ModerationScreen({ navigation }) {
 
         {expanded ? (
           <>
+            {/* A resubmission, and what was asked the first time.
+                moderationNote sits in PLUMBING because it is this screen's
+                own output — but on a listing that is pending again it is
+                the most useful line on the card. Without it the second
+                reading starts from nothing: the same fault gets written out
+                again, or a listing sent back over its photographs is
+                approved by somebody who never knew it had been. The seller
+                has already read this text; showing it here is what makes
+                the exchange a conversation rather than two unrelated
+                verdicts.
+
+                Both tests are only ever true of a rejection. decide()
+                writes the note from the reject sheet and nowhere else, so a
+                note at all means a rejection wrote it. And "judged but
+                never approved" leaves moderatedAt set with approvedAt
+                absent, which no other path produces — the screen offers a
+                moderator two verdicts, and the rules' third permitted
+                status is not one of them.
+
+                The gap, left open rather than papered over: approved, then
+                rejected with no reason typed, then resubmitted says
+                nothing, because approvedAt survives and there is no note to
+                read. Guessing there would mean printing "previously not
+                approved" over a listing that had been. */}
+            {item.moderationNote ? (
+              <PriorNote>
+                {t("moderationPreviousRejection", {
+                  reason: item.moderationNote,
+                })}
+              </PriorNote>
+            ) : item.moderatedAt && !item.approvedAt ? (
+              <PriorNote>{t("moderationPreviousRejectionNoReason")}</PriorNote>
+            ) : null}
             {media.length ? (
               <PhotoRow horizontal showsHorizontalScrollIndicator={false}>
                 {media.map((asset, index) => (
@@ -550,9 +595,9 @@ export function ModerationScreen({ navigation }) {
         visible={Boolean(rejectFor)}
         transparent
         animationType="fade"
-        onRequestClose={() => setRejectFor(null)}
+        onRequestClose={closeReject}
       >
-        <Backdrop onPress={() => setRejectFor(null)}>
+        <Backdrop onPress={closeReject}>
           <Sheet onStartShouldSetResponder={() => true}>
             <SheetTitle>{t("moderationRejectTitle")}</SheetTitle>
             <SheetCopy>{t("moderationRejectCopy")}</SheetCopy>
@@ -565,7 +610,7 @@ export function ModerationScreen({ navigation }) {
               numberOfLines={3}
             />
             <SheetActions>
-              <GhostButton onPress={() => setRejectFor(null)}>
+              <GhostButton onPress={closeReject}>
                 <GhostLabel>{t("cancel")}</GhostLabel>
               </GhostButton>
               <RejectButton
@@ -734,6 +779,22 @@ const NoPhoto = styled.Text`
   padding: 10px 12px;
   border-radius: 12px;
   background-color: rgba(217, 164, 65, 0.14);
+`;
+
+// The same terracotta as the reject button, because it is the reject
+// button's own words coming back — and TERRACOTTA_INK rather than
+// TERRACOTTA for the reason written at the top of this file: the brand
+// colour on its own tint measures 4.1:1, and check-contrast.js reads this
+// pair.
+const PriorNote = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 12.5px;
+  line-height: 17px;
+  color: ${TERRACOTTA_INK};
+  padding: 10px 12px;
+  margin-bottom: ${spacing.sm}px;
+  border-radius: 12px;
+  background-color: rgba(193, 81, 45, 0.1);
 `;
 
 const FactGrid = styled.View`

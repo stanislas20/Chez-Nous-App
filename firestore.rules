@@ -145,9 +145,48 @@ service cloud.firestore {
         && customCategoryOk(request.resource.data, 'customCategory')
         && customCategoryOk(request.resource.data, 'customTrade');
 
+      // A rejection has to be survivable.
+      //
+      // This line used to read `request.resource.data.status ==
+      // resource.data.status`, full stop, and that made 'rejected' a
+      // terminal state: the seller could edit the listing all they liked
+      // and it stayed rejected, invisible to everyone, forever. Their only
+      // way back was to delete it and post it again, losing the document,
+      // its views and its history — and nothing told them that. Meanwhile
+      // listingRejectedNoReason, on their own screen, said "Edit it and it
+      // will be reviewed again". The app was promising the one thing this
+      // rule refused.
+      //
+      // So one transition opens, in one direction: rejected -> pending, by
+      // the owner. Nothing else moves. A seller still cannot approve
+      // anything, cannot take an approved listing out of review, and cannot
+      // reject somebody else's.
+      //
+      // canPost is required on that branch and not on an ordinary edit,
+      // because re-entering the queue is publishing — the same act the
+      // create rule gates — while fixing a typo on a listing already in the
+      // market is not. An account whose claim has lapsed can still correct
+      // what it has; it cannot put something new in front of a moderator.
+      //
+      // Deliberately not required: that anything actually changed. A seller
+      // can resubmit an unchanged listing and waste a moderator's minute.
+      // That is self-limiting — it is one document, it enters the queue
+      // once, and it gets the same answer — and the alternative, demanding a
+      // material change, breaks the ordinary case: rejections are most often
+      // about a photo or a phone number, and a rule that only counted title,
+      // price and category as material would leave exactly those sellers
+      // stuck. Somebody abusing this is an account-level problem, and a
+      // one-way door on a document is not the remedy for it.
       allow update: if request.auth != null
         && request.auth.uid == resource.data.sellerId
-        && request.resource.data.status == resource.data.status
+        && (
+          request.resource.data.status == resource.data.status
+          || (
+            resource.data.status == 'rejected'
+            && request.resource.data.status == 'pending'
+            && request.auth.token.canPost == true
+          )
+        )
         // A seller may edit their listing; they may not write the record of
         // who judged it. Without this the audit fields were writable by the
         // one person with a motive to forge them — the rule only ever

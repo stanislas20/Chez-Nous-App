@@ -2085,6 +2085,9 @@ export function CreateListingScreen({ route, navigation }) {
 
       // Read by the success alert below, which sits outside this branch.
       let backToReview = false;
+      // Both send the listing to the queue; only one of them is a return.
+      // "Back online" is false for a listing that was never online.
+      let resubmitted = false;
 
       if (editing) {
         // What an edit must never rewrite. Identity and provenance belong to
@@ -2128,9 +2131,23 @@ export function CreateListingScreen({ route, navigation }) {
         const changedMaterially = MATERIAL_FIELDS.some(
           (field) => (data[field] ?? null) !== (editing[field] ?? null),
         );
-        // Only an approved listing can fall back: one already pending stays
-        // pending, and a rejected one is not quietly promoted by an edit.
-        backToReview = editing.status === "approved" && changedMaterially;
+        // Two questions were being answered by one line, and they have
+        // different answers.
+        //
+        // An approved listing is in the market, so pulling it back costs the
+        // seller visibility. Only a material change is worth that; a
+        // corrected spelling is not, and one already pending stays pending.
+        //
+        // A rejected listing is in nobody's way, so any save resubmits it —
+        // and the MATERIAL_FIELDS test is not merely unnecessary there, it
+        // is wrong. `phone` is not in that list, and an unreachable number
+        // is one of the three faults moderation exists to catch. A seller
+        // correcting the exact thing they had been told to correct would
+        // have stayed rejected, with no way to find out why.
+        backToReview =
+          editing.status === "rejected" ||
+          (editing.status === "approved" && changedMaterially);
+        resubmitted = editing.status === "rejected";
 
         const isPriceDrop =
           Number(editing.price) > 0 &&
@@ -2158,24 +2175,38 @@ export function CreateListingScreen({ route, navigation }) {
       const publishesImmediately =
         sellerProfile?.accountType === "company" &&
         sellerProfile?.verificationStatus === "verified";
-      // An edit is not a publication: telling a seller their correction is
-      // "awaiting review" would send them looking for a delay that is not
-      // there, since the edit keeps whatever status the listing already had.
+      // Three outcomes, because an edit has three. Most keep whatever
+      // status the listing had, and calling those "awaiting review" would
+      // send the seller looking for a delay that is not there. A material
+      // change to a live listing takes it back off the market, which they
+      // have to be told. And a correction to a rejected one puts it in the
+      // queue for the first time since it was refused — a different
+      // sentence again, because "back online" is false for a listing that
+      // was never online, and because this is the message that answers the
+      // question the seller actually has.
+      //
+      // Spelled out rather than composed from a prefix: check-i18n-keys.js
+      // resolves literal keys only, and a composed one drops out of the set
+      // it verifies into the set it merely prints.
       Alert.alert(
         t(
           editing
-            ? backToReview
-              ? "editSavedReviewTitle"
-              : "editSavedTitle"
+            ? resubmitted
+              ? "editResubmittedTitle"
+              : backToReview
+                ? "editSavedReviewTitle"
+                : "editSavedTitle"
             : publishesImmediately
               ? "sellSubmitLiveTitle"
               : "sellSubmitSuccessTitle",
         ),
         t(
           editing
-            ? backToReview
-              ? "editSavedReviewMessage"
-              : "editSavedMessage"
+            ? resubmitted
+              ? "editResubmittedMessage"
+              : backToReview
+                ? "editSavedReviewMessage"
+                : "editSavedMessage"
             : publishesImmediately
               ? "sellSubmitLiveMessage"
               : "sellSubmitSuccessMessage",
@@ -2528,6 +2559,15 @@ export function CreateListingScreen({ route, navigation }) {
           }}
           showsVerticalScrollIndicator={false}
         >
+          {/* Said at the moment it is true. Mes annonces already tells a
+              seller that editing sends the listing back; by the time they
+              are here they have tapped through a sheet and a category, and
+              the form otherwise looks exactly like the one that got them
+              rejected. The consequence of the Save button belongs above the
+              Save button. */}
+          {editing?.status === "rejected" ? (
+            <RejectedBanner>{t("editRejectedBanner")}</RejectedBanner>
+          ) : null}
           <FlagEyebrowRow>
             <BeninFlag />
             <FlagEyebrowLabel>{t("sellFormEyebrow")}</FlagEyebrowLabel>
@@ -6879,6 +6919,21 @@ const FlagYellowBand = styled.View`
 const FlagRedBand = styled.View`
   flex: 1;
   background-color: ${FLAG_RED};
+`;
+
+// Terracotta, matching the moderation screen's reject button and the status
+// pill this seller has been looking at on Mes annonces — the ink rather
+// than the brand colour, because the brand terracotta on its own tint is
+// 4.1:1 and check-contrast.js reads this pair.
+const RejectedBanner = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 12.5px;
+  line-height: 17px;
+  color: #a8421f;
+  padding: 10px 12px;
+  margin-bottom: ${spacing.md}px;
+  border-radius: 12px;
+  background-color: rgba(193, 81, 45, 0.1);
 `;
 
 const FlagEyebrowRow = styled.View`

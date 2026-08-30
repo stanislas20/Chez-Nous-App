@@ -67,6 +67,44 @@ const failures = [];
         "queue is publishing, and publishing is the one thing that claim gates",
     );
   }
+  // A listing can now be judged twice, and the second judgement has to be
+  // allowed to happen. affectedKeys() lists only the keys whose value
+  // CHANGED, so re-stamping moderatedBy with the same uid registers as no
+  // change at all — requiring it there refuses the moderator who rejected a
+  // listing the right to approve the corrected version, and with a single
+  // moderator that makes the queue a room with no exit. The equality below
+  // is what actually stops a moderator putting somebody else's name on a
+  // decision, and it does so on its own: an omitted moderatedBy carries the
+  // previous uid through request.resource.data and fails the comparison.
+  // Anchored on code, not on the prose above it — read() strips comments,
+  // so slicing at a sentence finds nothing and every test below it passes
+  // vacuously. That is how the first version of this guard reported clean
+  // against a rule it had never located.
+  const modStart = rules.indexOf("'status', 'approvedAt'");
+  const moderator = modStart === -1 ? "" : rules.slice(modStart, modStart + 1600);
+  if (!moderator) {
+    failures.push("the moderator update rule is no longer where this guard looks");
+  }
+  if (/hasAll\(\[\s*'moderatedBy'/.test(moderator)) {
+    failures.push(
+      "the moderator rule requires moderatedBy to CHANGE, so a resubmitted " +
+        "listing cannot be decided by the moderator who rejected it — the " +
+        "queue becomes a room with no exit",
+    );
+  }
+  if (!/request\.resource\.data\.moderatedBy == request\.auth\.uid/.test(moderator)) {
+    failures.push(
+      "nothing pins moderatedBy to the signed-in moderator, so a decision " +
+        "can be filed under somebody else's name",
+    );
+  }
+  if (!/hasAll\(\['moderatedAt'\]\)/.test(moderator)) {
+    failures.push(
+      "a decision no longer has to re-stamp moderatedAt, so the audit trail " +
+        "can report the time of an earlier verdict as the time of this one",
+    );
+  }
+
   // The audit trail is what the moderator's line is read from. If the
   // seller can write it, the line is whatever the seller wanted it to say.
   for (const field of ["moderationNote", "moderatedBy", "moderatedAt"]) {

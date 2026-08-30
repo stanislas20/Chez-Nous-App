@@ -250,13 +250,27 @@ service cloud.firestore {
         // with two it is the only answer to "who let that through?", and it
         // cannot be reconstructed later from decisions already made.
         //
-        // hasAll as well as the equality, and the emulator test is why. An
-        // update that simply omits these fields carries the previous values
-        // through request.resource.data, so the equality passed against the
-        // LAST moderator's uid — a second moderator could change a status and
-        // leave somebody else's name on it. Both must be rewritten every time.
+        // The equality is the whole guard, and it is enough. An update that
+        // omits moderatedBy carries the previous value through
+        // request.resource.data — so if somebody else decided last, the
+        // equality fails and the write is refused. A moderator cannot leave
+        // another's name on their own decision.
+        //
+        // moderatedBy is deliberately NOT in the hasAll below, and this cost
+        // a device session to learn. affectedKeys() lists the keys whose
+        // value CHANGED; re-stamping moderatedBy with the same uid changes
+        // nothing, so requiring it there refused the one case that matters
+        // now that a rejection can be answered: the moderator who rejected a
+        // listing deciding on the corrected version. With a single moderator
+        // that turned the queue into a room with no exit — every
+        // resubmission stuck in it forever — which is a worse failure than
+        // the dead end the resubmission work set out to remove.
+        //
+        // moderatedAt stays, so every decision re-stamps its own time. It is
+        // a serverTimestamp and therefore always changes, so it costs
+        // nothing and keeps the audit trail honest about when.
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasAll(['moderatedBy', 'moderatedAt'])
+             .hasAll(['moderatedAt'])
         && request.resource.data.moderatedBy == request.auth.uid;
 
       // Lets anyone who can already read an approved listing (including

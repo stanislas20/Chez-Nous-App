@@ -85,6 +85,22 @@ async function main() {
         moderatedBy: "moderator-uid",
         moderatedAt: new Date(),
       }),
+      // Judged once already, by MOD, and now pending again — the state a
+      // resubmission produces.
+      setDoc(doc(db, "listings/resubmitted"), {
+        ...listing,
+        status: "pending",
+        moderationNote: "Le numéro ne répond pas.",
+        moderatedBy: "moderator-uid",
+        moderatedAt: new Date(),
+      }),
+      setDoc(doc(db, "listings/resubmitted2"), {
+        ...listing,
+        status: "pending",
+        moderationNote: "Le numéro ne répond pas.",
+        moderatedBy: "moderator-uid",
+        moderatedAt: new Date(),
+      }),
       setDoc(doc(db, "listings/rejectedC"), {
         ...listing,
         sellerId: FOREIGN,
@@ -311,6 +327,54 @@ async function main() {
     "the door is one-way: an approved listing cannot be pushed to rejected by its seller",
     assertFails(
       updateDoc(doc(asSeller, "listings/live"), { status: "rejected" }),
+    ),
+  );
+
+  // ── Deciding a listing that has been decided before ─────────────────────
+  // Found on a device, not here: the first version of the resubmission work
+  // let a seller send a rejected listing back, and then the moderator who
+  // had rejected it could not act on it. affectedKeys() lists keys whose
+  // value CHANGED, and re-stamping moderatedBy with the same uid changes
+  // nothing — so hasAll(['moderatedBy', ...]) failed and the write was
+  // refused. With one moderator that made the queue a place listings could
+  // enter and never leave, which is worse than the dead end it replaced.
+  const asMod = env
+    .authenticatedContext("moderator-uid", { moderator: true })
+    .firestore();
+  const asMod2 = env
+    .authenticatedContext("moderator-2-uid", { moderator: true })
+    .firestore();
+  await check(
+    "the moderator who rejected a listing can approve the corrected version",
+    assertSucceeds(
+      updateDoc(doc(asMod, "listings/resubmitted"), {
+        status: "approved",
+        moderationNote: null,
+        moderatedBy: "moderator-uid",
+        moderatedAt: new Date(),
+      }),
+    ),
+  );
+  // The reason hasAll was there in the first place, which must still hold:
+  // an omitted moderatedBy carries the PREVIOUS moderator's uid through
+  // request.resource.data, and that must not pass for somebody else.
+  await check(
+    "a second moderator cannot leave the first one's name on their decision",
+    assertFails(
+      updateDoc(doc(asMod2, "listings/resubmitted2"), {
+        status: "approved",
+        moderatedAt: new Date(),
+      }),
+    ),
+  );
+  await check(
+    "a second moderator deciding under their own name is fine",
+    assertSucceeds(
+      updateDoc(doc(asMod2, "listings/resubmitted2"), {
+        status: "approved",
+        moderatedBy: "moderator-2-uid",
+        moderatedAt: new Date(),
+      }),
     ),
   );
 

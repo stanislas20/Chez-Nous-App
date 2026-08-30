@@ -1791,6 +1791,8 @@ export const translations = {
     importChooserTitle: "Which are you?",
     importChooserCopy:
       "The two are asked different questions, so the form needs to know before it opens.",
+    importChooserPhoneNote:
+      "Either way you publish with a verified Bénin number (+229), including from abroad — it is what buyers here call you on.",
     importChooserBroker: "I clear cargo in Bénin",
     importChooserBrokerHint: "Transitaire, commissionnaire en douane",
     importChooserSourcer: "I buy abroad and ship here",
@@ -4479,6 +4481,8 @@ export const translations = {
     importChooserTitle: "Vous êtes lequel ?",
     importChooserCopy:
       "On ne pose pas les mêmes questions aux deux : le formulaire doit le savoir avant de s'ouvrir.",
+    importChooserPhoneNote:
+      "Dans les deux cas, on publie avec un numéro béninois (+229) vérifié, y compris depuis l'étranger — c'est le numéro sur lequel les acheteurs d'ici vous appellent.",
     importChooserBroker: "Je dédouane au Bénin",
     importChooserBrokerHint: "Transitaire, commissionnaire en douane",
     importChooserSourcer: "J'achète à l'étranger et j'expédie",

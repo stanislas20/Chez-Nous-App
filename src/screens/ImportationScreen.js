@@ -437,6 +437,20 @@ export function ImportationScreen({ navigation }) {
                 color={colors.textMuted}
               />
             </SheetRow>
+            {/* Said here, to the one person it stops.
+            
+                Publishing is +229-only and stays that way — firestore.rules
+                gates it on a claim set from a number Firebase itself
+                verified by SMS, because an unreachable seller is where the
+                scams start. That rule bites hardest on exactly the reader
+                this row is addressed to: somebody in Brussels with a
+                Belgian handset.
+            
+                They will hit it either way. The choice is whether they hit
+                it now, in one line, or after signing up and filling in a
+                form — and a requirement discovered at the end reads as the
+                app breaking rather than as a rule. */}
+            <SheetFoot>{t("importChooserPhoneNote")}</SheetFoot>
           </Sheet>
         </SheetBackdrop>
       </Modal>
@@ -957,4 +971,12 @@ const RuleCopy = styled.Text`
   font-size: 12.5px;
   line-height: 18px;
   color: ${AMBER_INK};
+`;
+
+const SheetFoot = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 11.5px;
+  line-height: 16px;
+  margin-top: ${spacing.sm}px;
+  color: ${(props) => props.theme.textMuted};
 `;

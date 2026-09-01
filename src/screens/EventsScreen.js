@@ -189,11 +189,23 @@ export function EventsScreen({ navigation }) {
   // white on a white list. Tracked in a ref and only set when it flips, so
   // this costs nothing per scroll frame.
   const glyphsAreLight = useRef(true);
+  // How far the banner reaches, measured rather than guessed: it grows with
+  // the city name and the hero copy, both of which are translated.
+  const heroHeight = useRef(0);
+  const [tabsAreFloating, setTabsAreFloating] = useState(false);
   const onScroll = useCallback(
     (event) => {
       // Half the banner is enough: by then what is under the status bar is
       // the list, not the gradient.
-      const light = event.nativeEvent.contentOffset.y < 90;
+      const y = event.nativeEvent.contentOffset.y;
+
+      // The tabs stay reachable after the banner has gone: they are how
+      // this screen is navigated, and scrolling back up to reach "Ce soir"
+      // is a worse answer than a bar that follows.
+      const floating = heroHeight.current > 0 && y > heroHeight.current - 8;
+      setTabsAreFloating((was) => (was === floating ? was : floating));
+
+      const light = y < 90;
       if (light === glyphsAreLight.current) return;
       glyphsAreLight.current = light;
       setStatusBarStyle(light ? "light" : scheme === "dark" ? "light" : "dark");
@@ -487,11 +499,47 @@ export function EventsScreen({ navigation }) {
     );
   };
 
+  // Drawn twice: once in the list header, and once in the bar that floats
+  // at the top of the screen after the banner has scrolled away. Same
+  // element, so the two can never drift apart.
+  const windowTabs = (
+    <>
+    {/* Two lines per tab, as the design has it. The second is not
+        decoration: "tonight" and "this weekend" both look obvious and
+        neither says which days it means. */}
+    <WindowRow>
+      {eventWindows.map((item) => {
+        const on = window === item.key;
+        return (
+          <WindowTab key={item.key} on={on} onPress={() => setWindow(item.key)}>
+            <WindowLabel on={on}>
+              {language === "en" ? item.labelEn : item.labelFr}
+            </WindowLabel>
+            <WindowSub on={on}>
+              {eventWindowSubLabel(item.key, language)}
+            </WindowSub>
+            {windowCounts[item.key] > 0 ? (
+              <WindowCount on={on}>
+                <WindowCountLabel on={on}>
+                  {windowCounts[item.key]}
+                </WindowCountLabel>
+              </WindowCount>
+            ) : null}
+          </WindowTab>
+        );
+      })}
+    </WindowRow>
+    </>
+  );
+
   const header = (
     <>
       <Hero
         colors={["#8A3A6B", "#6D2C55", "#3E1830"]}
         style={{ paddingTop: insets.top + spacing.sm }}
+        onLayout={(event) => {
+          heroHeight.current = event.nativeEvent.layout.height;
+        }}
       >
         <BackButton onPress={() => navigation.goBack()} hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color="#ffffff" />
@@ -539,31 +587,7 @@ export function EventsScreen({ navigation }) {
         </HeroActions>
       </Hero>
 
-      {/* Two lines per tab, as the design has it. The second is not
-          decoration: "tonight" and "this weekend" both look obvious and
-          neither says which days it means. */}
-      <WindowRow>
-        {eventWindows.map((item) => {
-          const on = window === item.key;
-          return (
-            <WindowTab key={item.key} on={on} onPress={() => setWindow(item.key)}>
-              <WindowLabel on={on}>
-                {language === "en" ? item.labelEn : item.labelFr}
-              </WindowLabel>
-              <WindowSub on={on}>
-                {eventWindowSubLabel(item.key, language)}
-              </WindowSub>
-              {windowCounts[item.key] > 0 ? (
-                <WindowCount on={on}>
-                  <WindowCountLabel on={on}>
-                    {windowCounts[item.key]}
-                  </WindowCountLabel>
-                </WindowCount>
-              ) : null}
-            </WindowTab>
-          );
-        })}
-      </WindowRow>
+      {windowTabs}
 
       {/* The app's one chip, in this screen's colour. These were three
           hand-rolled pills with three different paddings before. */}
@@ -621,6 +645,12 @@ export function EventsScreen({ navigation }) {
           the way the buttons on a listing ride on its photograph. The list
           then owns the top of the screen, which is what it looked like it
           wanted to do all along. */}
+
+      {tabsAreFloating ? (
+        <FloatingTabs style={{ paddingTop: insets.top + spacing.xs }}>
+          {windowTabs}
+        </FloatingTabs>
+      ) : null}
 
       <FlatList
         data={rest}
@@ -770,6 +800,26 @@ const BackButton = styled(Pressable)`
   justify-content: center;
 `;
 
+
+// The tab row, over the list, once the banner it normally sits under has
+// scrolled away. Absolute rather than a sticky header index: this list has
+// one header component holding the banner and the tabs together, and
+// splitting it into a sticky section would mean giving up the single
+// header the rest of the screen is built around.
+const FloatingTabs = styled.View`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  padding: 0 ${spacing.md}px ${spacing.xs}px;
+  background-color: ${(props) => props.theme.background};
+  shadow-color: #2a0f20;
+  shadow-offset: 0px 3px;
+  shadow-opacity: 0.16;
+  shadow-radius: 8px;
+  elevation: 6;
+`;
 
 const Hero = styled(LinearGradient)`
   padding: ${spacing.lg}px ${spacing.md}px ${spacing.lg}px;

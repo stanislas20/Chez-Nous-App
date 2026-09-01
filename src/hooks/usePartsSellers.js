@@ -3,7 +3,11 @@ import { useApprovedListings } from "./useApprovedListings";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { distanceInKm } from "../utils/geo";
 import { isOpenNow } from "../data/openingDays";
-import { isPartsSellerListing, stockMatchesQuery } from "../data/vehicleParts";
+import {
+  isPartsSellerListing,
+  partSellerKindFor,
+  stockMatchesQuery,
+} from "../data/vehicleParts";
 import { withoutTestSeed } from "../utils/testSeed";
 
 // The people who sell vehicle parts.
@@ -78,7 +82,7 @@ export function usePartsSellers(userCoords) {
 // "after the search" from one list.
 export function filterPartsSellers(
   sellers,
-  { scope, category, quality, query },
+  { scope, category, quality, query, sellerKind },
 ) {
   const keep = (declared, wanted) =>
     !wanted || declared.length === 0 || declared.includes(wanted);
@@ -86,6 +90,22 @@ export function filterPartsSellers(
   return sellers
     .filter((item) => keep(item.partScopes, scope))
     .filter((item) => keep(item.partCategories, category))
+    // Declared first, then their own words — the rule the rest of the app
+    // runs on, and which this filter briefly broke by reading the declared
+    // field alone. Doing that hid every casse that advertises itself as one
+    // in prose and never opened the picker, which is most of the ones the
+    // keyword tile it replaced used to find.
+    //
+    // Still not `keep`: an undeclared seller whose words say nothing about
+    // what kind of business they are does NOT match. Silence about which
+    // part families you stock means "ask me"; silence about being a breaker
+    // does not make you one, and showing four boutiques to somebody who
+    // asked for a casse is the opposite of an answer.
+    .filter(
+      (item) =>
+        !sellerKind ||
+        partSellerKindFor(item.haystack, item.partSellerKind) === sellerKind,
+    )
     .filter(
       (item) =>
         !quality || quality === "all" || keep(item.partQualities, quality),

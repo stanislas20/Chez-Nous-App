@@ -36,6 +36,7 @@ import { cityCoordinates } from "../data/cityCoordinates";
 import {
   propertyTypes,
   getPropertyTypeLabel,
+  getStayCarDriverLabel,
   ROOM_COUNTS,
 } from "../data/realEstate";
 import {
@@ -1273,6 +1274,11 @@ export function buildPropertyView(listing, language, t) {
     place: [listing.quartier, listing.city].filter(Boolean).join(", "),
     withCar: !!listing.withCar,
     withCarNote: listing.withCarNote || null,
+    // Driver or not, on the card rather than only on the detail: it is the
+    // fact that decides whether the offer is usable at all — a visitor with
+    // no Beninese permit cannot take a self-drive car — so making somebody
+    // open the listing to learn it wastes the trip.
+    withCarDriver: getStayCarDriverLabel(listing.withCarDriver, language),
   };
 }
 
@@ -1378,7 +1384,11 @@ function PropertyCard({
         {view.withCar ? (
           <CarBadge>
             <Feather name="truck" size={10} color={EMERALD} />
-            <CarBadgeLabel>{t("realEstateWithCarBadge")}</CarBadgeLabel>
+            <CarBadgeLabel>
+              {view.withCarDriver
+                ? `${t("realEstateWithCarBadge")} · ${view.withCarDriver}`
+                : t("realEstateWithCarBadge")}
+            </CarBadgeLabel>
           </CarBadge>
         ) : null}
         {view.listerLabel ? (

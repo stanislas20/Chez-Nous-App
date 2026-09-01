@@ -79,22 +79,35 @@ function keysOf(objectName) {
   );
 }
 
-// The trades the in-form picker offers — from SERVICE_TRADES specifically.
-// Scanning the whole file for key/icon pairs also swept up PART_TYPES, whose
-// entries are kinds of thing being sold rather than trades, and reported
-// them as missing examples they were never supposed to have.
+// The trades the in-form picker offers.
+//
+// These used to be declared inside the form and were read out of it here.
+// They now live in src/data/serviceTrades.js, because the Services category
+// screen groups by trade and needed the same list to label the groups —
+// browsing and publishing have to agree about what a trade is called.
+//
+// Read from that file rather than the form, and specifically from the
+// `serviceTrades` array: scanning a whole file for key/icon pairs used to
+// sweep up PART_TYPES, whose entries are kinds of thing being sold rather
+// than trades, and report them as missing examples they never needed.
 function serviceTradeKeys() {
-  const start = form.indexOf("const SERVICE_TRADES = [");
+  const source = fs.readFileSync(
+    path.join(__dirname, "..", "src/data/serviceTrades.js"),
+    "utf8",
+  );
+  const start = source.indexOf("export const serviceTrades = [");
   if (start === -1) return null;
-  const close = form.indexOf("\n];", start);
+  const close = source.indexOf("\n];", start);
   if (close === -1) return null;
-  const body = form.slice(start, close);
+  const body = source.slice(start, close);
   return new Set([...body.matchAll(/key:\s*"([\w-]+)"/g)].map((m) => m[1]));
 }
 
 const offered = serviceTradeKeys();
 if (!offered) {
-  console.error("FAIL could not read SERVICE_TRADES from the form");
+  console.error(
+    "FAIL could not read serviceTrades from src/data/serviceTrades.js",
+  );
   process.exit(1);
 }
 const hinted = keysOf("TRADE_HINT_KEYS");

@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   Modal,
   Pressable,
   RefreshControl,
+  SectionList,
 } from "react-native";
 import {
   SafeAreaView,
@@ -17,6 +17,7 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { SearchBar } from "../components/SearchBar";
+import { RailChip } from "../components/RailChip";
 import { BeninFlag } from "../components/BeninFlag";
 import { SectionHeading } from "../components/SectionHeading";
 import { Tappable } from "../components/Tappable";
@@ -55,12 +56,55 @@ const LOCAL_CATEGORIES = categories.filter(
   (category) => category.key !== "pharmacyOnDuty",
 );
 
+// The grid runs closer to the edges than the rest of the screen so the
+// photographs get that width. The header blocks above it — the pharmacy
+// card, the restaurant strip, the rails — keep their own padding, since
+// edge-to-edge prose reads as a layout mistake rather than a decision, so
+// each of those keeps or regains its own horizontal margin below.
 const listContentStyle = {
-  paddingHorizontal: spacing.md,
+  paddingHorizontal: 2,
   paddingTop: spacing.md,
   paddingBottom: spacing.md,
 };
+
 const rowStyle = { justifyContent: "space-between" };
+// Padded independently now that the list itself is not. `headerBlockStyle`
+// is the same 14, which with the list's 2 comes back to the app's 16.
+const categoryRailStyle = {
+  gap: spacing.xs,
+  paddingLeft: spacing.md - 2,
+  paddingRight: spacing.md,
+};
+
+// SectionList has no numColumns — the prop simply does not exist on it — so
+// the two-per-row grid is built by hand: each section's listings are cut
+// into pairs and one pair is rendered per row.
+//
+// A trailing odd card needs no filler. ListingCard is width: 47% and the row
+// is space-between, so a lone card sits on the left at its own width, which
+// is exactly what FlatList's columnWrapperStyle did with an odd last row.
+const GRID_COLUMNS = 2;
+
+// How much of a category is shown before it defers to the next one.
+//
+// Grouping alone was not enough. Sections are wildly uneven — one category
+// with forty listings and the next with one — so the biggest category buried
+// every category under it, and a reader scrolling for furniture gave up
+// somewhere in the middle of vehicles. Three rows is enough to see what a
+// category holds and short enough that the one below it is still on screen.
+//
+// Only while browsing everything. Choosing a category means the reader has
+// asked for that one, and a cap there would be hiding what they just asked
+// to see, so the drill-in is uncapped.
+const SECTION_PREVIEW_ROWS = 3;
+
+function chunkIntoRows(items) {
+  const rows = [];
+  for (let index = 0; index < items.length; index += GRID_COLUMNS) {
+    rows.push(items.slice(index, index + GRID_COLUMNS));
+  }
+  return rows;
+}
 const sheetScrollContentStyle = { paddingHorizontal: spacing.md };
 
 export function LocalScreen({ navigation }) {
@@ -217,16 +261,18 @@ export function LocalScreen({ navigation }) {
       .slice(0, 8);
   }, [liveListings, userCoords]);
 
-  const filteredListings = useMemo(() => {
+  // Everything except the category filter.
+  //
+  // Split out so the category rail can count what each category WOULD show.
+  // Counting off filteredListings instead would collapse the rail to a
+  // single chip the moment a category was chosen — every other category
+  // reading zero — and there would be no way back to the others without
+  // opening the filter sheet.
+  const listingsBeforeCategory = useMemo(() => {
     let result = listings;
 
     if (selectedCity) {
       result = result.filter((listing) => listing.city === selectedCity);
-    }
-    if (selectedCategoryKey) {
-      result = result.filter(
-        (listing) => listing.categoryKey === selectedCategoryKey,
-      );
     }
     if (distanceKm != null && userCoords) {
       result = result.filter((listing) => {
@@ -255,13 +301,97 @@ export function LocalScreen({ navigation }) {
   }, [
     listings,
     selectedCity,
-    selectedCategoryKey,
     distanceKm,
     userCoords,
     query,
     priceSort,
     language,
   ]);
+
+  const filteredListings = useMemo(
+    () =>
+      selectedCategoryKey
+        ? listingsBeforeCategory.filter(
+            (listing) => listing.categoryKey === selectedCategoryKey,
+          )
+        : listingsBeforeCategory,
+    [listingsBeforeCategory, selectedCategoryKey],
+  );
+
+  // What the rail offers: only categories with something in them, in
+  // categories.js order, each carrying its own count. A chip that leads to
+  // an empty screen is worse than no chip.
+  const categoryRail = useMemo(() => {
+    const counts = new Map();
+    for (const listing of listingsBeforeCategory) {
+      const key = listing.categoryKey ?? "other";
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return LOCAL_CATEGORIES.filter((category) => counts.has(category.key)).map(
+      (category) => ({
+        key: category.key,
+        icon: category.icon,
+        label: language === "en" ? category.labelEn : category.labelFr,
+        count: counts.get(category.key),
+      }),
+    );
+  }, [listingsBeforeCategory, language]);
+
+  // Grouped by category rather than poured into one grid.
+  //
+  // Everything approved landed in a single stream ordered by whatever
+  // Firestore returned, so a fridge sat between two building plots and a
+  // haircut. The filter chips could narrow it to one category, but that
+  // asks the reader to already know what they want — the point of a market
+  // is to see what is in it.
+  //
+  // Ordered by categories.js, not by size or by arrival, so the sections
+  // come in the same order as the filter chips above them. A category with
+  // nothing in it is dropped rather than shown empty.
+  //
+  // The chips still work and are not redundant: picking one leaves exactly
+  // one section standing, which is the old behaviour with a heading on it.
+  const listingSections = useMemo(() => {
+    const byCategory = new Map();
+    for (const listing of filteredListings) {
+      const key = listing.categoryKey ?? "other";
+      const bucket = byCategory.get(key);
+      if (bucket) bucket.push(listing);
+      else byCategory.set(key, [listing]);
+    }
+
+    const label = (category) =>
+      language === "en" ? category.labelEn : category.labelFr;
+
+    // Capped while browsing everything, whole once a category is chosen.
+    const build = (key, title, items) => {
+      const rows = chunkIntoRows(items);
+      const capped = selectedCategoryKey ? rows : rows.slice(0, SECTION_PREVIEW_ROWS);
+      return {
+        key,
+        title,
+        total: items.length,
+        hidden: items.length - capped.flat().length,
+        data: capped,
+      };
+    };
+
+    const known = LOCAL_CATEGORIES.filter((category) =>
+      byCategory.has(category.key),
+    ).map((category) =>
+      build(category.key, label(category), byCategory.get(category.key)),
+    );
+
+    // A categoryKey with no row in categories.js still has listings behind
+    // it, and dropping them would make them unreachable from this screen
+    // with nothing to say so. They go last, under their own raw key.
+    const accountedFor = new Set(known.map((section) => section.key));
+    const orphans = [...byCategory.keys()]
+      .filter((key) => !accountedFor.has(key))
+      .map((key) => build(key, key, byCategory.get(key)));
+
+    return [...known, ...orphans];
+  }, [filteredListings, language, selectedCategoryKey]);
 
   const filteredCities = cities.filter((city) =>
     city.toLowerCase().includes(citySearch.trim().toLowerCase()),
@@ -422,8 +552,9 @@ export function LocalScreen({ navigation }) {
         ) : null}
       </Header>
 
-      <FlatList
-        data={filteredListings}
+      <SectionList
+        sections={listingSections}
+        stickySectionHeadersEnabled
         ListHeaderComponent={
           <>
             {/* First thing in the list, because when the query is down every
@@ -560,16 +691,52 @@ export function LocalScreen({ navigation }) {
                 label={t("localNearbySectionTitle")}
                 meta={
                   filteredListings.length
-                    ? t("jobsCategoryCount", { count: filteredListings.length })
+                    ? t("listingCountShort", { count: filteredListings.length })
                     : null
                 }
               />
             </SectionHeadingWrap>
+
+            {/* Choosing a category was three taps into a modal — open the
+                filter sheet, tap Catégorie, tap the row — for the single
+                most common thing anybody does on this screen. The rail puts
+                the same choice in reach, and now that the list is grouped it
+                doubles as the map of what is actually in the market.
+
+                Tapping the active chip clears it, so the way back to
+                everything is the chip you just pressed rather than a trip
+                back into the sheet. */}
+            {/* Also shown when a category is active but the rail has been
+                narrowed to one chip by a search: hiding it there would leave
+                a filter on with no visible control to clear it, which is the
+                trap RealEstateScreen guards against when the car pill
+                disappears. */}
+            {categoryRail.length > 1 || selectedCategoryKey ? (
+              <CategoryRail
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={categoryRailStyle}
+              >
+                {categoryRail.map((entry) => {
+                  const active = selectedCategoryKey === entry.key;
+                  return (
+                    <RailChip
+                      key={entry.key}
+                      icon={entry.icon}
+                      label={entry.label}
+                      count={entry.count}
+                      selected={active}
+                      onPress={() =>
+                        setSelectedCategoryKey(active ? null : entry.key)
+                      }
+                    />
+                  );
+                })}
+              </CategoryRail>
+            ) : null}
           </>
         }
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={rowStyle}
+        keyExtractor={(row) => row.map((listing) => listing.id).join("-")}
         contentContainerStyle={listContentStyle}
         refreshControl={
           <RefreshControl
@@ -584,12 +751,43 @@ export function LocalScreen({ navigation }) {
             <EmptyText>{t("localEmptyResults")}</EmptyText>
           </EmptyState>
         }
-        renderItem={({ item }) => (
-          <ListingCard
-            listing={item}
-            isFavorite={favoriteIds.has(item.id)}
-            onToggleFavorite={() => toggleFavorite(item.id)}
-          />
+        renderSectionHeader={({ section }) => (
+          // Opaque, because a sticky header with a transparent background
+          // has cards scrolling visibly through it.
+          <StickyHeading>
+            <SectionHeading
+              label={section.title}
+              meta={
+                section.hidden ? null : t("listingCountShort", { count: section.total })
+              }
+              action={
+                section.hidden ? (
+                  // Selecting the category is the drill-in: filteredListings
+                  // narrows to it and the cap lifts, so this reuses the
+                  // filter the chips already drive rather than inventing a
+                  // second way to be looking at one category.
+                  <SeeAllLink
+                    onPress={() => setSelectedCategoryKey(section.key)}
+                  >
+                    {t("localSectionSeeAll", { count: section.total })}
+                  </SeeAllLink>
+                ) : null
+              }
+            />
+          </StickyHeading>
+        )}
+        renderItem={({ item: row }) => (
+          <GridRow style={rowStyle}>
+            {row.map((listing) => (
+              <ListingCard
+                key={listing.id}
+                listing={listing}
+                flush
+                isFavorite={favoriteIds.has(listing.id)}
+                onToggleFavorite={() => toggleFavorite(listing.id)}
+              />
+            ))}
+          </GridRow>
         )}
         ListFooterComponent={<ScreenFooter />}
       />
@@ -939,6 +1137,7 @@ const LocationHintText = styled.Text`
 `;
 
 const ListingsErrorNote = styled.View`
+  margin-horizontal: ${spacing.md - 2}px;
   flex-direction: row;
   align-items: flex-start;
   gap: ${spacing.sm}px;
@@ -1071,6 +1270,24 @@ const SeeAllLink = styled.Text`
 const SectionHeadingWrap = styled.View`
   padding-horizontal: ${spacing.md}px;
   padding-top: ${spacing.lg}px;
+`;
+
+// No vertical margin here. ListingCard already carries margin-bottom, which
+// is where the row gap came from under columnWrapperStyle — adding another
+// would double the spacing the grid has always had.
+const CategoryRail = styled.ScrollView`
+  margin-bottom: ${spacing.sm}px;
+`;
+
+const GridRow = styled.View`
+  flex-direction: row;
+`;
+
+// The screen's own background, so cards pass behind the pinned heading
+// rather than through it.
+const StickyHeading = styled.View`
+  background-color: ${(props) => props.theme.background};
+  padding-horizontal: ${spacing.md - 2}px;
 `;
 
 const EmptyState = styled.View`

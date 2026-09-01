@@ -34,10 +34,19 @@ const failures = [];
 // What the form stores for a property, taken from the realEstate payload
 // object rather than from a hand-kept list — a list would drift from the
 // thing it describes, which is the whole bug being guarded against.
-const payload = form.slice(
-  form.indexOf("              realEstateDeal,"),
-  form.indexOf("            }", form.indexOf("              realEstateDeal,")),
-);
+// The end of the block is a line that is EXACTLY twelve spaces and a brace.
+//
+// This used to be an indexOf for the string "            }", which matches
+// that substring inside any deeper indentation too — so the first nested
+// object literal in the payload ended the slice early and every field below
+// it read as "never written". Harmless-looking, and it reported four real
+// fields as missing the day one was added.
+const payloadStart = form.indexOf("              realEstateDeal,");
+const payloadEnd = form.slice(payloadStart).search(/^ {12}\}/m);
+const payload =
+  payloadStart === -1 || payloadEnd === -1
+    ? ""
+    : form.slice(payloadStart, payloadStart + payloadEnd);
 if (!payload || payload.length < 100) {
   console.error("FAIL could not locate the real-estate payload in the form");
   process.exit(1);
@@ -129,6 +138,108 @@ readers.forEach((rel) => {
     failures.push(
       "RealEstateScreen does not build its quartier filter from listings, " +
         "so what sellers type is never offered to buyers",
+    );
+  }
+}
+
+// ── Séjour + voiture, end to end ──────────────────────────────────────
+//
+// A property let together with a car. The Véhicules hub carried this tile
+// pointing at a text search of Services for "séjour voiture", which could
+// never match: the thing it describes is a property, Services holds trades,
+// and no listing of any kind could declare a car came with it.
+//
+// It is whole now — the form asks, the browse screen filters, both the card
+// and the detail carry a badge — and nothing was watching any of it. Every
+// other tile rescued from a text search has a check saying so; this is the
+// one that did not, and each of the five joints below fails silently rather
+// than loudly if it comes apart.
+{
+  const tiles = read("src/data/carServiceCategories.js");
+  const tile = tiles.match(/\{[^{}]*key: "stayCar"[^{}]*\}/s);
+  if (!tile) {
+    failures.push("the stayCar tile has gone from carServiceCategories.js");
+  } else {
+    if (!/route: "RealEstate"/.test(tile[0])) {
+      failures.push("the stayCar tile no longer routes to Immobilier");
+    }
+    if (!/realEstateDeal: "shortStay"/.test(tile[0])) {
+      failures.push(
+        "the stayCar tile no longer opens the short-stay tab, so it lands on " +
+          "long rentals and the errand it names is a tab away",
+      );
+    }
+    if (!/withCar: true/.test(tile[0])) {
+      failures.push(
+        "the stayCar tile no longer turns the car filter on, so it opens " +
+          "every short stay and the reader does the filtering",
+      );
+    }
+    if (/query:/.test(tile[0])) {
+      failures.push(
+        "the stayCar tile runs a text search again — the search it replaced " +
+          "could never match a property, because Services holds trades",
+      );
+    }
+  }
+
+  // Which deals can carry a car. A sale or a plot cannot, and offering the
+  // box there would collect an answer to a question nobody asked.
+  const data = readCode("src/data/realEstate.js");
+  const option = data.match(/function realEstateHasCarOption[\s\S]{0,160}?\n\}/);
+  if (!option) {
+    failures.push("realEstateHasCarOption has gone");
+  } else {
+    for (const deal of ["rent", "shortStay"]) {
+      if (!option[0].includes(`"${deal}"`)) {
+        failures.push(
+          `realEstateHasCarOption no longer covers ${deal}, so a real ` +
+            `arrangement can no longer be declared`,
+        );
+      }
+    }
+  }
+
+  // The form: gated by that function, and the note cleared when unticked —
+  // a note left behind describes a car that is no longer on offer.
+  const form = readCode("src/screens/CreateListingScreen.js");
+  if (!/realEstateHasCarOption\(realEstateDeal\)/.test(form)) {
+    failures.push(
+      "the car checkbox is no longer gated on realEstateHasCarOption, so it " +
+        "is offered on sales and plots",
+    );
+  }
+  // All four car fields, each cleared when the box is unticked. A note or a
+  // driver left behind describes a car that is no longer on offer.
+  for (const field of [
+    "withCarNote",
+    "withCarTypes",
+    "withCarDriver",
+    "withCarCost",
+  ]) {
+    if (!new RegExp(`${field}: withCar \\? `).test(form)) {
+      failures.push(
+        `${field} is no longer conditional on withCar, so unticking the box ` +
+          `leaves it in the document describing a car that is not on offer`,
+      );
+    }
+  }
+
+  // The browse screen: filters on it, and drops the filter when the deal
+  // cannot carry a car. Without that reset the pill vanishes while the
+  // filter stays on, and a tab silently shows nothing with no visible
+  // control to explain why — the worst shape an empty list can take.
+  const browse = readCode("src/screens/RealEstateScreen.js");
+  if (!/withCarOnly && !item\.withCar/.test(browse)) {
+    failures.push(
+      "Immobilier no longer filters on withCar, so the tile's parameter is " +
+        "accepted and ignored",
+    );
+  }
+  if (!/if \(!realEstateHasCarOption\(key\)\) setWithCarOnly\(false\)/.test(browse)) {
+    failures.push(
+      "switching to a deal with no car option no longer clears the filter — " +
+        "the pill disappears, the filter stays on, and the tab reads as empty",
     );
   }
 }

@@ -55,7 +55,14 @@ const beninFlagWash = [BENIN_GREEN, BENIN_YELLOW, BENIN_RED];
 // avatar; the fix for that is a tighter crop before uploading.
 const PHOTO_SIZE = 156;
 
-const listContentStyle = { padding: spacing.md };
+// Two pixels, so the grid runs to the edges and the photographs get the
+// width — the Marketplace layout, matching Local and Pour vous. Everything
+// else in these lists (headers, empty states) carries its own padding
+// already, so only the cards move.
+const listContentStyle = {
+  paddingHorizontal: 2,
+  paddingVertical: spacing.md,
+};
 const rowStyle = { justifyContent: "space-between" };
 
 export function SellerProfileScreen({ route, navigation }) {
@@ -418,7 +425,7 @@ export function SellerProfileScreen({ route, navigation }) {
             </EmptyState>
           ) : null
         }
-        renderItem={({ item }) => <ListingCard listing={item} />}
+        renderItem={({ item }) => <ListingCard listing={item} flush />}
       />
       <Modal
         visible={rateOpen}

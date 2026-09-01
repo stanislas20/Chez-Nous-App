@@ -31,7 +31,12 @@ import {
   partCategoriesFor,
   partQualities,
   partScopes,
+  partSellerKinds,
+  partSellerKindFor,
 } from "../data/vehicleParts";
+import { RailChip } from "../components/RailChip";
+
+const kindRailStyle = { gap: spacing.xs, paddingRight: spacing.md };
 
 const EMERALD = "#0B6E4F";
 const GOLD = "#D9A441";
@@ -46,7 +51,7 @@ const KIND_TINTS = {
 };
 
 // Where to buy a part. Not which part fits — see vehicleParts.js.
-export function PartsScreen({ navigation }) {
+export function PartsScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { t, language } = useI18n();
   const { user } = useAuth();
@@ -57,6 +62,12 @@ export function PartsScreen({ navigation }) {
   const [category, setCategory] = useState(null);
   const [quality, setQuality] = useState("all");
   const [query, setQuery] = useState("");
+  // Seeded from the tile that opened the screen. "Casse automobile" on
+  // Voitures lands here already narrowed to breakers rather than at the
+  // front door of the full parts directory with the work left undone.
+  const [sellerKind, setSellerKind] = useState(
+    route?.params?.sellerKind ?? null,
+  );
 
   const sellers = usePartsSellers(coords);
   const ratings = useSellerRatings(sellers.map((item) => item.sellerId));
@@ -68,9 +79,41 @@ export function PartsScreen({ navigation }) {
     (language === "en" ? item.titleEn : item.titleFr) || item.titleFr;
 
   const matching = useMemo(
-    () => filterPartsSellers(sellers, { scope, category, quality, query }),
-    [sellers, scope, category, quality, query],
+    () =>
+      filterPartsSellers(sellers, {
+        scope,
+        category,
+        quality,
+        query,
+        sellerKind,
+      }),
+    [sellers, scope, category, quality, query, sellerKind],
   );
+
+  // Counted off the list WITHOUT the seller-kind filter, so every kind keeps
+  // its number while one of them is selected and the rail stays a way back
+  // to the others — the same reason the category rails count that way.
+  const kindRail = useMemo(() => {
+    const pool = filterPartsSellers(sellers, {
+      scope,
+      category,
+      quality,
+      query,
+    });
+    const counts = new Map();
+    for (const item of pool) {
+      const kind = partSellerKindFor(item.haystack, item.partSellerKind);
+      if (!kind) continue;
+      counts.set(kind, (counts.get(kind) ?? 0) + 1);
+    }
+    return partSellerKinds
+      .filter((kind) => counts.has(kind.key))
+      .map((kind) => ({
+        key: kind.key,
+        label: getPartSellerKindLabel(kind.key, language),
+        count: counts.get(kind.key),
+      }));
+  }, [sellers, scope, category, quality, query, language]);
 
   // Counted from the listings themselves, never asserted — and counted within
   // the current scope, so a motorbike family never advertises a number that
@@ -259,6 +302,45 @@ export function PartsScreen({ navigation }) {
           })}
         </Grid>
 
+        {/* What kind of business, which vehicleParts.js already calls the
+            thing that "changes what you should expect before you travel":
+            a casse sells one of a thing and sells it as seen, a concession
+            orders on a reference and takes a week. Sellers have been
+            declaring it and the cards have been printing it — there was
+            simply no way to ask for one, which is why the Voitures tile
+            named after breakers had to go looking for them by keyword.
+
+            Hidden when everybody on screen is the same kind: a rail with
+            one chip is a label pretending to be a control. */}
+        {kindRail.length > 1 ? (
+          <>
+            <SectionTitle>{t("partsSellerKindLabel")}</SectionTitle>
+            <KindRail
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={kindRailStyle}
+            >
+              <RailChip
+                label={t("otherAisleAll")}
+                selected={!sellerKind}
+                onPress={() => setSellerKind(null)}
+              />
+              {kindRail.map((entry) => {
+                const active = sellerKind === entry.key;
+                return (
+                  <RailChip
+                    key={entry.key}
+                    label={entry.label}
+                    count={entry.count}
+                    selected={active}
+                    onPress={() => setSellerKind(active ? null : entry.key)}
+                  />
+                );
+              })}
+            </KindRail>
+          </>
+        ) : null}
+
         <SectionTitle>{t("partsQualityLabel")}</SectionTitle>
         <SegmentRow>
           {partQualities.map((item) => {
@@ -305,7 +387,12 @@ export function PartsScreen({ navigation }) {
 
         {matching.map((item) => {
           const score = ratings[item.sellerId];
-          const kind = getPartSellerKind(item.partSellerKind);
+          // Resolved, not read raw: the filter matches on declared-then-
+          // prose, so reading the declared field alone here would put a card
+          // under the Casse chip with no Casse badge on it.
+          const kind = getPartSellerKind(
+            partSellerKindFor(item.haystack, item.partSellerKind),
+          );
           const tint = KIND_TINTS[kind?.tint ?? "neutral"];
           const qualityLine = item.partQualities
             .map((key) => getPartQualityLabel(key, language))
@@ -961,6 +1048,10 @@ const SuggestRow = styled.View`
   flex-direction: row;
   flex-wrap: wrap;
   gap: 8px;
+`;
+
+const KindRail = styled.ScrollView`
+  margin-bottom: ${spacing.sm}px;
 `;
 
 const SuggestChip = styled(Pressable)`

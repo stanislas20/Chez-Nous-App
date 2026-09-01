@@ -13,7 +13,9 @@ import { deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { deleteObject, ref } from "firebase/storage";
 import { Ionicons } from "@expo/vector-icons";
 import styled from "styled-components/native";
-import { radius, shadow, spacing } from "../theme/colors";
+import { radius, spacing } from "../theme/colors";
+import { ListingMedia } from "../components/ListingMedia";
+import { RailChip } from "../components/RailChip";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import {
@@ -21,6 +23,7 @@ import {
   roadsideAvailabilityStates,
 } from "../data/roadside";
 import { useI18n } from "../i18n/I18nContext";
+import { withListingLink } from "../utils/listingLink";
 import { saleStatusLabelKey } from "../data/saleStatuses";
 import { useAuth } from "../auth/AuthContext";
 import { useMyListings } from "../hooks/useMyListings";
@@ -30,7 +33,13 @@ import { listingPriceText } from "../utils/listingPrice";
 import { openListing } from "../utils/openListing";
 import { TabSafeAreaView } from "../components/TabSafeAreaView";
 
-const listContentStyle = { padding: spacing.md };
+// Two pixels horizontally, like the Local grid, so the rows reach the edges
+// and the photograph gets the width. The vertical padding stays: a list
+// that starts hard against the header reads as clipped.
+const listContentStyle = {
+  paddingHorizontal: 2,
+  paddingVertical: spacing.md,
+};
 
 function getSaleStatuses(colors) {
   return [
@@ -62,10 +71,10 @@ function getSaleStatuses(colors) {
 }
 
 const FILTERS = [
-  { key: "all", labelKey: "dashboardStatTotal" },
-  { key: "active", labelKey: "dashboardStatActive" },
-  { key: "sold", labelKey: "dashboardStatSold" },
-  { key: "pending", labelKey: "listingStatusPending" },
+  { key: "all", labelKey: "dashboardStatTotal", icon: "albums-outline" },
+  { key: "active", labelKey: "dashboardStatActive", icon: "checkmark-circle-outline" },
+  { key: "sold", labelKey: "dashboardStatSold", icon: "checkmark-done-outline" },
+  { key: "pending", labelKey: "listingStatusPending", icon: "time-outline" },
 ];
 
 function matchesFilter(item, filter) {
@@ -86,6 +95,23 @@ export function MyListingsScreen() {
   const insets = useSafeAreaInsets();
   const listings = useMyListings(user?.uid);
   const [filter, setFilter] = useState(route.params?.filter ?? "all");
+
+  // A count on each tab, which is the summary this screen never had.
+  //
+  // It answers the question the screen is opened with — how many are
+  // waiting, how many are live — without a stats panel above the list
+  // repeating what the tabs could have said themselves. Zero is shown
+  // rather than hidden: "Vendues 0" is a fact worth reading, and a tab
+  // that appears and disappears is harder to aim at than one that stays.
+  const filterCounts = useMemo(() => {
+    const counts = {};
+    FILTERS.forEach((option) => {
+      counts[option.key] = (listings ?? []).filter((item) =>
+        matchesFilter(item, option.key),
+      ).length;
+    });
+    return counts;
+  }, [listings]);
 
   // The param has to be applied on every arrival, not only the first.
   //
@@ -127,11 +153,13 @@ export function MyListingsScreen() {
   const handleShare = async (item, title) => {
     const priceText = listingPriceText(item, t, language);
     try {
-      await Share.share({
-        message: priceText
-          ? t("shareListingMessage", { title, price: priceText })
-          : t("shareListingMessageNoPrice", { title }),
-      });
+      const message = priceText
+        ? t("shareListingMessage", { title, price: priceText })
+        : t("shareListingMessageNoPrice", { title });
+      // This screen is the one that holds listings a moderator has not
+      // approved. Those have no public page, and withListingLink leaves
+      // them as a sentence rather than a link that says "no longer online".
+      await Share.share({ message: withListingLink(message, item) });
     } catch {
       // user dismissed the share sheet — nothing to do
     }
@@ -200,17 +228,19 @@ export function MyListingsScreen() {
 
   return (
     <Container edges={["left", "right"]}>
-      <FilterRow>
+      {/* The app's own chip, so these match the rails on Local, Voitures
+          and Événements rather than being a fourth pill shape with its own
+          padding. */}
+      <FilterRow horizontal showsHorizontalScrollIndicator={false}>
         {FILTERS.map((option) => (
-          <FilterChip
+          <RailChip
             key={option.key}
+            icon={option.icon}
+            label={t(option.labelKey)}
+            count={filterCounts[option.key]}
             selected={filter === option.key}
             onPress={() => setFilter(option.key)}
-          >
-            <FilterChipLabel selected={filter === option.key}>
-              {t(option.labelKey)}
-            </FilterChipLabel>
-          </FilterChip>
+          />
         ))}
       </FilterRow>
       <FlatList
@@ -227,14 +257,9 @@ export function MyListingsScreen() {
             </EmptyMessage>
           ) : null
         }
-        ListHeaderComponent={
-          listings?.length ? (
-            <HintText>{t("myListingsLongPressHint")}</HintText>
-          ) : null
-        }
+
         renderItem={({ item }) => {
           const title = language === "en" ? item.titleEn : item.titleFr;
-          const coverUri = item.mediaUrl ?? item.image;
           const isApproved = item.status === "approved";
           // Without its own branch a rejected listing renders as "pending",
           // so the seller waits forever on a decision that already came
@@ -251,7 +276,12 @@ export function MyListingsScreen() {
               onPress={() => openListing(navigation, item, t, language)}
               onLongPress={() => setMenuItem(item)}
             >
-              <Thumbnail source={{ uri: coverUri }} resizeMode="cover" />
+              {/* Was a bare Image, so a listing with no photo showed an
+                  empty panel — the larger the square got, the more it read
+                  as a broken image rather than an absent one. */}
+              <ThumbnailWrap>
+                <ListingMedia listing={item} size="thumb" />
+              </ThumbnailWrap>
               <RowBody>
                 <RowTitle numberOfLines={1}>{title}</RowTitle>
                 <RowPrice>
@@ -311,6 +341,23 @@ export function MyListingsScreen() {
                   </>
                 ) : null}
               </RowBody>
+
+              {/* Edit, share and delete were reachable only by long-press,
+                  which is why the screen carried a line of text explaining
+                  that they existed. A control nobody can see is not a
+                  feature you can document your way out of — this opens the
+                  same sheet, and the sentence is gone. Long-press still
+                  works for anybody already used to it. */}
+              <MoreButton
+                onPress={() => setMenuItem(item)}
+                hitSlop={10}
+              >
+                <Ionicons
+                  name="ellipsis-vertical"
+                  size={18}
+                  color={colors.textMuted}
+                />
+              </MoreButton>
             </Row>
           );
         }}
@@ -569,11 +616,14 @@ const Container = styled(TabSafeAreaView)`
   background-color: ${(props) => props.theme.background};
 `;
 
-const FilterRow = styled.View`
-  flex-direction: row;
-  gap: ${spacing.sm}px;
-  padding-horizontal: ${spacing.md}px;
-  padding-top: ${spacing.md}px;
+const FilterRow = styled.ScrollView.attrs({
+  contentContainerStyle: {
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+})`
+  flex-grow: 0;
 `;
 
 const FilterChip = styled(Pressable)`
@@ -590,21 +640,34 @@ const FilterChipLabel = styled.Text`
   color: ${(props) => (props.selected ? props.theme.textInverse : props.theme.text)};
 `;
 
+// Local's language, applied to a row rather than a grid cell: square
+// corners, a 2px seam between rows, and a hairline border instead of a drop
+// shadow — square rows two pixels apart read as one sheet, and a shadow in
+// that gap turns the seam into a smudge. Same reasoning as ListingCard's
+// flush variant, which this is deliberately matching rather than inventing
+// a third card style.
+//
+// The row stays a row. It carries a status pill, a view count and the
+// edit and delete actions, none of which a browse card has anywhere to put.
 const Row = styled(Pressable)`
   flex-direction: row;
   align-items: center;
   gap: ${spacing.md}px;
   background-color: ${(props) => props.theme.surface};
-  border-radius: ${radius.md}px;
+  border-radius: 0px;
   padding: ${spacing.sm}px;
-  margin-bottom: ${spacing.sm}px;
-  ${shadow.card}
+  margin-bottom: 2px;
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
 `;
 
-const Thumbnail = styled.Image`
-  width: 64px;
-  height: 64px;
-  border-radius: ${radius.sm}px;
+// 110 rather than 64, and square-cornered. On Local the photograph carries
+// the card; at 64px it was a stamp beside the text, which is what made this
+// screen look unrelated to the rest of the app.
+const ThumbnailWrap = styled.View`
+  width: 110px;
+  height: 110px;
+  overflow: hidden;
   background-color: ${(props) => props.theme.surfaceAlt};
 `;
 
@@ -722,11 +785,13 @@ const EmptyMessage = styled.Text`
   margin-top: ${spacing.xl}px;
 `;
 
-const HintText = styled.Text`
-  ${type.caption}
-  color: ${(props) => props.theme.textMuted};
-  text-align: center;
-  margin-bottom: ${spacing.md}px;
+const MoreButton = styled(Pressable)`
+  width: 40px;
+  height: 40px;
+  align-self: flex-start;
+  align-items: center;
+  justify-content: center;
+  border-radius: ${radius.pill}px;
 `;
 
 const Backdrop = styled(Pressable)`

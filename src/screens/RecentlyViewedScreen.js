@@ -11,8 +11,12 @@ import { ListingCard } from "../components/ListingCard";
 import { useRecentlyViewed } from "../hooks/useRecentlyViewed";
 import { useI18n } from "../i18n/I18nContext";
 
+// Two pixels, so the grid runs to the edges and the photographs get the
+// width — the Marketplace layout, matching Local and Pour vous. Everything
+// else in these lists (headers, empty states) carries its own padding
+// already, so only the cards move.
 const listContentStyle = {
-  paddingHorizontal: spacing.md,
+  paddingHorizontal: 2,
   paddingTop: spacing.lg,
   paddingBottom: spacing.md,
 };
@@ -52,7 +56,7 @@ export function RecentlyViewedScreen() {
         columnWrapperStyle={rowStyle}
         contentContainerStyle={listContentStyle}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => <ListingCard listing={item} />}
+        renderItem={({ item }) => <ListingCard listing={item} flush />}
       />
     </Container>
   );

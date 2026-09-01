@@ -172,7 +172,20 @@ export const carServicesMore = [
   // any of the three. See data/importation.js for why the first one is
   // answered with a person rather than a figure.
   { key: "importation", icon: "boat-outline", route: "Importation" },
-  { key: "scrap", icon: "refresh-circle-outline", query: "casse automobile" },
+  // Was a text search of Services for "casse automobile" — the shape this
+  // file keeps replacing, and here it was replacing something that already
+  // existed. A breaker is not a trade of its own: it is one of the
+  // partSellerKinds a parts seller declares on the posting form, and Pièces
+  // has been printing that badge on their cards all along. The search could
+  // only ever return whoever happened to write those two words, while every
+  // casse that declared itself properly and wrote "pièces d'occasion" was
+  // invisible to the one tile named after them.
+  {
+    key: "scrap",
+    icon: "refresh-circle-outline",
+    route: "Parts",
+    sellerKind: "casse",
+  },
   // Was a text search in Services for "séjour voiture", which could never
   // match anything: the thing it describes is a property, Services holds
   // trades, and until now no listing of any kind could declare that a car

@@ -76,6 +76,12 @@ export function MoreScreen({ navigation }) {
   const showComingSoon = (labelKey) =>
     Alert.alert(t(labelKey), t("dashboardHelpComingSoon"));
 
+  // These four were the last rows in the menu still answering with "coming
+  // soon" — which on Privacy is the worst possible answer, since the
+  // question somebody taps it to ask is what was already done with their
+  // number.
+  const openInfoPage = (page) => navigation.navigate("InfoPage", { page });
+
   const handleLogout = () => {
     Alert.alert(t("logoutConfirmTitle"), t("logoutConfirmMessage"), [
       { text: t("cancel"), style: "cancel" },
@@ -401,7 +407,7 @@ export function MoreScreen({ navigation }) {
 
         <SectionLabel>{t("menuHelpSafetySectionTitle")}</SectionLabel>
         <RowList>
-          <CategoryRow onPress={() => showComingSoon("menuHelpCenterRow")}>
+          <CategoryRow onPress={() => openInfoPage("help")}>
             <CategoryRowLabel>{t("menuHelpCenterRow")}</CategoryRowLabel>
             <Ionicons
               name="chevron-forward"
@@ -409,7 +415,7 @@ export function MoreScreen({ navigation }) {
               color={colors.textMuted}
             />
           </CategoryRow>
-          <CategoryRow onPress={() => showComingSoon("menuSafetyTipsRow")}>
+          <CategoryRow onPress={() => openInfoPage("safety")}>
             <CategoryRowLabel>{t("menuSafetyTipsRow")}</CategoryRowLabel>
             <Ionicons
               name="chevron-forward"
@@ -417,7 +423,7 @@ export function MoreScreen({ navigation }) {
               color={colors.textMuted}
             />
           </CategoryRow>
-          <CategoryRow onPress={() => showComingSoon("menuPrivacyRow")}>
+          <CategoryRow onPress={() => openInfoPage("privacy")}>
             <CategoryRowLabel>{t("menuPrivacyRow")}</CategoryRowLabel>
             <Ionicons
               name="chevron-forward"
@@ -425,7 +431,7 @@ export function MoreScreen({ navigation }) {
               color={colors.textMuted}
             />
           </CategoryRow>
-          <CategoryRow onPress={() => showComingSoon("menuAboutRow")} last>
+          <CategoryRow onPress={() => openInfoPage("about")} last>
             <CategoryRowLabel>{t("menuAboutRow")}</CategoryRowLabel>
             <Ionicons
               name="chevron-forward"

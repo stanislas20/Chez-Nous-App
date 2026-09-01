@@ -244,6 +244,36 @@ export const partSellerKinds = [
   },
 ];
 
+// Prose that identifies a kind for a seller who never declared one.
+//
+// Only the phrases that can mean nothing else. "Casse" on its own is
+// already a weakTerm above — it is a breakage, a breakdown, a fall — and
+// "boutique" describes half the shops in Cotonou, so neither earns an entry
+// here. A kind with no terms is simply never inferred, which is the honest
+// outcome: it means the word for it is not distinctive enough to guess on.
+const SELLER_KIND_TERMS = {
+  casse: ["casse auto", "casse automobile", "casse autos"],
+  grossiste: ["grossiste"],
+  concession: ["concessionnaire"],
+};
+
+// Which kind a seller is, declared first and read from their words second.
+//
+// This is the rule the whole app runs on — transitaireScopesFor and
+// sourcerOffersFor both say it in as many words — and the parts filter was
+// briefly the exception. Filtering on the declared field alone hid every
+// casse that advertises itself as one in prose and never touched the
+// picker, which is most of the ones the old keyword tile used to find. A
+// filter that is stricter than the screen it replaced is not more accurate,
+// it is just emptier.
+export function partSellerKindFor(text, declaredKind) {
+  if (declaredKind) return declaredKind;
+  const hit = Object.keys(SELLER_KIND_TERMS).find((key) =>
+    mentionsAnyWord(text, SELLER_KIND_TERMS[key]),
+  );
+  return hit ?? null;
+}
+
 export function getPartSellerKind(key) {
   return partSellerKinds.find((entry) => entry.key === key) ?? null;
 }

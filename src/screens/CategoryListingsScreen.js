@@ -9,6 +9,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  SectionList,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import {
@@ -42,18 +43,54 @@ import { useNearbyPharmacies } from "../hooks/useNearbyPharmacies";
 import { useSearchPharmacies } from "../hooks/useSearchPharmacies";
 import { useI18n } from "../i18n/I18nContext";
 import { cityCoordinates } from "../data/cityCoordinates";
+import { serviceTrades } from "../data/serviceTrades";
+import { SectionHeading } from "../components/SectionHeading";
+import { RailChip } from "../components/RailChip";
 import { distanceInKm } from "../utils/geo";
 import { getDutyLabel } from "../utils/pharmacyDuty";
 import { queryMatches } from "../utils/search";
 
 const pharmacyMark = require("../../assets/pharmacy-mark.png");
 
+// Two pixels, so the grid runs to the edges and the photographs get the
+// width — the Marketplace layout, matching Local and Pour vous. Everything
+// else in these lists (headers, empty states) carries its own padding
+// already, so only the cards move.
 const listContentStyle = {
-  paddingHorizontal: spacing.md,
+  paddingHorizontal: 2,
   paddingTop: spacing.lg,
   paddingBottom: spacing.md,
 };
 const rowStyle = { justifyContent: "space-between" };
+
+// SectionList has no numColumns, so the two-per-row grid is cut by hand.
+// A trailing odd card needs no filler: ListingCard is width 47% inside a
+// space-between row, so it sits left at its own width — the same thing
+// columnWrapperStyle did with an odd last row.
+// The bucket for listings that declared no trade.
+//
+// A string, not a Symbol. It reaches SectionList as `section.key`, and React
+// coerces keys to strings — a Symbol throws "Cannot convert a Symbol value
+// to a string" the moment the section renders. The sentinel is prefixed so
+// it cannot be mistaken for one of the form's own keys, which are plain
+// words from serviceTrades.
+const UNTYPED_TRADE = "__untyped";
+
+const GRID_COLUMNS = 2;
+
+// Same reasoning as LocalScreen: uneven sections mean the largest trade
+// buries every trade under it. Three rows shows what a trade holds without
+// spending the whole screen on it. Lifted once a trade is chosen, because
+// then the reader has asked for exactly that.
+const SECTION_PREVIEW_ROWS = 3;
+
+function chunkIntoRows(items) {
+  const rows = [];
+  for (let index = 0; index < items.length; index += GRID_COLUMNS) {
+    rows.push(items.slice(index, index + GRID_COLUMNS));
+  }
+  return rows;
+}
 const emptyScrollContentStyle = { flexGrow: 1 };
 const sheetScrollContentStyle = { paddingHorizontal: spacing.md };
 
@@ -423,6 +460,14 @@ export function CategoryListingsScreen({ route, navigation }) {
   const [citySearch, setCitySearch] = useState("");
   const [sortMode, setSortMode] = useState("distance"); // 'distance' | 'city'
   const groupByLocation = categoryKey === "pharmacyOnDuty";
+  // Services is one category holding a dozen unrelated jobs — a mechanic, a
+  // customs broker, a driving school and an importer in Brussels all publish
+  // under it, and they arrived in one undifferentiated grid. Grouping by the
+  // trade the form already records is the only division the data supports;
+  // every other category has no comparable sub-key, which is why this is
+  // scoped to services rather than applied to all of them.
+  const groupByTrade = categoryKey === "services";
+  const [selectedTrade, setSelectedTrade] = useState(null);
   // Everything a seller could not find a category for arrives here, in one
   // aisle. Their own words are the only thing separating a saxophone from a
   // welding torch, so those words become the filter.
@@ -497,6 +542,91 @@ export function CategoryListingsScreen({ route, navigation }) {
       })
     : cityFilteredListings;
 
+  // Ordered by serviceTrades — the same order and the same names the posting
+  // form offers — so a trade is called one thing where it is published and
+  // the same thing where it is browsed.
+  //
+  // Listings that declared no trade are real and must not vanish: they are
+  // the ones published before the form recorded it, plus anyone who reached
+  // Services without coming through a trade screen. They get a section of
+  // their own at the end rather than being dropped or silently folded into
+  // somebody else's.
+  const tradeSections = useMemo(() => {
+    if (!groupByTrade) return [];
+    const byTrade = new Map();
+    const scoped = selectedTrade
+      ? listings.filter(
+          (listing) => (listing.trade ?? UNTYPED_TRADE) === selectedTrade,
+        )
+      : listings;
+    for (const listing of scoped) {
+      const key = listing.trade ?? UNTYPED_TRADE;
+      const bucket = byTrade.get(key);
+      if (bucket) bucket.push(listing);
+      else byTrade.set(key, [listing]);
+    }
+
+    const build = (key, title, items) => {
+      const rows = chunkIntoRows(items);
+      const capped = selectedTrade ? rows : rows.slice(0, SECTION_PREVIEW_ROWS);
+      return {
+        key,
+        title,
+        total: items.length,
+        hidden: items.length - capped.flat().length,
+        data: capped,
+      };
+    };
+
+    const sections = serviceTrades
+      .filter((trade) => byTrade.has(trade.key))
+      .map((trade) => build(trade.key, t(trade.labelKey), byTrade.get(trade.key)));
+
+    // Anything with a trade string the form no longer offers keeps its raw
+    // key as a heading — visible and odd, rather than missing and silent.
+    const named = new Set(serviceTrades.map((trade) => trade.key));
+    for (const [key, items] of byTrade) {
+      if (key === UNTYPED_TRADE || named.has(key)) continue;
+      sections.push(build(key, key, items));
+    }
+
+    const untyped = byTrade.get(UNTYPED_TRADE);
+    if (untyped) {
+      sections.push(
+        build(UNTYPED_TRADE, t("categoryListingsOtherTrades"), untyped),
+      );
+    }
+    return sections;
+  }, [groupByTrade, listings, t, selectedTrade]);
+
+  // Counted off the unscoped list, so every trade keeps its count when one
+  // of them is selected and the rail stays a way back to the others.
+  const tradeRail = useMemo(() => {
+    if (!groupByTrade) return [];
+    const counts = new Map();
+    for (const listing of listings) {
+      const key = listing.trade ?? UNTYPED_TRADE;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    const rail = serviceTrades
+      .filter((trade) => counts.has(trade.key))
+      .map((trade) => ({
+        key: trade.key,
+        icon: trade.icon,
+        label: t(trade.labelKey),
+        count: counts.get(trade.key),
+      }));
+    if (counts.has(UNTYPED_TRADE)) {
+      rail.push({
+        key: UNTYPED_TRADE,
+        icon: "ellipsis-horizontal-circle-outline",
+        label: t("categoryListingsOtherTrades"),
+        count: counts.get(UNTYPED_TRADE),
+      });
+    }
+    return rail;
+  }, [groupByTrade, listings, t]);
+
   const {
     status: locationStatus,
     coords,
@@ -527,6 +657,35 @@ export function CategoryListingsScreen({ route, navigation }) {
   //
   // Only when there is more than one aisle: a single chip is not a filter,
   // it is the whole list with a button on it.
+  const renderTradeRail = () =>
+    tradeRail.length > 1 ? (
+      <AisleRow
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={aisleRowStyle}
+      >
+        <RailChip
+          label={t("otherAisleAll")}
+          count={listings.length}
+          selected={!selectedTrade}
+          onPress={() => setSelectedTrade(null)}
+        />
+        {tradeRail.map((entry) => {
+          const active = selectedTrade === entry.key;
+          return (
+            <RailChip
+              key={entry.key}
+              icon={entry.icon}
+              label={entry.label}
+              count={entry.count}
+              selected={active}
+              onPress={() => setSelectedTrade(active ? null : entry.key)}
+            />
+          );
+        })}
+      </AisleRow>
+    ) : null;
+
   const renderAisleRow = () =>
     isOtherCategory && customAisles.length > 1 ? (
       <AisleRow
@@ -534,36 +693,22 @@ export function CategoryListingsScreen({ route, navigation }) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={aisleRowStyle}
       >
-        <AisleChip
+        <RailChip
+          label={t("otherAisleAll")}
+          count={categoryListings.length}
           selected={!customFilter}
           onPress={() => setCustomFilter(null)}
-        >
-          <AisleChipLabel selected={!customFilter}>
-            {t("otherAisleAll")}
-          </AisleChipLabel>
-          <AisleChipCount selected={!customFilter}>
-            <AisleChipCountLabel selected={!customFilter}>
-              {categoryListings.length}
-            </AisleChipCountLabel>
-          </AisleChipCount>
-        </AisleChip>
+        />
         {customAisles.map((aisle) => {
           const active = customFilter === aisle.key;
           return (
-            <AisleChip
+            <RailChip
               key={aisle.key}
+              label={aisle.label}
+              count={aisle.count}
               selected={active}
               onPress={() => setCustomFilter(active ? null : aisle.key)}
-            >
-              <AisleChipLabel selected={active} numberOfLines={1}>
-                {aisle.label}
-              </AisleChipLabel>
-              <AisleChipCount selected={active}>
-                <AisleChipCountLabel selected={active}>
-                  {aisle.count}
-                </AisleChipCountLabel>
-              </AisleChipCount>
-            </AisleChip>
+            />
           );
         })}
       </AisleRow>
@@ -993,18 +1138,59 @@ export function CategoryListingsScreen({ route, navigation }) {
           </EmptyState>
         </ScrollView>
       ) : (
-        <FlatList
-          key="grid"
-          data={listings}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          columnWrapperStyle={rowStyle}
-          ListHeaderComponent={renderAisleRow}
-          contentContainerStyle={listContentStyle}
-          refreshControl={refreshControl}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => <ListingCard listing={item} />}
-        />
+        groupByTrade ? (
+          <SectionList
+            key="tradeGrid"
+            sections={tradeSections}
+            stickySectionHeadersEnabled
+            keyExtractor={(row) => row.map((listing) => listing.id).join("-")}
+            ListHeaderComponent={renderTradeRail}
+            contentContainerStyle={listContentStyle}
+            refreshControl={refreshControl}
+            showsVerticalScrollIndicator={false}
+            renderSectionHeader={({ section }) => (
+              // Opaque: a sticky heading with a see-through background has
+              // cards sliding visibly through it.
+              <StickyHeading>
+                <SectionHeading
+                  label={section.title}
+                  meta={
+                    section.hidden
+                      ? null
+                      : t("listingCountShort", { count: section.total })
+                  }
+                  action={
+                    section.hidden ? (
+                      <SeeAllLink onPress={() => setSelectedTrade(section.key)}>
+                        {t("localSectionSeeAll", { count: section.total })}
+                      </SeeAllLink>
+                    ) : null
+                  }
+                />
+              </StickyHeading>
+            )}
+            renderItem={({ item: row }) => (
+              <GridRow style={rowStyle}>
+                {row.map((listing) => (
+                  <ListingCard key={listing.id} listing={listing} flush />
+                ))}
+              </GridRow>
+            )}
+          />
+        ) : (
+          <FlatList
+            key="grid"
+            data={listings}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            columnWrapperStyle={rowStyle}
+            ListHeaderComponent={renderAisleRow}
+            contentContainerStyle={listContentStyle}
+            refreshControl={refreshControl}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => <ListingCard listing={item} flush />}
+          />
+        )
       )}
       {groupByLocation ? (
         <Modal
@@ -1131,48 +1317,12 @@ const AisleRow = styled.ScrollView`
   margin: ${spacing.sm}px 0 ${spacing.sm}px;
 `;
 
+// Padded independently now that the list itself is not.
 const aisleRowStyle = {
-  paddingHorizontal: spacing.md,
+  paddingHorizontal: spacing.md - 2,
   gap: spacing.sm,
   alignItems: "center",
 };
-
-const AisleChip = styled(Pressable)`
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
-  max-width: 240px;
-  padding: 9px 13px;
-  border-radius: ${radius.pill}px;
-  background-color: ${(props) =>
-    props.selected ? props.theme.primary : props.theme.surface};
-  border-width: 1px;
-  border-color: ${(props) =>
-    props.selected ? props.theme.primary : props.theme.border};
-`;
-
-const AisleChipLabel = styled.Text`
-  flex-shrink: 1;
-  font-family: ${(props) =>
-    props.selected ? fontFamily.bold : fontFamily.medium};
-  font-size: 13px;
-  color: ${(props) =>
-    props.selected ? props.theme.textInverse : props.theme.text};
-`;
-
-const AisleChipCount = styled.View`
-  padding: 1px 6px;
-  border-radius: ${radius.pill}px;
-  background-color: ${(props) =>
-    props.selected ? "rgba(255, 255, 255, 0.24)" : props.theme.surfaceAlt};
-`;
-
-const AisleChipCountLabel = styled.Text`
-  font-family: ${fontFamily.bold};
-  font-size: 11px;
-  color: ${(props) =>
-    props.selected ? props.theme.textInverse : props.theme.textMuted};
-`;
 
 const PharmacyTabRow = styled.View`
   flex-direction: row;
@@ -1641,6 +1791,22 @@ const NearbyRatingText = styled.Text`
   ${type.caption}
   font-size: 10.5px;
   color: ${(props) => props.theme.textMuted};
+`;
+
+// No vertical margin: ListingCard already carries margin-bottom, which is
+// where the row gap came from under columnWrapperStyle.
+const GridRow = styled.View`
+  flex-direction: row;
+`;
+
+const SeeAllLink = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 12px;
+  color: ${(props) => props.theme.primary};
+`;
+
+const StickyHeading = styled.View`
+  background-color: ${(props) => props.theme.background};
 `;
 
 const EmptyState = styled.View`

@@ -44,6 +44,11 @@ function loadEsm(relative, requires = {}) {
 
 const { listingPrice, listingPriceText } = loadEsm("src/utils/listingPrice.js", {
   realEstate: "src/data/realEstate.js",
+  // realEstate.js reads the body types from vehicles.js rather than keeping
+  // a second copy of them. Unregistered imports resolve to {} in this shim,
+  // which is not a missing-module error — it is an undefined that only
+  // surfaces when something calls a method on it, as it did here.
+  vehicles: "src/data/vehicles.js",
   serviceRateTypes: "src/data/serviceRateTypes.js",
 });
 

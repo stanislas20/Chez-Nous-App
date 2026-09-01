@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { Animated, Pressable, Share } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { useVideoPlayer, VideoView } from "expo-video";
+import { withListingLink } from "../utils/listingLink";
 import styled from "styled-components/native";
 import { radius, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
@@ -11,49 +11,43 @@ import { useI18n } from "../i18n/I18nContext";
 import { saleStatusLabelKey } from "../data/saleStatuses";
 import { isPromotionLive } from "../data/promotion";
 import { useAuth } from "../auth/AuthContext";
-import { categories } from "../data/categories";
+import { getCategoryIcon } from "../data/categories";
+import { listingBadgeLabel } from "../data/listingBadge";
 import { listingPrice, listingPriceText } from "../utils/listingPrice";
 import { openChat } from "../utils/openChat";
 import { openListing } from "../utils/openListing";
 import { getDutyLabel } from "../utils/pharmacyDuty";
-import { CategoryPlaceholder } from "./CategoryPlaceholder";
+import { ListingMedia } from "./ListingMedia";
 
-const categoryIconByKey = categories.reduce((map, category) => {
-  map[category.key] = category.icon;
-  return map;
-}, {});
 const saleStatusTint = (theme) => ({
   pending: theme.accent,
   negotiating: theme.skyBlue,
   sold: theme.error,
 });
 
-function VideoThumbnail({ uri }) {
-  const { colors } = useTheme();
-  const player = useVideoPlayer(uri, (p) => {
-    p.muted = true;
-    // Muted decorative preview — it must never claim the iOS audio session.
-    // The default ('auto') still activates one in playback mode, and a held
-    // playback session is why voice search failed with `audio-capture` /
-    // "Session activation failed": the recogniser could not activate a
-    // recording session while these were on screen. A silent thumbnail has
-    // no audio to protect, so it mixes.
-    p.audioMixingMode = "mixWithOthers";
-  });
-  return (
-    <ThumbnailVideo player={player} contentFit="cover" nativeControls={false} />
-  );
-}
 
-export function ListingCard({ listing, style, isFavorite, onToggleFavorite }) {
+// `flush` is the Marketplace layout: two near-touching columns, square
+// corners, and a photo tall enough to carry the card.
+//
+// A prop rather than a second component, and opt-in rather than the
+// default, because this card renders on nine screens — Pour vous,
+// Enregistrées, the seller dashboard, a profile — and only the Local grid
+// was asked to change. Making it global would have restyled eight screens
+// nobody mentioned.
+export function ListingCard({
+  listing,
+  style,
+  isFavorite,
+  onToggleFavorite,
+  flush = false,
+}) {
   const { colors } = useTheme();
   const { language, t } = useI18n();
   const navigation = useNavigation();
   const { user } = useAuth();
   const title = language === "en" ? listing.titleEn : listing.titleFr;
-  const categoryIcon =
-    categoryIconByKey[listing.categoryKey] ?? "pricetag-outline";
-  const coverUri = listing.mediaUrl ?? listing.image;
+  const categoryIcon = getCategoryIcon(listing.categoryKey);
+  const badgeLabel = listingBadgeLabel(listing, language);
   const isOwner = !!user && user.uid === listing.sellerId;
   const isPharmacy = listing.categoryKey === "pharmacyOnDuty";
   const isJobs = listing.categoryKey === "jobs";
@@ -84,15 +78,16 @@ export function ListingCard({ listing, style, isFavorite, onToggleFavorite }) {
 
   const handleShare = async () => {
     try {
-      await Share.share({
-        message: isPharmacy
-          ? t("shareDutyPharmacyMessage", { title, phone: listing.phone ?? "" })
-          : isJobs
-            ? t("shareJobMessage", { title, company: listing.company ?? "" })
-            : priceText
-              ? t("shareListingMessage", { title, price: priceText })
-              : t("shareListingMessageNoPrice", { title }),
-      });
+      const message = isPharmacy
+        ? t("shareDutyPharmacyMessage", { title, phone: listing.phone ?? "" })
+        : isJobs
+          ? t("shareJobMessage", { title, company: listing.company ?? "" })
+          : priceText
+            ? t("shareListingMessage", { title, price: priceText })
+            : t("shareListingMessageNoPrice", { title });
+      // A pharmacy on duty comes from the roster, not from listings, so it
+      // has no page to link to — withListingLink returns the sentence alone.
+      await Share.share({ message: withListingLink(message, listing) });
     } catch {
       // user dismissed the share sheet — nothing to do
     }
@@ -104,25 +99,21 @@ export function ListingCard({ listing, style, isFavorite, onToggleFavorite }) {
 
   return (
     <Card
+      flush={flush}
       style={[style, { transform: [{ scale }] }]}
       onPressIn={pressIn}
       onPressOut={pressOut}
       onPress={() => openListing(navigation, listing, t, language)}
     >
-      <CardInner>
-        <Thumbnail>
-          {!coverUri ? (
-            <CategoryPlaceholder icon={categoryIcon} size="card" />
-          ) : listing.mediaType === "video" ? (
-            <VideoThumbnail uri={coverUri} />
-          ) : (
-            <ThumbnailImage source={{ uri: coverUri }} resizeMode="cover" />
-          )}
-          {listing.mediaType === "video" ? (
-            <PlayBadge>
-              <Ionicons name="play" size={14} color={colors.textInverse} />
-            </PlayBadge>
-          ) : null}
+      <CardInner flush={flush}>
+        <Thumbnail flush={flush}>
+          {/* Everything, including video, goes through one component.
+              This used to branch: a video cover got a private player that
+              never called play(), so it sat on its first frame under a play
+              badge — a still with a button over it that did nothing when
+              tapped. ListingMedia plays it, muted and looping, and shows the
+              rest of the seller's photographs on the same swipe. */}
+          <ListingMedia listing={listing} size="card" />
           {isPromotionLive(listing) ? (
             <PromotedBadge>
               <PromotedBadgeLabel>{t("sponsoredLabel")}</PromotedBadgeLabel>
@@ -141,12 +132,19 @@ export function ListingCard({ listing, style, isFavorite, onToggleFavorite }) {
               />
             </FavButton>
           ) : null}
+          {/* Icon plus word. The icon alone was a shape you had to already
+              know to read; a wall of cards is scanned by its words. */}
           <CategoryBadge>
             <Ionicons
               name={categoryIcon}
-              size={13}
+              size={12}
               color={colors.textInverse}
             />
+            {badgeLabel ? (
+              <CategoryBadgeLabel numberOfLines={1}>
+                {badgeLabel}
+              </CategoryBadgeLabel>
+            ) : null}
           </CategoryBadge>
           {listing.saleStatus && listing.saleStatus !== "available" ? (
             <SaleStatusBadge saleStatus={listing.saleStatus}>
@@ -156,7 +154,7 @@ export function ListingCard({ listing, style, isFavorite, onToggleFavorite }) {
             </SaleStatusBadge>
           ) : null}
         </Thumbnail>
-        <Details>
+        <Details flush={flush}>
           <PriceRow>
             {isPharmacy ? (
               <DutyBadge>
@@ -233,55 +231,42 @@ export function ListingCard({ listing, style, isFavorite, onToggleFavorite }) {
 }
 
 const Card = styled(Animated.createAnimatedComponent(Pressable))`
-  width: 47%;
-  border-radius: ${radius.xl}px;
-  margin-bottom: ${spacing.lg}px;
+  width: ${(props) => (props.flush ? "49.6%" : "47%")};
+  border-radius: ${(props) => (props.flush ? 0 : radius.xl)}px;
+  margin-bottom: ${(props) => (props.flush ? 2 : spacing.lg)}px;
   background-color: ${(props) => props.theme.surface};
-  shadow-color: #000000;
-  shadow-offset: 0px 3px;
-  shadow-opacity: 0.16;
-  shadow-radius: 8px;
-  elevation: 5;
+  /* The shadow goes with the rounding. Square cards two pixels apart read
+     as one sheet, and a drop shadow in that gap turns the seam into a
+     smudge — so the flush variant separates with a hairline border and its
+     own surface colour instead of with depth. */
+  ${(props) =>
+    props.flush
+      ? `border-width: 1px; border-color: ${props.theme.border};`
+      : `shadow-color: #000000;
+         shadow-offset: 0px 3px;
+         shadow-opacity: 0.16;
+         shadow-radius: 8px;
+         elevation: 5;`}
 `;
 
 const CardInner = styled.View`
-  border-radius: ${radius.xl}px;
+  border-radius: ${(props) => (props.flush ? 0 : radius.xl)}px;
   overflow: hidden;
 `;
 
 const Thumbnail = styled.View`
-  aspect-ratio: 4 / 3;
+  /* Square rather than 4:3 landscape, which left a third of the card to
+     text. On Marketplace the photograph is the listing and the words are a
+     caption under it. */
+  aspect-ratio: ${(props) => (props.flush ? "1 / 1" : "4 / 3")};
   background-color: ${(props) => props.theme.surfaceAlt};
 `;
 
-const ThumbnailImage = styled.Image`
-  width: 100%;
-  height: 100%;
-  background-color: ${(props) => props.theme.surfaceAlt};
-`;
 
-const ThumbnailVideo = styled(VideoView)`
-  width: 100%;
-  height: 100%;
-`;
-
-const PlayBadge = styled.View`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  margin-top: -14px;
-  margin-left: -14px;
-  width: 28px;
-  height: 28px;
-  border-radius: 14px;
-  background-color: rgba(0, 0, 0, 0.45);
-  align-items: center;
-  justify-content: center;
-`;
 
 const PopularBadge = styled.View`
   position: absolute;
-  top: ${spacing.sm}px;
+  bottom: ${spacing.sm}px;
   left: ${spacing.sm}px;
   width: 26px;
   height: 26px;
@@ -293,7 +278,7 @@ const PopularBadge = styled.View`
 
 const PromotedBadge = styled.View`
   position: absolute;
-  top: ${spacing.sm}px;
+  bottom: ${spacing.sm}px;
   left: ${spacing.sm}px;
   background-color: ${(props) => props.theme.accent};
   border-radius: ${radius.pill}px;
@@ -321,16 +306,31 @@ const FavButton = styled(Pressable)`
   elevation: 10;
 `;
 
+// Top-left, which is where the eye lands first on a card and so where the
+// word saying what the thing IS belongs.
+//
+// Not the right: the badge is as wide as its word, and on the right it grew
+// towards the favourite heart and collided with it. Sponsorisé and the
+// popular flame moved down to the corner this vacated — they are the rarer
+// marks, and neither is what somebody is scanning a grid for.
 const CategoryBadge = styled.View`
   position: absolute;
-  bottom: ${spacing.sm}px;
-  right: ${spacing.sm}px;
-  width: 26px;
-  height: 26px;
-  border-radius: 13px;
-  background-color: ${(props) => props.theme.scrim};
+  top: ${spacing.sm}px;
+  left: ${spacing.sm}px;
+  max-width: 82%;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: ${radius.pill}px;
+  background-color: ${(props) => props.theme.scrim};
+`;
+
+const CategoryBadgeLabel = styled.Text`
+  flex-shrink: 1;
+  font-family: ${fontFamily.semiBold};
+  font-size: 10.5px;
+  color: ${(props) => props.theme.textInverse};
 `;
 
 const SaleStatusBadge = styled.View`
@@ -350,7 +350,7 @@ const SaleStatusBadgeLabel = styled.Text`
 `;
 
 const Details = styled.View`
-  padding: 10px 12px 12px;
+  padding: ${(props) => (props.flush ? "6px 8px 9px" : "10px 12px 12px")};
 `;
 
 const PriceRow = styled.View`

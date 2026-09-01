@@ -20,6 +20,8 @@ import { useImportHelpers } from "../hooks/useImportHelpers";
 import {
   documentsFor,
   getSourcerOfferLabel,
+  getSourcingChannelLabel,
+  getSourcingCountryLabel,
   getTransitaireScopeLabel,
   importCargoKinds,
   importStages,
@@ -66,6 +68,21 @@ export function ImportationScreen({ navigation }) {
     language === "en" ? item[`${base}En`] : item[`${base}Fr`];
   const title = (item) =>
     (language === "en" ? item.titleEn : item.titleFr) || item.titleFr;
+
+  const description = (item) =>
+    (language === "en" ? item.descriptionEn : item.descriptionFr) ||
+    item.descriptionFr ||
+    "";
+
+  // Who the reader is actually dealing with.
+  //
+  // The trading name when there is one, because a company's `sellerName` is
+  // its representative — phoneAuth writes `fullName: fullName || repName` —
+  // and naming the rep tells a buyer nothing they can check an RCCM against.
+  // Falls back to sellerName for individuals, and for company listings
+  // published before sellerCompanyName was denormalized.
+  const sellerLabel = (item) =>
+    (item.sellerCompanyName ?? "").trim() || (item.sellerName ?? "").trim();
 
   const documents = useMemo(() => documentsFor(cargo), [cargo]);
 
@@ -324,6 +341,36 @@ export function ImportationScreen({ navigation }) {
               {items.map((item) => (
                 <Card key={item.id}>
                   <CardTitle numberOfLines={2}>{title(item)}</CardTitle>
+
+                  {/* The card used to carry the listing's headline and
+                      nothing else, so a reader deciding who to send money
+                      abroad to was choosing between sentences with no names
+                      attached. Both roles get this: a transitaire is picked
+                      the same way. */}
+                  {sellerLabel(item) ? (
+                    <SellerRow>
+                      <Ionicons
+                        name="person-circle-outline"
+                        size={13}
+                        color={colors.textMuted}
+                      />
+                      <SellerName numberOfLines={1}>
+                        {sellerLabel(item)}
+                      </SellerName>
+                      {item.sellerVerified ? (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={13}
+                          color={colors.primary}
+                        />
+                      ) : null}
+                    </SellerRow>
+                  ) : null}
+
+                  {description(item) ? (
+                    <CardCopy numberOfLines={2}>{description(item)}</CardCopy>
+                  ) : null}
+
                   <MetaRow>
                     {/* A broker is somewhere you go, so the distance is the
                         useful fact. A sourcer is somewhere you do not go, so
@@ -339,7 +386,18 @@ export function ImportationScreen({ navigation }) {
                             color={colors.textMuted}
                           />
                           <MetaText numberOfLines={1}>
-                            {t("importBuysFrom", { country: item.buysFrom })}
+                            {/* An ISO code, not a name — countries.js owns
+                                the names and is generated, so this resolves
+                                rather than storing "États-Unis" twice.
+                                Falling back to the raw code keeps a listing
+                                readable if the code ever outlives its row. */}
+                            {t("importBuysFrom", {
+                              country:
+                                getSourcingCountryLabel(
+                                  item.buysFrom,
+                                  language,
+                                ) ?? item.buysFrom,
+                            })}
                           </MetaText>
                         </MetaItem>
                       ) : null
@@ -388,6 +446,33 @@ export function ImportationScreen({ navigation }) {
                     // the screen says they did not say.
                     <ScopeUnknown>{t("importScopeUnknown")}</ScopeUnknown>
                   )}
+
+                  {/* How they buy, under a label rather than loose in the
+                      row above: "Copart" beside "Achète sur commande" reads
+                      as a third kind of offer, when it answers a different
+                      question — what the offer is, then where the stock
+                      comes from.
+
+                      Absent rather than apologised for when empty. The
+                      offers row prints "did not say" because a sourcer who
+                      names neither offer cannot be acted on; a sourcer who
+                      did not enumerate their auction houses can be phoned
+                      and asked, and a second grey caveat on every card
+                      would teach people to stop reading the first. */}
+                  {role.key === "sourcer" && item.channels.length ? (
+                    <>
+                      <ChannelLabel>{t("importChannelsLabel")}</ChannelLabel>
+                      <ScopeRow>
+                        {item.channels.map((key) => (
+                          <ScopePill key={key}>
+                            <ScopeLabel>
+                              {getSourcingChannelLabel(key, language)}
+                            </ScopeLabel>
+                          </ScopePill>
+                        ))}
+                      </ScopeRow>
+                    </>
+                  ) : null}
 
                   {item.phone ? (
                     <CallButton onPress={() => call(item.phone)}>
@@ -794,6 +879,28 @@ const CardTitle = styled.Text`
   color: ${(props) => props.theme.text};
 `;
 
+const SellerRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+`;
+
+const SellerName = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 12px;
+  color: ${(props) => props.theme.textMuted};
+  flex-shrink: 1;
+`;
+
+const CardCopy = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 12.5px;
+  line-height: 17px;
+  color: ${(props) => props.theme.textMuted};
+  margin-top: 5px;
+`;
+
 const MetaRow = styled.View`
   flex-direction: row;
   align-items: center;
@@ -812,6 +919,15 @@ const MetaText = styled.Text`
   font-family: ${fontFamily.regular};
   font-size: 11.5px;
   color: ${(props) => props.theme.textMuted};
+`;
+
+const ChannelLabel = styled.Text`
+  font-family: ${fontFamily.medium};
+  font-size: 10px;
+  color: ${(props) => props.theme.textMuted};
+  margin-top: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 `;
 
 const ScopeRow = styled.View`

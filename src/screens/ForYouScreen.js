@@ -27,6 +27,9 @@ import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { Tappable } from "../components/Tappable";
 import { SectionHeading } from "../components/SectionHeading";
+import { ListingMedia } from "../components/ListingMedia";
+import { listingBadgeLabel } from "../data/listingBadge";
+import { getCategoryIcon } from "../data/categories";
 import { SearchBar } from "../components/SearchBar";
 import { ListingCard } from "../components/ListingCard";
 import { ScreenFooter } from "../components/ScreenFooter";
@@ -81,6 +84,7 @@ import { queryMatches, queryMentionsAnyOf } from "../utils/search";
 import { normalizeJobListing } from "../utils/normalizeJobListing";
 import { listingPriceText } from "../utils/listingPrice";
 import { openListing } from "../utils/openListing";
+import { withListingLink } from "../utils/listingLink";
 import { useSearchPharmacies } from "../hooks/useSearchPharmacies";
 import { TabSafeAreaView } from "../components/TabSafeAreaView";
 import { useBannerStatusBar } from "../hooks/useBannerStatusBar";
@@ -143,9 +147,16 @@ const HOME_CATEGORIES = [
     labelKey: "categoryVehiclesShort",
   },
   {
+    // Opens the Events screen, for the same reason Restaurants and Cars do.
+    // This chip used to filter the feed by categoryKey "events" — a key no
+    // category had, so it could only ever produce an empty marketplace, and
+    // that is exactly what it did: tapping Événements showed a blank page.
+    // The category exists now, but an event still does not belong in the
+    // goods grid: it is sorted by date, not price, and it has to disappear
+    // the morning after.
     key: "event",
     icon: "calendar-outline",
-    categoryKey: "events",
+    screen: "Events",
     labelKey: "categoryEvents",
   },
   {
@@ -277,8 +288,12 @@ const QUICK_ACCESS = [
   },
 ];
 
+// Two pixels, so the marketplace grid runs almost to the edges and the
+// photographs get that width — the same Marketplace layout the Local grid
+// uses. Everything above the grid gets its margin back from FeedHeaderPad
+// below, which means header content sits exactly where it always did.
 const listContentStyle = {
-  paddingHorizontal: spacing.md,
+  paddingHorizontal: 2,
   paddingTop: spacing.md,
   paddingBottom: spacing.md,
 };
@@ -298,10 +313,11 @@ const chipListContentStyle = {
   paddingTop: 2,
   paddingBottom: 10,
 };
-// RecCard/NearCard/DealCard's outer wrapper carries the drop shadow, and
-// Android's elevation shadow spreads more diffusely than iOS's shadow-radius
-// blur — 8px of vertical padding wasn't quite enough room for it, so the
-// horizontal scroll's own tight bounds were clipping it off on Android.
+// The vertical padding used to exist to stop Android clipping the cards'
+// elevation shadow, which spreads more diffusely than iOS's blur. Those
+// cards are square-bordered now and cast no shadow, so it is no longer
+// holding a shadow off the edge — it is the air between one strip and the
+// heading of the next, which is why it stays.
 const hScrollContentStyle = {
   paddingRight: spacing.md,
   paddingVertical: spacing.md,
@@ -404,14 +420,19 @@ function mostFrequentCity(listings) {
 function TrendingCard({ listing, navigation, cardWidth }) {
   const { language, t } = useI18n();
   const title = language === "en" ? listing.titleEn : listing.titleFr;
-  const coverUri = listing.mediaUrl ?? listing.image;
 
   return (
     <TrendingPressable
       style={{ width: cardWidth }}
       onPress={() => openListing(navigation, listing, t, language)}
     >
-      <TrendingImage source={{ uri: coverUri }} resizeMode="cover" />
+      {/* Through ListingMedia rather than a bare <Image>: a listing whose
+          cover is a video handed an .mp4 URL to <Image>, which draws
+          nothing at all — a card that read as a photo that failed to
+          load. It also plays, like every other card. */}
+      <TrendingMedia>
+        <ListingMedia listing={listing} size="card" />
+      </TrendingMedia>
       <TrendingGradient
         colors={[
           "rgba(11,31,22,0.25)",
@@ -438,8 +459,14 @@ function TrendingCard({ listing, navigation, cardWidth }) {
   );
 }
 
-const REC_CARD_WIDTH = 168;
-const REC_IMAGE_HEIGHT = 118;
+// One width for every horizontal rail of listings on this screen.
+//
+// Recommandé pour vous was 168 and Près de {ville} was 148, which is close
+// enough to look like a mistake rather than a distinction — two rails one
+// above the other, same square photo, same shape, twenty pixels apart. The
+// cards say the same kind of thing, so they are the same size.
+const RAIL_CARD_WIDTH = 168;
+const REC_CARD_WIDTH = RAIL_CARD_WIDTH;
 // Company names here are legal names — "Marché Central SARL / KOUNAGBE
 // Francis", not "Zara". At 156px on a single line almost every real one was
 // cut mid-word; 220 across two lines fits them and still leaves the next
@@ -482,7 +509,6 @@ function RecommendedCard({
 }) {
   const { language, t } = useI18n();
   const title = language === "en" ? listing.titleEn : listing.titleFr;
-  const coverUri = listing.mediaUrl ?? listing.image;
   const timeAgo = formatTimeAgo(listing.createdAt, t);
   // No "verified seller" concept exists in the data model, so the doc's
   // verified checkmark is intentionally left out rather than faked.
@@ -491,7 +517,6 @@ function RecommendedCard({
     : null;
   const km = distanceKm(userCoords, listing);
   const metaText = km != null ? `${listing.city} · ${km} km` : listing.city;
-  const [activePhoto, setActivePhoto] = useState(0);
 
   // Real photos from CreateListingScreen's upload flow (up to 6 per listing,
   // stored as listing.media) — video thumbnails aren't renderable as a still
@@ -499,19 +524,16 @@ function RecommendedCard({
   const photos = (listing.media ?? []).filter(
     (item) => item.mediaType !== "video",
   );
-  const carouselPhotos =
-    photos.length > 0 ? photos : coverUri ? [{ mediaUrl: coverUri }] : [];
 
   const handleShare = async () => {
     try {
       // A listing with no price shares the sentence without one, rather than
       // inviting somebody to "Découvrez X à 0 FCFA".
       const priceText = listingPriceText(listing, t, language);
-      await Share.share({
-        message: priceText
-          ? t("shareListingMessage", { title, price: priceText })
-          : t("shareListingMessageNoPrice", { title }),
-      });
+      const message = priceText
+        ? t("shareListingMessage", { title, price: priceText })
+        : t("shareListingMessageNoPrice", { title });
+      await Share.share({ message: withListingLink(message, listing) });
     } catch {
       // user dismissed the share sheet — nothing to do
     }
@@ -521,40 +543,20 @@ function RecommendedCard({
     <RecCard onPress={() => openListing(navigation, listing, t, language)}>
       <RecCardInner>
         <RecImageWrap>
-          {carouselPhotos.length > 0 ? (
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              scrollEnabled={carouselPhotos.length > 1}
-              onMomentumScrollEnd={(e) => {
-                setActivePhoto(
-                  Math.round(e.nativeEvent.contentOffset.x / REC_CARD_WIDTH),
-                );
-              }}
-            >
-              {carouselPhotos.map((photo, index) => (
-                <RecImage
-                  key={photo.mediaPath ?? index}
-                  source={{ uri: photo.mediaUrl }}
-                  resizeMode="cover"
-                  style={{ width: REC_CARD_WIDTH, height: REC_IMAGE_HEIGHT }}
-                />
-              ))}
-            </ScrollView>
-          ) : null}
+          {/* This card had its own photo swiper, written before there was
+              a shared one, and so it never gained anything the shared one
+              learned: no placeholder when a listing has no photo, and no
+              video — a video listing showed a blank panel here long after
+              every other card had stopped doing that. Same component as
+              everywhere else now. */}
+          <ListingMedia listing={listing} size="card" />
           {isPromotionLive(listing) ? (
             <RecPromotedBadge>
               <RecPromotedLabel>{t("sponsoredLabel")}</RecPromotedLabel>
             </RecPromotedBadge>
           ) : null}
-          {carouselPhotos.length > 1 ? (
-            <RecDotsWrap>
-              {carouselPhotos.map((_, index) => (
-                <RecDot key={index} active={index === activePhoto} />
-              ))}
-            </RecDotsWrap>
-          ) : null}
+          <RailBadge listing={listing} />
+
         </RecImageWrap>
         {/* Rendered as a sibling of RecImageWrap (not nested inside it) so it
             never shares a touch-responder parent with the photo carousel's
@@ -596,7 +598,6 @@ function RecommendedCard({
 function NearCard({ listing, navigation }) {
   const { language, t } = useI18n();
   const title = language === "en" ? listing.titleEn : listing.titleFr;
-  const coverUri = listing.mediaUrl ?? listing.image;
 
   return (
     <NearPressable
@@ -604,9 +605,8 @@ function NearCard({ listing, navigation }) {
     >
       <NearCardInner>
         <NearImageWrap>
-          {coverUri ? (
-            <NearImage source={{ uri: coverUri }} resizeMode="cover" />
-          ) : null}
+          <ListingMedia listing={listing} size="card" />
+          <RailBadge listing={listing} />
         </NearImageWrap>
         <NearBody>
           <NearPrice numberOfLines={1}>
@@ -620,10 +620,30 @@ function NearCard({ listing, navigation }) {
   );
 }
 
+// The same badge the shared ListingCard carries, for the cards on this
+// screen that are not it. Près de {ville}, Offres and Recommandé are their
+// own components — which is exactly why they missed the badge, and the
+// video, and the placeholder before it. One component here at least keeps
+// the three of them together.
+function RailBadge({ listing }) {
+  const { language } = useI18n();
+  const label = listingBadgeLabel(listing, language);
+  if (!label) return null;
+  return (
+    <RailBadgeWrap>
+      <Ionicons
+        name={getCategoryIcon(listing.categoryKey)}
+        size={11}
+        color="#ffffff"
+      />
+      <RailBadgeLabel numberOfLines={1}>{label}</RailBadgeLabel>
+    </RailBadgeWrap>
+  );
+}
+
 function DealCard({ listing, navigation }) {
   const { language, t } = useI18n();
   const title = language === "en" ? listing.titleEn : listing.titleFr;
-  const coverUri = listing.mediaUrl ?? listing.image;
 
   return (
     <NearPressable
@@ -631,9 +651,8 @@ function DealCard({ listing, navigation }) {
     >
       <NearCardInner>
         <NearImageWrap>
-          {coverUri ? (
-            <NearImage source={{ uri: coverUri }} resizeMode="cover" />
-          ) : null}
+          <ListingMedia listing={listing} size="card" />
+          <RailBadge listing={listing} />
         </NearImageWrap>
         <NearBody>
           <DealPriceRow>
@@ -2343,7 +2362,7 @@ export function ForYouScreen({ navigation, route }) {
           contentContainerStyle={listContentStyle}
           refreshControl={refreshControl}
           ListHeaderComponent={
-            <>
+            <FeedHeaderPad>
               <VerifiedFilterRow>
                 <VerifiedFilterPill
                   active={showVerifiedOnly}
@@ -2425,13 +2444,13 @@ export function ForYouScreen({ navigation, route }) {
                   ))}
                 </PharmacySearchSection>
               ) : null}
-            </>
+            </FeedHeaderPad>
           }
           renderItem={({ item }) =>
             item.type === "ad" ? (
-              <AdCard ad={item.ad} />
+              <AdCard ad={item.ad} flush />
             ) : (
-              <ListingCard listing={item.listing} />
+              <ListingCard listing={item.listing} flush />
             )
           }
           ListFooterComponent={<ScreenFooter />}
@@ -3070,7 +3089,7 @@ const TrendingPressable = styled(Tappable)`
   background-color: ${(props) => props.theme.surfaceAlt};
 `;
 
-const TrendingImage = styled.Image`
+const TrendingMedia = styled.View`
   position: absolute;
   top: 0;
   left: 0;
@@ -3133,47 +3152,31 @@ const TrendingCity = styled.Text`
   color: rgba(255, 255, 255, 0.85);
 `;
 
+// Local's language on the strips. Border instead of shadow, for the reason
+// the flush card gives: square cards two pixels apart read as one sheet,
+// and a drop shadow in that gap turns the seam into a smudge.
 const RecCard = styled(Tappable)`
-  width: 168px;
-  margin-right: 14px;
-  ${shadow.card}
+  width: ${RAIL_CARD_WIDTH}px;
+  margin-right: 2px;
 `;
 
 const RecCardInner = styled.View`
-  border-radius: ${radius.xl}px;
+  border-radius: 0px;
   overflow: hidden;
   background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
 `;
 
+// Square rather than 118px against a 168px card, which letterboxed it.
 const RecImageWrap = styled.View`
-  height: 118px;
+  aspect-ratio: 1 / 1;
   background-color: ${(props) => props.theme.surfaceAlt};
-`;
-
-const RecImage = styled.Image`
-  background-color: ${(props) => props.theme.surfaceAlt};
-`;
-
-const RecDotsWrap = styled.View`
-  position: absolute;
-  bottom: 8px;
-  left: 0;
-  right: 0;
-  flex-direction: row;
-  justify-content: center;
-  gap: 3px;
-`;
-
-const RecDot = styled.View`
-  width: 4px;
-  height: 4px;
-  border-radius: 2px;
-  background-color: ${(props) => (props.active ? "#ffffff" : "rgba(255,255,255,0.5)")};
 `;
 
 const RecPromotedBadge = styled.View`
   position: absolute;
-  top: 8px;
+  bottom: 8px;
   left: 8px;
   background-color: ${GOLD_BADGE_BG};
   border-radius: ${radius.pill}px;
@@ -3202,7 +3205,7 @@ const RecFavButton = styled(Tappable)`
 `;
 
 const RecBody = styled.View`
-  padding: 10px 12px 12px;
+  padding: 6px 8px 9px;
 `;
 
 const RecPriceRow = styled.View`
@@ -3259,31 +3262,48 @@ const RecTime = styled.Text`
   margin-top: 2px;
 `;
 
+// Shared by "Near {city}" and "Deals ending soon" — DealCard renders these
+// same four components, so both strips change together.
 const NearPressable = styled(Tappable)`
-  width: 148px;
-  margin-right: 14px;
-  ${shadow.card}
+  width: ${RAIL_CARD_WIDTH}px;
+  margin-right: 2px;
 `;
 
 const NearCardInner = styled.View`
-  border-radius: ${radius.xl}px;
+  border-radius: 0px;
   overflow: hidden;
   background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+`;
+
+const RailBadgeWrap = styled.View`
+  position: absolute;
+  left: 7px;
+  top: 7px;
+  max-width: 88%;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: ${radius.pill}px;
+  background-color: rgba(0, 0, 0, 0.55);
+`;
+
+const RailBadgeLabel = styled.Text`
+  flex-shrink: 1;
+  font-family: ${fontFamily.semiBold};
+  font-size: 9.5px;
+  color: #ffffff;
 `;
 
 const NearImageWrap = styled.View`
-  height: 90px;
-  background-color: ${(props) => props.theme.surfaceAlt};
-`;
-
-const NearImage = styled.Image`
-  width: 100%;
-  height: 100%;
+  aspect-ratio: 1 / 1;
   background-color: ${(props) => props.theme.surfaceAlt};
 `;
 
 const NearBody = styled.View`
-  padding: 9px 11px 11px;
+  padding: 6px 8px 9px;
 `;
 
 const NearPrice = styled.Text`
@@ -3647,6 +3667,13 @@ const JobChipScroll = styled.ScrollView.attrs(() => ({
 // Sits above the marketplace grid rather than in the category chip row —
 // it narrows by who is selling, not what is being sold, so mixing it in
 // with the category chips would read as another category.
+// Gives back the margin the list itself no longer carries, so only the
+// cards are edge-to-edge. 14 + the list's 2 is the app's usual 16, which
+// also keeps JobChipScroll's -16 bleed landing on the true screen edge.
+const FeedHeaderPad = styled.View`
+  padding-horizontal: ${spacing.md - 2}px;
+`;
+
 const VerifiedFilterRow = styled.View`
   flex-direction: row;
   padding-bottom: ${spacing.sm}px;

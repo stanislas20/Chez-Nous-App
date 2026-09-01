@@ -30,6 +30,35 @@ const read = (rel) => stripComments(raw(rel));
 
 const failures = [];
 
+// Data modules, run rather than read, with imports followed.
+//
+// The box gets a `require` because importation.js reads countries.js for its
+// country names, and a sandbox that cannot follow an import fails the moment
+// a data file grows a dependency — which is what happened: this harness
+// threw "require is not defined" the day `import { countries }` was added,
+// and a check that crashes is a check that stopped testing anything.
+//
+// Extensionless, like Metro resolves it and like the app writes its imports.
+const babel = require("@babel/core");
+const vm = require("vm");
+const loadModule = (rel) => {
+  const code = babel.transformFileSync(path.join(root, rel), {
+    presets: [["@babel/preset-env", { targets: { node: "current" } }]],
+    babelrc: false,
+    configFile: false,
+  }).code;
+  const box = {
+    module: { exports: {} },
+    exports: {},
+    require: (spec) => loadModule(`${path.join(path.dirname(rel), spec)}.js`),
+  };
+  box.module.exports = box.exports;
+  vm.createContext(box);
+  vm.runInContext(code, box);
+  return box.module.exports;
+};
+const importation = loadModule("src/data/importation.js");
+
 // 1. No money, anywhere in what the reader is shown.
 {
   const translations = raw("src/i18n/translations.js");
@@ -213,21 +242,7 @@ const failures = [];
 //    whether a reader sees the right half of the screen, and a keyword race
 //    is exactly the kind of thing that looks correct in the source.
 {
-  const babel = require("@babel/core");
-  const vm = require("vm");
-  const code = babel.transformFileSync(
-    path.join(root, "src/data/importation.js"),
-    {
-      presets: [["@babel/preset-env", { targets: { node: "current" } }]],
-      babelrc: false,
-      configFile: false,
-    },
-  ).code;
-  const box = { module: { exports: {} }, exports: {} };
-  box.module.exports = box.exports;
-  vm.createContext(box);
-  vm.runInContext(code, box);
-  const { isOverseasBuyerListing, isTransitaireListing } = box.module.exports;
+  const { isOverseasBuyerListing, isTransitaireListing } = importation;
 
   // Undeclared, and carrying both vocabularies at once — which is the
   // ordinary case, not a contrived one: a transitaire writes "importation"
@@ -285,6 +300,116 @@ const failures = [];
       "isImportTrade no longer covers both import trades, so one of them " +
         "still gets the dépannage questions",
     );
+  }
+}
+
+// 8. The form writes what the screen reads.
+//
+//    This is the failure the whole feature existed to fix, so it is the one
+//    pinned hardest. `buysFrom` was read by ImportationScreen and sorted on
+//    by useImportHelpers, under a comment promising it was "declared on the
+//    posting form, never inferred" — and no form wrote it. The read side
+//    was complete, the write side did not exist, and every sourcer fell
+//    through to the alphabetical fallback with the country line rendering
+//    for nobody. A comment cannot notice that; this can.
+{
+  const form = read("src/screens/CreateListingScreen.js");
+  for (const field of ["buysFrom", "sourcingChannels"]) {
+    if (!new RegExp(`\\b${field}\\b`).test(form)) {
+      failures.push(
+        `CreateListingScreen no longer writes ${field}, so ImportationScreen ` +
+          `is reading a field nothing sets — the exact state this feature ` +
+          `was built to end`,
+      );
+    }
+  }
+  // Asked of the importer and nobody else. A transitaire buys nothing: they
+  // file a declaration at Cotonou for cargo somebody else bought, so "where
+  // do you buy from" is the winch question one trade over — the same
+  // mistake check 7 above exists for.
+  if (!/const isImporter =\s*isServices && trade === "importateur";/.test(form)) {
+    failures.push(
+      "isImporter has moved or widened — if the transitaire is asked where " +
+        "they buy cars, the port broker is being asked a question that has " +
+        "no answer",
+    );
+  }
+}
+
+// 9. Channels belong to their country, run rather than read.
+//
+//    A sourcer in Japan offering a Copart account is worse than one who
+//    said nothing: the buyer wires money against a market the seller has no
+//    access to. Two places have to agree about that — the list the form
+//    offers, and the pruning that runs when somebody changes their country
+//    after ticking boxes.
+{
+  const {
+    sourcingChannelsFor,
+    retainSourcingChannels,
+    sourcingCountries,
+    sourcingChannels,
+    getSourcingCountryLabel,
+  } = importation;
+
+  const jp = sourcingChannelsFor("JP").map((channel) => channel.key);
+  if (jp.includes("copart") || jp.includes("iaai")) {
+    failures.push(
+      "the American salvage auctions are offered to a sourcer in Japan",
+    );
+  }
+  if (!sourcingChannelsFor("US").map((c) => c.key).includes("copart")) {
+    failures.push(
+      "Copart is no longer offered in the United States, which is the " +
+        "single channel most Beninese importers there would name first",
+    );
+  }
+  // No country chosen yet must not mean "everything": offering Copart before
+  // anybody has said where they are invites a tick that then survives.
+  const none = sourcingChannelsFor(null).map((channel) => channel.key);
+  if (none.includes("copart") || none.includes("uss")) {
+    failures.push(
+      "named auction houses are offered before a country is chosen",
+    );
+  }
+  if (!none.length) {
+    failures.push(
+      "no generic channels survive without a country, so a sourcer outside " +
+        "the curated twelve can describe a market and then nothing about it",
+    );
+  }
+  // The pruning, which is what stops a stale tick reaching a card.
+  const pruned = retainSourcingChannels(["copart", "dealership"], "JP");
+  if (pruned.includes("copart")) {
+    failures.push(
+      "switching country keeps a channel the new country does not offer — " +
+        "the pill disappears from the form while the value stays in the doc",
+    );
+  }
+  if (!pruned.includes("dealership")) {
+    failures.push("pruning dropped a channel that is offered everywhere");
+  }
+  if (retainSourcingChannels(undefined, "US").length) {
+    failures.push("retainSourcingChannels mishandles a listing with no channels");
+  }
+
+  // Codes, not names. countries.js is generated; a hand-written second copy
+  // of "États-Unis" here is how the two come to disagree.
+  for (const code of sourcingCountries) {
+    if (!getSourcingCountryLabel(code, "fr")) {
+      failures.push(`sourcingCountries has ${code}, which countries.js does not`);
+    }
+  }
+  for (const channel of sourcingChannels) {
+    if (channel.countries === null) continue;
+    for (const code of channel.countries) {
+      if (!sourcingCountries.includes(code)) {
+        failures.push(
+          `channel ${channel.key} is scoped to ${code}, which is not offered ` +
+            `on the form — so it can never be picked`,
+        );
+      }
+    }
   }
 }
 

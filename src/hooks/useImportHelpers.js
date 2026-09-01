@@ -1,10 +1,13 @@
 import { useMemo } from "react";
 import { useApprovedListings } from "./useApprovedListings";
+import { useI18n } from "../i18n/I18nContext";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { distanceInKm } from "../utils/geo";
 import {
+  getSourcingCountryLabel,
   isOverseasBuyerListing,
   isTransitaireListing,
+  retainSourcingChannels,
   sourcerOffersFor,
   transitaireScopesFor,
 } from "../data/importation";
@@ -26,6 +29,11 @@ import {
 // somebody to a number that stopped working a year ago.
 export function useImportHelpers(userCoords) {
   const listings = useApprovedListings();
+  // Read here rather than taken as an argument: the sourcer order depends on
+  // the country NAMES, which are language-dependent, so the memo has to
+  // recompute when the language switches. A caller passing it in would work
+  // until one forgot.
+  const { language } = useI18n();
 
   return useMemo(() => {
     if (!listings) return { brokers: [], sourcers: [] };
@@ -85,10 +93,25 @@ export function useImportHelpers(userCoords) {
         // and somebody deciding who to wire money to deserves better than a
         // keyword's guess.
         buysFrom: listing.buysFrom ?? null,
+        // Filtered against the country rather than passed through. A listing
+        // edited from the United States to Japan before the form learned to
+        // prune could still carry `copart`, and a card offering a Japanese
+        // sourcer's Copart account is a worse lie than saying nothing.
+        channels: retainSourcingChannels(
+          listing.sourcingChannels,
+          listing.buysFrom ?? null,
+        ),
       }))
       .sort((a, b) => {
         if (a.buysFrom && b.buysFrom) {
-          return a.buysFrom.localeCompare(b.buysFrom, "fr");
+          // By the name the reader sees, not the ISO code behind it.
+          // Sorting on the code puts Germany (DE) above Spain (ES) above
+          // the United States (US), which is alphabetical in a language
+          // nobody is reading — "Allemagne, Belgique, Canada" is the order
+          // a French list is expected to arrive in.
+          const aName = getSourcingCountryLabel(a.buysFrom, language) ?? a.buysFrom;
+          const bName = getSourcingCountryLabel(b.buysFrom, language) ?? b.buysFrom;
+          return aName.localeCompare(bName, language === "en" ? "en" : "fr");
         }
         if (a.buysFrom) return -1;
         if (b.buysFrom) return 1;
@@ -96,5 +119,5 @@ export function useImportHelpers(userCoords) {
       });
 
     return { brokers, sourcers };
-  }, [listings, userCoords]);
+  }, [listings, userCoords, language]);
 }

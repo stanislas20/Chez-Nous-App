@@ -1,3 +1,5 @@
+import { countries } from "./countries";
+
 // Importing into Bénin, which is a country with a port and a market fed by it.
 //
 // The app already takes a position on this and then abandons the reader
@@ -178,6 +180,145 @@ export const sourcerTerms = [
   "depuis le canada",
   "depuis dubai",
 ];
+
+// Where a sourcer buys, which is the first thing a buyer here asks and the
+// only thing the form never recorded.
+//
+// `buysFrom` was already being read — ImportationScreen prints it, and
+// useImportHelpers sorts the whole sourcer list on it under a comment
+// promising it is "declared on the posting form, never inferred". No form
+// wrote it. Every sourcer fell through to the alphabetical fallback and the
+// country line rendered for nobody. This is the half that was missing.
+//
+// Stored as an ISO code, not a name: the names live in countries.js, which
+// is generated, and a second hand-written copy of "États-Unis" is exactly
+// how the two come to disagree.
+//
+// Short on purpose. These are the countries that get a real channel list
+// below; anywhere else on earth stays pickable through the full country
+// sheet and gets the generic channels, which is honest rather than
+// pretending we know the auction houses of every market.
+export const sourcingCountries = [
+  "US",
+  "CA",
+  "BE",
+  "DE",
+  "FR",
+  "NL",
+  "GB",
+  "ES",
+  "IT",
+  "AE",
+  "JP",
+  "KR",
+];
+
+// How they buy, which decides what actually arrives.
+//
+// A Copart lot is a salvage car with a branded title; a car bought off a
+// dealership forecourt is not. Both cross the same ocean and reach a listing
+// here looking identical, and somebody wiring money abroad is entitled to
+// know which one they are being sold before it sails rather than after it
+// lands. That is the whole reason this field exists.
+//
+// Named houses only where the name is what people actually say. An importer
+// in Maryland describes their work as "Copart and IAAI", and folding that
+// into "auctions" would throw away the most informative word in the
+// sentence. Everywhere else the generic entries carry it — a directory of
+// every auction house on earth would rot, and this file has already argued
+// once that a list which rots is worse than no list.
+//
+// `countries: null` means the channel is offered wherever the sourcer is.
+export const sourcingChannels = [
+  { key: "copart", labelEn: "Copart", labelFr: "Copart", countries: ["US", "CA", "GB"] },
+  { key: "iaai", labelEn: "IAAI", labelFr: "IAAI", countries: ["US", "CA"] },
+  { key: "manheim", labelEn: "Manheim", labelFr: "Manheim", countries: ["US", "CA", "GB"] },
+  {
+    key: "bca",
+    labelEn: "BCA",
+    labelFr: "BCA",
+    countries: ["GB", "BE", "NL", "DE", "FR", "ES", "IT"],
+  },
+  { key: "uss", labelEn: "USS auctions", labelFr: "Enchères USS", countries: ["JP"] },
+  {
+    key: "emiratesAuction",
+    labelEn: "Emirates Auction",
+    labelFr: "Emirates Auction",
+    countries: ["AE"],
+  },
+  {
+    key: "publicAuction",
+    labelEn: "Public auctions",
+    labelFr: "Enchères publiques",
+    countries: null,
+  },
+  {
+    key: "dealerAuction",
+    labelEn: "Trade-only auctions",
+    labelFr: "Enchères professionnelles",
+    countries: null,
+  },
+  {
+    key: "dealership",
+    labelEn: "Dealerships",
+    labelFr: "Concessionnaires",
+    countries: null,
+  },
+  {
+    key: "privateSeller",
+    labelEn: "Private sellers",
+    labelFr: "Particuliers",
+    countries: null,
+  },
+  {
+    key: "exporter",
+    labelEn: "Export companies",
+    labelFr: "Sociétés d'exportation",
+    countries: null,
+  },
+];
+
+// The channels on offer once a country is chosen, named ones first so the
+// specific answer is the one nearest the thumb.
+//
+// With no country picked this returns only the generic set rather than
+// everything: offering Copart to somebody who has not said they are in
+// America invites them to tick it, and a sourcer in Douala claiming IAAI is
+// worse than a sourcer who said nothing.
+export function sourcingChannelsFor(countryCode) {
+  return sourcingChannels.filter((channel) =>
+    channel.countries === null
+      ? true
+      : Boolean(countryCode) && channel.countries.includes(countryCode),
+  );
+}
+
+export function getSourcingChannelLabel(key, language) {
+  const channel = sourcingChannels.find((item) => item.key === key);
+  if (!channel) return null;
+  return language === "en" ? channel.labelEn : channel.labelFr;
+}
+
+// Codes resolve through countries.js, never through a copy kept here.
+export function getSourcingCountryLabel(code, language) {
+  const country = countries.find((item) => item.code === code);
+  if (!country) return null;
+  return language === "en" ? country.nameEn : country.nameFr;
+}
+
+export function getSourcingCountryFlag(code) {
+  return countries.find((item) => item.code === code)?.flag ?? null;
+}
+
+// Channels a listing may keep after its country changes. Picking the US,
+// ticking Copart, then switching to Japan must not leave Copart declared —
+// the pills would vanish from the form while the value stayed in the
+// document, and the card would print a channel the sourcer cannot reach.
+export function retainSourcingChannels(declared, countryCode) {
+  if (!Array.isArray(declared)) return [];
+  const allowed = sourcingChannelsFor(countryCode).map((channel) => channel.key);
+  return declared.filter((key) => allowed.includes(key));
+}
 
 // Who to ask. A transitaire is a commissionnaire en douane: the person
 // licensed to file the declaration, and in practice the only realistic way

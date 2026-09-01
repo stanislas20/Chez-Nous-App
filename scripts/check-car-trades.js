@@ -556,6 +556,80 @@ const STOCK =
   }
 });
 
+// ── Scrapyards go to the sellers who declared themselves ──────────────
+//
+// "Casse automobile" on Voitures used to run a text search of Services for
+// those two words. It was searching for something the app already knew:
+// `casse` is one of the partSellerKinds a parts seller picks on the posting
+// form, and Pièces prints that badge on their cards. So the tile named
+// after breakers could only find the ones who happened to write the word,
+// while every casse that declared itself properly and advertised "pièces
+// d'occasion" was invisible to it.
+//
+// Pinned because a query is one edit away from coming back, and the symptom
+// is not an error — it is a shorter list that still looks plausible.
+{
+  const tiles = fs.readFileSync(
+    path.join(__dirname, "..", "src/data/carServiceCategories.js"),
+    "utf8",
+  );
+  const tile = tiles.match(/\{[^{}]*key: "scrap"[^{}]*\}/s);
+  if (!tile) {
+    fail("the scrap tile has gone from carServiceCategories.js");
+  } else {
+    if (!/route: "Parts"/.test(tile[0])) {
+      fail("the scrap tile no longer routes to Pièces");
+    }
+    if (!/sellerKind: "casse"/.test(tile[0])) {
+      fail(
+        "the scrap tile no longer carries sellerKind: casse, so it lands on " +
+          "the full parts directory with the filtering left to the reader",
+      );
+    }
+    if (/query:/.test(tile[0])) {
+      fail(
+        "the scrap tile runs a text search again — it can only return " +
+          "whoever wrote the words, and misses every casse that declared " +
+          "itself on the form",
+      );
+    }
+  }
+
+  // The filter it hands to, and the reason it is exact rather than lenient.
+  const hook = fs.readFileSync(
+    path.join(__dirname, "..", "src/hooks/usePartsSellers.js"),
+    "utf8",
+  );
+  if (!/sellerKind/.test(hook)) {
+    fail("filterPartsSellers no longer accepts a sellerKind, so the tile's parameter is ignored");
+  }
+  if (!/partSellerKindFor\(item\.haystack, item\.partSellerKind\)/.test(hook)) {
+    fail(
+      "the seller-kind filter reads the declared field alone again — that " +
+        "hides every casse that says so in prose and never opened the " +
+        "picker, which is most of the ones the keyword tile used to find",
+    );
+  }
+  // And the inference it depends on: declared wins, prose is the fallback.
+  const parts = fs.readFileSync(
+    path.join(__dirname, "..", "src/data/vehicleParts.js"),
+    "utf8",
+  );
+  if (!/export function partSellerKindFor/.test(parts)) {
+    fail("partSellerKindFor has gone, so the seller-kind filter cannot resolve");
+  }
+  if (!/if \(declaredKind\) return declaredKind;/.test(parts)) {
+    fail(
+      "partSellerKindFor no longer lets the declared kind win, so a seller " +
+        "who picked one can be overruled by a word in their description",
+    );
+  }
+  // casse has to still exist as a kind, or the tile points at nothing.
+  if (!/key: "casse"/.test(fs.readFileSync(path.join(__dirname, "..", "src/data/vehicleParts.js"), "utf8"))) {
+    fail("partSellerKinds no longer has a casse, so the scrap tile filters to nothing");
+  }
+}
+
 if (failures.length) {
   failures.forEach((line) => console.error(line));
   console.error(`\n${failures.length} problem(s)`);

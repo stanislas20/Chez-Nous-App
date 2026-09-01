@@ -472,7 +472,10 @@ export function CarsScreen({ navigation, route }) {
     navigation.navigate("CreateListing", {
       categoryKey: "vehicles",
       isPromoted: false,
-      vehiclePurpose: "sell",
+      // The tab decides. Arriving from Louer and being handed a seller's
+      // form is how somebody renting out a car ends up publishing it for
+      // sale — the form reads this param and asks accordingly.
+      vehiclePurpose: intent === "rent" ? "rent" : "sell",
     });
   };
 
@@ -552,6 +555,7 @@ export function CarsScreen({ navigation, route }) {
           ? { realEstateDeal: entry.realEstateDeal }
           : {}),
         ...(entry.withCar ? { withCar: true } : {}),
+        ...(entry.sellerKind ? { sellerKind: entry.sellerKind } : {}),
       };
       navigation.navigate(
         entry.route,
@@ -732,26 +736,37 @@ export function CarsScreen({ navigation, route }) {
 
   // Concessions and services sit under every tab — someone selling a car
   // needs the panel beater as much as someone buying one does.
+  // Publishing a car lived behind the Vendre intent, which swaps the whole
+  // screen — so somebody browsing had no way to add to what they were
+  // looking at without first changing what the screen was for.
+  //
+  // It sat at the very bottom of the footer, under the dealerships, the
+  // parks and everything else, which is past the point anybody scrolls. It
+  // is directly under the intent tabs now, where the question it asks
+  // matches the tab you are on.
+  //
+  // Not on Vendre, which opens with its own fuller pitch and would
+  // otherwise ask the same question twice on one screen.
+  const postVehicleCard =
+    mayPublish && intent !== "sell" ? (
+      <PostVehicleCard onPress={startSelling}>
+        <PostVehicleIcon>
+          <Ionicons name="car-sport-outline" size={20} color={EMERALD} />
+        </PostVehicleIcon>
+        <PostVehicleCol>
+          <PostVehicleTitle>
+            {t(intent === "rent" ? "carsPostTitleRent" : "carsPostTitle")}
+          </PostVehicleTitle>
+          <PostVehicleCopy>
+            {t(intent === "rent" ? "carsPostCopyRent" : "carsPostCopy")}
+          </PostVehicleCopy>
+        </PostVehicleCol>
+        <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+      </PostVehicleCard>
+    ) : null;
+
   const bottomBlock = (
     <>
-      {/* Publishing a car lived behind the Vendre intent, which swaps the
-          whole screen — so somebody browsing had no way to add to what they
-          were looking at without first changing what the screen was for.
-          Every other vertical offers it in place; this brings Voitures into
-          line. The Vendre panel keeps its own fuller pitch. */}
-      {mayPublish ? (
-        <PostVehicleCard onPress={startSelling}>
-          <PostVehicleIcon>
-            <Ionicons name="car-sport-outline" size={20} color={EMERALD} />
-          </PostVehicleIcon>
-          <PostVehicleCol>
-            <PostVehicleTitle>{t("carsPostTitle")}</PostVehicleTitle>
-            <PostVehicleCopy>{t("carsPostCopy")}</PostVehicleCopy>
-          </PostVehicleCol>
-          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-        </PostVehicleCard>
-      ) : null}
-
       <SectionHead>
         <SectionHeadTitle>{t("carsDealershipsTitle")}</SectionHeadTitle>
         <SectionLink
@@ -1045,6 +1060,7 @@ export function CarsScreen({ navigation, route }) {
                 language={language}
               />
             </HeroMeasure>
+            {postVehicleCard}
             {/* Editorial, not a menu. It used to carry permanent cards for
                 Parcs, Mobilité and Concessions — all three of which already
                 have a tile in Accès rapide below and a section of their own,
@@ -1141,7 +1157,7 @@ export function CarsScreen({ navigation, route }) {
                 {quickAccess.map((item) => (
                   <QuickTile key={item.key} onPress={item.onPress}>
                     <QuickIcon tint={item.tint}>
-                      <Ionicons name={item.icon} size={20} color={item.ink} />
+                      <Ionicons name={item.icon} size={17} color={item.ink} />
                     </QuickIcon>
                     <QuickLabel numberOfLines={1}>
                       {t(`carsQuick_${item.key}`)}
@@ -1192,11 +1208,7 @@ export function CarsScreen({ navigation, route }) {
                     saying the same thing twice; the rental types have no
                     other home. */}
                 {intent === "rent" ? (
-                  <FilterScroll
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={chipRowStyle}
-                  >
+                  <DealRow>
                     {deals.map((item) => {
                       const active = deal === item.key;
                       return (
@@ -1212,7 +1224,7 @@ export function CarsScreen({ navigation, route }) {
                         </Chip>
                       );
                     })}
-                  </FilterScroll>
+                  </DealRow>
                 ) : null}
                 <SectionHead>
                   {/* The title itself collapses the grid. "Tout voir" still
@@ -1921,7 +1933,23 @@ const SectionLabel = styled.Text`
   margin-bottom: 10px;
 `;
 
+// Wrapped and grown, like the Quick access pills. There are three rental
+// types and they were in a horizontal scroller, so the third sat half off
+// the edge and the row ended in dead space — a scroller earns its keep with
+// a dozen brands, not with three.
+const DealRow = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding-horizontal: ${spacing.md}px;
+  margin-bottom: ${spacing.sm}px;
+`;
+
 const Chip = styled(Pressable)`
+  flex-grow: 1;
+  flex-basis: 29%;
+  align-items: center;
+  justify-content: center;
   padding: 9px 15px;
   border-radius: ${radius.pill}px;
   background-color: ${(props) => (props.active ? props.accent : props.theme.surface)};
@@ -2374,15 +2402,43 @@ const QuickGrid = styled.View`
   margin-bottom: ${spacing.md}px;
 `;
 
+// Content-width, not a fixed third of the row.
+//
+// These were 31.5%-wide cards with the icon stacked over the label and
+// 30px of vertical padding, so a tile reading "New" carried as much empty
+// space as one reading "Car parks" and the block was two tall rows of
+// mostly nothing. Laying the icon beside the label and letting each tile
+// size to its own word turns the same six destinations into a couple of
+// wrapped lines — and short labels stop paying for long ones.
+//
+// No shadow. Six of them stacked in a wrap read as a pile of raised cards;
+// the border alone is enough to make each one a target, and it matches the
+// chips the rest of the app now uses.
 const QuickTile = styled(Pressable)`
-  width: 31.5%;
+  /* Content decides where the line breaks; flex-grow then shares whatever
+     is left over on that line between the pills on it. Without the grow,
+     each pill stopped at its own width and every row ended in a ragged
+     margin — "Used / New / Dealers" gave up most of a chip's width of
+     empty space on the right. With it, a short row of long words and a
+     long row of short ones both reach the edge, and the wrapping is still
+     driven by the labels rather than by a fixed column count. */
+  flex-grow: 1;
+  /* A basis rather than auto. Letting the labels decide the wrap landed
+     3 / 2 / 1 and left "Services" grown alone across the whole width — a
+     pill the size of a banner. A basis near a third fixes three to a line,
+     and the grow then shares the remainder so both lines reach the edge.
+     (No backticks in here: this is inside a template literal, and one ends
+     the style block mid-comment.) */
+  flex-basis: 29%;
+  flex-direction: row;
   align-items: center;
-  padding: 16px 6px 14px;
-  border-radius: 20px;
+  justify-content: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: ${radius.pill}px;
   background-color: ${(props) => props.theme.surface};
   border-width: 1px;
   border-color: ${(props) => props.theme.border};
-  ${shadow.card}
 `;
 
 // A soft tinted square with a line glyph in the matching ink. The gradient
@@ -2390,19 +2446,17 @@ const QuickTile = styled(Pressable)`
 // grid is the thing that makes an app look cheap rather than considered.
 // Colour still separates the six, just quietly.
 const QuickIcon = styled.View`
-  width: 44px;
-  height: 44px;
-  border-radius: 15px;
+  width: 32px;
+  height: 32px;
+  border-radius: ${radius.pill}px;
   align-items: center;
   justify-content: center;
-  margin-bottom: 9px;
   background-color: ${(props) => props.tint};
 `;
 
 const QuickLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
-  font-size: 11.5px;
-  text-align: center;
+  font-size: 13px;
   color: ${(props) => props.theme.text};
 `;
 

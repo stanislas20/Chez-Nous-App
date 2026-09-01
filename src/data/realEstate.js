@@ -1,3 +1,5 @@
+import { vehicleBodyTypes } from "./vehicles";
+
 // Property listings, which the generic goods form served worse than any
 // other category: a flat at 150 000 per month and a house at 45 000 000
 // were both "a price", stored identically, with no way for a browser to
@@ -405,6 +407,115 @@ export function realEstateHasFurnished(dealKey) {
 // let with a car and sometimes a driver — and the app had a "Séjour +
 // voiture" tile pointing at a text search that could never find one,
 // because no listing had any way to say so.
+// What the car actually is, which the note was being asked to carry alone.
+//
+// The note stays — "seulement la première semaine" is not a field and never
+// will be — but the two questions every enquiry opened with were which car
+// and whether it comes with a driver, and answering those in prose meant
+// they were unsearchable, unskimmable, and often simply omitted.
+//
+// Body types are vehicleBodyTypes, not a list of their own. The vocabulary
+// a car is sold under is the vocabulary it is lent under, and a second copy
+// would drift until a "4x4" here stopped meaning the "4x4" on Voitures.
+// Camion is dropped: a lorry is not what anybody means by séjour + voiture.
+//
+// Icons are added here rather than in vehicles.js, which has none: a body
+// type is a word on a spec sheet there, and a thing you point at here.
+// Ionicons has three vehicle shapes, so the eight types group onto them
+// honestly — saloon-ish, sporty-ish, big — rather than borrowing an
+// unrelated glyph to force eight distinct pictures.
+const STAY_CAR_ICONS = {
+  sedan: "car-outline",
+  cityCar: "car-outline",
+  pickup: "car-outline",
+  suv: "car-sport-outline",
+  "4x4": "car-sport-outline",
+  coupe: "car-sport-outline",
+  van: "bus-outline",
+  minibus: "bus-outline",
+};
+
+export const stayCarBodyTypes = vehicleBodyTypes
+  .filter((type) => type.key !== "truck")
+  .map((type) => ({ ...type, icon: STAY_CAR_ICONS[type.key] }));
+
+// The question that decides whether the offer is usable at all. Somebody
+// without a Beninese permit cannot take a self-drive car, and somebody who
+// wanted to drive themselves is not helped by a chauffeur they must feed
+// and lodge.
+export const stayCarDriverOptions = [
+  {
+    key: "withDriver",
+    icon: "person-outline",
+    labelEn: "With a driver",
+    labelFr: "Avec chauffeur",
+  },
+  {
+    key: "selfDrive",
+    icon: "key-outline",
+    labelEn: "Self-drive",
+    labelFr: "Sans chauffeur",
+  },
+  {
+    key: "either",
+    icon: "swap-horizontal-outline",
+    labelEn: "Either, on request",
+    labelFr: "Au choix, sur demande",
+  },
+];
+
+// Included or charged on top, and deliberately WITHOUT a figure.
+//
+// The form already carries one price and a second would be read as the
+// total by somebody skimming. But "is the car in the price" is the first
+// thing anybody asks after "is there a car", and answering it costs no
+// number — only which of the two arrangements this is.
+export const stayCarCostModes = [
+  {
+    key: "included",
+    labelEn: "Included in the price",
+    labelFr: "Compris dans le prix",
+  },
+  {
+    key: "supplement",
+    labelEn: "Extra, on top",
+    labelFr: "En supplément",
+  },
+];
+
+export function getStayCarBodyLabel(key, language) {
+  const item = stayCarBodyTypes.find((entry) => entry.key === key);
+  if (!item) return null;
+  return language === "en" ? item.labelEn : item.labelFr;
+}
+
+export function getStayCarDriverOption(key) {
+  return stayCarDriverOptions.find((entry) => entry.key === key) ?? null;
+}
+
+export function getStayCarDriverLabel(key, language) {
+  const item = getStayCarDriverOption(key);
+  if (!item) return null;
+  return language === "en" ? item.labelEn : item.labelFr;
+}
+
+export function getStayCarCostLabel(key, language) {
+  const item = stayCarCostModes.find((entry) => entry.key === key);
+  if (!item) return null;
+  return language === "en" ? item.labelEn : item.labelFr;
+}
+
+// Everything the car fields must be reset to when the box is unticked, in
+// one place so the form and the payload cannot disagree about what "no car"
+// means. The note had this rule already; three more fields made keeping it
+// by hand in two places a matter of time.
+export const STAY_CAR_CLEARED = {
+  withCarNote: "",
+  withCarTypes: [],
+  withCarDriver: null,
+  withCarCost: null,
+};
+
 export function realEstateHasCarOption(dealKey) {
   return dealKey === "rent" || dealKey === "shortStay";
 }

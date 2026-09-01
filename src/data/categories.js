@@ -23,7 +23,12 @@ export const categories = [
   { key: 'agriculture', hintEn: 'Seeds, tools, livestock', hintFr: 'Semences, outils, bétail', icon: 'leaf-outline', labelEn: 'Agriculture', labelFr: 'Agriculture', color: '#8FA030' },
   { key: 'restaurants', hintEn: 'Your restaurant or maquis', hintFr: 'Votre restaurant ou maquis', icon: 'restaurant-outline', labelEn: 'Restaurants', labelFr: 'Restaurants', color: '#D2603A' },
   { key: 'services', hintEn: 'Plumbing, hairdressing, transport', hintFr: 'Plomberie, coiffure, transport', icon: 'construct-outline', labelEn: 'Services', labelFr: 'Services', color: '#6B7A94' },
-  { key: 'community', hintEn: 'Notices, events, mutual help', hintFr: 'Annonces, événements, entraide', icon: 'people-outline', labelEn: 'Community', labelFr: 'Communauté', color: '#1A9AAC' },
+  // Its own aisle rather than a corner of Communauté, whose hint used to
+  // claim events and now does not. An event is the one listing with an
+  // expiry the app can reason about: it names a date, and after that date
+  // it is not a thing you can still go to. Nothing else here works that way.
+  { key: 'events', hintEn: 'Concerts, parties, matches, ceremonies', hintFr: 'Concerts, soirées, matchs, cérémonies', icon: 'ticket-outline', labelEn: 'Events & Outings', labelFr: 'Événements & Sorties', color: '#6D2C55' },
+  { key: 'community', hintEn: 'Notices, mutual help, lost and found', hintFr: 'Annonces, entraide, objets trouvés', icon: 'people-outline', labelEn: 'Community', labelFr: 'Communauté', color: '#1A9AAC' },
   { key: 'jobs', hintEn: 'Job offers and gigs', hintFr: 'Offres d’emploi et missions', icon: 'briefcase-outline', labelEn: 'Jobs', labelFr: 'Emplois', color: '#12876A' },
   // Last on purpose, and grey: it is where you go when none of the above
   // fits, not a fifteenth aisle competing with them.
@@ -35,3 +40,20 @@ export const categories = [
   // a word somebody typed. See src/data/customCategories.js.
   { key: 'other', hintEn: 'Anything the list above misses', hintFr: 'Tout ce que la liste ci-dessus oublie', icon: 'ellipsis-horizontal-circle-outline', labelEn: 'Other', labelFr: 'Autre', color: '#7C8794' },
 ];
+
+// Looked up rather than re-derived. Four screens were about to build their
+// own key→icon map to draw a placeholder for a listing with no photo, and
+// four copies of that map is four chances for a category to lose its icon
+// on one screen only.
+export function getCategoryIcon(key) {
+  return (
+    categories.find((category) => category.key === key)?.icon ??
+    "pricetag-outline"
+  );
+}
+
+export function getCategoryLabel(key, language) {
+  const category = categories.find((item) => item.key === key);
+  if (!category) return null;
+  return language === "en" ? category.labelEn : category.labelFr;
+}

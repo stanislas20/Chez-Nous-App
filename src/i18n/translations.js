@@ -1748,6 +1748,31 @@ export const translations = {
     sellFieldEquipment: "What can you bring?",
     sellEquipmentHint:
       "Optional. A flatbed or a winch decides whether a car can be recovered at all.",
+    servicesKicker: "Tradespeople and providers",
+    servicesHeroTitle: "A firm price before anything starts",
+    servicesHeroCopy:
+      "Every card says how the provider charges and what they ask for up front. That is where the surprises are, not in the headline price.",
+    servicesModeFind: "Find a pro",
+    servicesModeFindHint: "Near you",
+    servicesModeOffer: "Offer a service",
+    servicesModeOfferHint: "You are a tradesperson",
+    servicesFamilyLabel: "Which trade",
+    servicesWhereAny: "Either way",
+    servicesCount: "{count} provider(s)",
+    servicesSortNote: "Smallest advance first",
+    servicesDepositUnknown: "Advance not stated",
+    servicesHeavyNote:
+      "Half or more before the work starts. Pay in stages tied to progress, and get a signed receipt — never the whole amount up front.",
+    servicesEmpty:
+      "Nobody has published in this trade yet.\nTry another one, or be the first.",
+    servicesSafety:
+      "Agree the price, the deadline and what is included before you pay anything — a WhatsApp message you keep is worth more than a spoken agreement.",
+    servicesOfferBillLabel: "How you charge",
+    servicesOfferOther:
+      "Your trade is not in the grid? Publish anyway and name it in your own words — the form takes it.",
+    servicesOfferNote:
+      "Next you will give your area, the advance you ask for and two photos of finished work. Publishing is free. The verified badge is a separate step and is never automatic.",
+    servicesOfferCta: "Publish my service",
     sellFieldServiceDeposit: "Advance you ask for",
     sellFieldServiceWhere: "Where you work",
     sellFieldServiceWarranty: "What you guarantee (optional)",
@@ -4642,6 +4667,31 @@ export const translations = {
     sellFieldEquipment: "Que pouvez-vous apporter ?",
     sellEquipmentHint:
       "Facultatif. Un plateau ou un treuil décide si un véhicule peut être remorqué.",
+    servicesKicker: "Artisans et prestataires",
+    servicesHeroTitle: "Un prix ferme avant de commencer",
+    servicesHeroCopy:
+      "Chaque fiche dit comment le prestataire facture et ce qu’il demande d’avance. C’est là que se jouent les mauvaises surprises, pas dans le tarif affiché.",
+    servicesModeFind: "Trouver un pro",
+    servicesModeFindHint: "Près de vous",
+    servicesModeOffer: "Proposer un service",
+    servicesModeOfferHint: "Vous êtes artisan",
+    servicesFamilyLabel: "Quel métier",
+    servicesWhereAny: "Peu importe",
+    servicesCount: "{count} prestataire(s)",
+    servicesSortNote: "Avance la plus faible",
+    servicesDepositUnknown: "Avance non précisée",
+    servicesHeavyNote:
+      "La moitié ou plus avant le début des travaux. Versez par tranches liées à l’avancement et exigez un reçu signé — jamais la totalité d’avance.",
+    servicesEmpty:
+      "Personne n’a encore publié dans ce métier.\nEssayez-en un autre, ou soyez le premier.",
+    servicesSafety:
+      "Fixez le prix, le délai et ce qui est compris avant tout versement — un message WhatsApp gardé vaut mieux qu’un accord oral.",
+    servicesOfferBillLabel: "Comment vous facturez",
+    servicesOfferOther:
+      "Votre métier n’est pas dans la grille ? Publiez quand même et nommez-le avec vos mots — le formulaire l’accepte.",
+    servicesOfferNote:
+      "Vous préciserez ensuite votre zone, l’avance que vous demandez et deux photos de travaux livrés. La publication est gratuite. Le badge vérifié est une démarche séparée et n’est jamais automatique.",
+    servicesOfferCta: "Publier mon service",
     sellFieldServiceDeposit: "Avance que vous demandez",
     sellFieldServiceWhere: "Où vous travaillez",
     sellFieldServiceWarranty: "Ce que vous garantissez (facultatif)",

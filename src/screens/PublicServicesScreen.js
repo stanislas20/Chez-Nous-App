@@ -51,8 +51,39 @@ export function PublicServicesScreen({ navigation }) {
 
   return (
     <Container edges={["left", "right"]}>
+      {/* The flag, as the ground the screen stands on.
+      
+          Every card here leaves for a gouv.bj domain, and the risk this
+          screen carries is somebody trusting a lookalike site with their
+          identity documents. So the page says whose it is before a word is
+          read: the green hoist band down the left, yellow over red on the
+          fly side, in the proportions the flag actually has.
+      
+          Held well below full strength on purpose. A flag at full strength
+          behind body text is a costume and makes the text unreadable; this
+          has to survive being looked at for as long as it takes to find the
+          right agency. pointerEvents none so it never eats a tap meant for
+          a card. */}
+      <FlagField pointerEvents="none">
+        <FlagHoist />
+        <FlagFly>
+          <FlagYellow />
+          <FlagRed />
+        </FlagFly>
+      </FlagField>
+      {/* The flag, as the banner rather than as a sticker.
+      
+          This is the one screen in the app that is entirely about the
+          State: every card leaves for a gouv.bj domain. A generic navy
+          said "official-looking", which is precisely the wrong thing for a
+          screen whose whole risk is somebody trusting a lookalike — so it
+          wears the national colours instead. Green is the field, because
+          it is the flag's own hoist band and the only one of the three
+          that white text survives; the yellow and the red are the rule
+          under it, in their flag order, at the width they have on the
+          flag itself. */}
       <Hero
-        colors={["#2E4057", "#1E2C3C", "#141E29"]}
+        colors={["#0A8A52", "#046B3C", "#023B21"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         topInset={insets.top}
@@ -65,9 +96,14 @@ export function PublicServicesScreen({ navigation }) {
         </HeroTop>
         <HeroTitle>{t("publicTitle")}</HeroTitle>
         <HeroCopy>{t("publicIntro")}</HeroCopy>
+        <FlagRule>
+          <FlagBandYellow />
+          <FlagBandRed />
+        </FlagRule>
       </Hero>
 
       <ScrollView
+        style={{ backgroundColor: "transparent" }}
         contentContainerStyle={{
           padding: spacing.md,
           paddingBottom: insets.bottom + spacing.xl,
@@ -139,11 +175,63 @@ const Container = styled(SafeAreaView)`
   background-color: ${(props) => props.theme.background};
 `;
 
+// 38 / 62, which is the flag's own split — the hoist band is a little
+// narrower than the two stacked bands beside it.
+const FlagField = styled.View`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  flex-direction: row;
+`;
+
+const FlagHoist = styled.View`
+  width: 38%;
+  background-color: rgba(0, 135, 81, 0.2);
+`;
+
+const FlagFly = styled.View`
+  flex: 1;
+`;
+
+const FlagYellow = styled.View`
+  flex: 1;
+  background-color: rgba(252, 209, 22, 0.28);
+`;
+
+const FlagRed = styled.View`
+  flex: 1;
+  background-color: rgba(232, 17, 45, 0.18);
+`;
+
 const Hero = styled(LinearGradient)`
   padding: ${(props) => props.topInset + spacing.sm}px ${spacing.md}px
     ${spacing.lg}px;
   border-bottom-left-radius: 28px;
   border-bottom-right-radius: 28px;
+`;
+
+// Yellow over red, the way they sit on the flag. Kept to a rule rather
+// than a block: three full-height bands behind text is a costume, and the
+// point is that the reader knows whose screen this is at a glance.
+const FlagRule = styled.View`
+  flex-direction: row;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: ${spacing.md}px;
+  width: 96px;
+`;
+
+const FlagBandYellow = styled.View`
+  flex: 1;
+  background-color: #fcd116;
+`;
+
+const FlagBandRed = styled.View`
+  flex: 1;
+  background-color: #e8112d;
 `;
 
 const HeroTop = styled.View`

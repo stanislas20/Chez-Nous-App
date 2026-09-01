@@ -60,6 +60,7 @@ import { ForgotPasswordScreen } from "../screens/ForgotPasswordScreen";
 import { PharmacyDetailScreen } from "../screens/PharmacyDetailScreen";
 import { TourismScreen } from "../screens/TourismScreen";
 import { EventsScreen } from "../screens/EventsScreen";
+import { ServicesScreen } from "../screens/ServicesScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -332,6 +333,11 @@ export function RootNavigator() {
           <Stack.Screen
             name="Events"
             component={EventsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Services"
+            component={ServicesScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen

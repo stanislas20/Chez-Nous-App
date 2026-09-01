@@ -160,9 +160,15 @@ const HOME_CATEGORIES = [
     labelKey: "categoryEvents",
   },
   {
+    // Opens the Services directory, next to Événements and for the same
+    // reason: filtering the goods grid by "services" put a plumber in a
+    // list sorted by price, beside a fridge. A person is not an item —
+    // what decides between two masons is the advance they ask for and
+    // whether they come to you, neither of which a product card has
+    // anywhere to put.
     key: "service",
     icon: "construct-outline",
-    categoryKey: "services",
+    screen: "Services",
     labelKey: "categoryServicesShort",
   },
   {

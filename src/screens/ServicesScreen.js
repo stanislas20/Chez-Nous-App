@@ -135,6 +135,11 @@ export function ServicesScreen({ navigation }) {
     Linking.openURL(url).catch(() => {});
   };
 
+  // Both questions answered. Never a gate on publishing — the form asks
+  // everything again and properly — only a way to say back what has been
+  // chosen so far.
+  const offerReady = Boolean(offerTrade && offerRate);
+
   const publish = () =>
     navigation.navigate("MainTabs", {
       screen: "Sell",
@@ -199,7 +204,20 @@ export function ServicesScreen({ navigation }) {
             ))}
           </ModeRow>
 
-          <SectionLabel>{t("servicesFamilyLabel")}</SectionLabel>
+          {/* "Quel métier" is a question to somebody searching; to somebody
+              publishing it is "votre métier". Same picker, different
+              sentence, because the second person is describing themselves
+              rather than looking for someone. */}
+          <StepRow>
+            <StepMark>
+              <StepNumber>1</StepNumber>
+            </StepMark>
+            <SectionLabel>
+              {mode === "find"
+                ? t("servicesFamilyLabel")
+                : t("servicesOfferTradeLabel")}
+            </SectionLabel>
+          </StepRow>
           <FamilyGrid>
             {serviceFamilies.map((item) => {
               const on = family === item.key;
@@ -417,7 +435,21 @@ export function ServicesScreen({ navigation }) {
             </>
           ) : (
             <>
-              <SectionLabel>{t("servicesOfferBillLabel")}</SectionLabel>
+              {/* Two questions and one action, in that order and looking
+                  like it.
+              
+                  Before this, the trade chips, the rate chips, two
+                  paragraphs of small print and the button were laid out as
+                  one continuous column of things — a filter's shape used
+                  for what is actually the first half of a form. Nothing
+                  said how many questions there were, which had been
+                  answered, or what the button would do with them. */}
+              <StepRow>
+                <StepMark>
+                  <StepNumber>2</StepNumber>
+                </StepMark>
+                <SectionLabel>{t("servicesOfferBillLabel")}</SectionLabel>
+              </StepRow>
               <ChipWrap>
                 {/* Only the rates this trade could actually use. */}
                 {serviceRateTypesForTrade(offerTrade).map((item) => {
@@ -436,16 +468,34 @@ export function ServicesScreen({ navigation }) {
                 })}
               </ChipWrap>
 
-              {/* A trade nobody listed is still a trade. The form takes a
-                  custom category, so somebody whose métier is not in the
-                  grid publishes anyway rather than bouncing off it. */}
-              <OfferNote>{t("servicesOfferOther")}</OfferNote>
-              <OfferNote>{t("servicesOfferNote")}</OfferNote>
+              <OfferCard>
+                {/* What the two answers add up to, said back. Somebody
+                    scrolling past the grid to the button has no other way
+                    to check what they picked. */}
+                <SummaryRow>
+                  <Ionicons
+                    name={offerReady ? "checkmark-circle" : "ellipse-outline"}
+                    size={17}
+                    color={offerReady ? EMERALD : colors.textMuted}
+                  />
+                  <SummaryText numberOfLines={2}>
+                    {offerReady
+                      ? `${t(getServiceTradeLabelKey(offerTrade))} · ${getServiceRateLabel(offerRate, language)}`
+                      : t("servicesOfferPending")}
+                  </SummaryText>
+                </SummaryRow>
 
-              <PublishButton onPress={publish}>
-                <Ionicons name="add" size={17} color="#ffffff" />
-                <PublishLabel>{t("servicesOfferCta")}</PublishLabel>
-              </PublishButton>
+                {/* A trade nobody listed is still a trade: the form takes a
+                    custom category, so somebody whose métier is not in the
+                    grid publishes anyway rather than bouncing off it. */}
+                <OfferNote>{t("servicesOfferOther")}</OfferNote>
+                <OfferNote>{t("servicesOfferNote")}</OfferNote>
+
+                <PublishButton onPress={publish}>
+                  <Ionicons name="add" size={17} color="#ffffff" />
+                  <PublishLabel>{t("servicesOfferCta")}</PublishLabel>
+                </PublishButton>
+              </OfferCard>
             </>
           )}
         </Body>
@@ -553,6 +603,57 @@ const ModeHint = styled.Text`
   font-size: 10px;
   margin-top: 2px;
   color: ${(props) => (props.on ? CLAY : props.theme.textMuted)};
+`;
+
+// A numbered step, because two questions in a row with no numbering read
+// as two more filters. The number is the cheapest thing that says "there
+// are a fixed few of these and you are on the first".
+const StepRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.sm}px;
+  margin-bottom: ${spacing.sm}px;
+`;
+
+const StepMark = styled.View`
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(122, 74, 46, 0.1);
+`;
+
+const StepNumber = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 11px;
+  color: ${CLAY};
+`;
+
+const OfferCard = styled.View`
+  padding: ${spacing.md}px;
+  border-radius: ${radius.lg}px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+  ${shadow.card};
+`;
+
+const SummaryRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.sm}px;
+  padding-bottom: ${spacing.sm}px;
+  margin-bottom: ${spacing.sm}px;
+  border-bottom-width: 1px;
+  border-bottom-color: ${(props) => props.theme.border};
+`;
+
+const SummaryText = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.semiBold};
+  font-size: 13px;
+  color: ${(props) => props.theme.text};
 `;
 
 const SectionLabel = styled.Text`
@@ -991,6 +1092,7 @@ const OfferNote = styled.Text`
 
 const PublishButton = styled(Pressable)`
   flex-direction: row;
+  min-height: 52px;
   align-items: center;
   justify-content: center;
   gap: 8px;

@@ -1781,6 +1781,8 @@ export const translations = {
       "Nobody has published in this trade yet.\nTry another one, or be the first.",
     servicesSafety:
       "Agree the price, the deadline and what is included before you pay anything — a WhatsApp message you keep is worth more than a spoken agreement.",
+    servicesOfferTradeLabel: "Your trade",
+    servicesOfferPending: "Pick your trade and how you charge",
     servicesOfferBillLabel: "How you charge",
     servicesOfferOther:
       "Your trade is not in the grid? Publish anyway and name it in your own words — the form takes it.",
@@ -4715,6 +4717,8 @@ export const translations = {
       "Personne n’a encore publié dans ce métier.\nEssayez-en un autre, ou soyez le premier.",
     servicesSafety:
       "Fixez le prix, le délai et ce qui est compris avant tout versement — un message WhatsApp gardé vaut mieux qu’un accord oral.",
+    servicesOfferTradeLabel: "Votre métier",
+    servicesOfferPending: "Choisissez votre métier et votre façon de facturer",
     servicesOfferBillLabel: "Comment vous facturez",
     servicesOfferOther:
       "Votre métier n’est pas dans la grille ? Publiez quand même et nommez-le avec vos mots — le formulaire l’accepte.",

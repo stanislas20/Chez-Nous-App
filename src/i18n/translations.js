@@ -35,9 +35,19 @@ export const translations = {
 
     carsPostTitle: "Do you have a vehicle to sell?",
     carsPostCopy: "Publish it here — buyers in Bénin and abroad are looking.",
+    // Louer asks its own question. Offering to publish a car "to sell" on
+    // the rental tab invites the wrong listing, and the form it opens then
+    // asks a seller's questions of somebody renting out a fleet.
+    carsPostTitleRent: "Do you have a vehicle to rent out?",
+    carsPostCopyRent: "List it here — visitors and businesses rent by the day and by the month.",
     realEstatePostTitle: "Do you have a property to list?",
     sellFieldWithCar: "A vehicle is available with it",
-    sellFieldWithCarNotePlaceholder: "e.g. saloon car, included the first week",
+    sellFieldWithCarTypes: "Which vehicle?",
+    sellFieldWithCarDriver: "With a driver?",
+    sellFieldWithCarCost: "Is it in the price?",
+    // The note kept its own placeholder, but the two things it used to have
+    // to carry are fields now — so it asks for what no field holds.
+    sellFieldWithCarNotePlaceholder: "e.g. included for the first week only",
     realEstateWithCarBadge: "With a vehicle",
     realEstateFilterWithCar: "With a vehicle",
     realEstateStatOnline: "properties online",
@@ -179,6 +189,13 @@ export const translations = {
     sellFormHeadlineCommunity: "Share something with your neighbours",
     sellFormCopyCommunity:
       "A notice, a lost pet, a request for help, or something worth recommending.",
+    sellFieldBuysFrom: "Which country do you buy from?",
+    sellBuysFromHint:
+      "Buyers choose a market before they choose a person. Your card is sorted and found by this.",
+    sellBuysFromOther: "Somewhere else",
+    sellFieldSourcingChannels: "Where do you buy there?",
+    sellSourcingChannelsHint:
+      "Optional. A salvage-auction car and a forecourt car reach a listing looking identical — saying which you deal in tells a buyer what they are getting.",
     sellFieldServiceRate: "How do you charge?",
     sellFieldServiceAmount: "Your rate",
     sellRateSuffix_fixed: "FCFA",
@@ -558,7 +575,9 @@ export const translations = {
       "We couldn't load listings just now — this isn't an empty marketplace. Pull down to try again.",
     jobsForYouSection: "For you",
     jobsExploreSection: "Explore by field",
+    // Vacancies, not listings — see listingCountShort for the marketplace.
     jobsCategoryCount: "{count} open",
+    listingCountShort: "{count} listing(s)",
     jobsCategoryEmpty: "Nothing open",
     jobsFeedSalaryOnRequest: "Salary on request",
     jobsSavedLink: "Saved",
@@ -586,9 +605,83 @@ export const translations = {
     tourismHotelsSectionTitle: "Popular hotels",
     tourismEmptyResults: "Nothing matches your search.",
 
+    sellTitleHint_events: "e.g. Rumba night — Orchestre Poly-Rythmo",
+    sellDescHint_events:
+      "Who is playing or what is happening, what the ticket includes, and anything people should know before they set off.",
+    eventsHeroKicker: "EVENTS NEAR YOU",
+    eventsHeroKickerNear: "{city} AND AROUND",
+    eventsHeroTitle: "Where to go out",
+    eventsHeroCopy:
+      "The gate almost always costs more than the advance ticket, and the hour on the flyer is when the doors open, not when it starts. Both are on every card.",
+    eventsAllCities: "All cities",
+    eventsNoCityMatch: "No city by that name.",
+    eventsCount: "{count} outing(s)",
+    eventsSortByDate: "By date",
+    eventFilterAll: "All",
+    eventFilterFree: "Free",
+    eventFeaturedKicker: "NEXT ONE UP",
+    eventPriceUnknown: "Ask the organiser",
+    eventPriceFree: "Free entry",
+    eventPriceFreeAdvance: "Free in advance",
+    eventPriceAtGate: "{amount} FCFA at the gate",
+    eventPriceAdvanceThenGate: "in advance · {amount} at the gate",
+    eventPriceSingle: "one price",
+    eventHoursAt: "At {time}",
+    eventHoursDoorsThenStart: "Doors {doors} · starts around {start}",
+    eventDistanceAway: "{km} km",
+    eventLike: "Like",
+    eventLiked: "Liked",
+    listingLinkUnavailable:
+      "This listing is no longer available. It may have been sold or taken down.",
+    listingLinkBrowse: "Browse Chez-Nous",
+    sellVideoTooLongTitle: "Video too long",
+    sellVideoTooLong:
+      "This video lasts {{actual}}s. Keep it under {{max}}s — a short clip uploads on any connection and buyers watch it to the end.",
+    sellVideoTooLarge:
+      "This video weighs {{actual}} MB. Keep it under {{max}} MB — film in 1080p rather than 4K, or trim it.",
+    eventActionFailedTitle: "Not saved",
+    eventActionFailedMessage:
+      "That did not go through. Check your connection and try again.",
+    eventShare: "Share",
+    eventsPostCta: "Post an event",
+    eventsPostShort: "Post",
+    eventsEmptyButElsewhere:
+      "Nothing in this period — but there is something on other dates.",
+    calendarClose: "Close",
+    eventsSafetyNote:
+      "Pay in advance only to the organiser's own Mobile Money number shown here, and keep the confirmation message — at the gate it is your only proof.",
+    shareEventMessage: "{title} — at {venue}, on Chez-Nous",
+    shareEventMessageNoVenue: "{title} — on Chez-Nous",
+    sellFieldEventKind: "What kind of event?",
+    sellFieldEventDate: "Date",
+    sellFieldEventDatePlaceholder: "DD/MM/YYYY",
+    sellEventDateHint:
+      "Once this day has passed the event stops being shown — nobody can attend it any more.",
+    sellFieldEventDoors: "Doors open",
+    sellFieldEventStart: "Starts around",
+    sellFieldEventTimePlaceholder: "e.g. 20h00",
+    sellEventStartHint:
+      "Leave blank if it starts when the doors open. People allow for the gap — say it and they arrive at the right time.",
+    sellFieldEventVenue: "Venue",
+    sellFieldEventVenuePlaceholder: "e.g. Institut français",
+    sellFieldEventQuartier: "Neighbourhood",
+    sellFieldEventQuartierPlaceholder: "e.g. Haie Vive",
+    sellFieldEventPriceAdvance: "Price in advance (FCFA)",
+    sellFieldEventPriceGate: "Price at the gate (FCFA)",
+    sellFieldEventPricePlaceholder: "0 if nothing to pay",
+    sellEventPriceHint:
+      "0 in both is a free event. 0 in advance with something at the gate is not — and the card will say so.",
+    sellFieldEventPay: "How do people pay?",
+    sellFieldEventOrganiser: "Organised by",
+    sellFieldEventOrganiserPlaceholder: "Your name or your organisation",
+    sellFieldEventCapacity: "Anything about places",
+    sellFieldEventCapacityPlaceholder: "e.g. Limited places",
+    errorEventDateRequired:
+      "Enter the date of the event as DD/MM/YYYY. Without a readable date it would be published and never appear.",
+    errorEventDatePast: "That date has already passed.",
     eventsEmptyTitle: "No events yet",
     eventsEmptySubtitle:
-      "We don't have a real events listing here yet — coming soon.",
+      "Nothing is posted for this filter yet. If you are running something — a concert, a match, a ceremony, a training day — post it and it appears here.",
 
     moreTitle: "Categories",
 
@@ -1128,6 +1221,7 @@ export const translations = {
     partsScopeCar: "car",
     partsScopeMoto: "motorbike",
     partsFamiliesLabel: "Families of parts",
+    partsSellerKindLabel: "Kind of seller",
     partsQualityLabel: "Quality of the part",
     partsOpenFirst: "Open first",
     partsCountAll: "{count} {scope} parts seller(s)",
@@ -1787,6 +1881,7 @@ export const translations = {
       "This is who you need now — the declaration is theirs to file.",
     importHelperCount: "{count} listed",
     importBuysFrom: "Buys from {country}",
+    importChannelsLabel: "Buys via",
     importOfferUnknown: "Did not say what they offer — ask",
     importChooserTitle: "Which are you?",
     importChooserCopy:
@@ -2126,6 +2221,7 @@ export const translations = {
     menuPreferencesSectionTitle: "Preferences",
     menuLanguageRow: "Language",
     menuHelpSafetySectionTitle: "Help & safety",
+    infoPageMissing: "This page could not be opened.",
     menuHelpCenterRow: "Help center",
     menuSafetyTipsRow: "Safety tips",
     menuPrivacyRow: "Privacy",
@@ -2662,6 +2758,9 @@ export const translations = {
     errorResetTokenExpired:
       "Your phone verification expired. Please verify your number again.",
     errorInvalidPrice: "Please enter a valid price.",
+    categoryListingsOtherTrades: "Other services",
+    localSectionSeeAll: "See all {count}",
+    errorBuysFromRequired: "Please choose the country you buy cars from.",
     errorPhoneRequired: "Please enter a phone number.",
     errorInvalidDutyHours:
       "Enter how many hours the duty lasts — at most 240 (ten days). A tour de garde runs a week.",
@@ -2704,9 +2803,15 @@ export const translations = {
     carsPostTitle: "Vous avez un véhicule à vendre ?",
     carsPostCopy:
       "Publiez-le ici — des acheteurs au Bénin comme à l’étranger cherchent.",
+    carsPostTitleRent: "Vous avez un véhicule à louer ?",
+    carsPostCopyRent:
+      "Publiez-le ici — visiteurs et entreprises louent à la journée comme au mois.",
     realEstatePostTitle: "Vous avez un bien à publier ?",
     sellFieldWithCar: "Un véhicule est disponible avec le logement",
-    sellFieldWithCarNotePlaceholder: "ex. berline, incluse la première semaine",
+    sellFieldWithCarTypes: "Quel véhicule ?",
+    sellFieldWithCarDriver: "Avec chauffeur ?",
+    sellFieldWithCarCost: "Compris dans le prix ?",
+    sellFieldWithCarNotePlaceholder: "ex. incluse la première semaine seulement",
     realEstateWithCarBadge: "Avec véhicule",
     realEstateFilterWithCar: "Avec véhicule",
     realEstateStatOnline: "biens en ligne",
@@ -2850,6 +2955,13 @@ export const translations = {
     sellFormHeadlineCommunity: "Partagez quelque chose avec vos voisins",
     sellFormCopyCommunity:
       "Une annonce, un animal perdu, une demande d’aide, ou une bonne adresse à recommander.",
+    sellFieldBuysFrom: "Depuis quel pays achetez-vous ?",
+    sellBuysFromHint:
+      "Un acheteur choisit un marché avant de choisir une personne. C'est ce qui classe et fait trouver votre annonce.",
+    sellBuysFromOther: "Ailleurs",
+    sellFieldSourcingChannels: "Où achetez-vous là-bas ?",
+    sellSourcingChannelsHint:
+      "Facultatif. Une voiture d'enchères d'épave et une voiture de concession arrivent identiques sur une annonce — le préciser dit à l'acheteur ce qu'il achète.",
     sellFieldServiceRate: "Comment facturez-vous ?",
     sellFieldServiceAmount: "Votre tarif",
     sellRateSuffix_fixed: "FCFA",
@@ -3241,6 +3353,7 @@ export const translations = {
     jobsForYouSection: "Pour vous",
     jobsExploreSection: "Explorer par métier",
     jobsCategoryCount: "{count} offre(s)",
+    listingCountShort: "{count} annonce(s)",
     jobsCategoryEmpty: "Aucune offre",
     jobsFeedSalaryOnRequest: "Salaire sur demande",
     jobsSavedLink: "Enregistrés",
@@ -3268,9 +3381,83 @@ export const translations = {
     tourismHotelsSectionTitle: "Hôtels populaires",
     tourismEmptyResults: "Aucun résultat ne correspond à votre recherche.",
 
+    sellTitleHint_events: "ex. Nuit de la rumba — Orchestre Poly-Rythmo",
+    sellDescHint_events:
+      "Qui joue ou ce qui se passe, ce que le billet comprend, et ce qu’il faut savoir avant de se déplacer.",
+    eventsHeroKicker: "LES SORTIES PRÈS DE VOUS",
+    eventsHeroKickerNear: "{city} ET ALENTOURS",
+    eventsHeroTitle: "Où sortir",
+    eventsHeroCopy:
+      "L’entrée sur place coûte presque toujours plus cher qu’en avance, et l’heure annoncée est celle de l’ouverture des portes, pas du début. Les deux sont sur chaque fiche.",
+    eventsAllCities: "Toutes les villes",
+    eventsNoCityMatch: "Aucune ville de ce nom.",
+    eventsCount: "{count} sortie(s)",
+    eventsSortByDate: "Par date",
+    eventFilterAll: "Tout",
+    eventFilterFree: "Gratuit",
+    eventFeaturedKicker: "LA PROCHAINE",
+    eventPriceUnknown: "Prix à demander",
+    eventPriceFree: "Entrée libre",
+    eventPriceFreeAdvance: "Gratuit en avance",
+    eventPriceAtGate: "{amount} FCFA sur place",
+    eventPriceAdvanceThenGate: "en avance · {amount} sur place",
+    eventPriceSingle: "tarif unique",
+    eventHoursAt: "À {time}",
+    eventHoursDoorsThenStart: "Portes {doors} · début vers {start}",
+    eventDistanceAway: "{km} km",
+    eventLike: "J’aime",
+    eventLiked: "Aimé",
+    listingLinkUnavailable:
+      "Cette annonce n’est plus disponible. Elle a peut-être été vendue ou retirée.",
+    listingLinkBrowse: "Parcourir Chez-Nous",
+    sellVideoTooLongTitle: "Vidéo trop longue",
+    sellVideoTooLong:
+      "Cette vidéo dure {{actual}} s. Restez sous {{max}} s — une vidéo courte s’envoie sur n’importe quelle connexion et les acheteurs la regardent en entier.",
+    sellVideoTooLarge:
+      "Cette vidéo pèse {{actual}} Mo. Restez sous {{max}} Mo — filmez en 1080p plutôt qu’en 4K, ou raccourcissez-la.",
+    eventActionFailedTitle: "Non enregistré",
+    eventActionFailedMessage:
+      "Ça n’est pas passé. Vérifiez votre connexion et réessayez.",
+    eventShare: "Partager",
+    eventsPostCta: "Publier un événement",
+    eventsPostShort: "Publier",
+    eventsEmptyButElsewhere:
+      "Rien sur cette période — mais il y a quelque chose à d’autres dates.",
+    calendarClose: "Fermer",
+    eventsSafetyNote:
+      "Ne payez en avance qu’au numéro Mobile Money de l’organisateur affiché ici, et gardez le message de confirmation : c’est votre seule preuve à l’entrée.",
+    shareEventMessage: "{title} — à {venue}, sur Chez-Nous",
+    shareEventMessageNoVenue: "{title} — sur Chez-Nous",
+    sellFieldEventKind: "Quel type d’événement ?",
+    sellFieldEventDate: "Date",
+    sellFieldEventDatePlaceholder: "JJ/MM/AAAA",
+    sellEventDateHint:
+      "Passé ce jour, l’événement n’est plus affiché — personne ne peut plus s’y rendre.",
+    sellFieldEventDoors: "Ouverture des portes",
+    sellFieldEventStart: "Début vers",
+    sellFieldEventTimePlaceholder: "ex. 20h00",
+    sellEventStartHint:
+      "Laissez vide si cela commence à l’ouverture. Les gens anticipent le décalage — l’annoncer, c’est les faire arriver à la bonne heure.",
+    sellFieldEventVenue: "Lieu",
+    sellFieldEventVenuePlaceholder: "ex. Institut français",
+    sellFieldEventQuartier: "Quartier",
+    sellFieldEventQuartierPlaceholder: "ex. Haie Vive",
+    sellFieldEventPriceAdvance: "Prix en avance (FCFA)",
+    sellFieldEventPriceGate: "Prix sur place (FCFA)",
+    sellFieldEventPricePlaceholder: "0 si rien à payer",
+    sellEventPriceHint:
+      "0 dans les deux, c’est un événement gratuit. 0 en avance avec un prix sur place, non — et la fiche le dira.",
+    sellFieldEventPay: "Comment paie-t-on ?",
+    sellFieldEventOrganiser: "Organisé par",
+    sellFieldEventOrganiserPlaceholder: "Votre nom ou votre structure",
+    sellFieldEventCapacity: "À propos des places",
+    sellFieldEventCapacityPlaceholder: "ex. Places limitées",
+    errorEventDateRequired:
+      "Indiquez la date de l’événement au format JJ/MM/AAAA. Sans date lisible, il serait publié sans jamais apparaître.",
+    errorEventDatePast: "Cette date est déjà passée.",
     eventsEmptyTitle: "Aucun événement pour le moment",
     eventsEmptySubtitle:
-      "Nous n'avons pas encore de vraie liste d'événements ici — bientôt disponible.",
+      "Rien n’est publié pour ce filtre. Si vous organisez quelque chose — concert, match, cérémonie, formation — publiez-le et il apparaîtra ici.",
 
     moreTitle: "Catégories",
 
@@ -3811,6 +3998,7 @@ export const translations = {
     partsScopeCar: "auto",
     partsScopeMoto: "moto",
     partsFamiliesLabel: "Familles de pièces",
+    partsSellerKindLabel: "Type de vendeur",
     partsQualityLabel: "Qualité de la pièce",
     partsOpenFirst: "Ouverts d’abord",
     partsCountAll: "{count} vendeur(s) de pièces {scope}",
@@ -4478,6 +4666,7 @@ export const translations = {
       "C'est d'eux que vous avez besoin maintenant — la déclaration, c'est leur métier.",
     importHelperCount: "{count} inscrits",
     importBuysFrom: "Achète depuis {country}",
+    importChannelsLabel: "Achète via",
     importOfferUnknown: "N'a pas précisé ce qu'il propose — demandez",
     importChooserTitle: "Vous êtes lequel ?",
     importChooserCopy:
@@ -4826,6 +5015,7 @@ export const translations = {
     menuPreferencesSectionTitle: "Préférences",
     menuLanguageRow: "Langue",
     menuHelpSafetySectionTitle: "Aide & sécurité",
+    infoPageMissing: "Cette page n'a pas pu être ouverte.",
     menuHelpCenterRow: "Centre d'aide",
     menuSafetyTipsRow: "Conseils de sécurité",
     menuPrivacyRow: "Confidentialité",
@@ -5379,6 +5569,10 @@ export const translations = {
     errorResetTokenExpired:
       "Votre vérification a expiré. Veuillez vérifier à nouveau votre numéro.",
     errorInvalidPrice: "Veuillez entrer un prix valide.",
+    categoryListingsOtherTrades: "Autres services",
+    localSectionSeeAll: "Voir les {count}",
+    errorBuysFromRequired:
+      "Veuillez choisir le pays depuis lequel vous achetez.",
     errorPhoneRequired: "Veuillez entrer un numéro de téléphone.",
     errorInvalidDutyHours:
       "Indiquez la durée de la garde en heures — 240 au maximum (dix jours). Un tour de garde dure une semaine.",

@@ -57,3 +57,6 @@ yarn-error.*
 # Emulator output, regenerated on every rules test run.
 firestore-debug.log
 firebase-debug.log
+
+# Firebase Hosting deploy cache — build output, not source.
+.firebase/

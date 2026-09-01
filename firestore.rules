@@ -490,6 +490,38 @@ service cloud.firestore {
       allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
 
+    // Liking an event is private, and shaped exactly like the two
+    // favourites collections above: your own row, readable by you alone.
+    match /eventLikes/{likeId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && likeId == request.auth.uid + '_' + request.resource.data.eventId;
+
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // Reacting is public — the point of a reaction is that the room and the
+    // organiser can see it — so these are world-readable, and the card
+    // totals them client-side.
+    //
+    // The document id is uid_eventId and the rule pins it to the writer.
+    // That is what makes one person one reaction: there is no second id
+    // they could write to in order to be counted twice, and no id belonging
+    // to somebody else they could overwrite. `update` is allowed alongside
+    // create so changing your mind from 🔥 to ❤️ is one write rather than a
+    // delete and a re-create, which would briefly drop the count.
+    match /eventReactions/{reactionId} {
+      allow read: if true;
+
+      allow create, update: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && reactionId == request.auth.uid + '_' + request.resource.data.eventId;
+
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
     match /jobFavorites/{favoriteId} {
       allow read: if request.auth != null && request.auth.uid == resource.data.userId;
 

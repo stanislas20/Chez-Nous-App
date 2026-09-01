@@ -9,6 +9,7 @@ import { MainTabs } from "./MainTabs";
 import { AdvertiseStack } from "./AdvertiseStack";
 import { CategoryListingsScreen } from "../screens/CategoryListingsScreen";
 import { ProductDetailScreen } from "../screens/ProductDetailScreen";
+import { ListingLinkScreen } from "../screens/ListingLinkScreen";
 import { JobDetailScreen } from "../screens/JobDetailScreen";
 import { JobApplicationsScreen } from "../screens/JobApplicationsScreen";
 import { SellerProfileScreen } from "../screens/SellerProfileScreen";
@@ -50,6 +51,7 @@ import { BreakdownScreen } from "../screens/BreakdownScreen";
 import { VehicleListScreen } from "../screens/VehicleListScreen";
 import { RealEstateDetailScreen } from "../screens/RealEstateDetailScreen";
 import { ReportListingScreen } from "../screens/ReportListingScreen";
+import { InfoPageScreen } from "../screens/InfoPageScreen";
 import { ScreenErrorBoundary } from "../components/ScreenErrorBoundary";
 import { AccountTypeScreen } from "../screens/AccountTypeScreen";
 import { SignUpScreen } from "../screens/SignUpScreen";
@@ -120,6 +122,9 @@ export function RootNavigator() {
       ) : (
         <>
           <Stack.Screen name="MainTabs" component={MainTabs} />
+          {/* Where a shared link lands: it holds an id, reads the listing
+              and replaces itself with the right detail screen. */}
+          <Stack.Screen name="ListingLink" component={ListingLinkScreen} />
           <Stack.Screen name="Advertise" component={AdvertiseStack} />
           <Stack.Screen
             name="More"
@@ -307,6 +312,11 @@ export function RootNavigator() {
           <Stack.Screen
             name="AuthForgotPassword"
             component={ForgotPasswordScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="InfoPage"
+            component={InfoPageScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen

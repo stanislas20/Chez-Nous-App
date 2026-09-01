@@ -6,6 +6,13 @@ const {
   onDocumentWritten,
 } = require("firebase-functions/v2/firestore");
 const { setGlobalOptions } = require("firebase-functions/v2");
+// Used by the moderator-queue paths and the claim sync below, and never
+// imported until now — `logger` is not a global in the v2 runtime, so every
+// one of those calls was a ReferenceError waiting on its branch. The one in
+// moderatorPushTokens fires exactly when no moderators are configured,
+// which is the moment somebody is trying to work out why no moderator was
+// notified.
+const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
@@ -17,6 +24,9 @@ exports.syncPharmacyRosters =
   require("./pharmacyRosterSync").syncPharmacyRosters;
 exports.sendPaperReminders =
   require("./paperReminders").sendPaperReminders;
+// The page a shared listing links to. Required after initializeApp above,
+// like the two before it, because it reads Firestore on the first request.
+exports.listingPage = require("./listingPage").listingPage;
 
 const PSEUDO_EMAIL_DOMAIN = "chez-nous.app";
 const MIN_PASSWORD_LENGTH = 6;
@@ -637,6 +647,70 @@ async function notifyModeratorOfQueue(listing, listingId, arrival) {
     ),
   );
 }
+
+// One list of moderators, and the claim that actually gates them, kept in
+// step by the same write.
+//
+// There were two answers to "is this person a moderator" and nothing held
+// them together. The review push reads appConfig/moderators.uids; every
+// rule in firestore.rules, and every gate in the app, reads the `moderator`
+// custom claim on the ID token. Adding a uid to the array bought a
+// notification and nothing else — so a moderator was told an listing was
+// waiting, opened the app, and was offered no way to approve or deny it.
+// Reported, reasonably, as the buttons being missing.
+//
+// The array stays the place a human edits, because it is a document you can
+// read and audit. The claim is derived from it here, so the two cannot
+// drift: granting is now one edit, and revoking is deleting a uid from the
+// same line.
+//
+// setCustomUserClaims replaces the whole claims object, so existing claims
+// are read and merged rather than overwritten — an account that is both a
+// moderator and something else must not lose the something else.
+exports.syncModeratorClaims = onDocumentWritten(
+  "appConfig/moderators",
+  async (event) => {
+    const before = event.data?.before?.data()?.uids ?? [];
+    const after = event.data?.after?.data()?.uids ?? [];
+
+    const granted = after.filter((uid) => !before.includes(uid));
+    const revoked = before.filter((uid) => !after.includes(uid));
+    if (!granted.length && !revoked.length) return;
+
+    const apply = async (uid, isModerator) => {
+      try {
+        const user = await admin.auth().getUser(uid);
+        const claims = { ...(user.customClaims ?? {}) };
+        if (isModerator) {
+          claims.moderator = true;
+        } else {
+          delete claims.moderator;
+        }
+        await admin.auth().setCustomUserClaims(uid, claims);
+        // The token on the device does not carry the new claim until it
+        // refreshes. revokeRefreshTokens forces that to happen rather than
+        // leaving somebody waiting up to an hour to be able to moderate —
+        // or, on a revoke, still able to.
+        await admin.auth().revokeRefreshTokens(uid);
+        logger.info(
+          `Moderator claim ${isModerator ? "granted to" : "revoked from"} ${uid}.`,
+        );
+      } catch (error) {
+        // A uid that is not a real account is a typo in the list, not a
+        // reason to abandon the rest of it.
+        logger.warn(
+          `Could not set moderator claim for ${uid}`,
+          error?.code ?? error,
+        );
+      }
+    };
+
+    await Promise.all([
+      ...granted.map((uid) => apply(uid, true)),
+      ...revoked.map((uid) => apply(uid, false)),
+    ]);
+  },
+);
 
 exports.notifyModeratorOfNewListing = onDocumentCreated(
   "listings/{listingId}",

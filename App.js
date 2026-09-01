@@ -48,6 +48,22 @@ ScreenOrientation.lockAsync(
 // reach) white regardless of dark mode. This mirrors our resolved scheme
 // into React Navigation's own theme shape so that strip matches instead of
 // showing through as a stray white bar.
+// The addresses that open this app.
+//
+// Both halves of a share point here: the `cheznous://l/<id>` button on the
+// web page, and the https URL itself for anyone whose phone has claimed it.
+// Without this, tapping "Ouvrir dans l'application" opened the app on its
+// home screen — the listing you were sent nowhere in sight, which reads as
+// a link that does not work.
+const linking = {
+  prefixes: ["cheznous://", "https://benin-marketplace-3eb04.web.app"],
+  config: {
+    screens: {
+      ListingLink: "l/:id",
+    },
+  },
+};
+
 function AppNavigationContainer() {
   const { scheme, colors } = useTheme();
   const base = scheme === "dark" ? DarkTheme : DefaultTheme;
@@ -67,6 +83,7 @@ function AppNavigationContainer() {
     <NavigationContainer
       theme={navigationTheme}
       ref={navigationRef}
+      linking={linking}
       // A notification tapped from a cold start arrives before the navigator
       // exists, so its destination is held and replayed here.
       onReady={onNavigationReady}

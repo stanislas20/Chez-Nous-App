@@ -34,6 +34,12 @@ import { radius, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
+import { withListingLink } from "../utils/listingLink";
+import { PRIVATE_UPLOAD_CACHE } from "../utils/uploadContentType";
+import {
+  downscalePhoto,
+  downscalePickedAssets,
+} from "../utils/downscalePhoto";
 import { useAuth } from "../auth/AuthContext";
 import { firestore, storage } from "../config/firebase";
 import { useJobFavorites } from "../hooks/useJobFavorites";
@@ -166,9 +172,12 @@ export function JobDetailScreen({ navigation, route }) {
   };
 
   const onShare = () => {
-    Share.share({ message: `${title} — ${job.company} (${job.city})` }).catch(
-      () => {},
-    );
+    Share.share({
+      message: withListingLink(
+        `${title} — ${job.company} (${job.city})`,
+        job,
+      ),
+    }).catch(() => {});
   };
 
   // Same "search by name, don't pretend to have a pinned address" pattern
@@ -286,7 +295,8 @@ export function JobDetailScreen({ navigation, route }) {
       const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
       if (result.canceled) break;
       const asset = result.assets?.[0];
-      if (asset) pages.push(asset.uri);
+      // eslint-disable-next-line no-await-in-loop
+      if (asset) pages.push(await downscalePhoto(asset.uri));
       // eslint-disable-next-line no-await-in-loop
       keepScanning = await new Promise((resolve) => {
         Alert.alert(
@@ -312,7 +322,8 @@ export function JobDetailScreen({ navigation, route }) {
       quality: 0.7,
     });
     if (result.canceled) return;
-    await finishCvFromImages((result.assets ?? []).map((asset) => asset.uri));
+    const picked = await downscalePickedAssets(result.assets ?? []);
+    await finishCvFromImages(picked.map((asset) => asset.uri));
   };
 
   const applyDisabled = applyPhone.trim().length < 8 || applySubmitting;
@@ -345,6 +356,7 @@ export function JobDetailScreen({ navigation, route }) {
         await new Promise((resolve, reject) => {
           const uploadTask = uploadBytesResumable(storageRef, blob, {
             contentType: cvAsset.mimeType || "application/pdf",
+            cacheControl: PRIVATE_UPLOAD_CACHE,
           });
           uploadTask.on("state_changed", null, reject, resolve);
         });

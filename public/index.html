@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chez-Nous</title>
+    <meta name="description" content="Les petites annonces du Bénin." />
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #00553a;
+        color: #ffffff;
+        text-align: center;
+        padding: 24px;
+      }
+      h1 { font-size: 30px; margin: 0 0 8px; }
+      p { margin: 0; opacity: 0.82; font-size: 17px; }
+      /* Green band on the hoist, yellow over red beside it — Bénin, not
+         Mali, which is what three vertical bands would be. */
+      .flag {
+        width: 64px; height: 44px; border-radius: 8px; margin: 0 auto 20px;
+        background:
+          linear-gradient(90deg, #008751 0 40%, transparent 40%),
+          linear-gradient(180deg, #fcd116 0 50%, #e8112d 50%);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="flag"></div>
+      <h1>Chez-Nous</h1>
+      <p>Les petites annonces du Bénin.</p>
+    </main>
+  </body>
+</html>

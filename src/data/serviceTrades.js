@@ -117,6 +117,16 @@ export const serviceTrades = [
   { key: "embroiderer", family: "sewing", icon: "color-wand-outline", labelKey: "sellTradeEmbroiderer" },
   { key: "dyer", family: "sewing", icon: "color-palette-outline", labelKey: "sellTradeDyer" },
   { key: "cobbler", family: "sewing", icon: "footsteps-outline", labelKey: "sellTradeCobbler" },
+  // Fashion, in the same family as the making of it. A couturier who
+  // calls himself styliste, and a client looking for either, must not
+  // have to guess which of two near-identical tiles they belong under —
+  // that is how one trade ends up split across two lists, each looking
+  // half empty.
+  { key: "stylist", family: "sewing", icon: "shirt-outline", labelKey: "sellTradeStylist" },
+  { key: "model", family: "sewing", icon: "person-outline", labelKey: "sellTradeModel" },
+  { key: "dryCleaning", family: "sewing", icon: "shirt-outline", labelKey: "sellTradeDryCleaning" },
+  { key: "outfitHire", family: "sewing", icon: "pricetags-outline", labelKey: "sellTradeOutfitHire" },
+  { key: "imageConsultant", family: "sewing", icon: "sparkles-outline", labelKey: "sellTradeImageConsultant" },
   // beauty
   { key: "hairdresser", family: "beauty", icon: "cut-outline", labelKey: "sellTradeHairdresser" },
   { key: "braiding", family: "beauty", icon: "git-branch-outline", labelKey: "sellTradeBraiding" },

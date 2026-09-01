@@ -538,7 +538,20 @@ const ChipWrap = styled.View`
   margin-bottom: ${spacing.md}px;
 `;
 
+// Sized by its row, like the family tiles above it.
+//
+// Packed by content alone, a wrapped row ends wherever the last chip
+// happens to fall — "Conseil en image" sat alone against a third of a line
+// of empty space, and each row broke at a different place, so nine chips
+// read as a heap rather than a set. flex-grow hands the leftover width
+// back to whichever chips are on that line, so every row finishes flush
+// and the shape survives a trade being added or a word being longer in
+// English than in French.
 const Chip = styled(Pressable)`
+  flex-grow: 1;
+  flex-basis: auto;
+  align-items: center;
+  justify-content: center;
   padding: ${spacing.xs}px ${spacing.md}px;
   border-radius: 999px;
   background-color: ${(props) => (props.on ? CLAY : props.theme.surface)};
@@ -549,6 +562,7 @@ const Chip = styled(Pressable)`
 const ChipLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 12.5px;
+  text-align: center;
   color: ${(props) => (props.on ? "#ffffff" : props.theme.text)};
 `;
 

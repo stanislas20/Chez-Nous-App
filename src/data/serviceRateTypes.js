@@ -39,6 +39,17 @@ export const serviceRateTypes = [
     labelFr: "À partir de",
   },
   {
+    // Per square metre. The trades that quote this way — a tiler, a
+    // painter, a mason — cannot answer "how much" without it, and were
+    // choosing "sur devis" for work whose price is entirely predictable
+    // once the surface is known.
+    key: "perSqm",
+    icon: "grid-outline",
+    color: "#5BA83A",
+    labelEn: "Per m²",
+    labelFr: "Au m²",
+  },
+  {
     key: "quote",
     icon: "chatbubble-ellipses-outline",
     color: "#A15AC4",

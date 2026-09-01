@@ -212,7 +212,37 @@ const OWN_MATCHER = {
   importateur: importation.isOverseasBuyerListing,
 };
 
+// Two ways a trade can be findable, and which one applies depends on when
+// the trade was added.
+//
+// The sixteen vehicle trades are found by reading the listing's own words,
+// because the trade the seller picked was never saved — it chose the
+// worked example and was discarded. That works for car vocabulary and
+// cannot scale: "coiffure", "cours" and "couture" share no keyword, and a
+// tailor who writes "confection" would appear nowhere.
+//
+// So the non-vehicle trades are found by what the provider declared, which
+// the form now writes onto the listing. A trade in that world needs no
+// matcher; it needs the declaration to be persisted, which is checked once
+// below rather than sixty times here.
+const tradeFamily = new Map(
+  [
+    ...fs
+      .readFileSync(path.join(root, "src/data/serviceTrades.js"), "utf8")
+      .matchAll(/\{\s*key: "([a-zA-Z]+)",\s*(?:\n\s*)?family: "([a-zA-Z]+)"/g),
+  ].map(([, key, family]) => [key, family]),
+);
+
+check(
+  "the form saves the trade the provider chose",
+  /\.\.\.\(isServices[\s\S]{0,900}?\n\s+trade,/.test(
+    fs.readFileSync(path.join(root, "src/screens/CreateListingScreen.js"), "utf8"),
+  ),
+  true,
+);
+
 [...offered].forEach((trade) => {
+  if (tradeFamily.get(trade) !== "vehicle") return;
   const specialty = garage.specialtyForTrade(trade);
   const own = OWN_MATCHER[trade];
   check(`"${trade}" routes somewhere`, Boolean(specialty || own), true);

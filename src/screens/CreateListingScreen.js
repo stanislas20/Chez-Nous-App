@@ -162,6 +162,13 @@ import {
   serviceRateNeedsAmount,
   serviceRateTypes,
 } from "../data/serviceRateTypes";
+import {
+  getServiceDepositLabel,
+  getServiceWorkPlaceLabel,
+  isHeavyDeposit,
+  serviceDepositBands,
+  serviceWorkPlaces,
+} from "../data/serviceTerms";
 import { sectorTint } from "../data/companySectors";
 import { serviceTrades as SERVICE_TRADES } from "../data/serviceTrades";
 import {
@@ -335,6 +342,57 @@ const TRADE_HINT_KEYS = {
   haulier: "sellTitleHint_haulier",
   transitaire: "sellTitleHint_transitaire",
   importateur: "sellTitleHint_importateur",
+
+  // The trades that are not about cars. Each has its own example for
+  // the same reason the car ones do: a mason shown a plumber's example
+  // writes a plumber's title, and the generic Services hint IS the
+  // plumber.
+  mason: "sellTitleHint_mason",
+  tiler: "sellTitleHint_tiler",
+  painter: "sellTitleHint_painter",
+  plumber: "sellTitleHint_plumber",
+  electrician: "sellTitleHint_electrician",
+  welder: "sellTitleHint_welder",
+  carpenter: "sellTitleHint_carpenter",
+  wellDigger: "sellTitleHint_wellDigger",
+  cleaning: "sellTitleHint_cleaning",
+  cook: "sellTitleHint_cook",
+  guard: "sellTitleHint_guard",
+  gardener: "sellTitleHint_gardener",
+  septic: "sellTitleHint_septic",
+  pestControl: "sellTitleHint_pestControl",
+  tailor: "sellTitleHint_tailor",
+  embroiderer: "sellTitleHint_embroiderer",
+  dyer: "sellTitleHint_dyer",
+  cobbler: "sellTitleHint_cobbler",
+  hairdresser: "sellTitleHint_hairdresser",
+  braiding: "sellTitleHint_braiding",
+  beautician: "sellTitleHint_beautician",
+  barber: "sellTitleHint_barber",
+  makeup: "sellTitleHint_makeup",
+  caterer: "sellTitleHint_caterer",
+  marquee: "sellTitleHint_marquee",
+  sound: "sellTitleHint_sound",
+  decoration: "sellTitleHint_decoration",
+  photographer: "sellTitleHint_photographer",
+  pastry: "sellTitleHint_pastry",
+  phoneRepair: "sellTitleHint_phoneRepair",
+  graphics: "sellTitleHint_graphics",
+  developer: "sellTitleHint_developer",
+  cctv: "sellTitleHint_cctv",
+  communityManager: "sellTitleHint_communityManager",
+  tutor: "sellTitleHint_tutor",
+  languages: "sellTitleHint_languages",
+  computing: "sellTitleHint_computing",
+  music: "sellTitleHint_music",
+  homeNurse: "sellTitleHint_homeNurse",
+  carer: "sellTitleHint_carer",
+  physio: "sellTitleHint_physio",
+  massage: "sellTitleHint_massage",
+  publicWriter: "sellTitleHint_publicWriter",
+  accountant: "sellTitleHint_accountant",
+  translator: "sellTitleHint_translator",
+  lawyer: "sellTitleHint_lawyer",
 };
 
 
@@ -674,6 +732,15 @@ export function CreateListingScreen({ route, navigation }) {
   // Dépannage can finally say what a stranded person needs to know.
   const [responseTime, setResponseTime] = useState(seed("responseTime", null));
   const [equipment, setEquipment] = useState(seed("equipment", []));
+  const [serviceDeposit, setServiceDeposit] = useState(
+    seed("serviceDeposit", null),
+  );
+  const [serviceWorkPlace, setServiceWorkPlace] = useState(
+    seed("serviceWorkPlace", null),
+  );
+  const [serviceWarranty, setServiceWarranty] = useState(
+    seedText("serviceWarranty", ""),
+  );
   const [coverageZones, setCoverageZones] = useState(
     seedText("coverageZones", ""),
   );
@@ -2113,6 +2180,20 @@ export function CreateListingScreen({ route, navigation }) {
         ...(isCommunity ? { communityType } : {}),
         ...(isServices
           ? {
+              // The trade the provider chose, kept.
+              //
+              // It was only ever used to pick the worked example above the
+              // title field and then thrown away, which is why every
+              // vehicle screen finds its listings by matching words in the
+              // text: there was nothing else to match on. That works for
+              // sixteen car trades with distinctive vocabulary and cannot
+              // work for a directory of sixty — "cours" and "coiffure"
+              // share no reliable keyword, and a tailor who writes
+              // "confection" appears nowhere.
+              //
+              // Declared beats guessed. The text matchers stay for every
+              // listing published before today.
+              trade,
               serviceRateType,
               // Declared by the provider, never derived. A response window
               // is their own typical, shown as such — not an ETA the app
@@ -2120,6 +2201,14 @@ export function CreateListingScreen({ route, navigation }) {
               responseTime,
               equipment,
               coverageZones: coverageZones.trim() || null,
+              // What the buyer pays before anything is done, where the
+              // work happens, and what is promised afterwards. Declared,
+              // never inferred: the browse screen ranks on the first of
+              // these, and a value the provider did not choose would rank
+              // them above people who answered honestly.
+              serviceDeposit,
+              serviceWorkPlace,
+              serviceWarranty: serviceWarranty.trim() || null,
             }
           : {}),
         ...(isAgriculture ? { agricultureKind, agricultureUnit } : {}),
@@ -5288,6 +5377,96 @@ export function CreateListingScreen({ route, navigation }) {
                   ) : null}
                 </>
               ) : null}
+
+              {/* The advance.
+              
+                  This is the question the whole services directory is
+                  ordered by, and the one nothing asked before: a price
+                  tells a buyer what the job costs, the advance tells them
+                  what they risk before it starts. Providers who ask for
+                  nothing are listed first, which is a reason to answer
+                  rather than a penalty for answering. */}
+              <Label>{t("sellFieldServiceDeposit")}</Label>
+              <PickerGrid>
+                {serviceDepositBands.map((option, index) => {
+                  const active = serviceDeposit === option.key;
+                  return (
+                    <PickerCard
+                      key={option.key}
+                      width={getPickerCardWidth(index, serviceDepositBands.length)}
+                      full={isPickerCardFull(index, serviceDepositBands.length)}
+                      selected={active}
+                      accent={option.color}
+                      tint={sectorTint(option.color, 0.09)}
+                      onPress={() => setServiceDeposit(active ? null : option.key)}
+                    >
+                      <CategoryIconWrap
+                        small
+                        tint={sectorTint(option.color, active ? 0.22 : 0.12)}
+                      >
+                        <Ionicons name={option.icon} size={17} color={option.color} />
+                      </CategoryIconWrap>
+                      <PickerCardLabel
+                        full={isPickerCardFull(index, serviceDepositBands.length)}
+                        selected={active}
+                        numberOfLines={2}
+                      >
+                        {getServiceDepositLabel(option.key, language)}
+                      </PickerCardLabel>
+                    </PickerCard>
+                  );
+                })}
+              </PickerGrid>
+              {/* Said as they choose it, not after they publish. Never a
+                  block: plenty of honest trades buy materials first. */}
+              {isHeavyDeposit(serviceDeposit) ? (
+                <FieldNote>{t("sellServiceDepositHeavy")}</FieldNote>
+              ) : null}
+
+              <Label>{t("sellFieldServiceWhere")}</Label>
+              <PickerGrid>
+                {serviceWorkPlaces.map((option, index) => {
+                  const active = serviceWorkPlace === option.key;
+                  return (
+                    <PickerCard
+                      key={option.key}
+                      width={getPickerCardWidth(index, serviceWorkPlaces.length)}
+                      full={isPickerCardFull(index, serviceWorkPlaces.length)}
+                      selected={active}
+                      accent={option.color}
+                      tint={sectorTint(option.color, 0.09)}
+                      onPress={() =>
+                        setServiceWorkPlace(active ? null : option.key)
+                      }
+                    >
+                      <CategoryIconWrap
+                        small
+                        tint={sectorTint(option.color, active ? 0.22 : 0.12)}
+                      >
+                        <Ionicons name={option.icon} size={17} color={option.color} />
+                      </CategoryIconWrap>
+                      <PickerCardLabel
+                        full={isPickerCardFull(index, serviceWorkPlaces.length)}
+                        selected={active}
+                        numberOfLines={2}
+                      >
+                        {getServiceWorkPlaceLabel(option.key, language)}
+                      </PickerCardLabel>
+                    </PickerCard>
+                  );
+                })}
+              </PickerGrid>
+
+              <Label>{t("sellFieldServiceWarranty")}</Label>
+              <InputRow>
+                <Input
+                  value={serviceWarranty}
+                  onChangeText={setServiceWarranty}
+                  placeholder={t("sellFieldServiceWarrantyPlaceholder")}
+                  placeholderTextColor={colors.textMuted}
+                />
+              </InputRow>
+              <FieldNote>{t("sellServiceWarrantyHint")}</FieldNote>
 
               {/* Optional, and asked of most services rather than gated on
                   guessing which ones are roadside — a hairdresser leaves it

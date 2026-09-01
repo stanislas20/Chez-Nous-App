@@ -9,6 +9,8 @@ import { radius, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
+import { downscalePhoto } from "../utils/downscalePhoto";
+import { PUBLIC_UPLOAD_CACHE } from "../utils/uploadContentType";
 import { useAuth } from "../auth/AuthContext";
 import { firestore, storage } from "../config/firebase";
 import { companySectors, getCompanySectorLabel } from "../data/companySectors";
@@ -61,11 +63,12 @@ export function CompanyProfileEditScreen({ navigation }) {
         storage,
         `sellers/${user.uid}/logo-${Date.now()}.jpg`,
       );
-      const response = await fetch(asset.uri);
+      const response = await fetch(await downscalePhoto(asset.uri));
       const blob = await response.blob();
       await new Promise((resolve, reject) => {
         const task = uploadBytesResumable(storageRef, blob, {
           contentType: "image/jpeg",
+          cacheControl: PUBLIC_UPLOAD_CACHE,
         });
         task.on("state_changed", null, reject, resolve);
       });

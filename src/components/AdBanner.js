@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Pressable } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import { previewBufferOptions } from '../utils/videoPreview';
 import styled from 'styled-components/native';
 import { radius, shadow, spacing } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
@@ -15,6 +16,7 @@ function VideoBanner({ ad, isActive }) {
   const player = useVideoPlayer(ad.mediaUrl, (p) => {
     p.loop = true;
     p.muted = true;
+    p.bufferOptions = previewBufferOptions;
     // Muted decorative preview — it must never claim the iOS audio session.
     // The default ('auto') still activates one in playback mode, and a held
     // playback session is why voice search failed with `audio-capture` /

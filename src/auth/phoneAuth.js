@@ -7,6 +7,10 @@ import {
 import { isPossiblePhoneNumber } from "libphonenumber-js";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
+import {
+  PRIVATE_UPLOAD_CACHE,
+  PUBLIC_UPLOAD_CACHE,
+} from "../utils/uploadContentType";
 import { firebaseAuth, firestore, storage } from "../config/firebase";
 import { claimPostingRight } from "./postingClaim";
 
@@ -146,6 +150,7 @@ async function uploadCompanyLogo(uid, asset) {
   await new Promise((resolve, reject) => {
     const uploadTask = uploadBytesResumable(storageRef, blob, {
       contentType: "image/jpeg",
+      cacheControl: PUBLIC_UPLOAD_CACHE,
     });
     uploadTask.on("state_changed", null, reject, resolve);
   });
@@ -173,6 +178,9 @@ async function uploadVerificationDoc(uid, docType, asset) {
   await new Promise((resolve, reject) => {
     const uploadTask = uploadBytesResumable(storageRef, blob, {
       contentType,
+      // A verification document is nobody's business but this seller's and
+      // a moderator's, so no shared cache may keep a copy of it.
+      cacheControl: PRIVATE_UPLOAD_CACHE,
     });
     uploadTask.on("state_changed", null, reject, resolve);
   });

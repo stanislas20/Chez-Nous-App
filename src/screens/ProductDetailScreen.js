@@ -15,6 +15,9 @@ import {
 } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { previewBufferOptions } from "../utils/videoPreview";
+import { withListingLink } from "../utils/listingLink";
+import { canDraw, drawableMedia } from "../utils/listingImage";
 import MapView, { Marker } from "react-native-maps";
 import {
   formatBatterySpec,
@@ -63,6 +66,9 @@ import {
   getAmenityLabel,
   getPropertyTypeLabel,
   getRealEstateDealLabel,
+  getStayCarBodyLabel,
+  getStayCarCostLabel,
+  getStayCarDriverLabel,
 } from "../data/realEstate";
 import { categories } from "../data/categories";
 import { categoryLabelFor } from "../data/customCategories";
@@ -76,6 +82,7 @@ import { useFavorites } from "../hooks/useFavorites";
 import { recordRecentlyViewed } from "../hooks/useRecentlyViewed";
 import { useApprovedListings } from "../hooks/useApprovedListings";
 import { CategoryPlaceholder } from "../components/CategoryPlaceholder";
+import { ListingMedia } from "../components/ListingMedia";
 import { PhoneCallButtons } from "../components/PhoneCallButtons";
 import { ImageLightbox } from "../components/ImageLightbox";
 import { useSellerStats } from "../hooks/useSellerStats";
@@ -115,6 +122,12 @@ function HeroVideo({ uri }) {
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
     p.muted = true;
+    // Bounded like the card previews, and for the same reason: this is a
+    // muted loop nobody scrubs through, and left unbounded it filled the
+    // Java heap and took the app down about a minute after the screen
+    // opened. The lightbox keeps the defaults — that one is opened on
+    // purpose and watched.
+    p.bufferOptions = previewBufferOptions;
     // Muted decorative preview — it must never claim the iOS audio session.
     // The default ('auto') still activates one in playback mode, and a held
     // playback session is why voice search failed with `audio-capture` /
@@ -182,8 +195,6 @@ function HeroGallery({ media, width, height, onIndexChange, onPressPhoto }) {
 function SimilarCard({ listing, navigation }) {
   const { language, t } = useI18n();
   const title = language === "en" ? listing.titleEn : listing.titleFr;
-  const coverUri = listing.mediaUrl ?? listing.image;
-  const category = categoryByKey[listing.categoryKey];
 
   return (
     <SimilarPressable
@@ -194,15 +205,13 @@ function SimilarCard({ listing, navigation }) {
       }
     >
       <SimilarCardInner>
+        {/* Was resizeMode="contain", which fits the whole photo inside the
+            box and leaves bars down both sides — the picture never reached
+            the edges of its own card while every other card in the app
+            filled them. ListingMedia covers, and brings the no-photo
+            placeholder and the multi-photo swipe with it. */}
         <SimilarImageWrap>
-          {coverUri ? (
-            <SimilarImage source={{ uri: coverUri }} resizeMode="contain" />
-          ) : (
-            <CategoryPlaceholder
-              icon={category?.icon ?? "pricetag-outline"}
-              size="card"
-            />
-          )}
+          <ListingMedia listing={listing} size="card" />
         </SimilarImageWrap>
         <SimilarBody>
           <SimilarPrice numberOfLines={1}>
@@ -226,8 +235,16 @@ export function ProductDetailScreen({ route, navigation }) {
   const title = language === "en" ? listing.titleEn : listing.titleFr;
   const description =
     language === "en" ? listing.descriptionEn : listing.descriptionFr;
-  const coverUri = listing.mediaUrl ?? listing.image;
-  const hasGallery = Array.isArray(listing.media) && listing.media.length > 1;
+  // Everything the detail screen shows, minus what this platform cannot
+  // decode — see the note on canDraw in utils/listingImage. A .heic cover
+  // drew as a blank hero with the page counter over it, on every listing
+  // photographed with an iPhone before uploads were re-encoded.
+  const drawable = drawableMedia(listing.media);
+  const rawCover = listing.mediaUrl ?? listing.image;
+  const coverUri = canDraw(rawCover)
+    ? rawCover
+    : (drawable[0]?.mediaUrl ?? null);
+  const hasGallery = drawable.length > 1;
   // A single photo is shown at its own real aspect ratio (full width, no
   // fixed height) so nothing gets cropped — "cover" inside a fixed-height
   // box was cutting off part of the photo. A multi-photo gallery still uses
@@ -270,7 +287,17 @@ export function ProductDetailScreen({ route, navigation }) {
   // over as grey bars down both sides; a listing framed by empty margins
   // looks broken in a way a cropped photograph does not. Nothing is lost
   // either way: tapping opens the whole image, uncropped, full-screen.
-  const MAX_HERO_FRACTION = 0.62;
+  // How much of the screen the photograph may take before the page stops
+  // being a listing and becomes a photo viewer.
+  //
+  // 0.62 was cautious: on a tall phone it left a portrait photograph — which
+  // is most of them, since people hold their phones upright — noticeably
+  // letterboxed, with the interesting part cropped away by a box shorter
+  // than the picture. 0.74 still leaves the price and title visible without
+  // scrolling on every screen size in use here, which is the line that
+  // actually matters: somebody must see what it costs before they decide to
+  // look further.
+  const MAX_HERO_FRACTION = 0.74;
   const singlePhotoHeight = Math.min(
     windowWidth / singlePhotoRatio,
     windowHeight * MAX_HERO_FRACTION,
@@ -283,15 +310,15 @@ export function ProductDetailScreen({ route, navigation }) {
     windowWidth / galleryAspectRatio,
     windowHeight * MAX_HERO_FRACTION,
   );
-  const galleryCount = hasGallery ? listing.media.length : coverUri ? 1 : 0;
+  const galleryCount = hasGallery ? drawable.length : coverUri ? 1 : 0;
 
   // Image.getSize fetches real pixel dimensions directly from the URI —
   // more reliable here than an <Image onLoad>, which depends on that exact
   // slide having actually mounted inside the horizontal FlatList.
   useEffect(() => {
-    const primaryUri = hasGallery ? listing.media?.[0]?.mediaUrl : coverUri;
+    const primaryUri = hasGallery ? drawable[0]?.mediaUrl : coverUri;
     const isVideo = hasGallery
-      ? listing.media?.[0]?.mediaType === "video"
+      ? drawable[0]?.mediaType === "video"
       : listing.mediaType === "video";
     if (!primaryUri || isVideo) return undefined;
     let cancelled = false;
@@ -316,7 +343,7 @@ export function ProductDetailScreen({ route, navigation }) {
   // Every slide, video included — the viewer plays videos with their own
   // controls rather than freezing on a first frame.
   const lightboxMedia = hasGallery
-    ? listing.media
+    ? drawable
         .filter((item) => item.mediaUrl)
         .map((item) => ({
           uri: item.mediaUrl,
@@ -544,12 +571,21 @@ export function ProductDetailScreen({ route, navigation }) {
       item.categoryKey !== "pharmacyOnDuty" &&
       item.categoryKey !== "jobs",
   );
-  const sameCategoryListings = otherListings.filter(
-    (item) => item.categoryKey === listing.categoryKey,
-  );
-  const similarListings = (
-    sameCategoryListings.length > 0 ? sameCategoryListings : otherListings
-  ).slice(0, 10);
+  // Same category, or nothing.
+  //
+  // This used to fall back to every other listing when the category was
+  // thin, which is where "Annonces similaires" stopped being true: a
+  // concert sat under a fridge, a plot of land under a pair of shoes. The
+  // heading is a claim about the things beneath it, and a row that fills
+  // itself by dropping the only criterion it has is worse than a row that
+  // is not there — somebody scrolls it looking for an alternative to what
+  // they are reading, and every item is an alternative to nothing.
+  //
+  // So an empty row simply does not render (see the length check at the
+  // call site). Fewer, right, beats ten and wrong.
+  const similarListings = otherListings
+    .filter((item) => item.categoryKey === listing.categoryKey)
+    .slice(0, 10);
 
   const sellerListingCount = (allListings ?? []).filter(
     (item) => item.sellerId === listing.sellerId,
@@ -567,14 +603,15 @@ export function ProductDetailScreen({ route, navigation }) {
   const handleShare = async () => {
     const priceText = listingPriceText(listing, t, language);
     try {
+      const message = isPharmacy
+        ? t("shareDutyPharmacyMessage", { title, phone: listing.phone ?? "" })
+        : isJobs
+          ? t("shareJobMessage", { title, company: listing.company ?? "" })
+          : priceText
+            ? t("shareListingMessage", { title, price: priceText })
+            : t("shareListingMessageNoPrice", { title });
       const result = await Share.share({
-        message: isPharmacy
-          ? t("shareDutyPharmacyMessage", { title, phone: listing.phone ?? "" })
-          : isJobs
-            ? t("shareJobMessage", { title, company: listing.company ?? "" })
-            : priceText
-              ? t("shareListingMessage", { title, price: priceText })
-              : t("shareListingMessageNoPrice", { title }),
+        message: withListingLink(message, listing),
       });
       // Only a share that actually happened. The sheet also resolves when
       // it is dismissed, and counting that would make the number a measure
@@ -728,7 +765,7 @@ export function ProductDetailScreen({ route, navigation }) {
               />
             ) : hasGallery ? (
               <HeroGallery
-                media={listing.media}
+                media={drawable}
                 width={windowWidth}
                 height={gallerySlideHeight}
                 onIndexChange={setActivePhotoIndex}
@@ -1063,11 +1100,17 @@ export function ProductDetailScreen({ route, navigation }) {
                   <SpecText>{t("sellFieldFurnished")}</SpecText>
                 </SpecItem>
               ) : null}
-              {/* A vehicle offered with the place, and the poster's own
-                  words about it. The note is the half that matters —
-                  "included" and "3 000 F/day, driver extra" are both
-                  honest answers to the same tick box, and only the poster
-                  knows which one applies. */}
+              {/* A vehicle offered with the place.
+              
+                  Assembled in the order somebody asks: which car, then
+                  whether it comes with a driver, then whether it is in the
+                  price — with the poster's own note last, because it holds
+                  the conditions no field will ever have ("seulement la
+                  première semaine").
+              
+                  Every part is optional and absent parts leave no trace.
+                  Listings published before these fields existed carry only
+                  the note, and they still read exactly as they always did. */}
               {listing.withCar ? (
                 <SpecItem>
                   <Ionicons
@@ -1076,9 +1119,17 @@ export function ProductDetailScreen({ route, navigation }) {
                     color={colors.primary}
                   />
                   <SpecText>
-                    {listing.withCarNote
-                      ? `${t("realEstateWithCarBadge")} — ${listing.withCarNote}`
-                      : t("realEstateWithCarBadge")}
+                    {[
+                      (listing.withCarTypes ?? [])
+                        .map((key) => getStayCarBodyLabel(key, language))
+                        .filter(Boolean)
+                        .join(" · ") || t("realEstateWithCarBadge"),
+                      getStayCarDriverLabel(listing.withCarDriver, language),
+                      getStayCarCostLabel(listing.withCarCost, language),
+                      listing.withCarNote || null,
+                    ]
+                      .filter(Boolean)
+                      .join(" — ")}
                   </SpecText>
                 </SpecItem>
               ) : null}
@@ -1906,12 +1957,6 @@ const SimilarCardInner = styled.View`
 
 const SimilarImageWrap = styled.View`
   height: 112px;
-  background-color: ${(props) => props.theme.surfaceAlt};
-`;
-
-const SimilarImage = styled.Image`
-  width: 100%;
-  height: 100%;
   background-color: ${(props) => props.theme.surfaceAlt};
 `;
 

@@ -17,6 +17,16 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { ensureCameraAccess } from "../utils/mediaAccess";
 import { useVideoPlayer, VideoView } from "expo-video";
+import {
+  downscalePickedAssets,
+  makeThumbnail,
+} from "../utils/downscalePhoto";
+import {
+  MAX_VIDEO_SECONDS,
+  partitionByVideoLimits,
+  videoRefusalMessage,
+} from "../utils/videoLimits";
+import { previewBufferOptions } from "../utils/videoPreview";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import {
   collection,
@@ -82,10 +92,25 @@ import {
   listerKinds,
   getListerKindLabel,
   realEstateHasCarOption,
+  getStayCarBodyLabel,
+  getStayCarCostLabel,
+  getStayCarDriverLabel,
+  stayCarBodyTypes,
+  stayCarCostModes,
+  stayCarDriverOptions,
+  STAY_CAR_CLEARED,
   realEstateHasFurnished,
   realEstateHasRooms,
   realEstatePriceSuffixKey,
 } from "../data/realEstate";
+import {
+  EVENT_CLEARED,
+  eventKinds,
+  eventPayModes,
+  getEventKindIcon,
+  normaliseEventTime,
+  parseEventDate,
+} from "../data/events";
 import {
   dealsForIntent,
   getVehicleBodyTypeLabel,
@@ -138,6 +163,16 @@ import {
   serviceRateTypes,
 } from "../data/serviceRateTypes";
 import { sectorTint } from "../data/companySectors";
+import { serviceTrades as SERVICE_TRADES } from "../data/serviceTrades";
+import {
+  getSourcingChannelLabel,
+  getSourcingCountryFlag,
+  getSourcingCountryLabel,
+  retainSourcingChannels,
+  sourcingChannelsFor,
+  sourcingCountries,
+} from "../data/importation";
+import { CountryPickerSheet } from "../components/CountryPickerSheet";
 import { useApprovedListings } from "../hooks/useApprovedListings";
 import { getQuartiers } from "../data/quartiers";
 import {
@@ -178,6 +213,7 @@ import {
   isValidCrankingAmps,
 } from "../data/batteries";
 import { nearestKnownCity } from "../utils/nearestCity";
+import { CalendarPicker } from "../components/CalendarPicker";
 import { postingTitleKey } from "../data/postingTitles";
 import { PROMOTION_DAYS } from "../data/promotion";
 import { accountCountry, canPublish } from "../utils/canPublish";
@@ -217,6 +253,7 @@ import {
   permitCategories,
 } from "../data/drivers";
 import { guessContentType } from "../utils/uploadContentType";
+import { PUBLIC_UPLOAD_CACHE } from "../utils/uploadContentType";
 import {
   experienceLevels,
   getExperienceAccent,
@@ -300,61 +337,6 @@ const TRADE_HINT_KEYS = {
   importateur: "sellTitleHint_importateur",
 };
 
-// The car trades that have a screen of their own, offered inside the form
-// so they are reachable without walking back out to Voitures. Ordered by how
-// often somebody publishes one, not alphabetically.
-//
-// "tyres" and "battery" are the same trade keys the Pneus and Batterie
-// screens pass, deliberately: under Vehicles they mean somebody selling a
-// tyre, and under Services the same key means somebody who fits one. The
-// examples differ by category rather than by inventing two more keys that
-// every downstream test would then have to know about.
-const SERVICE_TRADES = [
-  { key: "garage", icon: "construct-outline", labelKey: "sellTradeGarage" },
-  {
-    key: "bodywork",
-    icon: "color-fill-outline",
-    labelKey: "sellTradeBodywork",
-  },
-  { key: "driver", icon: "person-outline", labelKey: "sellTradeDriver" },
-  { key: "parts", icon: "cog-outline", labelKey: "sellTradeParts" },
-  { key: "wash", icon: "water-outline", labelKey: "sellTradeWash" },
-  { key: "electric", icon: "flash-outline", labelKey: "sellTradeElectric" },
-  { key: "tyres", icon: "disc-outline", labelKey: "sellTradeTyres" },
-  {
-    key: "battery",
-    icon: "battery-charging-outline",
-    labelKey: "sellTradeBattery",
-  },
-  {
-    key: "insurance",
-    icon: "shield-checkmark-outline",
-    labelKey: "sellTradeInsurance",
-  },
-  { key: "clim", icon: "snow-outline", labelKey: "sellTradeAircon" },
-  { key: "keys", icon: "key-outline", labelKey: "sellTradeKeys" },
-  { key: "gps", icon: "navigate-circle-outline", labelKey: "sellTradeGps" },
-  {
-    key: "drivingSchool",
-    icon: "school-outline",
-    labelKey: "sellTradeDrivingSchool",
-  },
-  // Carrying goods for other people. Distinct from "driver", which is a
-  // person driving passengers in a car: this one owns a load bed and is
-  // found from the Camions screen's third tab.
-  { key: "haulier", icon: "cube-outline", labelKey: "sellTradeHaulier" },
-  // Clearing somebody else's cargo through the port. Not a haulier, who
-  // owns a load bed and moves goods that are already in the country: this
-  // one files the declaration, and the two are found from opposite ends of
-  // the same journey.
-  { key: "transitaire", icon: "boat-outline", labelKey: "sellTradeTransitaire" },
-  // The other end of the same journey: somebody abroad who buys the vehicle
-  // or the goods and ships them here, either as their own stock to sell or
-  // on order for a buyer in Bénin. Distinct from "transitaire" on purpose —
-  // the two are found from the same screen and asked different questions,
-  // and half the transitaire listings say "importation" too.
-  { key: "importateur", icon: "airplane-outline", labelKey: "sellTradeImportateur" },
-];
 
 // Under Services these two keys describe a workshop, not a product, so the
 // examples cannot be the ones the Pneus and Batterie screens use.
@@ -436,6 +418,7 @@ const TITLE_HINT_KEYS = {
   pharmacyOnDuty: "sellTitleHint_pharmacyOnDuty",
   jobs: "sellFieldTitlePlaceholderJobs",
   restaurants: "sellTitleHint_restaurants",
+  events: "sellTitleHint_events",
 };
 
 // Only the categories whose description genuinely differs — the goods
@@ -459,6 +442,17 @@ const GOODS_VEHICLE_HINTS = {
   },
 };
 
+// What to call each field when telling somebody it is empty. Only the
+// fields a publish can actually be refused for.
+const FIELD_LABEL_KEYS = {
+  title: "sellFieldTitle",
+  description: "sellFieldDescription",
+  category: "sellFieldCategory",
+  city: "sellFieldLocation",
+  phone: "sellFieldPhone",
+  eventDate: "sellFieldEventDate",
+};
+
 const DESC_HINT_KEYS = {
   jobs: "sellDescHint_jobs",
   services: "sellDescHint_services",
@@ -466,6 +460,7 @@ const DESC_HINT_KEYS = {
   agriculture: "sellDescHint_agriculture",
   pharmacyOnDuty: "sellDescHint_pharmacyOnDuty",
   restaurants: "sellDescHint_restaurants",
+  events: "sellDescHint_events",
 };
 
 // Ten, because that is the shot list a vehicle actually needs — front and
@@ -552,6 +547,7 @@ const JOB_TYPES = [
 
 function VideoTile({ uri }) {
   const player = useVideoPlayer(uri, (p) => {
+    p.bufferOptions = previewBufferOptions;
     p.loop = true;
     p.muted = true;
     // Muted decorative preview — it must never claim the iOS audio session.
@@ -615,6 +611,56 @@ export function CreateListingScreen({ route, navigation }) {
   const [price, setPrice] = useState(seedText("price", ""));
   const [phone, setPhone] = useState(seedText("phone", ""));
   const [dutyHours, setDutyHours] = useState(seedText("dutyHours", ""));
+  // An event. The date is typed rather than picked because this project has
+  // no date picker; parseEventDate is what decides whether what was typed
+  // is a real day. Doors and start are separate on purpose — see events.js.
+  const [eventKind, setEventKind] = useState(seed("eventKind", null));
+  const [eventDate, setEventDate] = useState(seedText("eventDate", ""));
+  const [eventCalendarOpen, setEventCalendarOpen] = useState(false);
+  // Which fields the last attempt to publish refused, so they can be shown
+  // rather than described.
+  //
+  // "Veuillez remplir tous les champs" is true and useless: on a form this
+  // long the one empty box is usually below the fold, and being told the
+  // whole form is wrong when four fields of five are filled reads as the
+  // app being broken. This names them and rings them.
+  const [invalidFields, setInvalidFields] = useState([]);
+  const isInvalid = (field) => invalidFields.includes(field);
+  const refuse = (fields, messageKey, extra) => {
+    setInvalidFields(fields);
+    const named = fields
+      .map((field) => FIELD_LABEL_KEYS[field])
+      .filter(Boolean)
+      .map((key) => t(key));
+    Alert.alert(
+      t("sellFormTitle"),
+      named.length
+        ? `${t(messageKey)}\n\n${named.join(" · ")}`
+        : t(messageKey),
+      extra,
+    );
+  };
+  const [eventDoorsAt, setEventDoorsAt] = useState(seedText("eventDoorsAt", ""));
+  const [eventStartsAt, setEventStartsAt] = useState(
+    seedText("eventStartsAt", ""),
+  );
+  const [eventVenue, setEventVenue] = useState(seedText("eventVenue", ""));
+  const [eventQuartier, setEventQuartier] = useState(
+    seedText("eventQuartier", ""),
+  );
+  const [eventPriceAdvance, setEventPriceAdvance] = useState(
+    seedText("eventPriceAdvance", ""),
+  );
+  const [eventPriceGate, setEventPriceGate] = useState(
+    seedText("eventPriceGate", ""),
+  );
+  const [eventPayMode, setEventPayMode] = useState(seed("eventPayMode", null));
+  const [eventOrganiser, setEventOrganiser] = useState(
+    seedText("eventOrganiser", ""),
+  );
+  const [eventCapacityNote, setEventCapacityNote] = useState(
+    seedText("eventCapacityNote", ""),
+  );
   const [description, setDescription] = useState(seedText("descriptionFr", ""));
   const [condition, setCondition] = useState(seed("condition", null));
   const [communityType, setCommunityType] = useState(
@@ -634,6 +680,19 @@ export function CreateListingScreen({ route, navigation }) {
   const [agricultureKind, setAgricultureKind] = useState(
     seed("agricultureKind", null),
   );
+  // Where an importer buys, and how. Only ever asked of the importateur
+  // trade — see isImporter below for why the transitaire is not asked.
+  const [buysFrom, setBuysFrom] = useState(seed("buysFrom", null));
+  // Array-checked rather than trusted: seed() hands back whatever the
+  // document holds, and this form edits listings written before the field
+  // existed. A string here would reach .includes() in the pill row and
+  // throw on open, which is a blank screen for the seller rather than a
+  // missing tick.
+  const [sourcingChannels, setSourcingChannels] = useState(() => {
+    const seeded = seed("sourcingChannels", []);
+    return Array.isArray(seeded) ? seeded : [];
+  });
+  const [buysFromSheetOpen, setBuysFromSheetOpen] = useState(false);
   const [agricultureUnit, setAgricultureUnit] = useState(
     seed("agricultureUnit", null),
   );
@@ -877,6 +936,30 @@ export function CreateListingScreen({ route, navigation }) {
   // field this app cannot verify.
   const [withCar, setWithCar] = useState(seed("withCar", false));
   const [withCarNote, setWithCarNote] = useState(seedText("withCarNote", ""));
+  // Which car, and on what terms. Array-checked for the same reason the
+  // sourcing channels are: this form edits listings written before the
+  // fields existed, and a non-array would reach .includes() and throw.
+  const [withCarTypes, setWithCarTypes] = useState(() => {
+    const seeded = seed("withCarTypes", []);
+    return Array.isArray(seeded) ? seeded : [];
+  });
+  const [withCarDriver, setWithCarDriver] = useState(
+    seed("withCarDriver", null),
+  );
+  const [withCarCost, setWithCarCost] = useState(seed("withCarCost", null));
+
+  const clearStayCar = () => {
+    setWithCarNote(STAY_CAR_CLEARED.withCarNote);
+    setWithCarTypes(STAY_CAR_CLEARED.withCarTypes);
+    setWithCarDriver(STAY_CAR_CLEARED.withCarDriver);
+    setWithCarCost(STAY_CAR_CLEARED.withCarCost);
+  };
+
+  const toggleWithCarType = (key) => {
+    setWithCarTypes((prev) =>
+      prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key],
+    );
+  };
   const [depositMonths, setDepositMonths] = useState(
     seedText("depositMonths", ""),
   );
@@ -967,6 +1050,16 @@ export function CreateListingScreen({ route, navigation }) {
 
   const isPharmacy = selectedCategory === "pharmacyOnDuty";
   const isJobs = selectedCategory === "jobs";
+  // An event is not for sale and has no condition. What it needs instead is
+  // a day, an hour, a door price and a gate price — and the browse screen
+  // hides it again the moment that day has passed.
+  const isEvents = selectedCategory === "events";
+  // Whatever is in the field, as a Date, or null when it is half-typed.
+  // The calendar opens on it, so a correction starts on the right month.
+  const eventDateAsDate = useMemo(() => {
+    const parsed = parseEventDate(eventDate, "");
+    return parsed === null ? null : new Date(parsed);
+  }, [eventDate]);
   // Community posts aren't for sale. Without this the form fell through to
   // the generic branch and demanded a price, a photo and a condition.
   const isCommunity = selectedCategory === "community";
@@ -1269,6 +1362,36 @@ export function CreateListingScreen({ route, navigation }) {
   const isImportTrade =
     isServices && (trade === "transitaire" || trade === "importateur");
 
+  // Only the importateur is asked where they buy. A transitaire buys
+  // nothing — they file a declaration at Cotonou for cargo somebody else
+  // bought — so "where do you buy from" is the same species of mistake as
+  // the winch question above, one trade over.
+  const isImporter = isServices && trade === "importateur";
+
+  // The channel list is a function of the country, so changing the country
+  // has to drop channels the new one does not offer. Ticking Copart in the
+  // United States and then switching to Japan would otherwise leave copart
+  // in the document while the pill vanished from the form — a listing
+  // claiming an auction house the seller cannot reach, with no way to see
+  // it, let alone untick it.
+  const selectBuysFrom = (code) => {
+    const next = buysFrom === code ? null : code;
+    setBuysFrom(next);
+    setSourcingChannels((prev) => retainSourcingChannels(prev, next));
+  };
+
+  // A country picked from the full sheet has no card of its own, so the
+  // "Ailleurs" card carries it — otherwise choosing Turkey would leave the
+  // grid looking untouched and the seller would pick it again.
+  const buysFromIsOther =
+    Boolean(buysFrom) && !sourcingCountries.includes(buysFrom);
+
+  const toggleSourcingChannel = (key) => {
+    setSourcingChannels((prev) =>
+      prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key],
+    );
+  };
+
   const showRoadsideFields =
     (!mentionsDriver &&
       !mentionsParts &&
@@ -1401,20 +1524,51 @@ export function CreateListingScreen({ route, navigation }) {
       selectionLimit: MAX_MEDIA_ITEMS,
     });
     if (!result.canceled && result.assets?.length) {
-      setAssets((prev) =>
-        [...prev, ...result.assets].slice(0, MAX_MEDIA_ITEMS),
-      );
+      // A video too long or too heavy is refused here, before anything is
+      // uploaded — see the note in videoLimits.js. The rest of the
+      // selection still goes through: somebody who picked four photos and
+      // one enormous clip keeps their photos.
+      const { allowed, refused } = partitionByVideoLimits(result.assets);
+      if (refused.length) {
+        Alert.alert(
+          t("sellVideoTooLongTitle"),
+          videoRefusalMessage(refused, t),
+        );
+      }
+      if (!allowed.length) return;
+      // Shrunk here rather than at upload time, so the preview, the size on
+      // the wire and the file in Storage are all the same picture.
+      const picked = await downscalePickedAssets(allowed);
+      setAssets((prev) => [...prev, ...picked].slice(0, MAX_MEDIA_ITEMS));
     }
   };
 
   const takePhoto = async () => {
     const allowed = await ensureCameraAccess({ t, title: t("sellFormTitle") });
     if (!allowed) return;
-    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.8,
+      // Stops the recording at the limit rather than letting somebody film
+      // for three minutes and then telling them it was too long.
+      videoMaxDuration: MAX_VIDEO_SECONDS,
+    });
     if (!result.canceled && result.assets?.length) {
-      setAssets((prev) =>
-        [...prev, ...result.assets].slice(0, MAX_MEDIA_ITEMS),
-      );
+      // A video too long or too heavy is refused here, before anything is
+      // uploaded — see the note in videoLimits.js. The rest of the
+      // selection still goes through: somebody who picked four photos and
+      // one enormous clip keeps their photos.
+      const { allowed, refused } = partitionByVideoLimits(result.assets);
+      if (refused.length) {
+        Alert.alert(
+          t("sellVideoTooLongTitle"),
+          videoRefusalMessage(refused, t),
+        );
+      }
+      if (!allowed.length) return;
+      // Shrunk here rather than at upload time, so the preview, the size on
+      // the wire and the file in Storage are all the same picture.
+      const picked = await downscalePickedAssets(allowed);
+      setAssets((prev) => [...prev, ...picked].slice(0, MAX_MEDIA_ITEMS));
     }
   };
 
@@ -1441,13 +1595,17 @@ export function CreateListingScreen({ route, navigation }) {
   };
 
   const handleSubmit = async () => {
-    if (
-      !title.trim() ||
-      !description.trim() ||
-      !selectedCategory ||
-      !selectedCity
-    ) {
-      Alert.alert(t("sellFormTitle"), t("errorRequiredFields"));
+    // Cleared on every attempt, so a field that has since been filled
+    // stops being ringed the moment it is no longer the problem.
+    setInvalidFields([]);
+
+    const missing = [];
+    if (!title.trim()) missing.push("title");
+    if (!description.trim()) missing.push("description");
+    if (!selectedCategory) missing.push("category");
+    if (!selectedCity) missing.push("city");
+    if (missing.length) {
+      refuse(missing, "errorRequiredFields");
       return;
     }
     // "Autre" without a word for it is the question dodged, and it is the
@@ -1464,7 +1622,7 @@ export function CreateListingScreen({ route, navigation }) {
 
     // A job post has nothing to photograph the way a physical item does —
     // a company logo is a nice-to-have, not something to block on.
-    if (!assets.length && !isJobs && !isCommunity && !isServices) {
+    if (!assets.length && !isJobs && !isCommunity && !isServices && !isEvents) {
       Alert.alert(t("sellFormTitle"), t("errorMediaRequired"));
       return;
     }
@@ -1493,7 +1651,7 @@ export function CreateListingScreen({ route, navigation }) {
     let numericDutyHours = 0;
     if (isPharmacy) {
       if (!phone.trim()) {
-        Alert.alert(t("sellFormTitle"), t("errorPhoneRequired"));
+        refuse(["phone"], "errorPhoneRequired");
         return;
       }
       numericDutyHours = Number(dutyHours);
@@ -1621,6 +1779,37 @@ export function CreateListingScreen({ route, navigation }) {
         Alert.alert(t("sellFormTitle"), t("errorRequiredFields"));
         return;
       }
+      // The one fact that makes an importer's listing usable. Somebody
+      // choosing who to wire money to is choosing a market first and a
+      // person second — an importer with no country is a card that cannot
+      // be compared with the one above it, and ImportationScreen sorts the
+      // whole list on this.
+      //
+      // The channels stay optional on purpose, the same reading
+      // transitaireScopesFor takes of an empty scope list: silence means
+      // "ask them", not "buys nowhere", and hiding a sourcer who did not
+      // enumerate their auction houses would thin the list for no gain.
+      if (isImporter && !buysFrom) {
+        Alert.alert(t("sellFormTitle"), t("errorBuysFromRequired"));
+        return;
+      }
+      // An event is the one listing this app hides on its own: once the day
+      // has passed it stops being something anybody can attend, so
+      // EventsScreen drops it. That makes an unreadable date the worst
+      // possible outcome here — the listing would publish, be approved, and
+      // never once appear, with nothing anywhere to say why. So it is
+      // refused at the form instead.
+      if (isEvents) {
+        const when = parseEventDate(eventDate, eventDoorsAt || eventStartsAt);
+        if (when === null) {
+          refuse(["eventDate"], "errorEventDateRequired");
+          return;
+        }
+        if (when < Date.now()) {
+          refuse(["eventDate"], "errorEventDatePast");
+          return;
+        }
+      }
       // A trade nobody can reach is not a listing. Restaurants have always
       // required a number; a plumber or a garage needs one for the same
       // reason, and without it their card carries a Contacter button that
@@ -1652,6 +1841,26 @@ export function CreateListingScreen({ route, navigation }) {
           return;
         }
       }
+    } else if (isEvents) {
+      // An event has no single price, so it must not fall through to the
+      // branch below — which is exactly what it did. That branch reads
+      // `price`, the goods field, and the events form does not render it:
+      // somebody typing 5 000 into "Prix en avance" was told over and over
+      // to enter a valid price, with no field on screen that would have
+      // satisfied it. The money here is the advance/gate pair, checked
+      // just below on its own terms.
+      numericPrice = 0;
+
+      const advance = eventPriceAdvance.trim();
+      const gate = eventPriceGate.trim();
+      const unusable = (value) =>
+        value !== "" && (Number.isNaN(Number(value)) || Number(value) < 0);
+      if (unusable(advance) || unusable(gate)) {
+        refuse([], "errorInvalidPrice");
+        return;
+      }
+      // Both blank is allowed and means "ask the organiser" — the card
+      // says so rather than inventing a number.
     } else {
       numericPrice = Number(price);
       if (!price.trim() || Number.isNaN(numericPrice) || numericPrice <= 0) {
@@ -1687,6 +1896,7 @@ export function CreateListingScreen({ route, navigation }) {
         // the seller only ever sees "Upload failed".
         const uploadTask = uploadBytesResumable(storageRef, blob, {
           contentType: guessContentType(asset.uri, mediaType),
+          cacheControl: PUBLIC_UPLOAD_CACHE,
         });
 
         await new Promise((resolve, reject) => {
@@ -1703,7 +1913,36 @@ export function CreateListingScreen({ route, navigation }) {
         });
 
         const mediaUrl = await getDownloadURL(storageRef);
-        media.push({ mediaType, mediaUrl, mediaPath });
+
+        // The small copy, uploaded beside the full one.
+        //
+        // Cards read this and the detail screen reads the full picture, so
+        // a grid of twenty listings costs about 500 KB instead of 5 MB. It
+        // is best-effort on purpose: if the thumbnail cannot be made or
+        // cannot be uploaded, the listing publishes with none and every
+        // card falls back to the full picture, exactly as it did before.
+        let thumbUrl = null;
+        let thumbPath = null;
+        if (mediaType === "image") {
+          try {
+            const thumbUri = await makeThumbnail(asset.uri);
+            if (thumbUri) {
+              thumbPath = `listings/${user.uid}/${Date.now()}-${i}-thumb.jpg`;
+              const thumbRef = ref(storage, thumbPath);
+              const thumbBlob = await (await fetch(thumbUri)).blob();
+              await uploadBytesResumable(thumbRef, thumbBlob, {
+                contentType: "image/jpeg",
+                cacheControl: PUBLIC_UPLOAD_CACHE,
+              });
+              thumbUrl = await getDownloadURL(thumbRef);
+            }
+          } catch {
+            thumbUrl = null;
+            thumbPath = null;
+          }
+        }
+
+        media.push({ mediaType, mediaUrl, mediaPath, thumbUrl, thumbPath });
       }
 
       const cover = media[0] ?? null;
@@ -1747,6 +1986,24 @@ export function CreateListingScreen({ route, navigation }) {
           sellerProfile?.accountType === "company" &&
           sellerProfile?.verificationStatus === "verified",
         ),
+        // The trading name, which `sellerName` is not.
+        //
+        // A company signs up with two names — companyName and the
+        // representative's — and phoneAuth writes `fullName: fullName ||
+        // repName`, so sellerName on a company's listing is the person who
+        // filled the form, not the business anybody is dealing with. Cards
+        // that printed sellerName were naming a rep nobody has heard of.
+        //
+        // Denormalized rather than read, for the reason the three fields
+        // above give and one more that is decisive: firestore.rules allows
+        // sellers/{uid} to be read by that uid alone, so a buyer browsing
+        // the market cannot look this up at any price.
+        //
+        // Null for an individual, who has no trading name and whose
+        // sellerName is already the right answer. Listings published before
+        // this stay null and fall back to sellerName on the card — the same
+        // staleness sellerName and sellerVerified already accept.
+        sellerCompanyName: sellerProfile?.companyName ?? null,
         titleEn: title.trim(),
         titleFr: title.trim(),
         descriptionEn: description.trim(),
@@ -1810,6 +2067,49 @@ export function CreateListingScreen({ route, navigation }) {
         // Category-specific fields. Each spread is empty unless that
         // category is the one selected, so a listing only ever carries the
         // attributes its own form asked for.
+        // An event, flattened for the same reason the stay-car block
+        // is: the field checker reads this literal, and a nested
+        // object is a field it cannot see.
+        //
+        // eventDateMs is what every read path uses — the typed text is
+        // kept alongside it only so editing the listing shows back
+        // what was typed rather than an epoch number.
+        eventKind: isEvents ? eventKind : EVENT_CLEARED.eventKind,
+        eventDate: isEvents ? eventDate.trim() : EVENT_CLEARED.eventDate,
+        eventDateMs: isEvents
+          ? parseEventDate(eventDate, eventDoorsAt || eventStartsAt)
+          : EVENT_CLEARED.eventDateMs,
+        // Normalised on the way in as well as on the way out. The card
+        // would tidy "20" into "20h00" either way, but storing what is
+        // displayed is what makes the edit form show back the same thing
+        // the reader saw.
+        eventDoorsAt: isEvents
+          ? (normaliseEventTime(eventDoorsAt) ?? "")
+          : EVENT_CLEARED.eventDoorsAt,
+        eventStartsAt: isEvents
+          ? (normaliseEventTime(eventStartsAt) ?? "")
+          : EVENT_CLEARED.eventStartsAt,
+        eventVenue: isEvents ? eventVenue.trim() : EVENT_CLEARED.eventVenue,
+        eventQuartier: isEvents
+          ? eventQuartier.trim()
+          : EVENT_CLEARED.eventQuartier,
+        // Blank stays null rather than becoming zero: "no price given"
+        // and "free" are different claims, and the card says so.
+        eventPriceAdvance: isEvents
+          ? (eventPriceAdvance.trim() === ""
+              ? null
+              : Number(eventPriceAdvance))
+          : EVENT_CLEARED.eventPriceAdvance,
+        eventPriceGate: isEvents
+          ? (eventPriceGate.trim() === "" ? null : Number(eventPriceGate))
+          : EVENT_CLEARED.eventPriceGate,
+        eventPayMode: isEvents ? eventPayMode : EVENT_CLEARED.eventPayMode,
+        eventOrganiser: isEvents
+          ? eventOrganiser.trim()
+          : EVENT_CLEARED.eventOrganiser,
+        eventCapacityNote: isEvents
+          ? eventCapacityNote.trim()
+          : EVENT_CLEARED.eventCapacityNote,
         ...(isCommunity ? { communityType } : {}),
         ...(isServices
           ? {
@@ -1823,6 +2123,22 @@ export function CreateListingScreen({ route, navigation }) {
             }
           : {}),
         ...(isAgriculture ? { agricultureKind, agricultureUnit } : {}),
+        // Declared, never inferred — the promise useImportHelpers was
+        // already making to readers before anything wrote these.
+        //
+        // Filtered once more on the way out rather than trusted from state:
+        // an edit seeded from a listing written before the country was
+        // required could carry channels its country no longer offers, and
+        // this is the last point that can see both.
+        ...(isImporter
+          ? {
+              buysFrom,
+              sourcingChannels: retainSourcingChannels(
+                sourcingChannels,
+                buysFrom,
+              ),
+            }
+          : {}),
         ...(isSports
           ? { sportsKind, sportsSize: sportsSize.trim() || null }
           : {}),
@@ -1992,10 +2308,23 @@ export function CreateListingScreen({ route, navigation }) {
               bathrooms,
               isFurnished,
               withCar,
-              // Only when the box is ticked: a note left behind after
-              // unticking would sit in the document describing a car that
-              // is no longer on offer.
-              withCarNote: withCar ? withCarNote.trim() : "",
+              // Only when the box is ticked. Anything left behind after
+              // unticking would sit in the document describing a car that is
+              // no longer on offer — and now that there are four of these,
+              // the cleared shape lives in realEstate.js so the form and the
+              // payload cannot disagree about what "no car" means.
+              // Each cleared to the shape realEstate.js declares, rather
+              // than to a literal repeated here — four fields is where
+              // "remember to blank them all" stops being reliable.
+              //
+              // Written flat rather than as one spread object, deliberately:
+              // check-real-estate-fields.js reads this block to learn what a
+              // property listing can hold, and a field hidden inside a
+              // nested literal is a field it cannot see.
+              withCarNote: withCar ? withCarNote.trim() : STAY_CAR_CLEARED.withCarNote,
+              withCarTypes: withCar ? withCarTypes : STAY_CAR_CLEARED.withCarTypes,
+              withCarDriver: withCar ? withCarDriver : STAY_CAR_CLEARED.withCarDriver,
+              withCarCost: withCar ? withCarCost : STAY_CAR_CLEARED.withCarCost,
               depositMonths: Number(depositMonths) || null,
               // Kept separate from the deposit: together they are what a
               // tenant must actually produce to move in, and the browse
@@ -2100,6 +2429,9 @@ export function CreateListingScreen({ route, navigation }) {
         mediaType: cover?.mediaType ?? null,
         mediaUrl: cover?.mediaUrl ?? null,
         mediaPath: cover?.mediaPath ?? null,
+        // The cover's small copy, denormalised onto the listing for the
+        // same reason mediaUrl is: a card reads one document and draws.
+        thumbUrl: cover?.thumbUrl ?? null,
         // Asked for, not granted. The route param says the seller came in
         // through the megaphone; the rules refuse a client-written
         // isPromoted, and a moderator decides. See src/data/promotion.js.
@@ -2383,7 +2715,7 @@ export function CreateListingScreen({ route, navigation }) {
     // over from a rental would publish an offer nobody made.
     if (!realEstateHasCarOption(next)) {
       setWithCar(false);
-      setWithCarNote("");
+      clearStayCar();
     }
     if (!realEstateHasDeposit(next)) setDepositMonths("");
     if (next !== "commercial") {
@@ -2456,7 +2788,7 @@ export function CreateListingScreen({ route, navigation }) {
     titleEn: title.trim(),
     titleFr: title.trim(),
     price:
-      isPharmacy || isJobs || isCommunity || isRestaurant
+      isPharmacy || isJobs || isCommunity || isRestaurant || isEvents
         ? 0
         : Number(price) || 0,
     city: selectedCity,
@@ -2756,7 +3088,7 @@ export function CreateListingScreen({ route, navigation }) {
           )}
 
           <Label>{t("sellFieldTitle")}</Label>
-          <InputRow>
+          <InputRow invalid={isInvalid("title")}>
             <Ionicons
               name="pricetag-outline"
               size={20}
@@ -3244,7 +3576,7 @@ export function CreateListingScreen({ route, navigation }) {
               ))}
 
               <Label>{t("sellFieldPhone")}</Label>
-              <InputRow>
+              <InputRow invalid={isInvalid("phone")}>
                 <Ionicons
                   name="call-outline"
                   size={20}
@@ -3571,11 +3903,20 @@ export function CreateListingScreen({ route, navigation }) {
                       pointing at a text search that could never match a
                       property because no property could declare one.
                   
-                      The note is free text and deliberately so. Whether the
-                      car is included, extra, with a driver or only for the
-                      first week is the poster's business, and a price field
-                      here would be a second price on a listing that already
-                      has one. */}
+                      The note used to be the whole answer, on the argument
+                      that which car and on what terms was the poster's
+                      business. It was not holding up: every enquiry opened
+                      by asking which car and whether it came with a driver,
+                      and prose answers to those were unsearchable, unskimmable
+                      and most often simply left out. So the two questions
+                      people actually ask are fields now, and the note keeps
+                      what no field will ever hold — "seulement la première
+                      semaine".
+
+                      What is still refused is a second PRICE. "Compris" or
+                      "en supplément" is the arrangement and costs no figure;
+                      an amount here would be read as the total by anybody
+                      skimming a listing that already carries one. */}
                   {realEstateHasCarOption(realEstateDeal) ? (
                     <>
                       <NegotiableRow onPress={() => setWithCar((v) => !v)}>
@@ -3593,13 +3934,121 @@ export function CreateListingScreen({ route, navigation }) {
                         </NegotiableLabel>
                       </NegotiableRow>
                       {withCar ? (
-                        <Input
-                          value={withCarNote}
-                          onChangeText={setWithCarNote}
-                          placeholder={t("sellFieldWithCarNotePlaceholder")}
-                          placeholderTextColor={colors.textMuted}
-                          maxLength={90}
-                        />
+                        <>
+                          {/* Which car. Multi-select, because a host with a
+                              berline and a 4x4 offers whichever is free and
+                              being made to pick one would misdescribe both. */}
+                          <Label>{t("sellFieldWithCarTypes")}</Label>
+                          {/* PickerGrid, not ConditionRow. ConditionRow does
+                              not wrap and its pills are flex: 1, which is
+                              right for the two- and three-option rows it was
+                              built for and crushes eight of them into
+                              unreadable slivers. */}
+                          <PickerGrid>
+                            {stayCarBodyTypes.map((type, index) => {
+                              const active = withCarTypes.includes(type.key);
+                              return (
+                                <PickerCard
+                                  key={type.key}
+                                  width={getPickerCardWidth(
+                                    index,
+                                    stayCarBodyTypes.length,
+                                  )}
+                                  full={isPickerCardFull(
+                                    index,
+                                    stayCarBodyTypes.length,
+                                  )}
+                                  selected={active}
+                                  accent={EMERALD}
+                                  tint={sectorTint(EMERALD, 0.09)}
+                                  onPress={() => toggleWithCarType(type.key)}
+                                >
+                                  <CategoryIconWrap
+                                    small
+                                    tint={sectorTint(
+                                      EMERALD,
+                                      active ? 0.22 : 0.12,
+                                    )}
+                                  >
+                                    <Ionicons
+                                      name={type.icon}
+                                      size={17}
+                                      color={EMERALD}
+                                    />
+                                  </CategoryIconWrap>
+                                  <PickerCardLabel
+                                    full={isPickerCardFull(
+                                      index,
+                                      stayCarBodyTypes.length,
+                                    )}
+                                    selected={active}
+                                    numberOfLines={2}
+                                  >
+                                    {getStayCarBodyLabel(type.key, language)}
+                                  </PickerCardLabel>
+                                </PickerCard>
+                              );
+                            })}
+                          </PickerGrid>
+
+                          {/* The question that decides whether the offer is
+                              usable at all: a visitor with no Beninese permit
+                              cannot take a self-drive car. */}
+                          <Label>{t("sellFieldWithCarDriver")}</Label>
+                          <ConditionRow>
+                            {stayCarDriverOptions.map((option) => (
+                              <ConditionPill
+                                key={option.key}
+                                selected={withCarDriver === option.key}
+                                onPress={() =>
+                                  setWithCarDriver(
+                                    withCarDriver === option.key
+                                      ? null
+                                      : option.key,
+                                  )
+                                }
+                              >
+                                <ConditionPillLabel
+                                  selected={withCarDriver === option.key}
+                                >
+                                  {getStayCarDriverLabel(option.key, language)}
+                                </ConditionPillLabel>
+                              </ConditionPill>
+                            ))}
+                          </ConditionRow>
+
+                          {/* Included or on top — the arrangement, never a
+                              figure. A second amount on a listing that
+                              already carries a price reads as the total. */}
+                          <Label>{t("sellFieldWithCarCost")}</Label>
+                          <ConditionRow>
+                            {stayCarCostModes.map((mode) => (
+                              <ConditionPill
+                                key={mode.key}
+                                selected={withCarCost === mode.key}
+                                onPress={() =>
+                                  setWithCarCost(
+                                    withCarCost === mode.key ? null : mode.key,
+                                  )
+                                }
+                              >
+                                <ConditionPillLabel
+                                  selected={withCarCost === mode.key}
+                                >
+                                  {getStayCarCostLabel(mode.key, language)}
+                                </ConditionPillLabel>
+                              </ConditionPill>
+                            ))}
+                          </ConditionRow>
+
+                          <Input
+                            value={withCarNote}
+                            onChangeText={setWithCarNote}
+                            placeholder={t("sellFieldWithCarNotePlaceholder")}
+                            placeholderTextColor={colors.textMuted}
+                            maxLength={90}
+                          />
+                        </>
                       ) : null}
                     </>
                   ) : null}
@@ -4058,6 +4507,7 @@ export function CreateListingScreen({ route, navigation }) {
           !isServices &&
           !isRealEstate &&
           !isRestaurant &&
+          !isEvents &&
           (!isAgriculture || agricultureKindHasCondition(agricultureKind)) ? (
             <>
               <Label>{t("sellFieldCondition")}</Label>
@@ -4129,6 +4579,226 @@ export function CreateListingScreen({ route, navigation }) {
                   placeholder={t("sellFieldDutyHoursPlaceholder")}
                   placeholderTextColor={colors.textMuted}
                   keyboardType="numeric"
+                />
+              </InputRow>
+            </>
+          ) : isEvents ? (
+            <>
+              <Label>{t("sellFieldEventKind")}</Label>
+              <PickerGrid>
+                {eventKinds.map((item) => (
+                  <PickerCard
+                    key={item.key}
+                    selected={eventKind === item.key}
+                    tint={colors.primaryLight}
+                    accent={colors.primary}
+                    onPress={() =>
+                      setEventKind(eventKind === item.key ? null : item.key)
+                    }
+                  >
+                    <Ionicons
+                      name={getEventKindIcon(item.key)}
+                      size={19}
+                      color={
+                        eventKind === item.key ? colors.primary : colors.textMuted
+                      }
+                    />
+                    <PickerCardLabel selected={eventKind === item.key}>
+                      {language === "en" ? item.labelEn : item.labelFr}
+                    </PickerCardLabel>
+                  </PickerCard>
+                ))}
+              </PickerGrid>
+
+              {/* Typed or picked, both write the same DD/MM/YYYY string —
+                  the calendar is a way of filling this field, not a second
+                  source of truth beside it. Somebody who knows the date
+                  types it faster than any grid; somebody working out which
+                  Saturday they mean needs to see the month. */}
+              <Label>{t("sellFieldEventDate")}</Label>
+              <InputRow invalid={isInvalid("eventDate")}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={20}
+                  color={colors.textMuted}
+                />
+                <Input
+                  value={eventDate}
+                  onChangeText={setEventDate}
+                  placeholder={t("sellFieldEventDatePlaceholder")}
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="numbers-and-punctuation"
+                />
+                <CalendarOpenButton
+                  onPress={() => setEventCalendarOpen(true)}
+                  hitSlop={8}
+                >
+                  <Ionicons name="calendar" size={19} color={colors.primary} />
+                </CalendarOpenButton>
+              </InputRow>
+              <FieldNote>{t("sellEventDateHint")}</FieldNote>
+
+              <CalendarPicker
+                visible={eventCalendarOpen}
+                value={eventDateAsDate}
+                onClose={() => setEventCalendarOpen(false)}
+                onSelect={(picked) => {
+                  const pad = (value) => String(value).padStart(2, "0");
+                  setEventDate(
+                    `${pad(picked.getDate())}/${pad(picked.getMonth() + 1)}/${picked.getFullYear()}`,
+                  );
+                  setEventCalendarOpen(false);
+                }}
+              />
+
+              {/* Two hours, because the hour on the flyer is when the doors
+                  open and not when anything begins. Leaving the second blank
+                  is fine — the card then shows only what was given. */}
+              <Label>{t("sellFieldEventDoors")}</Label>
+              <InputRow>
+                <Ionicons
+                  name="time-outline"
+                  size={20}
+                  color={colors.textMuted}
+                />
+                <Input
+                  value={eventDoorsAt}
+                  onChangeText={setEventDoorsAt}
+                  placeholder={t("sellFieldEventTimePlaceholder")}
+                  placeholderTextColor={colors.textMuted}
+                />
+              </InputRow>
+
+              <Label>{t("sellFieldEventStart")}</Label>
+              <InputRow>
+                <Ionicons
+                  name="play-outline"
+                  size={20}
+                  color={colors.textMuted}
+                />
+                <Input
+                  value={eventStartsAt}
+                  onChangeText={setEventStartsAt}
+                  placeholder={t("sellFieldEventTimePlaceholder")}
+                  placeholderTextColor={colors.textMuted}
+                />
+              </InputRow>
+              <FieldNote>{t("sellEventStartHint")}</FieldNote>
+
+              <Label>{t("sellFieldEventVenue")}</Label>
+              <InputRow>
+                <Ionicons
+                  name="business-outline"
+                  size={20}
+                  color={colors.textMuted}
+                />
+                <Input
+                  value={eventVenue}
+                  onChangeText={setEventVenue}
+                  placeholder={t("sellFieldEventVenuePlaceholder")}
+                  placeholderTextColor={colors.textMuted}
+                />
+              </InputRow>
+
+              <Label>{t("sellFieldEventQuartier")}</Label>
+              <InputRow>
+                <Ionicons
+                  name="navigate-outline"
+                  size={20}
+                  color={colors.textMuted}
+                />
+                <Input
+                  value={eventQuartier}
+                  onChangeText={setEventQuartier}
+                  placeholder={t("sellFieldEventQuartierPlaceholder")}
+                  placeholderTextColor={colors.textMuted}
+                />
+              </InputRow>
+
+              {/* Both prices, side by side, because that is the decision the
+                  person reading the card is making. Zero in both is a free
+                  event; zero in advance with something at the gate is not. */}
+              <Label>{t("sellFieldEventPriceAdvance")}</Label>
+              <InputRow>
+                <Ionicons
+                  name="pricetag-outline"
+                  size={20}
+                  color={colors.textMuted}
+                />
+                <Input
+                  value={eventPriceAdvance}
+                  onChangeText={setEventPriceAdvance}
+                  placeholder={t("sellFieldEventPricePlaceholder")}
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="numeric"
+                />
+              </InputRow>
+
+              <Label>{t("sellFieldEventPriceGate")}</Label>
+              <InputRow>
+                <Ionicons
+                  name="ticket-outline"
+                  size={20}
+                  color={colors.textMuted}
+                />
+                <Input
+                  value={eventPriceGate}
+                  onChangeText={setEventPriceGate}
+                  placeholder={t("sellFieldEventPricePlaceholder")}
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="numeric"
+                />
+              </InputRow>
+              <FieldNote>{t("sellEventPriceHint")}</FieldNote>
+
+              <Label>{t("sellFieldEventPay")}</Label>
+              <PickerGrid>
+                {eventPayModes.map((item) => (
+                  <PickerCard
+                    key={item.key}
+                    selected={eventPayMode === item.key}
+                    tint={colors.primaryLight}
+                    accent={colors.primary}
+                    onPress={() =>
+                      setEventPayMode(
+                        eventPayMode === item.key ? null : item.key,
+                      )
+                    }
+                  >
+                    <PickerCardLabel selected={eventPayMode === item.key}>
+                      {language === "en" ? item.labelEn : item.labelFr}
+                    </PickerCardLabel>
+                  </PickerCard>
+                ))}
+              </PickerGrid>
+
+              <Label>{t("sellFieldEventOrganiser")}</Label>
+              <InputRow>
+                <Ionicons
+                  name="people-outline"
+                  size={20}
+                  color={colors.textMuted}
+                />
+                <Input
+                  value={eventOrganiser}
+                  onChangeText={setEventOrganiser}
+                  placeholder={t("sellFieldEventOrganiserPlaceholder")}
+                  placeholderTextColor={colors.textMuted}
+                />
+              </InputRow>
+
+              <Label>{t("sellFieldEventCapacity")}</Label>
+              <InputRow>
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={20}
+                  color={colors.textMuted}
+                />
+                <Input
+                  value={eventCapacityNote}
+                  onChangeText={setEventCapacityNote}
+                  placeholder={t("sellFieldEventCapacityPlaceholder")}
+                  placeholderTextColor={colors.textMuted}
                 />
               </InputRow>
             </>
@@ -4407,6 +5077,117 @@ export function CreateListingScreen({ route, navigation }) {
             </>
           ) : isServices ? (
             <>
+              {/* Asked before the rate, because it is the question a reader
+                  of ImportationScreen is actually choosing on. The sourcer
+                  cards there sort by country and print it under an
+                  aeroplane; how the person charges comes second. */}
+              {isImporter ? (
+                <>
+                  <Label>{t("sellFieldBuysFrom")}</Label>
+                  <FieldNote>{t("sellBuysFromHint")}</FieldNote>
+                  <PickerGrid>
+                    {sourcingCountries.map((code, index) => {
+                      const active = buysFrom === code;
+                      return (
+                        <PickerCard
+                          key={code}
+                          width={getPickerCardWidth(
+                            index,
+                            sourcingCountries.length + 1,
+                          )}
+                          full={isPickerCardFull(
+                            index,
+                            sourcingCountries.length + 1,
+                          )}
+                          selected={active}
+                          onPress={() => selectBuysFrom(code)}
+                        >
+                          <FlagGlyph>{getSourcingCountryFlag(code)}</FlagGlyph>
+                          <PickerCardLabel
+                            full={isPickerCardFull(
+                              index,
+                              sourcingCountries.length + 1,
+                            )}
+                            selected={active}
+                            numberOfLines={2}
+                          >
+                            {getSourcingCountryLabel(code, language)}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                    {/* The twelve above are the markets with a real channel
+                        list. Everywhere else on earth is still a place
+                        somebody buys cars, so it stays reachable through the
+                        full sheet rather than being told it does not exist —
+                        it just gets the generic channels. */}
+                    <PickerCard
+                      key="__other"
+                      width={getPickerCardWidth(
+                        sourcingCountries.length,
+                        sourcingCountries.length + 1,
+                      )}
+                      full={isPickerCardFull(
+                        sourcingCountries.length,
+                        sourcingCountries.length + 1,
+                      )}
+                      selected={buysFromIsOther}
+                      onPress={() => setBuysFromSheetOpen(true)}
+                    >
+                      <FlagGlyph>
+                        {buysFromIsOther
+                          ? getSourcingCountryFlag(buysFrom)
+                          : "\u{1F30D}"}
+                      </FlagGlyph>
+                      <PickerCardLabel
+                        full={isPickerCardFull(
+                          sourcingCountries.length,
+                          sourcingCountries.length + 1,
+                        )}
+                        selected={buysFromIsOther}
+                        numberOfLines={2}
+                      >
+                        {buysFromIsOther
+                          ? getSourcingCountryLabel(buysFrom, language)
+                          : t("sellBuysFromOther")}
+                      </PickerCardLabel>
+                    </PickerCard>
+                  </PickerGrid>
+
+                  {/* Offered only once a country is known: Copart has no
+                      business on the screen of somebody who has not said
+                      they are in America. */}
+                  {buysFrom ? (
+                    <>
+                      <Label>{t("sellFieldSourcingChannels")}</Label>
+                      <FieldNote>{t("sellSourcingChannelsHint")}</FieldNote>
+                      <ConditionRow>
+                        {sourcingChannelsFor(buysFrom).map((channel) => (
+                          <ConditionPill
+                            key={channel.key}
+                            selected={sourcingChannels.includes(channel.key)}
+                            onPress={() => toggleSourcingChannel(channel.key)}
+                          >
+                            <ConditionPillLabel
+                              selected={sourcingChannels.includes(channel.key)}
+                            >
+                              {getSourcingChannelLabel(channel.key, language)}
+                            </ConditionPillLabel>
+                          </ConditionPill>
+                        ))}
+                      </ConditionRow>
+                    </>
+                  ) : null}
+
+                  <CountryPickerSheet
+                    visible={buysFromSheetOpen}
+                    selectedCode={buysFrom}
+                    onSelect={selectBuysFrom}
+                    onClose={() => setBuysFromSheetOpen(false)}
+                  />
+                </>
+              ) : null}
+
               {showRateField ? (
                 <>
                   <Label>{t("sellFieldServiceRate")}</Label>
@@ -6643,7 +7424,7 @@ export function CreateListingScreen({ route, navigation }) {
           </SelectorRow>
 
           <Label>{t("sellFieldDescription")}</Label>
-          <TextAreaRow>
+          <TextAreaRow invalid={isInvalid("description")}>
             <TextArea
               value={description}
               onChangeText={setDescription}
@@ -6847,7 +7628,7 @@ export function CreateListingScreen({ route, navigation }) {
             </PreviewHeaderRow>
             <PreviewSubtitle>{t("sellPreviewSubtitle")}</PreviewSubtitle>
             <PreviewCardWrap style={{ width: previewCardWidth }}>
-              <ListingCard listing={previewListing} />
+              <ListingCard listing={previewListing} flush />
             </PreviewCardWrap>
           </Sheet>
         </SheetBackdrop>
@@ -7066,14 +7847,19 @@ const LinkFieldLabel = styled.Text`
   color: ${(props) => props.theme.textMuted};
 `;
 
+// `invalid` rings a field the last publish attempt refused. A tint as well
+// as a border, because a 1.5px line in a colour is not enough to find by
+// scrolling — which is the whole situation this is for.
 const InputRow = styled.View`
   flex-direction: row;
   align-items: center;
   gap: ${spacing.sm}px;
   min-height: 54px;
-  background-color: ${(props) => props.theme.surface};
+  background-color: ${(props) =>
+    props.invalid ? "rgba(214, 69, 90, 0.07)" : props.theme.surface};
   border-width: 1.5px;
-  border-color: ${(props) => props.theme.border};
+  border-color: ${(props) =>
+    props.invalid ? "#D6455A" : props.theme.border};
   border-radius: ${radius.lg}px;
   padding-horizontal: 15px;
 `;
@@ -7403,6 +8189,16 @@ const TyreSizeSeparator = styled.Text`
   color: ${(props) => props.theme.textMuted};
 `;
 
+const CalendarOpenButton = styled(Pressable)`
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  margin-right: -4px;
+  border-radius: ${radius.pill}px;
+  background-color: ${(props) => props.theme.primaryLight};
+`;
+
 const PickerGrid = styled.View`
   flex-direction: row;
   flex-wrap: wrap;
@@ -7433,6 +8229,11 @@ const PickerCard = styled(Pressable)`
   background-color: ${(props) => (props.selected ? props.tint : props.theme.surface)};
   border-width: 1.5px;
   border-color: ${(props) => (props.selected ? props.accent : props.theme.border)};
+`;
+
+const FlagGlyph = styled.Text`
+  font-size: 20px;
+  line-height: 24px;
 `;
 
 const PickerCardLabel = styled.Text`
@@ -7501,9 +8302,11 @@ const NegotiableLabel = styled.Text`
 `;
 
 const TextAreaRow = styled.View`
-  background-color: ${(props) => props.theme.surface};
+  background-color: ${(props) =>
+    props.invalid ? "rgba(214, 69, 90, 0.07)" : props.theme.surface};
   border-width: 1px;
-  border-color: ${(props) => props.theme.border};
+  border-color: ${(props) =>
+    props.invalid ? "#D6455A" : props.theme.border};
   border-radius: ${radius.lg}px;
   padding-horizontal: ${spacing.md}px;
   padding-top: ${spacing.md}px;

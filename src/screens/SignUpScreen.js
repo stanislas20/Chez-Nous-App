@@ -21,6 +21,7 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
+import { downscalePhoto } from "../utils/downscalePhoto";
 import { useCountries } from "../hooks/useCountries";
 import { POSTING_COUNTRY } from "../data/countries";
 import { CountryPickerSheet } from "../components/CountryPickerSheet";
@@ -383,7 +384,9 @@ export function SignUpScreen({ navigation, route }) {
       });
       if (result.canceled) return;
       const asset = result.assets?.[0];
-      if (asset) setLogoAsset(asset);
+      if (asset) {
+        setLogoAsset({ ...asset, uri: await downscalePhoto(asset.uri) });
+      }
     } catch {
       Alert.alert(t("signUpTitle"), t("companyDocPickError"));
     }

@@ -20,3 +20,48 @@ every real user: the token is issued against Apple's sandbox and the live
 gateway does not recognise it. Nothing in the build output mentions it. An
 unrecognised value throws rather than being passed through, because a typo
 here becomes an entitlement no device honours.
+
+## Android download size: `android/` is generated too
+
+`android/` is gitignored exactly like `ios/`, so nothing in `android/gradle.properties`
+or `android/app/build.gradle` survives the next prebuild. Every size setting
+therefore lives in the `expo-build-properties` block in `app.json`:
+
+- `enableMinifyInReleaseBuilds` — R8. Off by default in the Expo template, which
+  left ~33 MB of unminified dex in the release APK.
+- `enableShrinkResourcesInReleaseBuilds` — only works alongside minify.
+- `buildArchs` — trimmed to `armeabi-v7a`, `arm64-v8a`, `x86_64`. The 32-bit
+  `x86` slice is gone: no phone uses it and no AVD here is 32-bit.
+
+`x86_64` has to stay in `buildArchs` because the emulators are x86_64, but no
+real user can run it. So the release build strips it on the command line:
+
+```
+npm run build:android      # gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+```
+
+Run `./gradlew assembleRelease` directly instead and the APK silently regains a
+16 MB x86_64 slice that every user downloads and no user executes. Nothing in
+the build output flags it — check with
+`unzip -l app-release.apk | grep 'lib/x86'`.
+
+`android/local.properties` goes with it. It is generated, it is gitignored,
+and it is what tells Gradle where the SDK is — so the first build after a
+`prebuild --clean` fails with
+
+```
+SDK location not found. Define a valid SDK location with an ANDROID_HOME
+environment variable or by setting the sdk.dir path in ... local.properties
+```
+
+in any shell that does not export `ANDROID_HOME`. Write it back:
+
+```
+echo "sdk.dir=$HOME/Library/Android/sdk" > android/local.properties
+```
+
+R8 is the one that can break at runtime rather than at build time: it strips
+classes reached only by reflection, and the failure shows up as a release-only
+crash. Reanimated and TurboModule keeps are already in the generated
+`proguard-rules.pro`; anything else needs `extraProguardRules` in `app.json`,
+not an edit to the generated file.

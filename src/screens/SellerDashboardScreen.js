@@ -23,10 +23,12 @@ import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { listingPriceText } from "../utils/listingPrice";
 import { useI18n } from "../i18n/I18nContext";
+import { downscalePhoto } from "../utils/downscalePhoto";
 import { saleStatusLabelKey } from "../data/saleStatuses";
 import { useSellerStats } from "../hooks/useSellerStats";
 import { formatCount, statLabelKey } from "../utils/formatCount";
 import { guessContentType } from "../utils/uploadContentType";
+import { PUBLIC_UPLOAD_CACHE } from "../utils/uploadContentType";
 import { useAuth } from "../auth/AuthContext";
 import { useFavorites } from "../hooks/useFavorites";
 import { useIsModerator } from "../hooks/useIsModerator";
@@ -44,6 +46,7 @@ import {
 } from "../utils/listingLifecycle";
 import { withViewHeat } from "../utils/viewHeat";
 import { TabSafeAreaView } from "../components/TabSafeAreaView";
+import { ListingMedia } from "../components/ListingMedia";
 import { useBannerStatusBar } from "../hooks/useBannerStatusBar";
 
 const EMERALD = "#0B6E4F";
@@ -150,7 +153,10 @@ export function SellerDashboardScreen({ navigation }) {
     });
     if (result.canceled || !result.assets?.[0]) return;
 
-    const asset = result.assets[0];
+    const asset = {
+      ...result.assets[0],
+      uri: await downscalePhoto(result.assets[0].uri),
+    };
     setIsUploadingAvatar(true);
     try {
       const extension = asset.uri.split(".").pop().split("?")[0];
@@ -163,6 +169,7 @@ export function SellerDashboardScreen({ navigation }) {
       // storage.rules gates on contentType; an RN blob has none.
       const uploadTask = uploadBytesResumable(storageRef, blob, {
         contentType: guessContentType(asset.uri),
+        cacheControl: PUBLIC_UPLOAD_CACHE,
       });
       await new Promise((resolve, reject) => {
         uploadTask.on("state_changed", null, reject, resolve);
@@ -946,7 +953,6 @@ export function SellerDashboardScreen({ navigation }) {
               >
                 {recentListings.map((item) => {
                   const title = language === "en" ? item.titleEn : item.titleFr;
-                  const coverUri = item.mediaUrl ?? item.image;
                   const isSold = item.saleStatus === "sold";
                   // "Vendu" on a service the seller has stopped offering is the
                   // app describing their own listing wrongly — saleStatusLabelKey
@@ -963,12 +969,7 @@ export function SellerDashboardScreen({ navigation }) {
                     >
                       <ListingCardInner>
                         <ListingImageWrap>
-                          {coverUri ? (
-                            <ListingImage
-                              source={{ uri: coverUri }}
-                              resizeMode="cover"
-                            />
-                          ) : null}
+                          <ListingMedia listing={item} size="card" />
                           <ListingStatusBadge
                             sold={isSold}
                             pending={item.status !== "approved"}
@@ -1639,27 +1640,33 @@ const TodoEmptyText = styled.Text`
 // CardInner pair — the outer view owns the shadow + background-color
 // (required for the shadow to render on iOS at all), the inner view owns
 // the border-radius clipping for the image's corners.
+// Local's language, on the dashboard strip.
+//
+// This card is the screen's own — it carries a status badge and a view
+// count that the shared ListingCard has nowhere to put — so it matches by
+// adopting the same dimensions rather than by being replaced.
+//
+// Border instead of shadow, for the reason the flush card gives: square
+// cards two pixels apart read as one sheet, and a drop shadow in that gap
+// turns the seam into a smudge.
 const ListingCardTouch = styled(Pressable)`
   width: 150px;
-  margin-right: ${spacing.sm}px;
-  border-radius: ${radius.lg}px;
+  margin-right: 2px;
+  border-radius: 0px;
   background-color: ${(props) => props.theme.surface};
-  ${shadow.card}
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
 `;
 
 const ListingCardInner = styled.View`
-  border-radius: ${radius.lg}px;
+  border-radius: 0px;
   overflow: hidden;
 `;
 
+// Square rather than a fixed 100px against a 150px card, which left it
+// letterboxed. The photograph carries the card here as it does on Local.
 const ListingImageWrap = styled.View`
-  height: 100px;
-  background-color: ${(props) => props.theme.surfaceAlt};
-`;
-
-const ListingImage = styled.Image`
-  width: 100%;
-  height: 100%;
+  aspect-ratio: 1 / 1;
   background-color: ${(props) => props.theme.surfaceAlt};
 `;
 
@@ -1680,7 +1687,7 @@ const ListingStatusLabel = styled.Text`
 `;
 
 const ListingBody = styled.View`
-  padding: 9px 10px 11px;
+  padding: 6px 8px 9px;
 `;
 
 const ListingTitle = styled.Text`

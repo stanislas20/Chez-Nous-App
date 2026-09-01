@@ -21,11 +21,13 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
+import { downscalePickedAssets } from "../utils/downscalePhoto";
 import { useAuth } from "../auth/AuthContext";
 import { useMyListings } from "../hooks/useMyListings";
 import { firestore, storage } from "../config/firebase";
 import { ensureCameraAccess } from "../utils/mediaAccess";
 import { guessContentType } from "../utils/uploadContentType";
+import { PUBLIC_UPLOAD_CACHE } from "../utils/uploadContentType";
 import { getListingExpiresAtTimestamp } from "../utils/listingLifecycle";
 import { carParks, getCarPark } from "../data/carParks";
 import { cityCoordinates } from "../data/cityCoordinates";
@@ -123,9 +125,10 @@ export function ParkInventoryScreen({ navigation }) {
       selectionLimit: MAX_MEDIA_ITEMS,
     });
     if (!result.canceled && result.assets?.length) {
-      setAssets((prev) =>
-        [...prev, ...result.assets].slice(0, MAX_MEDIA_ITEMS),
-      );
+      // Shrunk here rather than at upload time, so the preview, the size on
+      // the wire and the file in Storage are all the same picture.
+      const picked = await downscalePickedAssets(result.assets);
+      setAssets((prev) => [...prev, ...picked].slice(0, MAX_MEDIA_ITEMS));
     }
   };
 
@@ -134,9 +137,10 @@ export function ParkInventoryScreen({ navigation }) {
     if (!allowed) return;
     const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
     if (!result.canceled && result.assets?.length) {
-      setAssets((prev) =>
-        [...prev, ...result.assets].slice(0, MAX_MEDIA_ITEMS),
-      );
+      // Shrunk here rather than at upload time, so the preview, the size on
+      // the wire and the file in Storage are all the same picture.
+      const picked = await downscalePickedAssets(result.assets);
+      setAssets((prev) => [...prev, ...picked].slice(0, MAX_MEDIA_ITEMS));
     }
   };
 
@@ -201,6 +205,7 @@ export function ParkInventoryScreen({ navigation }) {
         // file:// URI carries none — same guard the main form needs.
         const uploadTask = uploadBytesResumable(storageRef, blob, {
           contentType: guessContentType(asset.uri, "image"),
+          cacheControl: PUBLIC_UPLOAD_CACHE,
         });
         await new Promise((resolve, reject) => {
           uploadTask.on(

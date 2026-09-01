@@ -3,6 +3,12 @@ import { Alert, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { previewBufferOptions } from "../utils/videoPreview";
+import { downscalePickedAssets } from "../utils/downscalePhoto";
+import {
+  partitionByVideoLimits,
+  videoRefusalMessage,
+} from "../utils/videoLimits";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import styled from "styled-components/native";
@@ -14,12 +20,14 @@ import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
 import { storage, firestore } from "../config/firebase";
 import { guessContentType } from "../utils/uploadContentType";
+import { PUBLIC_UPLOAD_CACHE } from "../utils/uploadContentType";
 import { normalizeUrl, isValidUrl } from "../utils/links";
 import { businessCategories } from "../data/businessCategories";
 
 function VideoPreview({ uri }) {
   const { colors } = useTheme();
   const player = useVideoPlayer(uri, (p) => {
+    p.bufferOptions = previewBufferOptions;
     p.loop = true;
     p.muted = true;
     p.play();
@@ -46,7 +54,15 @@ export function AdSubmitScreen() {
       quality: 0.8,
     });
     if (!result.canceled && result.assets?.[0]) {
-      setAsset(result.assets[0]);
+      const { allowed, refused } = partitionByVideoLimits(result.assets);
+      if (refused.length) {
+        Alert.alert(
+          t("sellVideoTooLongTitle"),
+          videoRefusalMessage(refused, t),
+        );
+        return;
+      }
+      setAsset((await downscalePickedAssets(allowed))[0]);
     }
   };
 
@@ -89,6 +105,7 @@ export function AdSubmitScreen() {
           asset.uri,
           asset.type === "video" ? "video" : "image",
         ),
+        cacheControl: PUBLIC_UPLOAD_CACHE,
       });
 
       await new Promise((resolve, reject) => {

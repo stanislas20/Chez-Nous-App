@@ -38,6 +38,8 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
+import { downscalePickedAssets } from "../utils/downscalePhoto";
+import { PRIVATE_UPLOAD_CACHE } from "../utils/uploadContentType";
 import { useAuth } from "../auth/AuthContext";
 import { firestore, storage } from "../config/firebase";
 import { useSellerStats } from "../hooks/useSellerStats";
@@ -77,6 +79,33 @@ function formatDuration(seconds) {
 
 const SCRUB_TRACK_WIDTH = 130;
 
+// How close to the end still counts as "finished".
+//
+// Not zero, because the two numbers being compared come from different
+// places. `effectiveDuration` prefers the length the RECORDER reported at
+// stop, and the finalised m4a is routinely a few tens of milliseconds
+// shorter than that — so `currentTime` plateaus just below the value it was
+// being compared against, `currentTime >= effectiveDuration` never became
+// true, and pressing play on a finished clip did nothing at all. The only
+// way back to the start was to drag the bar there by hand.
+//
+// The cost is that pausing within this window and pressing play restarts
+// instead of resuming. That is a fifth of a second at the very end of a
+// clip, against a restart that never worked.
+const END_EPSILON_SECONDS = 0.2;
+
+// `status.duration` is deliberately not consulted here. It comes from the
+// container metadata these clips often do not set correctly and can read as
+// a large placeholder — the same reason effectiveDuration prefers the
+// recorded length below. A placeholder would put the end out of reach and
+// restore the bug this exists to fix.
+function isAtEnd(status, effectiveDuration) {
+  if (effectiveDuration > 0) {
+    return status.currentTime >= effectiveDuration - END_EPSILON_SECONDS;
+  }
+  return Boolean(status.didJustFinish);
+}
+
 function VoiceMessageBubble({ uri, mine, knownDuration }) {
   const { colors } = useTheme();
   const player = useAudioPlayer(uri);
@@ -89,13 +118,16 @@ function VoiceMessageBubble({ uri, mine, knownDuration }) {
   // tracked live while recording is trustworthy, so prefer that.
   const effectiveDuration = knownDuration || status.duration;
 
-  const togglePlayback = () => {
+  const togglePlayback = async () => {
     if (status.playing) {
       player.pause();
       return;
     }
-    if (effectiveDuration > 0 && status.currentTime >= effectiveDuration) {
-      player.seekTo(0);
+    // Awaited. seekTo returns a promise, and the old code fired it and
+    // called play() on the next line — so even when the guard did fire,
+    // playback could start against the old position before the seek landed.
+    if (isAtEnd(status, effectiveDuration)) {
+      await player.seekTo(0);
     }
     player.play();
   };
@@ -184,6 +216,36 @@ export function ChatScreen({ route, navigation }) {
 
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder, 200);
+
+  // Playing a voice message needs the session configured, and until now only
+  // RECORDING one ever configured it.
+  //
+  // setAudioModeAsync was called in three places, all of them recording
+  // handlers. Somebody who only ever receives audio never called it, so
+  // expo-audio never called setCategory at all and the session stayed on the
+  // iOS app default — soloAmbient, which the hardware ring switch mutes.
+  // The bubble played: the bar moved, the timer counted, and no sound came
+  // out. The sender heard their own preview perfectly, because
+  // handleStopRecording had just set playsInSilentMode for them, so the two
+  // ends disagreed about whether the clip had any audio in it.
+  //
+  // On mount rather than inside togglePlayback: the scrub handler calls
+  // play() too on release, and a fix that only covered the play button
+  // would leave that path silent.
+  //
+  // playsInSilentMode with allowsRecording false resolves to .playback, and
+  // the default mixWithOthers keeps somebody's music going — opening a
+  // conversation should not stop it. iOS only; the flag is a no-op on
+  // Android, where media volume already governs this.
+  useEffect(() => {
+    setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(
+      () => {
+        // A session the OS refuses to reconfigure is not worth an alert in
+        // front of a conversation — playback is degraded, not broken, and
+        // the recording handlers try again on their own path.
+      },
+    );
+  }, []);
 
   const otherUid = conversation?.participantIds?.find((id) => id !== user?.uid);
   const otherName = conversation?.participantNames?.[otherUid] ?? null;
@@ -367,6 +429,7 @@ export function ChatScreen({ route, navigation }) {
         // `type` from a local file:// URI is unreliable, so set it explicitly.
         const uploadTask = uploadBytesResumable(storageRef, blob, {
           contentType: asset.mimeType || "image/jpeg",
+          cacheControl: PRIVATE_UPLOAD_CACHE,
         });
         uploadTask.on("state_changed", null, reject, resolve);
       });
@@ -396,7 +459,9 @@ export function ChatScreen({ route, navigation }) {
     if (!allowed) return;
     const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
     if (result.canceled || !result.assets?.length) return;
-    await uploadAndSendImage(result.assets[0]);
+    await uploadAndSendImage(
+      (await downscalePickedAssets(result.assets))[0],
+    );
   };
 
   const handlePickFromLibrary = async () => {
@@ -405,7 +470,9 @@ export function ChatScreen({ route, navigation }) {
       quality: 0.7,
     });
     if (result.canceled || !result.assets?.length) return;
-    await uploadAndSendImage(result.assets[0]);
+    await uploadAndSendImage(
+      (await downscalePickedAssets(result.assets))[0],
+    );
   };
 
   // Opened straight into the picker when the caller asked for it, and only
@@ -497,8 +564,15 @@ export function ChatScreen({ route, navigation }) {
       await new Promise((resolve, reject) => {
         // Storage rules require a matching contentType — the blob's own
         // `type` from a local file:// URI is unreliable, so set it explicitly.
+        //
+        // "audio/m4a" is not a registered media type. RecordingPresets
+        // .HIGH_QUALITY writes MPEG-4/AAC on both platforms, whose type is
+        // audio/mp4, and this string becomes the Content-Type header Storage
+        // serves the clip under. A player that trusts the header rather than
+        // sniffing the bytes has nothing to match it against.
         const uploadTask = uploadBytesResumable(storageRef, blob, {
-          contentType: "audio/m4a",
+          contentType: "audio/mp4",
+          cacheControl: PRIVATE_UPLOAD_CACHE,
         });
         uploadTask.on("state_changed", null, reject, resolve);
       });

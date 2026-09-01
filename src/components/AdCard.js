@@ -1,6 +1,7 @@
 import { Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import { previewBufferOptions } from '../utils/videoPreview';
 import styled from 'styled-components/native';
 import { radius, shadow, spacing } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
@@ -12,6 +13,7 @@ function VideoThumbnail({ uri }) {
   const { colors } = useTheme();
   const player = useVideoPlayer(uri, (p) => {
     p.muted = true;
+    p.bufferOptions = previewBufferOptions;
     // Muted decorative preview — it must never claim the iOS audio session.
     // The default ('auto') still activates one in playback mode, and a held
     // playback session is why voice search failed with `audio-capture` /
@@ -19,18 +21,26 @@ function VideoThumbnail({ uri }) {
     // recording session while these were on screen. A silent thumbnail has
     // no audio to protect, so it mixes.
     p.audioMixingMode = 'mixWithOthers';
+    // It plays. This was written as a still and read as a broken card:
+    // an advertiser who paid for a video got one frame of it.
+    p.loop = true;
+    p.play();
   });
   return <ThumbnailVideo player={player} contentFit="cover" nativeControls={false} />;
 }
 
-export function AdCard({ ad, style }) {
+// `flush` mirrors ListingCard's. An ad shares the grid with listings, so if
+// only one of the two squares off, every row shows a rounded narrow card
+// beside a square wide one — the ads would read as broken rather than as
+// ads.
+export function AdCard({ ad, style, flush = false }) {
   const { colors } = useTheme();
   const { language, t } = useI18n();
   const title = language === 'en' ? ad.titleEn : ad.titleFr;
 
   return (
-    <Card style={style} onPress={() => openAdLink(ad.linkUrl)}>
-      <Thumbnail>
+    <Card flush={flush} style={style} onPress={() => openAdLink(ad.linkUrl)}>
+      <Thumbnail flush={flush}>
         {ad.mediaType === 'video' ? (
           <VideoThumbnail uri={ad.mediaUrl} />
         ) : (
@@ -54,18 +64,23 @@ export function AdCard({ ad, style }) {
 }
 
 const Card = styled(Pressable)`
-  width: 47%;
+  width: ${(props) => (props.flush ? "49.6%" : "47%")};
   background-color: ${(props) => props.theme.surface};
-  border-radius: ${radius.xl}px;
+  border-radius: ${(props) => (props.flush ? 0 : radius.xl)}px;
   overflow: hidden;
-  margin-bottom: ${spacing.lg}px;
+  margin-bottom: ${(props) => (props.flush ? 2 : spacing.lg)}px;
   border-width: 1px;
+  /* The accent border is what marks this as an ad, so it survives the flush
+     variant where ListingCard's shadow does not — losing it would make paid
+     placement indistinguishable from an ordinary listing. */
   border-color: ${(props) => props.theme.accentLight};
-  ${shadow.card}
+  ${(props) => (props.flush ? "" : shadow.card)}
 `;
 
 const Thumbnail = styled.View`
-  aspect-ratio: 4 / 5;
+  /* Square in the flush grid, matching ListingCard, so the two never sit
+     side by side at different heights. */
+  aspect-ratio: ${(props) => (props.flush ? "1 / 1" : "4 / 5")};
   background-color: ${(props) => props.theme.surfaceAlt};
 `;
 

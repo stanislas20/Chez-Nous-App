@@ -103,6 +103,9 @@ export function MoreScreen({ navigation }) {
   const pharmacyCategory = categories.find(
     (category) => category.key === "pharmacyOnDuty",
   );
+  const servicesCategory = categories.find(
+    (category) => category.key === "services",
+  );
 
   return (
     <Container edges={["top", "left", "right", "bottom"]}>
@@ -268,6 +271,25 @@ export function MoreScreen({ navigation }) {
               color={colors.textMuted}
             />
           </CategoryRow>
+          {/* Artisans and providers — a mason, a couturier, a répétiteur.
+          
+              This row did not exist. The category did, the browse screen
+              did, and two service listings were live: the only way to
+              reach any of it was the Services chip on Pour vous, and
+              somebody looking for a plumber in the menu found "Services
+              publics", which is the tax office. A whole category with no
+              door into it, and nothing to fail. */}
+          {servicesCategory ? (
+            <CategoryRow onPress={() => goToCategory(servicesCategory)}>
+              <CategoryEmoji>🛠️</CategoryEmoji>
+              <CategoryRowLabel>{t("menuServicesRow")}</CategoryRowLabel>
+              <Ionicons
+                name="chevron-forward"
+                size={14}
+                color={colors.textMuted}
+              />
+            </CategoryRow>
+          ) : null}
           <CategoryRow onPress={() => navigation.navigate("VerifiedCompanies")}>
             <CategoryEmoji>🏢</CategoryEmoji>
             <CategoryRowLabel>{t("companiesTitle")}</CategoryRowLabel>

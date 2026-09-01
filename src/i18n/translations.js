@@ -1049,6 +1049,7 @@ export const translations = {
       "Every link here is one the government publishes about itself on gouv.bj, read on {date}. Check the address in your browser before entering personal details.",
     publicNotAffiliated:
       "A directory, not a partnership. Chez-Nous is not part of the government and speaks for no institution here.",
+    menuServicesRow: "Services & tradespeople",
     menuPublicRow: "Public services",
     banksFormerly: "Formerly {name}",
     banksSourceNote:
@@ -3936,6 +3937,7 @@ export const translations = {
       "Chaque lien vient de ce que le gouvernement publie lui-même sur gouv.bj, relevé le {date}. Vérifiez l'adresse dans votre navigateur avant de saisir des informations personnelles.",
     publicNotAffiliated:
       "Un annuaire, pas un partenariat. Chez-Nous ne fait pas partie du gouvernement et ne parle au nom d'aucune institution ici.",
+    menuServicesRow: "Services & artisans",
     menuPublicRow: "Services publics",
     banksFormerly: "Anciennement {name}",
     banksSourceNote:

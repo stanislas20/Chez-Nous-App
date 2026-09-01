@@ -206,7 +206,9 @@ export function ServicesScreen({ navigation }) {
                       : setOfferTrade(on ? null : item.key)
                   }
                 >
-                  <ChipLabel on={on}>{t(item.labelKey)}</ChipLabel>
+                  <ChipLabel on={on} numberOfLines={1}>
+                    {t(item.labelKey)}
+                  </ChipLabel>
                 </Chip>
               );
             })}
@@ -374,7 +376,7 @@ export function ServicesScreen({ navigation }) {
                       on={on}
                       onPress={() => setOfferRate(on ? null : item.key)}
                     >
-                      <ChipLabel on={on}>
+                      <ChipLabel on={on} numberOfLines={1}>
                         {getServiceRateLabel(item.key, language)}
                       </ChipLabel>
                     </Chip>
@@ -508,7 +510,7 @@ const FamilyTile = styled(Pressable)`
   align-items: center;
   gap: 6px;
   padding: ${spacing.sm}px ${spacing.xs}px;
-  border-radius: 18px;
+  border-radius: ${radius.lg}px;
   background-color: ${(props) => (props.on ? CLAY : props.theme.surface)};
   border-width: 1px;
   border-color: ${(props) => (props.on ? CLAY : props.theme.border)};
@@ -538,6 +540,19 @@ const ChipWrap = styled.View`
   margin-bottom: ${spacing.md}px;
 `;
 
+// A rounded rectangle, not a pill.
+//
+// Pills are for chips that sit in a scrolling strip at their natural
+// width. These fill their row, and a full-width pill reads as a submit
+// button — the shape promises an action rather than a choice. The corner
+// is one step tighter than the tiles above (12 against 16) because a
+// smaller box wants a smaller radius; matching them exactly makes the
+// chips look swollen.
+//
+// 44px minimum height is the smallest thing a thumb hits reliably, and it
+// also makes every row the same height, which is what turns nine chips
+// into a set rather than a heap.
+//
 // Sized by its row, like the family tiles above it.
 //
 // Packed by content alone, a wrapped row ends wherever the last chip
@@ -552,8 +567,9 @@ const Chip = styled(Pressable)`
   flex-basis: auto;
   align-items: center;
   justify-content: center;
+  min-height: 44px;
   padding: ${spacing.xs}px ${spacing.md}px;
-  border-radius: 999px;
+  border-radius: ${radius.md}px;
   background-color: ${(props) => (props.on ? CLAY : props.theme.surface)};
   border-width: 1px;
   border-color: ${(props) => (props.on ? CLAY : props.theme.border)};

@@ -32,6 +32,9 @@ const MUST_CLAIM = [
   "ForYouScreen.js",
   "LocalScreen.js",
   "SellerDashboardScreen.js",
+  // The events banner had the same seam for the same reason: it kept the
+  // "top" edge, so a pale band sat between the status bar and the plum.
+  "EventsScreen.js",
 ];
 
 for (const name of MUST_CLAIM) {

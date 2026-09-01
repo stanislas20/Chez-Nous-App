@@ -3386,7 +3386,7 @@ export const translations = {
       "Qui joue ou ce qui se passe, ce que le billet comprend, et ce qu’il faut savoir avant de se déplacer.",
     eventsHeroKicker: "LES SORTIES PRÈS DE VOUS",
     eventsHeroKickerNear: "{city} ET ALENTOURS",
-    eventsHeroTitle: "Où sortir",
+    eventsHeroTitle: "Où aller ?",
     eventsHeroCopy:
       "L’entrée sur place coûte presque toujours plus cher qu’en avance, et l’heure annoncée est celle de l’ouverture des portes, pas du début. Les deux sont sur chaque fiche.",
     eventsAllCities: "Toutes les villes",

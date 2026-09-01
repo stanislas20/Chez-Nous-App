@@ -28,6 +28,7 @@ import { usePressScale } from "../components/Tappable";
 import { SearchBar } from "../components/SearchBar";
 import { useAuth } from "../auth/AuthContext";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
+import { useBannerStatusBar } from "../hooks/useBannerStatusBar";
 import { useEvents } from "../hooks/useEvents";
 import { useEventReactions } from "../hooks/useEventReactions";
 import { openAccountGate } from "../utils/openAccountGate";
@@ -179,6 +180,9 @@ export function EventsScreen({ navigation }) {
 
   const window = chosenWindow ?? firstWindowWithEvents;
   const setWindow = setChosenWindow;
+  // The banner is under the status bar now, so the glyphs on top of it are
+  // this screen's to set — dark icons on #8A3A6B are not dim, they are gone.
+  useBannerStatusBar();
   const { likedIds, myReactions, reactionCounts, toggleLike, setReaction } =
     useEventReactions(user?.uid);
 
@@ -581,12 +585,24 @@ export function EventsScreen({ navigation }) {
   );
 
   return (
-    <Container edges={["top", "left", "right"]}>
-      <Header>
+    <Container edges={["left", "right"]}>
+      {/* The plum runs all the way to the top of the screen.
+          
+          The top inset can only be spent once, and this was spending it
+          twice: the SafeAreaView paid it in theme.background, drawing a
+          pale band above the banner, and the banner started below that.
+          The two read as separate bars with a seam between them — which is
+          the same fault check-banner-top-inset.js was written for on the
+          three tab screens. The header is part of the banner now, in the
+          banner's own colour, and pays the inset itself. */}
+      <Header style={{ paddingTop: insets.top + spacing.sm }}>
         <BackButton onPress={() => navigation.goBack()} hitSlop={8}>
-          <Ionicons name="chevron-back" size={20} color={colors.text} />
+          <Ionicons name="chevron-back" size={20} color="#ffffff" />
         </BackButton>
-        <HeaderTitle>{t("menuEventsRow")}</HeaderTitle>
+        {/* No title here. The banner immediately below says "Sortez ce
+            soir" in 28px over a plum gradient; a second, smaller line
+            saying "Événements & Sorties" above it was the same
+            announcement made twice, in a weaker voice. */}
       </Header>
 
       <FlatList
@@ -723,11 +739,15 @@ const Container = styled(SafeAreaView)`
   background-color: ${(props) => props.theme.background};
 `;
 
+// Flat, in the exact colour the hero gradient starts on, so the two read as
+// one surface. A gradient of its own — even a close one — put a seam across
+// the screen at the join, which is the thing this was fixing.
 const Header = styled.View`
   flex-direction: row;
   align-items: center;
   gap: ${spacing.sm}px;
   padding: ${spacing.sm}px ${spacing.md}px;
+  background-color: #8a3a6b;
 `;
 
 const BackButton = styled(Pressable)`
@@ -737,11 +757,6 @@ const BackButton = styled(Pressable)`
   justify-content: center;
 `;
 
-const HeaderTitle = styled.Text`
-  font-family: ${fontFamily.semiBold};
-  font-size: 17px;
-  color: ${(props) => props.theme.text};
-`;
 
 const Hero = styled(LinearGradient)`
   padding: ${spacing.lg}px ${spacing.md}px ${spacing.lg}px;

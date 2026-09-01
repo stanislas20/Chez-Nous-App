@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Animated,
@@ -15,6 +15,7 @@ import {
 } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { setStatusBarStyle } from "expo-status-bar";
 import { doc, increment, updateDoc } from "firebase/firestore";
 import styled from "styled-components/native";
 import { firestore } from "../config/firebase";
@@ -83,7 +84,7 @@ function priceLines(event, t) {
 }
 
 export function EventsScreen({ navigation }) {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const { t, language } = useI18n();
   const { user } = useAuth();
   const { coords } = useCurrentLocation();
@@ -180,9 +181,25 @@ export function EventsScreen({ navigation }) {
 
   const window = chosenWindow ?? firstWindowWithEvents;
   const setWindow = setChosenWindow;
-  // The banner is under the status bar now, so the glyphs on top of it are
-  // this screen's to set — dark icons on #8A3A6B are not dim, they are gone.
+  // White glyphs while the banner is under them — dark icons on #8A3A6B are
+  // not dim, they are gone. useBannerStatusBar sets that on focus and hands
+  // the default back on the way out.
   useBannerStatusBar();
+  // And back to dark once the banner has scrolled away, or the clock is
+  // white on a white list. Tracked in a ref and only set when it flips, so
+  // this costs nothing per scroll frame.
+  const glyphsAreLight = useRef(true);
+  const onScroll = useCallback(
+    (event) => {
+      // Half the banner is enough: by then what is under the status bar is
+      // the list, not the gradient.
+      const light = event.nativeEvent.contentOffset.y < 90;
+      if (light === glyphsAreLight.current) return;
+      glyphsAreLight.current = light;
+      setStatusBarStyle(light ? "light" : scheme === "dark" ? "light" : "dark");
+    },
+    [scheme],
+  );
   const { likedIds, myReactions, reactionCounts, toggleLike, setReaction } =
     useEventReactions(user?.uid);
 
@@ -472,7 +489,13 @@ export function EventsScreen({ navigation }) {
 
   const header = (
     <>
-      <Hero colors={["#8A3A6B", "#6D2C55", "#3E1830"]}>
+      <Hero
+        colors={["#8A3A6B", "#6D2C55", "#3E1830"]}
+        style={{ paddingTop: insets.top + spacing.sm }}
+      >
+        <BackButton onPress={() => navigation.goBack()} hitSlop={8}>
+          <Ionicons name="chevron-back" size={20} color="#ffffff" />
+        </BackButton>
         <HeroMark pointerEvents="none">
           <Ionicons name="ticket-outline" size={150} color="rgba(255,255,255,0.10)" />
         </HeroMark>
@@ -586,24 +609,18 @@ export function EventsScreen({ navigation }) {
 
   return (
     <Container edges={["left", "right"]}>
-      {/* The plum runs all the way to the top of the screen.
-          
-          The top inset can only be spent once, and this was spending it
-          twice: the SafeAreaView paid it in theme.background, drawing a
-          pale band above the banner, and the banner started below that.
-          The two read as separate bars with a seam between them — which is
-          the same fault check-banner-top-inset.js was written for on the
-          three tab screens. The header is part of the banner now, in the
-          banner's own colour, and pays the inset itself. */}
-      <Header style={{ paddingTop: insets.top + spacing.sm }}>
-        <BackButton onPress={() => navigation.goBack()} hitSlop={8}>
-          <Ionicons name="chevron-back" size={20} color="#ffffff" />
-        </BackButton>
-        {/* No title here. The banner immediately below says "Sortez ce
-            soir" in 28px over a plum gradient; a second, smaller line
-            saying "Événements & Sorties" above it was the same
-            announcement made twice, in a weaker voice. */}
-      </Header>
+      {/* No fixed bar above the list.
+      
+          There was one, in the banner's colour, and it was worse than the
+          pale band it replaced: it never moved, so the moment anything was
+          scrolled its bottom edge cut across whatever was passing under
+          it — a plum block, then a card with its top sliced off mid-word.
+          A shadow made the cut deliberate without making it pleasant.
+      
+          So the banner scrolls, all of it, and the back button rides on it
+          the way the buttons on a listing ride on its photograph. The list
+          then owns the top of the screen, which is what it looked like it
+          wanted to do all along. */}
 
       <FlatList
         data={rest}
@@ -611,6 +628,8 @@ export function EventsScreen({ navigation }) {
         renderItem={({ item }) => renderCard(item, false)}
         ListHeaderComponent={header}
         contentContainerStyle={listContentStyle}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           featured ? null : (
@@ -739,18 +758,12 @@ const Container = styled(SafeAreaView)`
   background-color: ${(props) => props.theme.background};
 `;
 
-// Flat, in the exact colour the hero gradient starts on, so the two read as
-// one surface. A gradient of its own — even a close one — put a seam across
-// the screen at the join, which is the thing this was fixing.
-const Header = styled.View`
-  flex-direction: row;
-  align-items: center;
-  gap: ${spacing.sm}px;
-  padding: ${spacing.sm}px ${spacing.md}px;
-  background-color: #8a3a6b;
-`;
 
+// On the banner, not in a bar: absolutely placed so the hero's own padding
+// does not have to make room for it.
 const BackButton = styled(Pressable)`
+  align-self: flex-start;
+  margin-bottom: ${spacing.xs}px;
   width: 34px;
   height: 34px;
   align-items: center;

@@ -279,8 +279,13 @@ export function MoreScreen({ navigation }) {
               somebody looking for a plumber in the menu found "Services
               publics", which is the tax office. A whole category with no
               door into it, and nothing to fail. */}
+          {/* The directory, not the goods grid — the same screen the
+              Services chip on Pour vous opens. Two doors onto one category
+              landing on two different screens is how a category comes to
+              have two personalities, and this app has paid for that
+              before. */}
           {servicesCategory ? (
-            <CategoryRow onPress={() => goToCategory(servicesCategory)}>
+            <CategoryRow onPress={() => navigation.navigate("Services")}>
               <CategoryEmoji>🛠️</CategoryEmoji>
               <CategoryRowLabel>{t("menuServicesRow")}</CategoryRowLabel>
               <Ionicons

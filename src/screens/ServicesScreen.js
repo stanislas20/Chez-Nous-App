@@ -25,7 +25,6 @@ import {
   getServiceDepositLabel,
   getServiceWorkPlaceLabel,
   isHeavyDeposit,
-  serviceWorkPlaces,
 } from "../data/serviceTerms";
 import { buildLinkUrl } from "../data/restaurantLinks";
 import { ScreenFooter } from "../components/ScreenFooter";
@@ -216,15 +215,16 @@ export function ServicesScreen({ navigation }) {
           {mode === "find" ? (
             <>
               <WhereRow>
-                {[{ key: "any", label: t("servicesWhereAny") }]
-                  .concat(
-                    serviceWorkPlaces
-                      .filter((item) => item.key !== "both")
-                      .map((item) => ({
-                        key: item.key,
-                        label: getServiceWorkPlaceLabel(item.key, language),
-                      })),
-                  )
+                {/* Short forms here, the full sentence on the card. Three
+                    tabs across a phone gives each about a hundred points,
+                    and "Se déplace chez vous" was arriving as "Se déplace
+                    chez v…" — a label whose end is cut off is a label the
+                    reader has to guess at. */}
+                {[
+                  { key: "any", label: t("servicesWhereAny") },
+                  { key: "onsite", label: t("servicesWhereOnsiteShort") },
+                  { key: "workshop", label: t("servicesWhereWorkshopShort") },
+                ]
                   .map((item) => (
                     <WhereTab
                       key={item.key}
@@ -493,8 +493,18 @@ const FamilyGrid = styled.View`
   margin-bottom: ${spacing.md}px;
 `;
 
+// Sized by the row rather than by a fixed 31%.
+//
+// Ten families over three columns leaves one tile alone on the last row,
+// and at a fixed width it sat in the left third with two tile-shaped holes
+// beside it, which reads as something failing to load. flex-basis sets the
+// three-per-row rhythm and flex-grow spends whatever is left, so the last
+// row's tile takes the full width and a row of two splits it in half. The
+// same rule then survives a family being added or removed, which a
+// hardcoded percentage does not.
 const FamilyTile = styled(Pressable)`
-  width: 31%;
+  flex-grow: 1;
+  flex-basis: 28%;
   align-items: center;
   gap: 6px;
   padding: ${spacing.sm}px ${spacing.xs}px;

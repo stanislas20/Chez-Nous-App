@@ -38,6 +38,10 @@ export const serviceFamilies = [
   { key: "digital", icon: "phone-portrait-outline", labelKey: "sellFamilyDigital" },
   { key: "lessons", icon: "school-outline", labelKey: "sellFamilyLessons" },
   { key: "health", icon: "medkit-outline", labelKey: "sellFamilyHealth" },
+  // Shown as "Administratif". The key is older than the label: it was
+  // "Démarches", which names the errand somebody is running rather than
+  // the profession they are looking for — every other family here is a
+  // domain, and an écrivain public is not a démarche.
   { key: "paperwork", icon: "document-text-outline", labelKey: "sellFamilyPaperwork" },
 ];
 

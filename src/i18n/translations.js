@@ -1771,6 +1771,8 @@ export const translations = {
     servicesWhereWorkshopShort: "Workshop",
     servicesWhereAny: "Either way",
     servicesCount: "{count} provider(s)",
+    servicesTradesMore: "+{count} more",
+    servicesTradesLess: "Show fewer",
     servicesSortNote: "Smallest advance first",
     servicesDepositUnknown: "Advance not stated",
     servicesHeavyNote:
@@ -4703,6 +4705,8 @@ export const translations = {
     servicesWhereWorkshopShort: "En atelier",
     servicesWhereAny: "Peu importe",
     servicesCount: "{count} prestataire(s)",
+    servicesTradesMore: "+{count} autres",
+    servicesTradesLess: "Voir moins",
     servicesSortNote: "Avance la plus faible",
     servicesDepositUnknown: "Avance non précisée",
     servicesHeavyNote:

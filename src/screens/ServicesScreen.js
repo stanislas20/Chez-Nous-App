@@ -18,7 +18,7 @@ import {
 } from "../data/serviceTrades";
 import {
   getServiceRateLabel,
-  serviceRateTypes,
+  serviceRateTypesForTrade,
 } from "../data/serviceRateTypes";
 import {
   getServiceDepositBand,
@@ -61,10 +61,29 @@ export function ServicesScreen({ navigation }) {
   const [family, setFamily] = useState("building");
   const [trade, setTrade] = useState(null);
   const [where, setWhere] = useState("any");
+  const [allTrades, setAllTrades] = useState(false);
   const [offerTrade, setOfferTrade] = useState(null);
   const [offerRate, setOfferRate] = useState(null);
 
   const familyTrades = useMemo(() => serviceTradesInFamily(family), [family]);
+  // Two rows, then a way to ask for the rest.
+  //
+  // Families are not the same size: Beauté has five trades and Véhicules
+  // sixteen. Wrapping all of them put six rows of chips between the
+  // question and its answer — the count, the providers, the whole reason
+  // the screen exists — so choosing Véhicules pushed the results off the
+  // bottom of the phone. A filter that hides what it filters is not a
+  // filter.
+  //
+  // Six is what fits in two rows at these widths. The rest are one tap
+  // away and the tap says how many are behind it, which is the difference
+  // between a control that admits it is truncating and one that quietly
+  // stops.
+  const TRADES_SHOWN = 6;
+  const shownTrades = allTrades
+    ? familyTrades
+    : familyTrades.slice(0, TRADES_SHOWN);
+  const hiddenTradeCount = familyTrades.length - shownTrades.length;
   const familyKeys = useMemo(
     () => new Set(familyTrades.map((item) => item.key)),
     [familyTrades],
@@ -146,6 +165,21 @@ export function ServicesScreen({ navigation }) {
           <HeroKicker>{t("servicesKicker")}</HeroKicker>
           <HeroTitle>{t("servicesHeroTitle")}</HeroTitle>
           <HeroCopy>{t("servicesHeroCopy")}</HeroCopy>
+          {/* The one action this screen wants from a provider, where the
+              Events banner puts its own: on the gradient, white on clay so
+              it is the brightest thing on the screen, and reachable on
+              arrival rather than after scrolling past every trade.
+          
+              It is a shortcut into the form, not a second copy of the
+              offer tab: the tab is where somebody who is browsing decides
+              to publish, this is for somebody who came to publish. Both
+              end in the same place. */}
+          <HeroActions>
+            <HeroPostButton onPress={publish} hitSlop={6}>
+              <Ionicons name="add" size={16} color={CLAY} />
+              <HeroPostLabel>{t("servicesOfferCta")}</HeroPostLabel>
+            </HeroPostButton>
+          </HeroActions>
         </Hero>
 
         <Body>
@@ -177,6 +211,7 @@ export function ServicesScreen({ navigation }) {
                     setFamily(item.key);
                     setTrade(null);
                     setOfferTrade(null);
+                    setAllTrades(false);
                   }}
                 >
                   <Ionicons
@@ -193,18 +228,25 @@ export function ServicesScreen({ navigation }) {
           </FamilyGrid>
 
           <ChipWrap>
-            {familyTrades.map((item) => {
+            {shownTrades.map((item) => {
               const on =
                 mode === "find" ? trade === item.key : offerTrade === item.key;
               return (
                 <Chip
                   key={item.key}
                   on={on}
-                  onPress={() =>
-                    mode === "find"
-                      ? setTrade(on ? null : item.key)
-                      : setOfferTrade(on ? null : item.key)
-                  }
+                  onPress={() => {
+                    if (mode === "find") {
+                      setTrade(on ? null : item.key);
+                      return;
+                    }
+                    setOfferTrade(on ? null : item.key);
+                    // A rate belongs to the trade it was chosen for. Keeping
+                    // "au m²" while the seller switches from carreleur to
+                    // mécanicien publishes a listing priced by a unit that
+                    // is no longer offered anywhere.
+                    setOfferRate(null);
+                  }}
                 >
                   <ChipLabel on={on} numberOfLines={1}>
                     {t(item.labelKey)}
@@ -212,6 +254,15 @@ export function ServicesScreen({ navigation }) {
                 </Chip>
               );
             })}
+            {hiddenTradeCount > 0 || allTrades ? (
+              <MoreChip onPress={() => setAllTrades((prev) => !prev)}>
+                <MoreChipLabel numberOfLines={1}>
+                  {allTrades
+                    ? t("servicesTradesLess")
+                    : t("servicesTradesMore", { count: hiddenTradeCount })}
+                </MoreChipLabel>
+              </MoreChip>
+            ) : null}
           </ChipWrap>
 
           {mode === "find" ? (
@@ -368,7 +419,8 @@ export function ServicesScreen({ navigation }) {
             <>
               <SectionLabel>{t("servicesOfferBillLabel")}</SectionLabel>
               <ChipWrap>
-                {serviceRateTypes.map((item) => {
+                {/* Only the rates this trade could actually use. */}
+                {serviceRateTypesForTrade(offerTrade).map((item) => {
                   const on = offerRate === item.key;
                   return (
                     <Chip
@@ -445,6 +497,30 @@ const HeroCopy = styled.Text`
   color: rgba(255, 255, 255, 0.78);
 `;
 
+const HeroActions = styled.View`
+  flex-direction: row;
+  margin-top: ${spacing.md}px;
+`;
+
+// White on the gradient rather than an outline: this is the primary action
+// of the screen, and an outlined button on a photograph-dark banner reads
+// as secondary no matter what the label says.
+const HeroPostButton = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 ${spacing.md}px;
+  border-radius: ${radius.pill}px;
+  background-color: #ffffff;
+`;
+
+const HeroPostLabel = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 13.5px;
+  color: ${CLAY};
+`;
+
 const Body = styled.View`
   padding: ${spacing.md}px;
 `;
@@ -507,6 +583,7 @@ const FamilyGrid = styled.View`
 const FamilyTile = styled(Pressable)`
   flex-grow: 1;
   flex-basis: 28%;
+  ${shadow.card};
   align-items: center;
   gap: 6px;
   padding: ${spacing.sm}px ${spacing.xs}px;
@@ -540,6 +617,19 @@ const ChipWrap = styled.View`
   margin-bottom: ${spacing.md}px;
 `;
 
+// A filter, drawn as one.
+//
+// Three rows of controls doing three different jobs — navigate, filter,
+// toggle — were arriving as one wall of identical white rectangles.
+// Nothing told the eye which row was the subject and which were its
+// qualifiers, so every visit meant reading all three to find out what they
+// were. That is the cost of consistency applied where a difference
+// belongs.
+//
+// So the trade chips step back: a tint instead of a border, no shadow, and
+// shorter than the tiles above. They are the second question and they look
+// like it.
+//
 // A rounded rectangle, not a pill.
 //
 // Pills are for chips that sit in a scrolling strip at their natural
@@ -567,42 +657,75 @@ const Chip = styled(Pressable)`
   flex-basis: auto;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  padding: ${spacing.xs}px ${spacing.md}px;
-  border-radius: ${radius.md}px;
-  background-color: ${(props) => (props.on ? CLAY : props.theme.surface)};
-  border-width: 1px;
-  border-color: ${(props) => (props.on ? CLAY : props.theme.border)};
+  min-height: 40px;
+  padding: ${spacing.xs}px ${spacing.sm}px;
+  border-radius: ${radius.sm}px;
+  background-color: ${(props) =>
+    props.on ? CLAY : "rgba(122, 74, 46, 0.07)"};
 `;
 
 const ChipLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
-  font-size: 12.5px;
+  font-size: 12px;
   text-align: center;
-  color: ${(props) => (props.on ? "#ffffff" : props.theme.text)};
+  color: ${(props) => (props.on ? "#ffffff" : CLAY)};
 `;
 
+// Reveals the rest of the family rather than choosing anything, so it is
+// not drawn as a choice: dashed, unfilled, the same height as the chips it
+// stands among. Filled, it read as a fourteenth trade called "+10 autres".
+const MoreChip = styled(Pressable)`
+  flex-grow: 1;
+  flex-basis: auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: ${spacing.xs}px ${spacing.sm}px;
+  border-radius: ${radius.sm}px;
+  border-width: 1px;
+  border-style: dashed;
+  border-color: rgba(122, 74, 46, 0.32);
+`;
+
+const MoreChipLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 12px;
+  text-align: center;
+  color: ${CLAY};
+`;
+
+// Three fixed answers to one question, one of them always true — which is
+// what a segmented control is for, and why this is a single track with the
+// answer sitting inside it rather than three more buttons.
+//
+// I had made it match the chips. That was the wrong kind of tidy: it made
+// a toggle look like a filter, and left the eye no way to tell that
+// choosing here replaces the last answer instead of adding to it.
 const WhereRow = styled.View`
   flex-direction: row;
   gap: 3px;
   padding: 4px;
-  border-radius: 15px;
-  background-color: rgba(0, 0, 0, 0.045);
+  border-radius: ${radius.md}px;
+  background-color: rgba(0, 0, 0, 0.05);
   margin-bottom: ${spacing.md}px;
 `;
 
 const WhereTab = styled(Pressable)`
   flex: 1;
   align-items: center;
+  justify-content: center;
+  min-height: 36px;
   padding: ${spacing.xs}px 4px;
-  border-radius: 12px;
-  background-color: ${(props) => (props.on ? props.theme.surface : "transparent")};
+  border-radius: ${radius.sm}px;
+  background-color: ${(props) =>
+    props.on ? props.theme.surface : "transparent"};
 `;
 
 const WhereLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
-  font-size: 11.5px;
-  color: ${(props) => (props.on ? props.theme.text : props.theme.textMuted)};
+  font-size: 12px;
+  text-align: center;
+  color: ${(props) => (props.on ? CLAY : props.theme.textMuted)};
 `;
 
 const CountRow = styled.View`

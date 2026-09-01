@@ -160,7 +160,7 @@ import {
 import {
   getServiceRateLabel,
   serviceRateNeedsAmount,
-  serviceRateTypes,
+  serviceRateTypesForTrade,
 } from "../data/serviceRateTypes";
 import {
   getServiceDepositLabel,
@@ -1277,6 +1277,8 @@ export function CreateListingScreen({ route, navigation }) {
   const formTitle = editing
     ? t("editFormTitle")
     : t(postingTitleKey(selectedCategory, { isPromoted }));
+
+  const rateOptions = serviceRateTypesForTrade(trade);
 
   const serviceText = `${title} ${description}`;
   const serviceTrades = isServices ? garageSpecialtiesFor(serviceText) : [];
@@ -5285,19 +5287,23 @@ export function CreateListingScreen({ route, navigation }) {
               {showRateField ? (
                 <>
                   <Label>{t("sellFieldServiceRate")}</Label>
+                  {/* Per-m² only reaches the trades that price by surface.
+                      Asked of a garage it is a question with no sensible
+                      answer, which teaches the seller that the form does
+                      not know what it is asking about. */}
                   <PickerGrid>
-                    {serviceRateTypes.map((option, index) => {
+                    {rateOptions.map((option, index) => {
                       const active = serviceRateType === option.key;
                       return (
                         <PickerCard
                           key={option.key}
                           width={getPickerCardWidth(
                             index,
-                            serviceRateTypes.length,
+                            rateOptions.length,
                           )}
                           full={isPickerCardFull(
                             index,
-                            serviceRateTypes.length,
+                            rateOptions.length,
                           )}
                           selected={active}
                           accent={option.color}
@@ -5322,7 +5328,7 @@ export function CreateListingScreen({ route, navigation }) {
                           <PickerCardLabel
                             full={isPickerCardFull(
                               index,
-                              serviceRateTypes.length,
+                              rateOptions.length,
                             )}
                             selected={active}
                             numberOfLines={2}

@@ -58,6 +58,27 @@ export const serviceRateTypes = [
   },
 ];
 
+// Per-m² is not a rate every trade can use.
+//
+// It was offered to everybody, so somebody publishing a mechanic's garage
+// was asked whether he charges by the square metre — a question with no
+// sensible answer, which teaches the seller that the form does not know
+// what it is asking about. Surface is how a mason, a tiler and a painter
+// price work, and nobody else here.
+//
+// Deliberately a short list rather than a flag on each trade: if a fourth
+// trade ever prices by surface it belongs in this line, where the reason
+// is written down, and not scattered across sixty entries.
+const PER_SQM_TRADES = new Set(["mason", "tiler", "painter"]);
+
+// The rates worth offering for a trade. With no trade chosen yet, per-m²
+// stays hidden: showing it and taking it away again is worse than never
+// offering it, and the trades that use it are asked for it by name.
+export function serviceRateTypesForTrade(trade) {
+  if (PER_SQM_TRADES.has(trade)) return serviceRateTypes;
+  return serviceRateTypes.filter((item) => item.key !== "perSqm");
+}
+
 export function getServiceRateType(key) {
   return serviceRateTypes.find((item) => item.key === key) ?? null;
 }

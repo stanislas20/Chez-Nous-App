@@ -192,7 +192,7 @@ export function ServicesScreen({ navigation }) {
             })}
           </FamilyGrid>
 
-          <ChipScroll horizontal showsHorizontalScrollIndicator={false}>
+          <ChipWrap>
             {familyTrades.map((item) => {
               const on =
                 mode === "find" ? trade === item.key : offerTrade === item.key;
@@ -210,7 +210,7 @@ export function ServicesScreen({ navigation }) {
                 </Chip>
               );
             })}
-          </ChipScroll>
+          </ChipWrap>
 
           {mode === "find" ? (
             <>
@@ -365,7 +365,7 @@ export function ServicesScreen({ navigation }) {
           ) : (
             <>
               <SectionLabel>{t("servicesOfferBillLabel")}</SectionLabel>
-              <ChipScroll horizontal showsHorizontalScrollIndicator={false}>
+              <ChipWrap>
                 {serviceRateTypes.map((item) => {
                   const on = offerRate === item.key;
                   return (
@@ -380,7 +380,7 @@ export function ServicesScreen({ navigation }) {
                     </Chip>
                   );
                 })}
-              </ChipScroll>
+              </ChipWrap>
 
               {/* A trade nobody listed is still a trade. The form takes a
                   custom category, so somebody whose métier is not in the
@@ -521,14 +521,25 @@ const FamilyLabel = styled.Text`
   color: ${(props) => (props.on ? "#ffffff" : props.theme.text)};
 `;
 
-const ChipScroll = styled.ScrollView.attrs({
-  contentContainerStyle: { gap: 8, paddingRight: spacing.md },
-})`
+// Wrapped, not scrolled sideways.
+//
+// Bâtiment has eight trades and Événements six. In a horizontal strip the
+// first four fit and the fifth is sliced down the middle at the screen
+// edge — which is the only hint that the rest exist, and it reads as a
+// rendering fault rather than as an invitation to swipe. Somebody looking
+// for a soudeur concluded there was no soudeur.
+//
+// Wrapping costs two lines of height and shows every trade at once, which
+// is the whole job of a picker.
+const ChipWrap = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: ${spacing.md}px;
 `;
 
 const Chip = styled(Pressable)`
-  padding: ${spacing.xs}px ${spacing.sm}px;
+  padding: ${spacing.xs}px ${spacing.md}px;
   border-radius: 999px;
   background-color: ${(props) => (props.on ? CLAY : props.theme.surface)};
   border-width: 1px;

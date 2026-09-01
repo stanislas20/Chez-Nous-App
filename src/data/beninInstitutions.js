@@ -16,7 +16,7 @@
 // to whoever bought a lookalike domain, which is the worst failure available
 // anywhere in this app.
 export const institutionsSource = "https://www.gouv.bj/";
-export const institutionsReviewedOn = "2026-08-28";
+export const institutionsReviewedOn = "2026-09-01";
 
 // Grouped by what somebody came to do, not by protocol rank. A person opening
 // this screen has an errand, not an interest in the order of precedence.
@@ -24,6 +24,15 @@ export const institutionGroups = [
   { key: "business", icon: "briefcase-outline", labelEn: "Starting a business", labelFr: "Entreprendre" },
   { key: "papers", icon: "document-text-outline", labelEn: "Paperwork", labelFr: "Démarches" },
   { key: "vehicle", icon: "car-outline", labelEn: "Vehicles", labelFr: "Véhicules" },
+  // Land has its own group rather than sitting inside "Démarches".
+  //
+  // This app tells a buyer in four separate places that only a titre
+  // foncier confers ownership and that any other document must be checked
+  // with the ANDF before money changes hands — and then offered no way to
+  // reach the ANDF. The advice existed; the door did not. A land purchase
+  // is the largest sum most people here will ever hand over, and the one
+  // where the paperwork decides whether they own anything at all.
+  { key: "land", icon: "map-outline", labelEn: "Land", labelFr: "Foncier" },
   { key: "state", icon: "business-outline", labelEn: "The State", labelFr: "L'État" },
 ];
 
@@ -74,6 +83,28 @@ export const beninInstitutions = [
   },
   // Already used by the Auto-écoles screen, which reads its licence
   // categories and dossier from this same agency.
+  {
+    key: "andf",
+    group: "land",
+    name: "ANDF",
+    fullName: "Agence Nationale du Domaine et du Foncier",
+    url: "https://andf.bj",
+    blurbEn:
+      "Land titles, registration and the cadastre — where a titre foncier is verified.",
+    blurbFr:
+      "Titre foncier, immatriculation et cadastre — où vérifier un titre avant d’acheter.",
+  },
+  {
+    key: "impots",
+    group: "land",
+    name: "DGI",
+    fullName: "Direction Générale des Impôts",
+    url: "https://www.impots.bj",
+    blurbEn:
+      "IFU, and the registration duties payable when land or a building changes hands.",
+    blurbFr:
+      "IFU, et les droits d’enregistrement à payer lors d’une vente de terrain ou de maison.",
+  },
   {
     key: "anatt",
     group: "vehicle",

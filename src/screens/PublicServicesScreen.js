@@ -71,17 +71,13 @@ export function PublicServicesScreen({ navigation }) {
           <FlagRed />
         </FlagFly>
       </FlagField>
-      {/* The flag, as the banner rather than as a sticker.
+      {/* Green, because the page behind it is already the flag.
       
-          This is the one screen in the app that is entirely about the
-          State: every card leaves for a gouv.bj domain. A generic navy
-          said "official-looking", which is precisely the wrong thing for a
-          screen whose whole risk is somebody trusting a lookalike — so it
-          wears the national colours instead. Green is the field, because
-          it is the flag's own hoist band and the only one of the three
-          that white text survives; the yellow and the red are the rule
-          under it, in their flag order, at the width they have on the
-          flag itself. */}
+          The banner carried a yellow-and-red rule under its copy as well,
+          which was the flag said twice on one screen — and the second
+          telling is the one that reads as decoration. Green alone is the
+          flag's own hoist band and the only one of the three a white
+          headline survives. */}
       <Hero
         colors={["#0A8A52", "#046B3C", "#023B21"]}
         start={{ x: 0, y: 0 }}
@@ -96,10 +92,6 @@ export function PublicServicesScreen({ navigation }) {
         </HeroTop>
         <HeroTitle>{t("publicTitle")}</HeroTitle>
         <HeroCopy>{t("publicIntro")}</HeroCopy>
-        <FlagRule>
-          <FlagBandYellow />
-          <FlagBandRed />
-        </FlagRule>
       </Hero>
 
       <ScrollView
@@ -210,28 +202,6 @@ const Hero = styled(LinearGradient)`
     ${spacing.lg}px;
   border-bottom-left-radius: 28px;
   border-bottom-right-radius: 28px;
-`;
-
-// Yellow over red, the way they sit on the flag. Kept to a rule rather
-// than a block: three full-height bands behind text is a costume, and the
-// point is that the reader knows whose screen this is at a glance.
-const FlagRule = styled.View`
-  flex-direction: row;
-  height: 4px;
-  border-radius: 2px;
-  overflow: hidden;
-  margin-top: ${spacing.md}px;
-  width: 96px;
-`;
-
-const FlagBandYellow = styled.View`
-  flex: 1;
-  background-color: #fcd116;
-`;
-
-const FlagBandRed = styled.View`
-  flex: 1;
-  background-color: #e8112d;
 `;
 
 const HeroTop = styled.View`

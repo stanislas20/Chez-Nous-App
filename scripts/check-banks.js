@@ -154,6 +154,30 @@ check(
   sorted.map((bank) => bank.key).join(","),
 );
 
+// ── The screen keys its rows on a field the data actually has ─────────
+//
+// BanksScreen rendered `<Row key={bank.id}>`, and no bank has an `id` — the
+// field is called `key`. Every row therefore got `undefined`, React warned
+// that children in a list need a unique key, and it kept its own order by
+// position: reorder or filter the list and it reuses the wrong row's state.
+// The warning is the only symptom, and a warning in a list of warnings is
+// invisible.
+const banksScreen = fs.readFileSync(
+  path.join(__dirname, "..", "src/screens/BanksScreen.js"),
+  "utf8",
+);
+const keyedOn = /<Row key=\{bank\.(\w+)\}/.exec(banksScreen);
+check("BanksScreen keys its rows on bank.key", keyedOn?.[1], "key");
+
+beninBanks.forEach((bank) => {
+  check(`${bank.name} has a key to be rendered by`, Boolean(bank.key), true);
+});
+check(
+  "no two banks share a key",
+  new Set(beninBanks.map((bank) => bank.key)).size,
+  beninBanks.length,
+);
+
 if (failures.length) {
   failures.forEach((line) => console.error(`FAIL ${line}`));
   console.error(`\n${failures.length} failing`);

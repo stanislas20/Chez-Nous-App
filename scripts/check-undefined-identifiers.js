@@ -26,6 +26,8 @@ const KNOWN_GLOBALS = new Set([
   'parseInt', 'parseFloat', 'isNaN', 'isFinite', 'encodeURIComponent',
   'decodeURIComponent', 'encodeURI', 'decodeURI', 'atob', 'btoa', 'structuredClone',
   'ArrayBuffer', 'Uint8Array', 'BigInt', 'queueMicrotask', '__DEV__',
+  // Node globals, for functions/ — which runs on Node, not in Hermes.
+  'Buffer', '__dirname', '__filename',
 ]);
 
 function walk(dir, out = []) {
@@ -40,8 +42,19 @@ function walk(dir, out = []) {
   return out;
 }
 
+// functions/ is scanned by default alongside src/.
+//
+// It was not, and that is how `logger` came to be called in three places in
+// functions/index.js while never being imported anywhere — not a global in
+// the v2 runtime, so each of those calls was a ReferenceError sitting on
+// its branch. The one in moderatorPushTokens fires precisely when no
+// moderators are configured, which is the moment somebody is trying to
+// find out why no moderator was notified.
 const roots = process.argv.slice(2);
-const files = roots.length ? roots.flatMap((r) => (fs.statSync(r).isDirectory() ? walk(r) : [r])) : walk('src');
+const defaultRoots = ['src', 'functions'].filter((dir) => fs.existsSync(dir));
+const files = (roots.length ? roots : defaultRoots).flatMap((r) =>
+  fs.statSync(r).isDirectory() ? walk(r) : [r],
+);
 
 let failures = 0;
 for (const file of files) {

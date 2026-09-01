@@ -77,7 +77,7 @@ export function BanksScreen({ navigation }) {
           <EmptyText>{t("banksEmptyResults")}</EmptyText>
         ) : (
           banks.map((bank) => (
-            <Row key={bank.id}>
+            <Row key={bank.key}>
               <IconWrap>
                 <Ionicons name="business-outline" size={20} color={EMERALD} />
               </IconWrap>

@@ -18,9 +18,34 @@ export function useIsModerator(user) {
       return undefined;
     }
 
+    // Cached first, then one forced refresh if the cached answer was no.
+    //
+    // getIdTokenResult without the flag returns whatever token is already
+    // in memory, and a custom claim granted server-side is not in it — the
+    // token only picks the claim up when it refreshes, which is on sign-in
+    // or after about an hour. Meanwhile the server knows perfectly well,
+    // so the moderator push goes out.
+    //
+    // That asymmetry is what somebody reports as "I get the notification
+    // because I am the moderator, but I am never offered approve or deny":
+    // the notification is sent from a source that has the claim, and the
+    // screen is gated on a source that does not have it yet.
+    //
+    // A yes from the cache is trusted — a claim cannot appear in a token
+    // that was not issued with it. Only a no is worth a round trip, and
+    // only once.
     getIdTokenResult(user)
       .then((token) => {
-        if (!cancelled) setIsModerator(token.claims?.moderator === true);
+        if (cancelled) return null;
+        if (token.claims?.moderator === true) {
+          setIsModerator(true);
+          return null;
+        }
+        return getIdTokenResult(user, true);
+      })
+      .then((refreshed) => {
+        if (cancelled || !refreshed) return;
+        setIsModerator(refreshed.claims?.moderator === true);
       })
       .catch(() => {
         if (!cancelled) setIsModerator(false);

@@ -596,7 +596,7 @@ export const translations = {
     quickAccessPharmacyKicker: "NEAREST PHARMACY ON DUTY",
     quickAccessJobsFeedTitle: "New jobs",
 
-    banksSearchPlaceholder: "Search for a bank (Ecobank, UBA...)",
+    banksSearchPlaceholder: "Search for a bank",
     banksSectionTitle: "Banks",
     banksEmptyResults: "No bank matches your search.",
 
@@ -3372,7 +3372,7 @@ export const translations = {
     quickAccessPharmacyKicker: "PHARMACIE DE GARDE LA PLUS PROCHE",
     quickAccessJobsFeedTitle: "Nouveaux emplois",
 
-    banksSearchPlaceholder: "Rechercher une banque (Ecobank, UBA...)",
+    banksSearchPlaceholder: "Rechercher une banque",
     banksSectionTitle: "Banques",
     banksEmptyResults: "Aucune banque ne correspond à votre recherche.",
 

@@ -6,6 +6,7 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
+import { smallImageUri } from "../utils/listingImage";
 import { useAuth } from "../auth/AuthContext";
 import { useMyListings } from "../hooks/useMyListings";
 import { openListing } from "../utils/openListing";
@@ -284,7 +285,7 @@ export function SellerInsightsScreen({ navigation }) {
                 onPress={() => goToListing(item)}
               >
                 <AgendaThumb
-                  source={{ uri: item.mediaUrl ?? item.image }}
+                  source={{ uri: smallImageUri(item) }}
                   resizeMode="cover"
                 />
                 <AgendaBody>

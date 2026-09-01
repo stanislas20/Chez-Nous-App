@@ -46,6 +46,7 @@ import {
   withoutListed,
 } from "../hooks/useNearbyRestaurants";
 import { useI18n } from "../i18n/I18nContext";
+import { smallImageUri } from "../utils/listingImage";
 import { useAuth } from "../auth/AuthContext";
 import { openAccountGate } from "../utils/openAccountGate";
 import { canPublish } from "../utils/canPublish";
@@ -878,10 +879,10 @@ export function RestaurantsScreen({ navigation }) {
                     square — losing the sides of a wide logo or the top of a
                     dish. The tile is padded so the letterboxing reads as a
                     frame rather than a gap. */}
-                {item.mediaUrl ? (
+                {smallImageUri(item) ? (
                   <RestoPhotoWrap>
                     <RestoPhoto
-                      source={{ uri: item.mediaUrl }}
+                      source={{ uri: smallImageUri(item) }}
                       resizeMode="contain"
                     />
                   </RestoPhotoWrap>

@@ -22,6 +22,7 @@ import { radius, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
+import { canDraw, drawableMedia } from "../utils/listingImage";
 import {
   getPropertyTypeLabel,
   getRealEstateDealGlyph,
@@ -119,8 +120,13 @@ export function RealEstateDetailScreen({ route, navigation }) {
   const isLand = view.deal === "land";
   const isRent = view.deal === "rent";
   // See RealEstateScreen: the field is `media`, not `photoUrls`.
-  const media = (listing.media ?? []).filter((item) => item.mediaUrl);
-  const cover = listing.mediaUrl ?? media[0]?.mediaUrl ?? null;
+  // Only what this platform can put on screen: an iPhone's .heic decodes
+  // nowhere on Android, so a slide carrying one was a blank page in the
+  // gallery with a counter over it. See the note on canDraw.
+  const media = drawableMedia(listing.media).filter((item) => item.mediaUrl);
+  const cover = canDraw(listing.mediaUrl)
+    ? listing.mediaUrl
+    : (media[0]?.mediaUrl ?? null);
 
   // Measure the cover so the frame takes the photo's own proportions,
   // exactly as ProductDetailScreen does. Without this the ratio stays at

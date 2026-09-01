@@ -7,6 +7,7 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
+import { smallImageUri } from "../utils/listingImage";
 import { useAuth } from "../auth/AuthContext";
 import { useNotificationCenter } from "../hooks/useNotificationCenter";
 import { openListing } from "../utils/openListing";
@@ -161,8 +162,11 @@ export function NotificationsScreen() {
                   )
                 }
               >
+                {/* Through the same helper every card uses: a cover can
+                    be a video, whose URL <Image> draws as nothing, or a
+                    .heic, which Android cannot decode at all. */}
                 <Thumbnail
-                  source={{ uri: listing.mediaUrl }}
+                  source={{ uri: smallImageUri(listing) }}
                   resizeMode="cover"
                 />
                 <RowBody>

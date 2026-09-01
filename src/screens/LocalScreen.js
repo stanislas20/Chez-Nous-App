@@ -43,6 +43,7 @@ import { useFavorites } from "../hooks/useFavorites";
 import { distanceInKm } from "../utils/geo";
 import { queryMatches } from "../utils/search";
 import { useI18n } from "../i18n/I18nContext";
+import { smallImageUri } from "../utils/listingImage";
 import { TabSafeAreaView } from "../components/TabSafeAreaView";
 import { useBannerStatusBar } from "../hooks/useBannerStatusBar";
 
@@ -638,7 +639,7 @@ export function LocalScreen({ navigation }) {
                     {item.mediaUrl ? (
                       <RestoMiniPhotoWrap>
                         <RestoMiniPhoto
-                          source={{ uri: item.mediaUrl }}
+                          source={{ uri: smallImageUri(item) }}
                           resizeMode="contain"
                         />
                       </RestoMiniPhotoWrap>

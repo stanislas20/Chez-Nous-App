@@ -118,7 +118,7 @@ const similarListContentStyle = {
   paddingBottom: spacing.md,
 };
 
-function HeroVideo({ uri }) {
+function HeroVideo({ uri, onRatio }) {
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
     p.muted = true;
@@ -137,12 +137,36 @@ function HeroVideo({ uri }) {
     p.audioMixingMode = "mixWithOthers";
     p.play();
   });
+  // A video's shape is only knowable once it has loaded, so it is reported
+  // upwards the way Image.getSize reports a photograph's. Without this the
+  // hero kept its 4:3 default for every clip, and a video shot upright —
+  // which is how a phone is held — was squeezed into a landscape box with
+  // most of it cropped away.
+  useEffect(() => {
+    const apply = (track) => {
+      const { width, height } = track?.size ?? {};
+      if (width && height) onRatio?.(width / height);
+    };
+    apply(player.videoTrack);
+    const subscription = player.addListener("videoTrackChange", (payload) =>
+      apply(payload?.videoTrack),
+    );
+    return () => subscription?.remove?.();
+  }, [player, onRatio]);
+
   return (
     <HeroVideoView player={player} contentFit="cover" nativeControls={false} />
   );
 }
 
-function HeroGallery({ media, width, height, onIndexChange, onPressPhoto }) {
+function HeroGallery({
+  media,
+  width,
+  height,
+  onIndexChange,
+  onPressPhoto,
+  onFirstVideoRatio,
+}) {
   const [activeIndex, setActiveIndex] = useState(0);
   const slideStyle = { width, height };
 
@@ -159,11 +183,14 @@ function HeroGallery({ media, width, height, onIndexChange, onPressPhoto }) {
           setActiveIndex(index);
           onIndexChange?.(index);
         }}
-        renderItem={({ item }) =>
+        renderItem={({ item, index }) =>
           item.mediaType === "video" ? (
             <GallerySlide style={slideStyle}>
               <PhotoPressable onPress={() => onPressPhoto?.(item.mediaUrl)}>
-                <HeroVideo uri={item.mediaUrl} />
+                <HeroVideo
+                  uri={item.mediaUrl}
+                  onRatio={index === 0 ? onFirstVideoRatio : undefined}
+                />
               </PhotoPressable>
             </GallerySlide>
           ) : (
@@ -298,18 +325,25 @@ export function ProductDetailScreen({ route, navigation }) {
   // actually matters: somebody must see what it costs before they decide to
   // look further.
   const MAX_HERO_FRACTION = 0.74;
-  const singlePhotoHeight = Math.min(
-    windowWidth / singlePhotoRatio,
-    windowHeight * MAX_HERO_FRACTION,
-  );
+  // And a floor, for the opposite problem.
+  //
+  // Sizing strictly to the real shape is honest and, for anything wide,
+  // mean: a 16:9 clip on a 1080-wide phone works out at 607px, and the
+  // hero of the whole page came out shorter than a single card. Below this
+  // the box is filled and the sides are cropped instead — nothing is lost,
+  // because tapping opens the whole thing uncropped and full-screen.
+  const MIN_HERO_FRACTION = 0.5;
+  const heroHeight = (ratio) =>
+    Math.max(
+      Math.min(windowWidth / ratio, windowHeight * MAX_HERO_FRACTION),
+      windowHeight * MIN_HERO_FRACTION,
+    );
+  const singlePhotoHeight = heroHeight(singlePhotoRatio);
   // Every slide in the gallery shares one height (a swipeable pager can't
   // reasonably resize itself mid-swipe), sized from the first photo's real
   // aspect ratio so at least the primary photo shows with zero cropping.
   const [galleryAspectRatio, setGalleryAspectRatio] = useState(4 / 3);
-  const gallerySlideHeight = Math.min(
-    windowWidth / galleryAspectRatio,
-    windowHeight * MAX_HERO_FRACTION,
-  );
+  const gallerySlideHeight = heroHeight(galleryAspectRatio);
   const galleryCount = hasGallery ? drawable.length : coverUri ? 1 : 0;
 
   // Image.getSize fetches real pixel dimensions directly from the URI —
@@ -741,6 +775,13 @@ export function ProductDetailScreen({ route, navigation }) {
           </FloatingIconButton>
         </FloatingHeader>
 
+        {/* The status bar sits over the very top of the page, and the
+            photograph used to start underneath it: the clock and the
+            battery were laid across whatever was in the top strip of the
+            picture. The header buttons already inset themselves by
+            insets.top; the picture now does too, and the strip above it
+            carries the page's own colour. */}
+        <StatusBarInset style={{ height: insets.top }} />
         {coverUri && !hasGallery && listing.mediaType !== "video" ? (
           // A single photo: shown at its real aspect ratio, full width, no
           // fixed height, so nothing gets cropped.
@@ -757,7 +798,19 @@ export function ProductDetailScreen({ route, navigation }) {
             ) : null}
           </HeroSingle>
         ) : (
-          <Hero style={hasGallery ? { height: gallerySlideHeight } : undefined}>
+          // A lone video sizes itself like a lone photo now: HeroVideo
+          // reports the clip's real shape and singlePhotoHeight follows it.
+          // The 340px the styled component falls back to was a landscape
+          // box, and a video shot upright lost most of itself to it.
+          <Hero
+            style={
+              hasGallery
+                ? { height: gallerySlideHeight }
+                : listing.mediaType === "video"
+                  ? { height: singlePhotoHeight }
+                  : undefined
+            }
+          >
             {!coverUri ? (
               <CategoryPlaceholder
                 icon={category?.icon ?? "pricetag-outline"}
@@ -770,10 +823,11 @@ export function ProductDetailScreen({ route, navigation }) {
                 height={gallerySlideHeight}
                 onIndexChange={setActivePhotoIndex}
                 onPressPhoto={openLightbox}
+                onFirstVideoRatio={setGalleryAspectRatio}
               />
             ) : (
               <PhotoPressable onPress={() => openLightbox(coverUri)}>
-                <HeroVideo uri={coverUri} />
+                <HeroVideo uri={coverUri} onRatio={setSinglePhotoRatio} />
               </PhotoPressable>
             )}
             {listing.popular ? (
@@ -1473,6 +1527,12 @@ const HeroImage = styled.Image`
   width: 100%;
   height: 100%;
   background-color: ${(props) => props.theme.surfaceAlt};
+`;
+
+// The band the status bar sits in, above the photograph.
+const StatusBarInset = styled.View`
+  width: 100%;
+  background-color: ${(props) => props.theme.background};
 `;
 
 const HeroSingle = styled.View`

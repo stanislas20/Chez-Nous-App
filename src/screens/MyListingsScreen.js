@@ -85,6 +85,15 @@ function matchesFilter(item, filter) {
   return true;
 }
 
+// "1 Appels" is not French, and the two languages do not agree on where
+// the singular stops: French writes "0 vue" and "1 vue", English writes
+// "0 views" and "1 view". So the rule is asked of the language rather than
+// guessed from the number.
+function countLabelKey(key, count, language) {
+  const singular = language === "fr" ? count < 2 : count === 1;
+  return singular ? `${key}One` : key;
+}
+
 export function MyListingsScreen() {
   const { colors } = useTheme();
   const saleStatuses = getSaleStatuses(colors);
@@ -313,31 +322,61 @@ export function MyListingsScreen() {
                       </SaleStatusPillLabel>
                     </SaleStatusPill>
                   ) : null}
-                  {isApproved ? (
-                    <ViewCountPill>
-                      <Ionicons
-                        name="eye-outline"
-                        size={11}
-                        color={colors.textMuted}
-                      />
-                      <ViewCountLabel>{item.viewCount ?? 0}</ViewCountLabel>
-                    </ViewCountPill>
-                  ) : null}
-                  {/* Beside the views, because the pair is the whole story
-                      and either alone misleads: many views and no calls is
-                      a price or a photograph problem, few views and calls
-                      on most of them means the listing is fine and nobody
-                      is finding it. A seller shown only the first number
-                      concludes the wrong thing. */}
-                  {isApproved ? (
-                    <ContactCountPill>
-                      <Ionicons name="call-outline" size={11} color={colors.primary} />
-                      <ContactCountLabel>
-                        {item.contactCount ?? 0}
-                      </ContactCountLabel>
-                    </ContactCountPill>
-                  ) : null}
                 </PillRow>
+                {/* The two figures together, because either alone misleads:
+                    many views and no calls is a price or a photograph
+                    problem, few views and calls on most of them means the
+                    listing is fine and nobody is finding it. A seller shown
+                    only the first number concludes the wrong thing.
+
+                    They used to be two 11px chips carrying a bare digit
+                    each, which is the size the app uses for a status word —
+                    so the only numbers on the screen that say whether the
+                    advert is working read as decoration, and neither said
+                    what it counted. */}
+                {isApproved ? (
+                  <StatStrip>
+                    <Stat>
+                      <StatIcon>
+                        <Ionicons
+                          name="eye-outline"
+                          size={13}
+                          color={colors.textMuted}
+                        />
+                      </StatIcon>
+                      <StatFigure>{item.viewCount ?? 0}</StatFigure>
+                      <StatLabel>
+                        {t(
+                          countLabelKey(
+                            "dashboardStatViews",
+                            item.viewCount ?? 0,
+                            language,
+                          ),
+                        )}
+                      </StatLabel>
+                    </Stat>
+                    <StatDivider />
+                    <Stat>
+                      <StatIcon tinted>
+                        <Ionicons
+                          name="call"
+                          size={12}
+                          color={colors.primary}
+                        />
+                      </StatIcon>
+                      <StatFigure accent>{item.contactCount ?? 0}</StatFigure>
+                      <StatLabel>
+                        {t(
+                          countLabelKey(
+                            "dashboardStatContacts",
+                            item.contactCount ?? 0,
+                            language,
+                          ),
+                        )}
+                      </StatLabel>
+                    </Stat>
+                  </StatStrip>
+                ) : null}
                 {isRejected ? (
                   <>
                     <RejectionNote numberOfLines={3}>
@@ -777,27 +816,59 @@ const SaleStatusPillLabel = styled.Text`
   font-size: 11px;
 `;
 
-const ViewCountPill = styled.View`
+// How the advert is doing, told as two figures rather than two chips.
+//
+// Sits on its own line under the status row and above anything else,
+// because a status pill is a state and these are a result — putting them in
+// the same row asked the eye to read "En ligne", "128" and "12" as three
+// facts of one kind.
+const StatStrip = styled.View`
   flex-direction: row;
   align-items: center;
-  gap: 3px;
   align-self: flex-start;
-  padding-horizontal: ${spacing.sm}px;
-  padding-vertical: 2px;
+  margin-top: ${spacing.xs}px;
+  padding: ${spacing.xs}px ${spacing.sm}px;
+  border-radius: ${radius.md}px;
+  background-color: ${(props) => props.theme.surfaceAlt};
 `;
 
-const ContactCountPill = styled(ViewCountPill)`
-  background-color: rgba(11, 110, 79, 0.09);
+const Stat = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
 `;
 
-const ViewCountLabel = styled.Text`
+// The icon carries its own ground so the call figure is findable at a
+// glance down a list of adverts — that is the number a seller is scanning
+// for, and it is the one the old row made smallest.
+const StatIcon = styled.View`
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border-radius: ${radius.pill}px;
+  background-color: ${(props) =>
+    props.tinted ? "rgba(11, 110, 79, 0.12)" : "transparent"};
+`;
+
+const StatFigure = styled.Text`
   ${type.captionMedium}
-  color: ${(props) => props.theme.textMuted};
-  font-size: 11px;
+  font-size: 14px;
+  color: ${(props) => (props.accent ? props.theme.primary : props.theme.text)};
 `;
 
-const ContactCountLabel = styled(ViewCountLabel)`
-  color: ${(props) => props.theme.primary};
+// Named, not implied. A digit on its own is not a measurement.
+const StatLabel = styled.Text`
+  ${type.caption}
+  font-size: 11px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+const StatDivider = styled.View`
+  width: 1px;
+  height: 14px;
+  margin-horizontal: ${spacing.sm}px;
+  background-color: ${(props) => props.theme.border};
 `;
 
 const EmptyMessage = styled.Text`

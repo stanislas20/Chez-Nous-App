@@ -628,7 +628,7 @@ export function ServicesScreen({ navigation }) {
                           <Ionicons
                           name="logo-whatsapp"
                           size={17}
-                          color="#128c4a"
+                          color="#0b6b38"
                         />
                           <WhatsappLabel>WhatsApp</WhatsappLabel>
                         </WhatsappButton>
@@ -1388,7 +1388,7 @@ const WhatsappButton = styled(Pressable)`
 const WhatsappLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 15px;
-  color: #128c4a;
+  color: #0b6b38;
 `;
 
 const Empty = styled.Text`

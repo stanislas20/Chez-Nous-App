@@ -89,7 +89,9 @@ export const translations = {
     dashboardStatActive: "Active",
     dashboardStatSold: "Sold",
     dashboardStatContacts: "Calls",
+    dashboardStatContactsOne: "Call",
     dashboardStatViews: "Views",
+    dashboardStatViewsOne: "View",
     dashboardTodoTitle: "To do",
     dashboardTodoEmpty: "Nothing to report — you're all caught up 👍",
     dashboardTodoAddLogo:
@@ -3013,7 +3015,9 @@ export const translations = {
     dashboardStatActive: "Actives",
     dashboardStatSold: "Vendues",
     dashboardStatContacts: "Appels",
+    dashboardStatContactsOne: "Appel",
     dashboardStatViews: "Vues",
+    dashboardStatViewsOne: "Vue",
     dashboardTodoTitle: "À faire",
     dashboardTodoEmpty: "Rien à signaler, tout est à jour 👍",
     dashboardTodoAddLogo:

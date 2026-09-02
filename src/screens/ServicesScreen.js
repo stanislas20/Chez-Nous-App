@@ -31,6 +31,7 @@ import {
 } from "../data/serviceTerms";
 import { buildLinkUrl } from "../data/restaurantLinks";
 import { ScreenFooter } from "../components/ScreenFooter";
+import { ListingMedia } from "../components/ListingMedia";
 
 const CLAY = "#7A4A2E";
 const GOLD = "#D9A441";
@@ -506,18 +507,31 @@ export function ServicesScreen({ navigation }) {
                             : "rgba(0,0,0,0.08)"
                       }
                     />
+                    {/* The work, at a size somebody can judge it by.
+                    
+                        It was a 46px square beside the name — big enough to
+                        prove a photo exists and too small to show what was
+                        built, sewn or repaired. For a trade that is the
+                        whole pitch: nobody hires a carreleur from a
+                        thumbnail of a floor.
+                    
+                        Through ListingMedia, which is what knows a cover can
+                        be a video, that <Image> draws an .mp4 as nothing,
+                        and which of the two stored copies to fetch. A
+                        provider with no photo gets no empty grey band —
+                        their card simply starts at their name. */}
+                    {item.photoUrl ? (
+                      <CardCover>
+                        <ListingMedia listing={item} size="card" />
+                      </CardCover>
+                    ) : null}
+                    <CardBody>
                     <CardTop>
-                      {item.photoUrl ? (
-                        <PhotoWrap>
-                          <Photo source={{ uri: item.photoUrl }} resizeMode="cover" />
-                        </PhotoWrap>
-                      ) : (
-                        <Monogram>
-                          <MonogramText>
-                            {(item.name ?? "").trim().charAt(0).toUpperCase() || "?"}
-                          </MonogramText>
-                        </Monogram>
-                      )}
+                      <Monogram>
+                        <MonogramText>
+                          {(item.name ?? "").trim().charAt(0).toUpperCase() || "?"}
+                        </MonogramText>
+                      </Monogram>
                       <CardTopCol>
                         <ProviderName numberOfLines={2}>{item.name}</ProviderName>
                         <MetaLine>
@@ -597,6 +611,7 @@ export function ServicesScreen({ navigation }) {
                         </WhatsappButton>
                       ) : null}
                     </ActionRow>
+                    </CardBody>
                   </Card>
                 );
               })}
@@ -1111,7 +1126,6 @@ const SortNote = styled.Text`
 // amber for half or more — so the thing this whole screen is ordered by can
 // be scanned without reading a word.
 const Card = styled(Pressable)`
-  padding: ${spacing.md}px ${spacing.md}px ${spacing.md}px ${spacing.md}px;
   border-radius: 20px;
   overflow: hidden;
   background-color: ${(props) => props.theme.surface};
@@ -1123,11 +1137,21 @@ const Card = styled(Pressable)`
   elevation: 4;
 `;
 
+const CardCover = styled.View`
+  height: 180px;
+  background-color: ${(props) => props.theme.background};
+`;
+
+const CardBody = styled.View`
+  padding: ${spacing.md}px;
+`;
+
 const CardRail = styled.View`
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
+  z-index: 2;
   width: 4px;
   background-color: ${(props) => props.tone};
 `;
@@ -1139,22 +1163,11 @@ const CardTop = styled.View`
   margin-bottom: ${spacing.sm}px;
 `;
 
-const PhotoWrap = styled.View`
-  width: 46px;
-  height: 46px;
-  border-radius: 15px;
-  overflow: hidden;
-  background-color: ${(props) => props.theme.background};
-`;
 
-const Photo = styled.Image.attrs({ resizeMethod: "resize" })`
-  width: 100%;
-  height: 100%;
-`;
 
 const Monogram = styled.View`
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   border-radius: 15px;
   align-items: center;
   justify-content: center;

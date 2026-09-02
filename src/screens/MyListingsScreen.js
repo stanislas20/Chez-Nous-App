@@ -323,6 +323,20 @@ export function MyListingsScreen() {
                       <ViewCountLabel>{item.viewCount ?? 0}</ViewCountLabel>
                     </ViewCountPill>
                   ) : null}
+                  {/* Beside the views, because the pair is the whole story
+                      and either alone misleads: many views and no calls is
+                      a price or a photograph problem, few views and calls
+                      on most of them means the listing is fine and nobody
+                      is finding it. A seller shown only the first number
+                      concludes the wrong thing. */}
+                  {isApproved ? (
+                    <ContactCountPill>
+                      <Ionicons name="call-outline" size={11} color={colors.primary} />
+                      <ContactCountLabel>
+                        {item.contactCount ?? 0}
+                      </ContactCountLabel>
+                    </ContactCountPill>
+                  ) : null}
                 </PillRow>
                 {isRejected ? (
                   <>
@@ -772,10 +786,18 @@ const ViewCountPill = styled.View`
   padding-vertical: 2px;
 `;
 
+const ContactCountPill = styled(ViewCountPill)`
+  background-color: rgba(11, 110, 79, 0.09);
+`;
+
 const ViewCountLabel = styled.Text`
   ${type.captionMedium}
   color: ${(props) => props.theme.textMuted};
   font-size: 11px;
+`;
+
+const ContactCountLabel = styled(ViewCountLabel)`
+  color: ${(props) => props.theme.primary};
 `;
 
 const EmptyMessage = styled.Text`

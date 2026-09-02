@@ -30,6 +30,7 @@ import {
   isHeavyDeposit,
 } from "../data/serviceTerms";
 import { buildLinkUrl } from "../data/restaurantLinks";
+import { countContact } from "../utils/contactCount";
 import { ScreenFooter } from "../components/ScreenFooter";
 import { ListingMedia } from "../components/ListingMedia";
 
@@ -207,17 +208,22 @@ export function ServicesScreen({ navigation }) {
     useMemo(() => visible.map((item) => item.sellerId), [visible]),
   );
 
-  const call = (number) => {
+  // Every route out of this screen to a provider's phone goes through
+  // countContact first — a tap on Appeler is the closest thing the app has
+  // to a result, and it was not being recorded anywhere.
+  const call = (listing, number) => {
     if (!number) return;
+    countContact(listing);
     Linking.openURL(`tel:${number}`).catch(() => {});
   };
 
   // Through buildLinkUrl for the same reason Garages does it: providers type
   // a Bénin number the way it is written here, and wa.me needs it in
   // international form.
-  const openWhatsapp = (value) => {
+  const openWhatsapp = (listing, value) => {
     const url = buildLinkUrl("whatsapp", value);
     if (!url) return;
+    countContact(listing);
     Linking.openURL(url).catch(() => {});
   };
 
@@ -612,13 +618,13 @@ export function ServicesScreen({ navigation }) {
                       <CallButton
                         disabled={!item.phone}
                         muted={!item.phone}
-                        onPress={() => call(item.phone)}
+                        onPress={() => call(item, item.phone)}
                       >
                         <Ionicons name="call" size={14} color="#ffffff" />
                         <CallLabel>{t("callButtonLabel")}</CallLabel>
                       </CallButton>
                       {item.whatsapp ? (
-                        <WhatsappButton onPress={() => openWhatsapp(item.whatsapp)}>
+                        <WhatsappButton onPress={() => openWhatsapp(item, item.whatsapp)}>
                           <Ionicons name="logo-whatsapp" size={15} color={CLAY} />
                           <WhatsappLabel>WhatsApp</WhatsappLabel>
                         </WhatsappButton>

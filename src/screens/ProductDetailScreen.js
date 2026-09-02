@@ -89,6 +89,7 @@ import { useSellerStats } from "../hooks/useSellerStats";
 import { withViewHeat } from "../utils/viewHeat";
 import { getDutyLabel } from "../utils/pharmacyDuty";
 import { getTodayDateString } from "../utils/listingLifecycle";
+import { countContact } from "../utils/contactCount";
 import { openAccountGate } from "../utils/openAccountGate";
 
 const EMERALD = "#0B6E4F";
@@ -980,7 +981,12 @@ export function ProductDetailScreen({ route, navigation }) {
                   contact people actually reach for, and burying it among
                   five social glyphs wastes it. */}
               {whatsappUrl ? (
-                <WhatsAppButton onPress={() => Linking.openURL(whatsappUrl)}>
+                <WhatsAppButton
+                  onPress={() => {
+                    countContact(listing);
+                    Linking.openURL(whatsappUrl);
+                  }}
+                >
                   <Ionicons
                     name="logo-whatsapp"
                     size={18}
@@ -1463,7 +1469,10 @@ export function ProductDetailScreen({ route, navigation }) {
               {listing.whatsapp ? (
                 <SecondaryContactButton
                   onPress={() =>
-                    Linking.openURL(buildLinkUrl("whatsapp", listing.whatsapp))
+                    {
+                      countContact(listing);
+                      Linking.openURL(buildLinkUrl("whatsapp", listing.whatsapp));
+                    }
                   }
                 >
                   <Ionicons name="logo-whatsapp" size={18} color="#25D366" />

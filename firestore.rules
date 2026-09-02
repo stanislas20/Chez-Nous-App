@@ -306,6 +306,30 @@ service cloud.firestore {
             && request.resource.data.viewCountToday == 1)
         );
 
+      // A contact — a tap on Appeler or WhatsApp — counted the same way a
+      // view is, and for the same reason: the seller has no other way to
+      // learn that eleven people called about the Corolla and nobody
+      // called about the fridge. Views measure curiosity; this measures
+      // intent, and it is the number that tells somebody whether the
+      // photograph or the price is what is wrong.
+      //
+      // Exactly +1, nothing else touched, same daily bucket as viewCount so
+      // "this week" can be answered without a second collection. Signed in
+      // or not: a buyer who has never made an account still rings the
+      // number, and refusing to count them would make the figure a measure
+      // of registration.
+      allow update: if
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['contactCount', 'contactCountToday', 'contactCountDate'])
+        && request.resource.data.contactCount == resource.data.get('contactCount', 0) + 1
+        && request.resource.data.contactCountDate is string
+        && (
+          (request.resource.data.contactCountDate == resource.data.get('contactCountDate', '')
+            && request.resource.data.contactCountToday == resource.data.get('contactCountToday', 0) + 1)
+          || (request.resource.data.contactCountDate != resource.data.get('contactCountDate', '')
+            && request.resource.data.contactCountToday == 1)
+        );
+
       allow delete: if request.auth != null
         && request.auth.uid == resource.data.sellerId;
     }

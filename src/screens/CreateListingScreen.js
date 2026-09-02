@@ -170,7 +170,11 @@ import {
   serviceWorkPlaces,
 } from "../data/serviceTerms";
 import { sectorTint } from "../data/companySectors";
-import { serviceTrades as SERVICE_TRADES } from "../data/serviceTrades";
+import {
+  serviceFamilies as SERVICE_FAMILIES,
+  serviceTrades as SERVICE_TRADES,
+  serviceTradesInFamily,
+} from "../data/serviceTrades";
 import {
   getSourcingChannelLabel,
   getSourcingCountryFlag,
@@ -1093,6 +1097,24 @@ export function CreateListingScreen({ route, navigation }) {
   // to say otherwise. This is that way: the same answer, asked here instead
   // of inferred from the route.
   const [trade, setTrade] = useState(initialTrade ?? null);
+  // Which half of the question is open.
+  //
+  // The trade list was sixteen car trades when it was written and is
+  // sixty-seven now, printed as one flat wall of chips: a couturière had to
+  // read past the transitaire, the auto-école and the GPS installer to find
+  // herself. Nobody reads sixty-seven of anything — they scroll to the
+  // bottom, give up, and publish with no trade at all, which is exactly the
+  // listing the directory cannot place.
+  //
+  // So it is two questions. The family narrows sixty-seven to six or
+  // sixteen; the trade is chosen from what is left. Arriving from a car
+  // screen with a trade already set opens that trade's family, so nobody
+  // who was sent here with an answer has to find it again.
+  const tradeFamilyOf = (key) =>
+    SERVICE_TRADES.find((item) => item.key === key)?.family ?? null;
+  const [tradeFamily, setTradeFamily] = useState(
+    tradeFamilyOf(initialTrade) ?? null,
+  );
 
   const [selectedCity, setSelectedCity] = useState(seed("city", null));
   const [assets, setAssets] = useState(
@@ -3359,21 +3381,31 @@ export function CreateListingScreen({ route, navigation }) {
               <Label>{t("sellFieldTrade")}</Label>
               <FieldNote>{t("sellFieldTradeHint")}</FieldNote>
               <ChipWrapRow>
-                {SERVICE_TRADES.map((option) => {
-                  const active = trade === option.key;
+                {SERVICE_FAMILIES.map((family) => {
+                  const active = tradeFamily === family.key;
                   return (
                     <TradeChip
-                      key={option.key}
+                      key={family.key}
                       selected={active}
-                      onPress={() => setTrade(active ? null : option.key)}
+                      onPress={() => {
+                        if (active) {
+                          setTradeFamily(null);
+                          return;
+                        }
+                        setTradeFamily(family.key);
+                        // A trade belongs to the family it was picked in.
+                        // Keeping it while the seller moves to another
+                        // publishes a plumber filed under Beauté.
+                        if (tradeFamilyOf(trade) !== family.key) setTrade(null);
+                      }}
                     >
                       <Ionicons
-                        name={option.icon}
+                        name={family.icon}
                         size={14}
                         color={active ? "#ffffff" : colors.primary}
                       />
                       <TradeChipLabel selected={active}>
-                        {t(option.labelKey)}
+                        {t(family.labelKey)}
                       </TradeChipLabel>
                     </TradeChip>
                   );
@@ -3382,16 +3414,45 @@ export function CreateListingScreen({ route, navigation }) {
                     trade to null, which is also what the form starts at, so
                     a welder and somebody who had not answered yet were the
                     same listing. It is a value now, and it asks what the
-                    trade is. */}
+                    trade is. It sits with the families because it is
+                    answered at the same moment: my trade is not in here. */}
                 <TradeChip
                   selected={trade === "other"}
-                  onPress={() => setTrade(trade === "other" ? null : "other")}
+                  onPress={() => {
+                    const next = trade === "other" ? null : "other";
+                    setTrade(next);
+                    if (next === "other") setTradeFamily(null);
+                  }}
                 >
                   <TradeChipLabel selected={trade === "other"}>
                     {t("sellTradeOther")}
                   </TradeChipLabel>
                 </TradeChip>
               </ChipWrapRow>
+
+              {tradeFamily ? (
+                <ChipWrapRow>
+                  {serviceTradesInFamily(tradeFamily).map((option) => {
+                    const active = trade === option.key;
+                    return (
+                      <TradeChip
+                        key={option.key}
+                        selected={active}
+                        onPress={() => setTrade(active ? null : option.key)}
+                      >
+                        <Ionicons
+                          name={option.icon}
+                          size={14}
+                          color={active ? "#ffffff" : colors.primary}
+                        />
+                        <TradeChipLabel selected={active}>
+                          {t(option.labelKey)}
+                        </TradeChipLabel>
+                      </TradeChip>
+                    );
+                  })}
+                </ChipWrapRow>
+              ) : null}
 
               {trade === "other" ? (
                 <>

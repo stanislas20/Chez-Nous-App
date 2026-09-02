@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -10,7 +10,6 @@ import {
   ScrollView,
   useWindowDimensions,
 } from "react-native";
-import { PinchGestureHandler, State } from "react-native-gesture-handler";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -22,6 +21,7 @@ import { radius, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
+import { ImageLightbox } from "../components/ImageLightbox";
 import { canDraw, drawableMedia } from "../utils/listingImage";
 import { countContact } from "../utils/contactCount";
 import {
@@ -43,40 +43,6 @@ const HERO_TINT = ["rgba(11, 110, 79, 0.14)", "rgba(217, 164, 65, 0.18)"];
 const priceFormatter = new Intl.NumberFormat("fr-FR");
 const fcfa = (value) => priceFormatter.format(Math.round(Number(value) || 0));
 const scrollContentStyle = { padding: spacing.md, paddingBottom: spacing.xl };
-
-// Pinch-to-zoom without pulling in a gesture/animation library: the
-// legacy PinchGestureHandler drives a plain Animated.Value, and the scale
-// springs back on release so the pager underneath stays usable.
-function ZoomableImage({ uri }) {
-  const scale = useRef(new Animated.Value(1)).current;
-
-  const onPinch = Animated.event([{ nativeEvent: { scale } }], {
-    useNativeDriver: true,
-  });
-
-  const onStateChange = (event) => {
-    if (event.nativeEvent.oldState === State.ACTIVE) {
-      Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
-    }
-  };
-
-  return (
-    <PinchGestureHandler
-      onGestureEvent={onPinch}
-      onHandlerStateChange={onStateChange}
-    >
-      <Animated.Image
-        source={{ uri }}
-        resizeMode="contain"
-        style={{
-          width: WINDOW.width,
-          height: WINDOW.height * 0.8,
-          transform: [{ scale }],
-        }}
-      />
-    </PinchGestureHandler>
-  );
-}
 
 export function RealEstateDetailScreen({ route, navigation }) {
   const { listing } = route.params;
@@ -128,6 +94,19 @@ export function RealEstateDetailScreen({ route, navigation }) {
   const cover = canDraw(listing.mediaUrl)
     ? listing.mediaUrl
     : (media[0]?.mediaUrl ?? null);
+
+  // What the viewer pages through. Videos are flagged rather than filtered:
+  // ImageLightbox plays them with their own controls, where the old modal
+  // would have handed an .mp4 to <Image> and drawn nothing. A listing with
+  // no gallery still opens on its cover.
+  const lightboxMedia = media.length
+    ? media.map((item) => ({
+        uri: item.mediaUrl,
+        isVideo: item.mediaType === "video",
+      }))
+    : cover
+      ? [{ uri: cover, isVideo: listing.mediaType === "video" }]
+      : [];
 
   // Measure the cover so the frame takes the photo's own proportions,
   // exactly as ProductDetailScreen does. Without this the ratio stays at
@@ -477,41 +456,29 @@ export function RealEstateDetailScreen({ route, navigation }) {
         </Dock>
       )}
 
-      <Modal
-        visible={viewerOpen}
-        animationType="fade"
-        onRequestClose={() => setViewerOpen(false)}
-      >
-        <Viewer>
-          <FlatList
-            data={media.length ? media : [{ mediaUrl: cover }]}
-            keyExtractor={(item, index) => `${item.mediaUrl}-${index}`}
-            horizontal
-            pagingEnabled
-            initialScrollIndex={viewerIndex}
-            getItemLayout={(_, index) => ({
-              length: WINDOW.width,
-              offset: WINDOW.width * index,
-              index,
-            })}
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={(event) =>
-              setViewerIndex(
-                Math.round(event.nativeEvent.contentOffset.x / WINDOW.width),
-              )
-            }
-            renderItem={({ item }) => (
-              <ViewerPage>
-                <ZoomableImage uri={item.mediaUrl} />
-              </ViewerPage>
-            )}
-          />
-          <ViewerClose onPress={() => setViewerOpen(false)} hitSlop={10}>
-            <Feather name="x" size={22} color="#ffffff" />
-          </ViewerClose>
-          <ViewerHint>{t("realEstateZoomHint")}</ViewerHint>
-        </Viewer>
-      </Modal>
+      {/* The app's viewer, not a private one.
+      
+          This screen used to carry its own: a legacy PinchGestureHandler
+          driving a plain Animated.Value, which is the exact combination
+          ImageLightbox was written to replace. Under the New Architecture
+          Android never activated the pinch at all and iOS zoomed but could
+          not get back to fit — and on top of that this copy sprang the
+          scale back to 1 the moment the fingers left the screen, so even
+          where the gesture fired the photograph snapped away from you.
+          There was no panning and no double-tap either. A property is the
+          listing people most want to look closely at: the state of the
+          walls, the tiling, the plumbing.
+
+          Mounted only while open, so reopening on a different photo starts
+          at that photo rather than restoring the last one's index and zoom. */}
+      {viewerOpen ? (
+        <ImageLightbox
+          visible
+          media={lightboxMedia}
+          startIndex={viewerIndex}
+          onClose={() => setViewerOpen(false)}
+        />
+      ) : null}
 
       <Modal
         visible={contactOpen}
@@ -627,39 +594,9 @@ const GalleryWrap = styled.View`
 
 const GalleryPhoto = styled.Image``;
 
-const Viewer = styled.View`
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  background-color: #000000;
-`;
 
-const ViewerPage = styled.View`
-  width: ${WINDOW.width}px;
-  height: ${WINDOW.height}px;
-  align-items: center;
-  justify-content: center;
-`;
 
-const ViewerClose = styled(Pressable)`
-  position: absolute;
-  top: 48px;
-  right: 20px;
-  width: 40px;
-  height: 40px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 20px;
-  background-color: rgba(255, 255, 255, 0.18);
-`;
 
-const ViewerHint = styled.Text`
-  position: absolute;
-  bottom: 42px;
-  font-family: ${fontFamily.regular};
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.65);
-`;
 
 const GalleryHint = styled.View`
   position: absolute;

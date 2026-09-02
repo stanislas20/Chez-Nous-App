@@ -61,6 +61,12 @@ const written = new Set(
   "descriptionFr", "descriptionEn", "categoryKey", "createdAt", "status",
   "sellerId", "sellerName", "isPromoted", "popular", "viewCount", "quartier",
   "latitude", "longitude", "whatsapp", "trade",
+  // Written beside `media` for every listing whatever its category — the
+  // cover's kind, denormalised so a card can draw from one document. It is
+  // in this list rather than in OPTIONAL below because it is genuinely
+  // written, not read defensively: a property screen asking whether its
+  // cover is a video is asking a question the form answers.
+  "mediaType",
 ].forEach((key) => written.add(key));
 
 if (written.size < 8) {

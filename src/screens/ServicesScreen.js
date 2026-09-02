@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Linking, Pressable, ScrollView } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
@@ -9,6 +9,8 @@ import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { useApprovedListings } from "../hooks/useApprovedListings";
+import { useAuth } from "../context/AuthContext";
+import { canPublish } from "../utils/canPublish";
 import { useSellerRatings } from "../hooks/useSellerRatings";
 import { useBannerStatusBar } from "../hooks/useBannerStatusBar";
 import {
@@ -55,7 +57,21 @@ export function ServicesScreen({ navigation }) {
   const { t, language } = useI18n();
   const insets = useSafeAreaInsets();
   const listings = useApprovedListings();
+  const { user } = useAuth();
   useBannerStatusBar();
+
+  // Publishing is Bénin-only, and this screen was inviting everybody.
+  //
+  // Somebody signed in on a foreign number saw "Publier mon service" on the
+  // banner and a whole tab telling them how to price their work, and only
+  // found out at the form that the account cannot post at all. An offer
+  // withdrawn after it is accepted is worse than one never made.
+  //
+  // Signed out is not the same as barred: a person with no account may well
+  // have a Bénin number, so they keep the invitation and meet the account
+  // gate, which is a door rather than a wall. Same rule as the Events and
+  // Garages screens, read from the same helper.
+  const mayPublish = !user || canPublish(user);
 
   const [mode, setMode] = useState("find");
   const [family, setFamily] = useState("building");
@@ -64,6 +80,8 @@ export function ServicesScreen({ navigation }) {
   const [allTrades, setAllTrades] = useState(false);
   const [offerTrade, setOfferTrade] = useState(null);
   const [offerRate, setOfferRate] = useState(null);
+
+  const showOffer = mode === "offer" && mayPublish;
 
   const familyTrades = useMemo(() => serviceTradesInFamily(family), [family]);
   // Two rows, then a way to ask for the rest.
@@ -179,19 +197,31 @@ export function ServicesScreen({ navigation }) {
               offer tab: the tab is where somebody who is browsing decides
               to publish, this is for somebody who came to publish. Both
               end in the same place. */}
-          <HeroActions>
-            <HeroPostButton onPress={publish} hitSlop={6}>
-              <Ionicons name="add" size={16} color={CLAY} />
-              <HeroPostLabel>{t("servicesOfferCta")}</HeroPostLabel>
-            </HeroPostButton>
-          </HeroActions>
+          {mayPublish ? (
+            <HeroActions>
+              <HeroPostButton onPress={publish} hitSlop={6}>
+                <Ionicons name="add" size={16} color={CLAY} />
+                <HeroPostLabel>{t("servicesOfferCta")}</HeroPostLabel>
+              </HeroPostButton>
+            </HeroActions>
+          ) : null}
         </Hero>
 
         <Body>
           <ModeRow>
+            {/* The offer tab goes with it. Leaving it up would move the
+                same dead end one tap further in. */}
             {[
               { key: "find", labelKey: "servicesModeFind", hintKey: "servicesModeFindHint" },
-              { key: "offer", labelKey: "servicesModeOffer", hintKey: "servicesModeOfferHint" },
+              ...(mayPublish
+                ? [
+                    {
+                      key: "offer",
+                      labelKey: "servicesModeOffer",
+                      hintKey: "servicesModeOfferHint",
+                    },
+                  ]
+                : []),
             ].map((item) => (
               <ModeTab
                 key={item.key}
@@ -213,9 +243,9 @@ export function ServicesScreen({ navigation }) {
               <StepNumber>1</StepNumber>
             </StepMark>
             <SectionLabel>
-              {mode === "find"
-                ? t("servicesFamilyLabel")
-                : t("servicesOfferTradeLabel")}
+              {showOffer
+                ? t("servicesOfferTradeLabel")
+                : t("servicesFamilyLabel")}
             </SectionLabel>
           </StepRow>
           <FamilyGrid>
@@ -248,13 +278,13 @@ export function ServicesScreen({ navigation }) {
           <ChipWrap>
             {shownTrades.map((item) => {
               const on =
-                mode === "find" ? trade === item.key : offerTrade === item.key;
+                showOffer ? offerTrade === item.key : trade === item.key;
               return (
                 <Chip
                   key={item.key}
                   on={on}
                   onPress={() => {
-                    if (mode === "find") {
+                    if (!showOffer) {
                       setTrade(on ? null : item.key);
                       return;
                     }
@@ -283,7 +313,7 @@ export function ServicesScreen({ navigation }) {
             ) : null}
           </ChipWrap>
 
-          {mode === "find" ? (
+          {!showOffer ? (
             <>
               <WhereRow>
                 {/* Short forms here, the full sentence on the card. Three
@@ -506,7 +536,18 @@ export function ServicesScreen({ navigation }) {
   );
 }
 
-const Container = styled.SafeAreaView`
+// react-native-safe-area-context's SafeAreaView, not React Native's.
+//
+// RN's own SafeAreaView takes the top inset on iOS and does nothing at all
+// on Android — so this screen looked right on the phone I was testing and
+// wrong on an iPhone: the banner started below the status bar, leaving a
+// pale strip above it, while the hero also paid insets.top itself. The top
+// inset can only be spent once, which is the same fault
+// check-banner-top-inset.js was written for on the tab screens.
+//
+// This one honours `edges`, so the screen keeps the sides and the bottom
+// and leaves the top to the banner.
+const Container = styled(SafeAreaView)`
   flex: 1;
   background-color: ${(props) => props.theme.background};
 `;

@@ -35,10 +35,26 @@ const MUST_CLAIM = [
   // The events banner had the same seam for the same reason: it kept the
   // "top" edge, so a pale band sat between the status bar and the plum.
   "EventsScreen.js",
+  // And the services directory, which found a second way to pay the inset
+  // twice: styled.SafeAreaView is React Native's, which takes the top inset
+  // on iOS and does nothing on Android. The screen looked correct on the
+  // test phone and wrong on an iPhone — a pale strip above the banner —
+  // which is the worst version of this fault, because it only shows on the
+  // platform you are not holding.
+  "ServicesScreen.js",
 ];
 
 for (const name of MUST_CLAIM) {
   const source = read(path.join(screensDir, name));
+  // `edges` is a react-native-safe-area-context prop. React Native's own
+  // SafeAreaView accepts it, ignores it, and insets the top on iOS anyway.
+  if (/styled\.SafeAreaView/.test(source)) {
+    failures.push(
+      `${name} uses React Native's SafeAreaView, which ignores edges and ` +
+        `takes the top inset on iOS — its banner would start below the ` +
+        `status bar there and nowhere else`,
+    );
+  }
   if (!/useBannerStatusBar\(\)/.test(source)) {
     failures.push(
       `${name} no longer calls useBannerStatusBar — its banner is under the ` +

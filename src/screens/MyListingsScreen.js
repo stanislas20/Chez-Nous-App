@@ -34,6 +34,7 @@ import { useConversations } from "../hooks/useConversations";
 // and 1 200 views should read "1,2 k" on a card this size rather than
 // pushing the next figure onto its own line.
 import { formatCount, statLabelKey } from "../utils/formatCount";
+import { statTints } from "../theme/statTints";
 import { firestore, storage } from "../config/firebase";
 import { getDutyLabel } from "../utils/pharmacyDuty";
 import { listingPriceText } from "../utils/listingPrice";
@@ -433,9 +434,9 @@ export function MyListingsScreen() {
                 <StatStrip>
                   <Stat>
                     <Ionicons
-                      name="eye-outline"
+                      name="eye"
                       size={13}
-                      color={colors.textMuted}
+                      color={statTints.views}
                     />
                     <StatFigure zero={(item.viewCount ?? 0) === 0}>
                       {formatCount(item.viewCount ?? 0, language)}
@@ -458,9 +459,9 @@ export function MyListingsScreen() {
                       way. Never saved at all is simply not wanted. */}
                   <Stat>
                     <Ionicons
-                      name="heart-outline"
+                      name="heart"
                       size={13}
-                      color={colors.textMuted}
+                      color={statTints.saved}
                     />
                     <StatFigure zero={(item.saveCount ?? 0) === 0}>
                       {formatCount(item.saveCount ?? 0, language)}
@@ -477,9 +478,9 @@ export function MyListingsScreen() {
                   </Stat>
                   <Stat>
                     <Ionicons
-                      name="call-outline"
+                      name="call"
                       size={13}
-                      color={colors.textMuted}
+                      color={statTints.contacts}
                     />
                     <StatFigure zero={(item.contactCount ?? 0) === 0}>
                       {formatCount(item.contactCount ?? 0, language)}
@@ -496,9 +497,9 @@ export function MyListingsScreen() {
                   </Stat>
                   <Stat>
                     <Ionicons
-                      name="chatbubble-outline"
+                      name="chatbubble"
                       size={13}
-                      color={colors.textMuted}
+                      color={statTints.messages}
                     />
                     <StatFigure zero={(messageCounts.get(item.id) ?? 0) === 0}>
                       {formatCount(messageCounts.get(item.id) ?? 0, language)}
@@ -977,6 +978,13 @@ const Stat = styled.View`
 // one to find the one that happened. This way what happened is the only
 // thing dark on the row, and a card with nothing to report goes quiet by
 // itself without anything being hidden.
+//
+// The colour is on the icon and not on the figure, which is what lets both
+// rules hold at once: the glyph says which measurement this is, in the same
+// colour the dashboard gives it, while the number underneath still says
+// whether anything happened. Four differently-coloured numerals would have
+// been four things claiming to matter equally, and the greying could not
+// have shown through.
 const StatFigure = styled.Text`
   ${type.captionMedium}
   font-size: 14px;

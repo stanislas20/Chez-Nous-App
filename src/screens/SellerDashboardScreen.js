@@ -27,6 +27,7 @@ import { downscalePhoto } from "../utils/downscalePhoto";
 import { saleStatusLabelKey } from "../data/saleStatuses";
 import { useSellerStats } from "../hooks/useSellerStats";
 import { formatCount, statLabelKey } from "../utils/formatCount";
+import { statTints } from "../theme/statTints";
 import { guessContentType } from "../utils/uploadContentType";
 import { PUBLIC_UPLOAD_CACHE } from "../utils/uploadContentType";
 import { useAuth } from "../auth/AuthContext";
@@ -104,14 +105,16 @@ const STAT_ICONS = {
 const ACTION_TINTS = {
   // Stat cards share this table with the action cards, so "saved" is the
   // same pink in both places on the same screen.
+  //
+  // The four a seller counts come from theme/statTints, because the same
+  // four are drawn in the footer of every card on Mes annonces and a
+  // measurement that changes colour between two screens is not a
+  // measurement anybody learns.
+  ...statTints,
   active: "#12876A",
   sold: "#C4478A",
-  views: "#6A5AE0",
-  contacts: "#12876A",
   following: "#EC8B2B",
   listings: "#2F6BB5",
-  messages: "#12908C",
-  saved: "#C4478A",
   browse: "#6A5AE0",
   applications: "#12876A",
   jobApplications: "#12876A",

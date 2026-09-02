@@ -620,12 +620,16 @@ export function ServicesScreen({ navigation }) {
                         muted={!item.phone}
                         onPress={() => call(item, item.phone)}
                       >
-                        <Ionicons name="call" size={14} color="#ffffff" />
+                        <Ionicons name="call" size={16} color="#ffffff" />
                         <CallLabel>{t("callButtonLabel")}</CallLabel>
                       </CallButton>
                       {item.whatsapp ? (
                         <WhatsappButton onPress={() => openWhatsapp(item, item.whatsapp)}>
-                          <Ionicons name="logo-whatsapp" size={15} color={CLAY} />
+                          <Ionicons
+                          name="logo-whatsapp"
+                          size={17}
+                          color="#128c4a"
+                        />
                           <WhatsappLabel>WhatsApp</WhatsappLabel>
                         </WhatsappButton>
                       ) : null}
@@ -1325,25 +1329,47 @@ const HeavyNote = styled.Text`
   margin: 4px 0 ${spacing.sm}px;
 `;
 
+// Two ways to reach somebody, and they are not equal.
+//
+// They were drawn as equals — same width, same weight, one filled and one
+// outlined in the same clay — so the row read as a choice to be made rather
+// than an action to be taken, and the second-most-likely thing on the card
+// was as loud as the first. Calling is what most people here do, and the
+// button says so: it takes the width it needs and keeps the accent.
+//
+// WhatsApp keeps its own green rather than borrowing the screen's brown. It
+// is a recognised mark and people find it by colour, not by reading — which
+// is also why it can afford to be an icon and a short word.
+//
+// The row sits on a hairline above it, separated from the facts. Buttons
+// pressed against the text they belong to read as part of the paragraph.
 const ActionRow = styled.View`
   flex-direction: row;
-  gap: 8px;
-  margin-top: 4px;
+  gap: ${spacing.sm}px;
+  margin-top: ${spacing.sm}px;
+  padding-top: ${spacing.md}px;
+  border-top-width: 1px;
+  border-top-color: ${(props) => props.theme.border};
 `;
 
 const CallButton = styled(Pressable)`
-  flex: 1;
+  flex: 1.6;
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: ${spacing.sm}px;
-  border-radius: ${radius.md}px;
+  gap: ${spacing.xs}px;
+  min-height: 48px;
+  border-radius: ${radius.pill}px;
   background-color: ${(props) => (props.muted ? props.theme.border : CLAY)};
+  shadow-color: #2a1409;
+  shadow-offset: 0px 4px;
+  shadow-opacity: ${(props) => (props.muted ? 0 : 0.22)};
+  shadow-radius: 10px;
+  elevation: ${(props) => (props.muted ? 0 : 3)};
 `;
 
 const CallLabel = styled.Text`
-  font-family: ${fontFamily.semiBold};
+  font-family: ${fontFamily.bold};
   font-size: 15px;
   color: #ffffff;
 `;
@@ -1353,18 +1379,16 @@ const WhatsappButton = styled(Pressable)`
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: ${spacing.sm}px;
-  border-radius: ${radius.md}px;
-  background-color: ${(props) => props.theme.surface};
-  border-width: 1px;
-  border-color: rgba(122, 74, 46, 0.28);
+  gap: ${spacing.xs}px;
+  min-height: 48px;
+  border-radius: ${radius.pill}px;
+  background-color: rgba(37, 211, 102, 0.1);
 `;
 
 const WhatsappLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 15px;
-  color: ${CLAY};
+  color: #128c4a;
 `;
 
 const Empty = styled.Text`

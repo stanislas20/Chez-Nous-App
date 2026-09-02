@@ -21,6 +21,7 @@ import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useSellerRatings } from "../hooks/useSellerRatings";
 import { useElectricProviders } from "../hooks/useElectricProviders";
 import { buildLinkUrl } from "../data/restaurantLinks";
+import { countContact } from "../utils/contactCount";
 import {
   electricAccessories,
   electricDiagnostics,
@@ -97,12 +98,17 @@ export function ElectricScreen({ navigation }) {
     return counts;
   }, [providers]);
 
-  const call = (number) => {
+  const call = (number, listing) => {
+  // Counted before the phone opens: a tap here is the closest thing this
+  // app has to a result, and it goes through the one helper so it cannot
+  // drift from the other screens that count it.
+    countContact(listing);
     if (!number) return;
     Linking.openURL(`tel:${number}`).catch(() => {});
   };
 
-  const openWhatsapp = (value, shop) => {
+  const openWhatsapp = (value, shop, listing) => {
+    countContact(listing);
     const url = buildLinkUrl("whatsapp", value);
     if (!url) return;
     const message = [
@@ -599,7 +605,7 @@ export function ElectricScreen({ navigation }) {
 
               <ActionRow>
                 <CallButton
-                  onPress={() => call(shop.phone)}
+                  onPress={() => call(shop.phone, shop)}
                   disabled={!shop.phone}
                 >
                   <Ionicons name="call" size={15} color="#ffffff" />

@@ -21,6 +21,7 @@ import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useSellerRatings } from "../hooks/useSellerRatings";
 import { useBodyworkProviders } from "../hooks/useBodyworkProviders";
 import { buildLinkUrl } from "../data/restaurantLinks";
+import { countContact } from "../utils/contactCount";
 import {
   bodyworkParts,
   bodyworkPhotoTips,
@@ -89,12 +90,17 @@ export function BodyworkScreen({ navigation }) {
     (item) => item.quotesFromPhotos,
   ).length;
 
-  const call = (number) => {
+  const call = (number, listing) => {
+  // Counted before the phone opens: a tap here is the closest thing this
+  // app has to a result, and it goes through the one helper so it cannot
+  // drift from the other screens that count it.
+    countContact(listing);
     if (!number) return;
     Linking.openURL(`tel:${number}`).catch(() => {});
   };
 
-  const openWhatsapp = (value) => {
+  const openWhatsapp = (value, listing) => {
+    countContact(listing);
     const url = buildLinkUrl("whatsapp", value);
     if (!url) return;
     const message = [
@@ -506,7 +512,7 @@ export function BodyworkScreen({ navigation }) {
 
               <ActionRow>
                 <CallButton
-                  onPress={() => call(shop.phone)}
+                  onPress={() => call(shop.phone, shop)}
                   disabled={!shop.phone}
                 >
                   <Ionicons name="call" size={15} color="#ffffff" />
@@ -520,7 +526,7 @@ export function BodyworkScreen({ navigation }) {
 
               {shop.whatsapp || shop.phone ? (
                 <WhatsappRow
-                  onPress={() => openWhatsapp(shop.whatsapp || shop.phone)}
+                  onPress={() => openWhatsapp(shop.whatsapp || shop.phone, shop)}
                 >
                   <Ionicons name="logo-whatsapp" size={15} color={EMERALD} />
                   <WhatsappLabel>{t("bodyWhatsapp")}</WhatsappLabel>

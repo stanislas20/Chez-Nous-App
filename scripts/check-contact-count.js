@@ -29,17 +29,36 @@ const failures = [];
 const WIRED = [
   "src/screens/ProductDetailScreen.js",
   "src/screens/ServicesScreen.js",
+  "src/screens/GaragesScreen.js",
+  "src/screens/TyresScreen.js",
+  "src/screens/BatteryScreen.js",
+  "src/screens/PartsScreen.js",
+  "src/screens/CarWashScreen.js",
+  "src/screens/DriversScreen.js",
+  "src/screens/AirconScreen.js",
+  "src/screens/ElectricScreen.js",
+  "src/screens/KeysScreen.js",
+  "src/screens/InsuranceScreen.js",
+  "src/screens/TrackingScreen.js",
+  "src/screens/BodyworkScreen.js",
+  "src/screens/BreakdownScreen.js",
+  "src/screens/RealEstateDetailScreen.js",
+  "src/screens/CategoryListingsScreen.js",
 ];
 
 // Screens that contact a seller and do not count it yet. Every one is a
 // listing's phone number, so every one is a lead nobody is counting.
-const PENDING = [
-  "GaragesScreen", "TyresScreen", "BatteryScreen", "PartsScreen",
-  "CarWashScreen", "DriversScreen", "AirconScreen", "ElectricScreen",
-  "KeysScreen", "InsuranceScreen", "TrackingScreen", "BodyworkScreen",
-  "BreakdownScreen", "RealEstateDetailScreen", "CategoryListingsScreen",
-  "SellerProfileScreen", "CarsScreen",
-];
+// Two screens ring a number that belongs to no listing, so they are not
+// pending — there is nothing there to count.
+//
+//   SellerProfileScreen — the seller's own number on their profile. A call
+//   from there is not about any one listing, and crediting it to whichever
+//   listing happened to be on screen would be an invention.
+//   CarsScreen — a fixed help number in the screen's own data, not a
+//   provider's.
+//
+// Anything else that reaches a seller's phone belongs in WIRED.
+const PENDING = [];
 
 for (const file of WIRED) {
   const source = read(file);

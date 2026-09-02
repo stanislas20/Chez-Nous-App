@@ -24,6 +24,7 @@ import {
   washPriceFor,
 } from "../hooks/useCarWash";
 import { buildLinkUrl } from "../data/restaurantLinks";
+import { countContact } from "../utils/contactCount";
 import {
   getWashFormulaDuration,
   getWashFormulaLabel,
@@ -89,12 +90,17 @@ export function CarWashScreen({ navigation }) {
   const title = (item) =>
     (language === "en" ? item.titleEn : item.titleFr) || item.titleFr;
 
-  const call = (phone) => {
+  const call = (phone, listing) => {
+  // Counted before the phone opens: a tap here is the closest thing this
+  // app has to a result, and it goes through the one helper so it cannot
+  // drift from the other screens that count it.
+    countContact(listing);
     if (!phone) return;
     Linking.openURL(`tel:${phone}`).catch(() => {});
   };
 
-  const openWhatsapp = (value) => {
+  const openWhatsapp = (value, listing) => {
+    countContact(listing);
     const url = buildLinkUrl("whatsapp", value);
     if (!url) return;
     const message = [
@@ -422,7 +428,7 @@ export function CarWashScreen({ navigation }) {
 
               <ActionRow>
                 <CallButton
-                  onPress={() => call(item.phone)}
+                  onPress={() => call(item.phone, item)}
                   disabled={!item.phone}
                 >
                   <Ionicons name="call" size={15} color="#ffffff" />
@@ -430,7 +436,7 @@ export function CarWashScreen({ navigation }) {
                 </CallButton>
                 {item.whatsapp || item.phone ? (
                   <GhostButton
-                    onPress={() => openWhatsapp(item.whatsapp || item.phone)}
+                    onPress={() => openWhatsapp(item.whatsapp || item.phone, item)}
                   >
                     <Ionicons name="logo-whatsapp" size={15} color={TEAL} />
                     <GhostLabel>WhatsApp</GhostLabel>

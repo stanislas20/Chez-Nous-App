@@ -20,6 +20,7 @@ import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useSellerRatings } from "../hooks/useSellerRatings";
 import { driversForOccasion, useDrivers } from "../hooks/useDrivers";
 import { buildLinkUrl } from "../data/restaurantLinks";
+import { countContact } from "../utils/contactCount";
 import {
   driverOccasions,
   driverSafetyChecks,
@@ -80,12 +81,17 @@ export function DriversScreen({ navigation }) {
   const title = (item) =>
     (language === "en" ? item.titleEn : item.titleFr) || item.titleFr;
 
-  const call = (number) => {
+  const call = (number, listing) => {
+  // Counted before the phone opens: a tap here is the closest thing this
+  // app has to a result, and it goes through the one helper so it cannot
+  // drift from the other screens that count it.
+    countContact(listing);
     if (!number) return;
     Linking.openURL(`tel:${number}`).catch(() => {});
   };
 
-  const openWhatsapp = (value) => {
+  const openWhatsapp = (value, listing) => {
+    countContact(listing);
     const url = buildLinkUrl("whatsapp", value);
     if (!url) return;
     const message = [
@@ -336,7 +342,7 @@ export function DriversScreen({ navigation }) {
 
               <ActionRow>
                 <CallButton
-                  onPress={() => call(item.phone)}
+                  onPress={() => call(item.phone, item)}
                   disabled={!item.phone}
                 >
                   <Ionicons name="call" size={15} color="#ffffff" />
@@ -344,7 +350,7 @@ export function DriversScreen({ navigation }) {
                 </CallButton>
                 {item.whatsapp || item.phone ? (
                   <GhostButton
-                    onPress={() => openWhatsapp(item.whatsapp || item.phone)}
+                    onPress={() => openWhatsapp(item.whatsapp || item.phone, item)}
                   >
                     <Ionicons name="logo-whatsapp" size={15} color={EMERALD} />
                     <GhostLabel>WhatsApp</GhostLabel>

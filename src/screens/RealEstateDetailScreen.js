@@ -23,6 +23,7 @@ import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { canDraw, drawableMedia } from "../utils/listingImage";
+import { countContact } from "../utils/contactCount";
 import {
   getPropertyTypeLabel,
   getRealEstateDealGlyph,
@@ -527,7 +528,12 @@ export function RealEstateDetailScreen({ route, navigation }) {
             <SheetTitle>{t("realEstateContactTitle")}</SheetTitle>
             {phone ? (
               <>
-                <ContactRow onPress={() => Linking.openURL(`tel:${phone}`)}>
+                <ContactRow
+                  onPress={() => {
+                    countContact(listing);
+                    Linking.openURL(`tel:${phone}`);
+                  }}
+                >
                   <ContactIcon>
                     <Feather name="phone" size={16} color={EMERALD} />
                   </ContactIcon>
@@ -538,9 +544,10 @@ export function RealEstateDetailScreen({ route, navigation }) {
                 </ContactRow>
                 {buildLinkUrl("whatsapp", phone) ? (
                   <ContactRow
-                    onPress={() =>
-                      Linking.openURL(buildLinkUrl("whatsapp", phone))
-                    }
+                    onPress={() => {
+                      countContact(listing);
+                      Linking.openURL(buildLinkUrl("whatsapp", phone));
+                    }}
                   >
                     <ContactIcon>
                       <Ionicons

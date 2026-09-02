@@ -30,6 +30,7 @@ import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { sampleGarages } from "../data/sampleGarages";
 import { buildLinkUrl } from "../data/restaurantLinks";
+import { countContact } from "../utils/contactCount";
 import { distanceInKm } from "../utils/geo";
 import { queryMatches } from "../utils/search";
 import { isOpenNow } from "../data/openingDays";
@@ -292,7 +293,11 @@ export function GaragesScreen({ navigation, route }) {
 
   const symptom = symptomKey ? getGarageSymptom(symptomKey) : null;
 
-  const call = (number) => {
+  const call = (number, listing) => {
+  // Counted before the phone opens: a tap here is the closest thing this
+  // app has to a result, and it goes through the one helper so it cannot
+  // drift from the other screens that count it.
+    countContact(listing);
     if (!number) return;
     Linking.openURL(`tel:${number}`).catch(() => {});
   };
@@ -303,7 +308,8 @@ export function GaragesScreen({ navigation, route }) {
   // through, which opens a wrong account or nothing at all. buildLinkUrl
   // adds the 229 when it is missing and also accepts a handle or a full URL,
   // because people type all three.
-  const openWhatsapp = (value) => {
+  const openWhatsapp = (value, listing) => {
+    countContact(listing);
     const url = buildLinkUrl("whatsapp", value);
     if (!url) return;
     Linking.openURL(url).catch(() => {});
@@ -899,7 +905,7 @@ export function GaragesScreen({ navigation, route }) {
             {contactFor?.phone ? (
               <ContactRow
                 onPress={() => {
-                  call(contactFor.phone);
+                  call(contactFor.phone, contactFor);
                   setContactFor(null);
                 }}
               >
@@ -915,7 +921,7 @@ export function GaragesScreen({ navigation, route }) {
             {contactFor?.whatsapp ? (
               <ContactRow
                 onPress={() => {
-                  openWhatsapp(contactFor.whatsapp);
+                  openWhatsapp(contactFor.whatsapp, contactFor, contactFor);
                   setContactFor(null);
                 }}
               >

@@ -32,6 +32,7 @@ import { useTyreOffers } from "../hooks/useTyreOffers";
 import { useTyreProviders } from "../hooks/useTyreProviders";
 import { useSavedTyreSize } from "../hooks/useSavedTyreSize";
 import { buildLinkUrl } from "../data/restaurantLinks";
+import { countContact } from "../utils/contactCount";
 import { brandLogo, isWideLogo } from "../data/vehicleBrandLogos";
 import { queryMatches } from "../utils/search";
 import {
@@ -274,7 +275,11 @@ export function TyresScreen({ navigation }) {
     );
   };
 
-  const call = (number) => {
+  const call = (number, listing) => {
+  // Counted before the phone opens: a tap here is the closest thing this
+  // app has to a result, and it goes through the one helper so it cannot
+  // drift from the other screens that count it.
+    countContact(listing);
     if (!number) return;
     Linking.openURL(`tel:${number}`).catch(() => {});
   };
@@ -288,7 +293,8 @@ export function TyresScreen({ navigation }) {
       ? t("tyreQuoteMessage", { quantity: String(quantity), size })
       : t("tyreQuoteMessageNoSize");
 
-  const openWhatsapp = (value, withQuote) => {
+  const openWhatsapp = (value, withQuote, listing) => {
+    countContact(listing);
     const url = buildLinkUrl("whatsapp", value);
     if (!url) return;
     const full = withQuote
@@ -692,7 +698,7 @@ export function TyresScreen({ navigation }) {
 
                         <ActionRow>
                           <CallButton
-                            onPress={() => call(offer.phone)}
+                            onPress={() => call(offer.phone, offer)}
                             disabled={!offer.phone}
                           >
                             <Ionicons name="call" size={15} color="#ffffff" />
@@ -704,6 +710,7 @@ export function TyresScreen({ navigation }) {
                                 openWhatsapp(
                                   offer.whatsapp || offer.phone,
                                   true,
+                                  offer,
                                 )
                               }
                             >
@@ -781,7 +788,7 @@ export function TyresScreen({ navigation }) {
                               color={EMERALD}
                             />
                           </SlimAction>
-                          <SlimAction onPress={() => call(provider.phone)}>
+                          <SlimAction onPress={() => call(provider.phone, provider)}>
                             <Ionicons name="call" size={15} color={EMERALD} />
                           </SlimAction>
                         </SlimCard>
@@ -964,7 +971,7 @@ export function TyresScreen({ navigation }) {
 
                     <ActionRow>
                       <CallButton
-                        onPress={() => call(shop.phone)}
+                        onPress={() => call(shop.phone, shop)}
                         disabled={!shop.phone}
                       >
                         <Ionicons name="call" size={15} color="#ffffff" />
@@ -1367,7 +1374,7 @@ export function TyresScreen({ navigation }) {
                         </SlimAction>
                       ) : null}
                       {item.phone ? (
-                        <SlimAction onPress={() => call(item.phone)}>
+                        <SlimAction onPress={() => call(item.phone, item)}>
                           <Ionicons name="call" size={15} color={EMERALD} />
                         </SlimAction>
                       ) : null}

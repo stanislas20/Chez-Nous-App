@@ -25,6 +25,7 @@ import {
   useInsurers,
 } from "../hooks/useInsurers";
 import { buildLinkUrl } from "../data/restaurantLinks";
+import { countContact } from "../utils/contactCount";
 import {
   formulasFor,
   insuranceDurations,
@@ -117,7 +118,11 @@ export function InsuranceScreen({ navigation }) {
   const formatPrice = (value) =>
     `${Number(value).toLocaleString("fr-FR").replace(/ | /g, " ")} FCFA`;
 
-  const call = (phone) => {
+  const call = (phone, listing) => {
+  // Counted before the phone opens: a tap here is the closest thing this
+  // app has to a result, and it goes through the one helper so it cannot
+  // drift from the other screens that count it.
+    countContact(listing);
     if (!phone) return;
     Linking.openURL(`tel:${phone}`).catch(() => {});
   };
@@ -125,7 +130,8 @@ export function InsuranceScreen({ navigation }) {
   // The message carries all four answers, which is the point of having
   // asked for them: the agency can quote without a round of questions, and
   // the reader can put the same message to the next agency unchanged.
-  const openWhatsapp = (value) => {
+  const openWhatsapp = (value, listing) => {
+    countContact(listing);
     const url = buildLinkUrl("whatsapp", value);
     if (!url) return;
     const chosen = formulas.find((item) => item.key === activeFormula);
@@ -483,7 +489,7 @@ export function InsuranceScreen({ navigation }) {
 
               <ActionRow>
                 <CallButton
-                  onPress={() => call(item.phone)}
+                  onPress={() => call(item.phone, item)}
                   disabled={!item.phone}
                 >
                   <Ionicons name="call" size={15} color="#ffffff" />
@@ -491,7 +497,7 @@ export function InsuranceScreen({ navigation }) {
                 </CallButton>
                 {item.whatsapp || item.phone ? (
                   <GhostButton
-                    onPress={() => openWhatsapp(item.whatsapp || item.phone)}
+                    onPress={() => openWhatsapp(item.whatsapp || item.phone, item)}
                   >
                     <Ionicons name="logo-whatsapp" size={15} color={INDIGO} />
                     <GhostLabel>WhatsApp</GhostLabel>

@@ -20,6 +20,7 @@ import { cityCoordinates } from "../data/cityCoordinates";
 import { distanceInKm } from "../utils/geo";
 import { useSellerRatings } from "../hooks/useSellerRatings";
 import { buildLinkUrl } from "../data/restaurantLinks";
+import { countContact } from "../utils/contactCount";
 import { getGarageSpecialtyLabel } from "../data/garageSpecialties";
 import {
   formatAvailabilityAge,
@@ -175,12 +176,17 @@ export function BreakdownScreen({ navigation, route }) {
     });
   }, [providers, trades]);
 
-  const call = (number) => {
+  const call = (number, listing) => {
+  // Counted before the phone opens: a tap here is the closest thing this
+  // app has to a result, and it goes through the one helper so it cannot
+  // drift from the other screens that count it.
+    countContact(listing);
     if (!number) return;
     Linking.openURL(`tel:${number}`).catch(() => {});
   };
 
-  const openWhatsapp = (value) => {
+  const openWhatsapp = (value, listing) => {
+    countContact(listing);
     const url = buildLinkUrl("whatsapp", value);
     if (!url) return;
     Linking.openURL(url).catch(() => {});
@@ -328,8 +334,11 @@ export function BreakdownScreen({ navigation, route }) {
             {/* 112 above the provider list, not inside it. Chez-Nous is a way
                 to reach a mechanic, not an emergency service, and after a
                 collision the first call is not to a garage. */}
+            {/* Nothing is counted here: 112 is the fire and ambulance
+                service, not somebody's business, and recording it as a lead
+                would credit a garage with a call that never reached them. */}
             {problem.emergency ? (
-              <EmergencyButton onPress={() => call(EMERGENCY_NUMBER)}>
+              <EmergencyButton onPress={() => call(EMERGENCY_NUMBER, null)}>
                 <Ionicons name="call" size={18} color="#ffffff" />
                 <EmergencyLabel>
                   {t("breakdownCallEmergency", { number: EMERGENCY_NUMBER })}
@@ -494,7 +503,7 @@ export function BreakdownScreen({ navigation, route }) {
                       fault saves a conversation. */}
                   <ActionRow>
                     <CallButton
-                      onPress={() => call(item.phone)}
+                      onPress={() => call(item.phone, item)}
                       disabled={!item.phone}
                       muted={!item.phone}
                     >
@@ -503,7 +512,7 @@ export function BreakdownScreen({ navigation, route }) {
                     </CallButton>
                     {item.whatsapp ? (
                       <WhatsappButton
-                        onPress={() => openWhatsapp(item.whatsapp)}
+                        onPress={() => openWhatsapp(item.whatsapp, item, item)}
                       >
                         <Ionicons
                           name="logo-whatsapp"

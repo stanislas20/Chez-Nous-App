@@ -19,6 +19,7 @@ import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useSellerRatings } from "../hooks/useSellerRatings";
 import { useGarageProviders } from "../hooks/useGarageProviders";
 import { buildLinkUrl } from "../data/restaurantLinks";
+import { countContact } from "../utils/contactCount";
 import {
   getTrackerKind,
   getTrackingNeed,
@@ -96,14 +97,19 @@ export function TrackingScreen({ navigation }) {
   // plug-in is the combination the whole screen exists to argue with.
   const mismatch = need && kind ? !kindSuitsNeed(need, kind) : false;
 
-  const call = (phone) => {
+  const call = (phone, listing) => {
+  // Counted before the phone opens: a tap here is the closest thing this
+  // app has to a result, and it goes through the one helper so it cannot
+  // drift from the other screens that count it.
+    countContact(listing);
     if (!phone) return;
     Linking.openURL(`tel:${phone}`).catch(() => {});
   };
 
   // The message carries the reason and the box, because those are the two
   // things the installer would otherwise have to ask for.
-  const openWhatsapp = (value) => {
+  const openWhatsapp = (value, listing) => {
+    countContact(listing);
     const url = buildLinkUrl("whatsapp", value);
     if (!url) return;
     const message = [
@@ -366,7 +372,7 @@ export function TrackingScreen({ navigation }) {
 
               <ActionRow>
                 <CallButton
-                  onPress={() => call(item.phone)}
+                  onPress={() => call(item.phone, item)}
                   disabled={!item.phone}
                 >
                   <Ionicons name="call" size={15} color="#ffffff" />
@@ -374,7 +380,7 @@ export function TrackingScreen({ navigation }) {
                 </CallButton>
                 {item.whatsapp || item.phone ? (
                   <GhostButton
-                    onPress={() => openWhatsapp(item.whatsapp || item.phone)}
+                    onPress={() => openWhatsapp(item.whatsapp || item.phone, item)}
                   >
                     <Ionicons name="logo-whatsapp" size={15} color={SLATE} />
                     <GhostLabel>WhatsApp</GhostLabel>

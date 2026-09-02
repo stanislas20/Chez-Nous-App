@@ -42,6 +42,7 @@ import { buildPlacePhotoUrl } from "../utils/placePhoto";
 import { useNearbyPharmacies } from "../hooks/useNearbyPharmacies";
 import { useSearchPharmacies } from "../hooks/useSearchPharmacies";
 import { useI18n } from "../i18n/I18nContext";
+import { countContact } from "../utils/contactCount";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { serviceTrades } from "../data/serviceTrades";
 import { SectionHeading } from "../components/SectionHeading";
@@ -111,7 +112,11 @@ function formatPharmacyFreshness(createdAt, t) {
 // number dials straight away (with Android's own confirm dialog, matching
 // PhoneCallButtons); multiple slash-separated numbers show a picker so the
 // user chooses which one, since there's no room here for separate chips.
-function callPharmacy(phone, t) {
+function callPharmacy(phone, t, listing) {
+  // A pharmacy is a directory entry rather than something for sale, but the
+  // number belongs to it and somebody ringing it at two in the morning is
+  // the clearest signal this app ever gets that the entry was worth having.
+  countContact(listing);
   const numbers = splitPhoneNumbers(phone);
   if (numbers.length === 0) return;
 
@@ -226,7 +231,7 @@ function PharmacyRow({ listing, distance }) {
       </PharmacyRowBody>
       {listing.phone ? (
         <RowCallButton
-          onPress={() => callPharmacy(listing.phone, t)}
+          onPress={() => callPharmacy(listing.phone, t, listing)}
           hitSlop={6}
         >
           <Ionicons name="call" size={14} color={colors.textInverse} />

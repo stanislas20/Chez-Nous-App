@@ -20,6 +20,7 @@ import { useSellerRatings } from "../hooks/useSellerRatings";
 import { useGarageProviders } from "../hooks/useGarageProviders";
 import { getGarageSpecialtyLabel } from "../data/garageSpecialties";
 import { buildLinkUrl } from "../data/restaurantLinks";
+import { countContact } from "../utils/contactCount";
 import {
   getKeyNeed,
   getKeyType,
@@ -133,7 +134,11 @@ export function KeysScreen({ navigation }) {
     [need, keyType],
   );
 
-  const call = (phone) => {
+  const call = (phone, listing) => {
+  // Counted before the phone opens: a tap here is the closest thing this
+  // app has to a result, and it goes through the one helper so it cannot
+  // drift from the other screens that count it.
+    countContact(listing);
     if (!phone) return;
     Linking.openURL(`tel:${phone}`).catch(() => {});
   };
@@ -141,7 +146,8 @@ export function KeysScreen({ navigation }) {
   // The message carries the situation and the kind of key, because those are
   // the two things the workshop would otherwise have to ask for — and the
   // second decides whether they can do the job at all.
-  const openWhatsapp = (value) => {
+  const openWhatsapp = (value, listing) => {
+    countContact(listing);
     const url = buildLinkUrl("whatsapp", value);
     if (!url) return;
     const message = [
@@ -449,7 +455,7 @@ export function KeysScreen({ navigation }) {
 
               <ActionRow>
                 <CallButton
-                  onPress={() => call(item.phone)}
+                  onPress={() => call(item.phone, item)}
                   disabled={!item.phone}
                 >
                   <Ionicons name="call" size={15} color="#ffffff" />
@@ -457,7 +463,7 @@ export function KeysScreen({ navigation }) {
                 </CallButton>
                 {item.whatsapp || item.phone ? (
                   <GhostButton
-                    onPress={() => openWhatsapp(item.whatsapp || item.phone)}
+                    onPress={() => openWhatsapp(item.whatsapp || item.phone, item)}
                   >
                     <Ionicons name="logo-whatsapp" size={15} color={BRASS} />
                     <GhostLabel>WhatsApp</GhostLabel>

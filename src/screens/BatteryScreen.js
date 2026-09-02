@@ -22,6 +22,7 @@ import { useBatteryOffers } from "../hooks/useBatteryOffers";
 import { useBatteryProviders } from "../hooks/useBatteryProviders";
 import { useBatteryProfile } from "../hooks/useBatteryProfile";
 import { buildLinkUrl } from "../data/restaurantLinks";
+import { countContact } from "../utils/contactCount";
 import { queryMatches } from "../utils/search";
 import { brandLogo, isWideLogo } from "../data/vehicleBrandLogos";
 import {
@@ -173,7 +174,11 @@ export function BatteryScreen({ navigation }) {
     setCapacityFilter((prev) => prev ?? profile.spec.ah);
   }, [profile?.spec?.ah]);
 
-  const call = (number) => {
+  const call = (number, listing) => {
+  // Counted before the phone opens: a tap here is the closest thing this
+  // app has to a result, and it goes through the one helper so it cannot
+  // drift from the other screens that count it.
+    countContact(listing);
     if (!number) return;
     Linking.openURL(`tel:${number}`).catch(() => {});
   };
@@ -213,7 +218,8 @@ export function BatteryScreen({ navigation }) {
       .join(" ");
   };
 
-  const openWhatsapp = (value, offer) => {
+  const openWhatsapp = (value, offer, listing) => {
+    countContact(listing);
     const url = buildLinkUrl("whatsapp", value);
     if (!url) return;
     const text = encodeURIComponent(quoteMessage(offer ?? null));
@@ -610,7 +616,7 @@ export function BatteryScreen({ navigation }) {
 
               <ActionRow>
                 <CallButton
-                  onPress={() => call(offer.phone)}
+                  onPress={() => call(offer.phone, offer)}
                   disabled={!offer.phone}
                 >
                   <Ionicons name="call" size={15} color="#ffffff" />
@@ -770,7 +776,7 @@ export function BatteryScreen({ navigation }) {
 
               <ActionRow>
                 <CallButton
-                  onPress={() => call(shop.phone)}
+                  onPress={() => call(shop.phone, shop)}
                   disabled={!shop.phone}
                 >
                   <Ionicons name="call" size={15} color="#ffffff" />
@@ -778,7 +784,7 @@ export function BatteryScreen({ navigation }) {
                 </CallButton>
                 {shop.whatsapp || shop.phone ? (
                   <GhostButton
-                    onPress={() => openWhatsapp(shop.whatsapp || shop.phone)}
+                    onPress={() => openWhatsapp(shop.whatsapp || shop.phone, shop)}
                   >
                     <Ionicons name="logo-whatsapp" size={15} color={EMERALD} />
                     <GhostLabel>WhatsApp</GhostLabel>

@@ -20,6 +20,7 @@ import { useSellerRatings } from "../hooks/useSellerRatings";
 import { useGarageProviders } from "../hooks/useGarageProviders";
 import { getGarageSpecialtyLabel } from "../data/garageSpecialties";
 import { buildLinkUrl } from "../data/restaurantLinks";
+import { countContact } from "../utils/contactCount";
 import {
   airconServices,
   airconSymptoms,
@@ -110,7 +111,11 @@ export function AirconScreen({ navigation }) {
     [symptom],
   );
 
-  const call = (phone) => {
+  const call = (phone, listing) => {
+  // Counted before the phone opens: a tap here is the closest thing this
+  // app has to a result, and it goes through the one helper so it cannot
+  // drift from the other screens that count it.
+    countContact(listing);
     if (!phone) return;
     Linking.openURL(`tel:${phone}`).catch(() => {});
   };
@@ -118,7 +123,8 @@ export function AirconScreen({ navigation }) {
   // The message carries the symptom and the gas, because those are the two
   // things the workshop would otherwise have to ask for — and the gas is the
   // one that decides whether they can do the job at all.
-  const openWhatsapp = (value) => {
+  const openWhatsapp = (value, listing) => {
+    countContact(listing);
     const url = buildLinkUrl("whatsapp", value);
     if (!url) return;
     const chosen = refrigerants.find((item) => item.key === gas);
@@ -427,7 +433,7 @@ export function AirconScreen({ navigation }) {
 
               <ActionRow>
                 <CallButton
-                  onPress={() => call(item.phone)}
+                  onPress={() => call(item.phone, item)}
                   disabled={!item.phone}
                 >
                   <Ionicons name="call" size={15} color="#ffffff" />
@@ -435,7 +441,7 @@ export function AirconScreen({ navigation }) {
                 </CallButton>
                 {item.whatsapp || item.phone ? (
                   <GhostButton
-                    onPress={() => openWhatsapp(item.whatsapp || item.phone)}
+                    onPress={() => openWhatsapp(item.whatsapp || item.phone, item)}
                   >
                     <Ionicons name="logo-whatsapp" size={15} color={ICE} />
                     <GhostLabel>WhatsApp</GhostLabel>

@@ -10,6 +10,7 @@ import { useI18n } from "../i18n/I18nContext";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { getDutyLabel } from "../utils/pharmacyDuty";
 import { splitPhoneNumbers } from "../components/PhoneCallButtons";
+import { countContact } from "../utils/contactCount";
 
 const EMERALD = "#0B6E4F";
 const GOLD = "#8a6415";
@@ -33,6 +34,7 @@ export function PharmacyDetailScreen({ route, navigation }) {
   const hasCoords = coords.latitude != null && coords.longitude != null;
 
   const call = (number) => {
+    countContact(listing);
     if (Platform.OS !== "android") {
       Linking.openURL(`tel:${number}`);
       return;

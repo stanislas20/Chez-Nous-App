@@ -37,6 +37,7 @@ import { cityCoordinates } from "../data/cityCoordinates";
 import { isOpenNow } from "../data/openingDays";
 import { openListing } from "../utils/openListing";
 import { buildLinkUrl } from "../data/restaurantLinks";
+import { countContact } from "../utils/contactCount";
 import { distanceInKm } from "../utils/geo";
 import { queryMatches } from "../utils/search";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
@@ -937,11 +938,12 @@ export function RestaurantsScreen({ navigation }) {
                         listing. */}
                     {buildLinkUrl("whatsapp", item.whatsapp) ? (
                       <WhatsAppTag
-                        onPress={() =>
+                        onPress={() => {
+                          countContact(item);
                           Linking.openURL(
                             buildLinkUrl("whatsapp", item.whatsapp),
-                          )
-                        }
+                          );
+                        }}
                         hitSlop={6}
                       >
                         <Ionicons

@@ -412,6 +412,7 @@ function NearestPharmacyCard({ status, nearest, onRequestLocation }) {
       <NearestActionsColumn>
         {listing.phone ? (
           <PhoneCallButtons
+            listing={listing}
             phone={listing.phone}
             size="md"
             flow

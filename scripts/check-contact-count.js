@@ -24,6 +24,17 @@ const path = require("path");
 
 const root = path.join(__dirname, "..");
 const read = (rel) => fs.readFileSync(path.join(root, rel), "utf8");
+
+const walkSrc = (dir = "src") =>
+  fs
+    .readdirSync(path.join(root, dir), { withFileTypes: true })
+    .flatMap((entry) =>
+      entry.isDirectory()
+        ? walkSrc(path.join(dir, entry.name))
+        : entry.name.endsWith(".js")
+          ? [path.join(dir, entry.name)]
+          : [],
+    );
 const failures = [];
 
 const WIRED = [
@@ -44,6 +55,13 @@ const WIRED = [
   "src/screens/BreakdownScreen.js",
   "src/screens/RealEstateDetailScreen.js",
   "src/screens/CategoryListingsScreen.js",
+  // The shared Appeler button, and the four screens that were reaching a
+  // seller's phone without counting it.
+  "src/components/PhoneCallButtons.js",
+  "src/screens/PharmacyDetailScreen.js",
+  "src/screens/RealEstateScreen.js",
+  "src/screens/RestaurantsScreen.js",
+  "src/screens/ImportationScreen.js",
 ];
 
 // Screens that contact a seller and do not count it yet. Every one is a
@@ -59,6 +77,63 @@ const WIRED = [
 //
 // Anything else that reaches a seller's phone belongs in WIRED.
 const PENDING = [];
+
+// Screens whose phone number belongs to nobody who could be credited for
+// the call. Named here so that "not in WIRED" is a decision rather than an
+// omission — the scan below fails on anything that is in neither list.
+const NOT_A_LEAD = {
+  "src/screens/SellerProfileScreen.js":
+    "the seller's own number on their profile — not about any one listing, " +
+    "and crediting whichever listing was last on screen would be an invention",
+  "src/screens/CarsScreen.js":
+    "a fixed help number in the screen's own data, not a provider's",
+  "src/screens/ModerationScreen.js":
+    "a moderator ringing a seller about their advert — that is us, not a buyer",
+  "src/screens/JobApplicationsScreen.js":
+    "an employer ringing a candidate. The opposite direction: counting it " +
+    "would make a vacancy look popular because the person who posted it " +
+    "made calls",
+  "src/screens/ForYouScreen.js":
+    "a pharmacy row in the duty rail, drawn from the directory rather than " +
+    "from a listing somebody is selling",
+};
+
+// The scan the first version of this check was missing.
+//
+// WIRED was a hand-kept list, and a hand-kept list only says what somebody
+// remembered to add. Four screens reached a seller's phone and counted
+// nothing — and on the two biggest, ProductDetail and CategoryListings, it
+// was the Appeler button that was silent while WhatsApp beside it counted,
+// because Appeler is drawn by the shared PhoneCallButtons and WhatsApp is
+// hand-rolled next to it. A seller reading those totals would conclude
+// their buyers prefer WhatsApp, which was never true.
+//
+// So: every file that opens a tel: link or a wa.me link has to appear in
+// one of the three lists above.
+const REACHES_A_PHONE = /tel:\$\{|"tel:|'tel:|buildLinkUrl\(["']whatsapp/;
+for (const file of walkSrc()) {
+  if (!REACHES_A_PHONE.test(read(file))) continue;
+  const known =
+    WIRED.includes(file) || PENDING.includes(file) || file in NOT_A_LEAD;
+  if (!known) {
+    failures.push(
+      `${file} opens a phone or WhatsApp link and is in none of WIRED, ` +
+        `PENDING or NOT_A_LEAD — either count the tap or say in NOT_A_LEAD ` +
+        `whose number it is`,
+    );
+  }
+}
+
+// The shared button is the one place a tap on Appeler can be seen: it owns
+// the Android confirmation and the multi-number picker, so a caller cannot
+// wrap its onPress without counting numbers nobody rang.
+const shared = read("src/components/PhoneCallButtons.js");
+if (!/countContact\(/.test(shared)) {
+  failures.push(
+    "PhoneCallButtons does not count — every Appeler it draws is invisible, " +
+      "including the one on the product detail screen",
+  );
+}
 
 for (const file of WIRED) {
   const source = read(file);
@@ -153,5 +228,6 @@ if (failures.length) {
 }
 console.log(
   `clean: contact counting — one writer, ${WIRED.length} screen(s) wired, ` +
-    `${PENDING.length} still to do, rule pins the increment to +1`,
+    `${Object.keys(NOT_A_LEAD).length} that reach a phone belonging to nobody ` +
+    `creditable, ${PENDING.length} still to do, rule pins the increment to +1`,
 );

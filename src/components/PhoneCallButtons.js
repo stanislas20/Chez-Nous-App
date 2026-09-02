@@ -5,6 +5,7 @@ import { radius, spacing } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
 import { type } from '../theme/typography';
 import { useI18n } from '../i18n/I18nContext';
+import { countContact } from '../utils/contactCount';
 
 export function splitPhoneNumbers(phone) {
   return (phone ?? '')
@@ -42,6 +43,7 @@ export function PhoneCallButtons({
   fit = false,
   flow = false,
   itemStyle,
+  listing = null,
 }) {
   const { colors } = useTheme();
   const { t } = useI18n();
@@ -52,7 +54,18 @@ export function PhoneCallButtons({
   // dialing a tel: link, but Android jumps straight to the call screen — so
   // we render our own confirmation there (which, as an in-app dialog, also
   // correctly follows the app's language setting, unlike the native one).
+  // Counted here rather than in each caller, because this component is the
+  // only thing that knows a tap happened: it owns the Android confirmation
+  // and the multi-number picker, so a screen wrapping its own onPress around
+  // the button would count numbers nobody rang.
+  //
+  // `listing` is opt-in and not every caller passes one. A pharmacy row on
+  // For You is a directory entry with no seller, and the number on a job
+  // application belongs to the applicant — that is an employer ringing a
+  // candidate, the opposite direction, and crediting it to the advert would
+  // make a vacancy look popular because the person who posted it made calls.
   const call = (number) => {
+    if (listing) countContact(listing);
     if (Platform.OS !== 'android') {
       Linking.openURL(`tel:${number}`);
       return;

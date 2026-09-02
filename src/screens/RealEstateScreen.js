@@ -60,6 +60,7 @@ import {
   realEstateDeals,
 } from "../data/realEstate";
 import { buildLinkUrl } from "../data/restaurantLinks";
+import { countContact } from "../utils/contactCount";
 import { useApprovedListings } from "../hooks/useApprovedListings";
 import { openChat } from "../utils/openChat";
 
@@ -1097,7 +1098,10 @@ export function RealEstateScreen({ navigation, route }) {
             {contactPhone ? (
               <>
                 <ContactRow
-                  onPress={() => Linking.openURL(`tel:${contactPhone}`)}
+                  onPress={() => {
+                    countContact(contactFor);
+                    Linking.openURL(`tel:${contactPhone}`);
+                  }}
                 >
                   <ContactIcon>
                     <Feather name="phone" size={16} color={EMERALD} />
@@ -1109,9 +1113,10 @@ export function RealEstateScreen({ navigation, route }) {
                 </ContactRow>
                 {buildLinkUrl("whatsapp", contactPhone) ? (
                   <ContactRow
-                    onPress={() =>
-                      Linking.openURL(buildLinkUrl("whatsapp", contactPhone))
-                    }
+                    onPress={() => {
+                      countContact(contactFor);
+                      Linking.openURL(buildLinkUrl("whatsapp", contactPhone));
+                    }}
                   >
                     <ContactIcon>
                       <Ionicons

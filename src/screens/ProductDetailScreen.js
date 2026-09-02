@@ -1002,6 +1002,7 @@ export function ProductDetailScreen({ route, navigation }) {
                 // of different sizes read as a primary and an afterthought,
                 // and here neither is.
                 <PhoneCallButtons
+                  listing={listing}
                   phone={listing.phone}
                   size="lg"
                   style={{ marginTop: spacing.sm }}
@@ -1020,6 +1021,7 @@ export function ProductDetailScreen({ route, navigation }) {
               </DutyRow>
               {listing.phone ? (
                 <PhoneCallButtons
+                  listing={listing}
                   phone={listing.phone}
                   style={{ marginTop: spacing.xs }}
                 />
@@ -1435,6 +1437,7 @@ export function ProductDetailScreen({ route, navigation }) {
           {isPharmacy && listing.phone ? (
             <FooterRow>
               <PhoneCallButtons
+                listing={listing}
                 phone={listing.phone}
                 size="lg"
                 style={{ flex: 1 }}
@@ -1462,6 +1465,7 @@ export function ProductDetailScreen({ route, navigation }) {
                 />
               </FooterFavButton>
               <PhoneCallButtons
+                listing={listing}
                 phone={listing.phone}
                 size="lg"
                 style={{ flex: 1 }}

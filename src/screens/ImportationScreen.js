@@ -5,6 +5,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { countContact } from "../utils/contactCount";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
 import { radius, shadow, spacing } from "../theme/colors";
@@ -146,8 +147,9 @@ export function ImportationScreen({ navigation }) {
     openPostForm();
   };
 
-  const call = (phone) => {
+  const call = (phone, listing) => {
     if (!phone) return;
+    countContact(listing);
     Linking.openURL(`tel:${phone}`).catch(() => {});
   };
 
@@ -475,7 +477,7 @@ export function ImportationScreen({ navigation }) {
                   ) : null}
 
                   {item.phone ? (
-                    <CallButton onPress={() => call(item.phone)}>
+                    <CallButton onPress={() => call(item.phone, item)}>
                       <Ionicons name="call" size={15} color="#ffffff" />
                       <CallLabel>{t("importCall")}</CallLabel>
                     </CallButton>

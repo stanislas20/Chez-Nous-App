@@ -505,6 +505,8 @@ export const translations = {
       'Add more photos to "{title}" — listings with several photos sell faster.',
     insightsTipStaleListing:
       '"{title}" has been listed for a while with no sale — try lowering the price or updating the photos.',
+    dashboardTodoSavedNoCalls:
+      '{count} people saved "{title}" and not one called — they want it, so it is usually the price stopping them.',
     insightsTipPostRegularly:
       "You haven't posted in a week — post regularly to stay visible to buyers.",
     insightsTipGoodPhotos:
@@ -3445,6 +3447,8 @@ export const translations = {
       'Ajoutez plus de photos à "{title}" — les annonces avec plusieurs photos se vendent plus vite.',
     insightsTipStaleListing:
       '"{title}" est en ligne depuis un moment sans vente — essayez de baisser le prix ou de mettre à jour les photos.',
+    dashboardTodoSavedNoCalls:
+      '{count} personnes ont enregistré "{title}" et aucune n\'a appelé — elles la veulent, c\'est en général le prix qui les arrête.',
     insightsTipPostRegularly:
       "Vous n'avez rien publié depuis une semaine — publiez régulièrement pour rester visible.",
     insightsTipGoodPhotos:

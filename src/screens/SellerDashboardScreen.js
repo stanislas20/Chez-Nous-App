@@ -402,6 +402,12 @@ export function SellerDashboardScreen({ navigation }) {
       });
     }
 
+    const messagedListingIds = new Set(
+      (conversations ?? [])
+        .filter((conversation) => conversation.sellerId === user?.uid)
+        .map((conversation) => conversation.listingId),
+    );
+
     const unreadTotal = (conversations ?? []).reduce(
       (sum, conversation) => sum + (conversation.unreadCount?.[user?.uid] ?? 0),
       0,
@@ -470,7 +476,46 @@ export function SellerDashboardScreen({ navigation }) {
       });
     }
 
+    // The one thing the saves figure is for.
+    //
+    // Views alone cannot separate the two reasons a listing does not sell:
+    // nobody wanted it, or everybody wanted it and something stopped them.
+    // Saves can. People who bookmark an advert and never ring have decided
+    // they want the thing and not at that price — which is a different
+    // instruction from "add photos" or "post more often", and the only one
+    // of the three that is drawn from what buyers actually did rather than
+    // from how long the advert has been up.
+    //
+    // Three, not one. A single save is a person browsing; three is a
+    // pattern, and a tip fired on noise teaches a seller to skip the list.
+    const wantedButUnrung = items.find(
+      (item) =>
+        item.status === "approved" &&
+        item.saleStatus !== "sold" &&
+        (item.saveCount ?? 0) >= 3 &&
+        (item.contactCount ?? 0) === 0 &&
+        !messagedListingIds.has(item.id),
+    );
+    if (wantedButUnrung) {
+      const title =
+        language === "en" ? wantedButUnrung.titleEn : wantedButUnrung.titleFr;
+      result.push({
+        key: "savedNoCalls",
+        icon: "heart-outline",
+        text: t("dashboardTodoSavedNoCalls", {
+          count: wantedButUnrung.saveCount,
+          title,
+        }),
+        onPress: () =>
+          navigation.navigate("CreateListing", { listing: wantedButUnrung }),
+      });
+    }
+
     const staleListing = items.find((item) => {
+      // Not the listing above. Both rows end in "lower the price", and the
+      // saved one says it with evidence — printing the vaguer version of
+      // the same advice underneath reads as two problems where there is one.
+      if (item.id === wantedButUnrung?.id) return false;
       if (item.saleStatus === "sold" || item.status !== "approved")
         return false;
       const createdDate = item.createdAt?.toDate?.();

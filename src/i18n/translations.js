@@ -1766,6 +1766,7 @@ export const translations = {
     servicesModeFindHint: "Near you",
     servicesModeOffer: "Offer a service",
     servicesModeOfferHint: "You are a tradesperson",
+    servicesFamilyUntyped: "Other",
     servicesFamilyLabel: "Which trade",
     servicesWhereOnsiteShort: "Comes to you",
     servicesWhereWorkshopShort: "Workshop",
@@ -1773,6 +1774,10 @@ export const translations = {
     servicesCount: "{count} provider(s)",
     servicesTradesMore: "+{count} more",
     servicesTradesLess: "Show fewer",
+    servicesSearchPlaceholder: "Type what you are looking for",
+    servicesSearchScope: "Results for “{query}”, across every trade",
+    servicesSearchClear: "Clear",
+    servicesSearchEmpty: "No provider matches “{query}”.\nTry a trade name, or a town.",
     servicesSortNote: "Smallest advance first",
     servicesDepositUnknown: "Advance not stated",
     servicesHeavyNote:
@@ -1788,6 +1793,7 @@ export const translations = {
       "Your trade is not in the grid? Publish anyway and name it in your own words — the form takes it.",
     servicesOfferNote:
       "Next you will give your area, the advance you ask for and two photos of finished work. Publishing is free. The verified badge is a separate step and is never automatic.",
+    servicesOfferCtaShort: "Publish",
     servicesOfferCta: "Publish my service",
     sellFieldServiceDeposit: "Advance you ask for",
     sellFieldServiceWhere: "Where you work",
@@ -4702,6 +4708,7 @@ export const translations = {
     servicesModeFindHint: "Près de vous",
     servicesModeOffer: "Proposer un service",
     servicesModeOfferHint: "Vous êtes artisan",
+    servicesFamilyUntyped: "Autres",
     servicesFamilyLabel: "Quel métier",
     servicesWhereOnsiteShort: "Chez vous",
     servicesWhereWorkshopShort: "En atelier",
@@ -4709,6 +4716,10 @@ export const translations = {
     servicesCount: "{count} prestataire(s)",
     servicesTradesMore: "+{count} autres",
     servicesTradesLess: "Voir moins",
+    servicesSearchPlaceholder: "Tapez ce que vous recherchez",
+    servicesSearchScope: "Résultats pour « {query} », tous métiers",
+    servicesSearchClear: "Effacer",
+    servicesSearchEmpty: "Aucun prestataire ne correspond à « {query} ».\nEssayez un métier, ou une ville.",
     servicesSortNote: "Avance la plus faible",
     servicesDepositUnknown: "Avance non précisée",
     servicesHeavyNote:
@@ -4724,6 +4735,7 @@ export const translations = {
       "Votre métier n’est pas dans la grille ? Publiez quand même et nommez-le avec vos mots — le formulaire l’accepte.",
     servicesOfferNote:
       "Vous préciserez ensuite votre zone, l’avance que vous demandez et deux photos de travaux livrés. La publication est gratuite. Le badge vérifié est une démarche séparée et n’est jamais automatique.",
+    servicesOfferCtaShort: "Publier",
     servicesOfferCta: "Publier mon service",
     sellFieldServiceDeposit: "Avance que vous demandez",
     sellFieldServiceWhere: "Où vous travaillez",

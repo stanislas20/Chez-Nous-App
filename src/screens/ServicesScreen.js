@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Linking, Pressable, ScrollView } from "react-native";
+import { Linking, Pressable, ScrollView, TextInput } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -16,6 +16,7 @@ import { useBannerStatusBar } from "../hooks/useBannerStatusBar";
 import {
   getServiceTradeLabelKey,
   serviceFamilies,
+  serviceTrades,
   serviceTradesInFamily,
 } from "../data/serviceTrades";
 import {
@@ -78,12 +79,36 @@ export function ServicesScreen({ navigation }) {
   const [trade, setTrade] = useState(null);
   const [where, setWhere] = useState("any");
   const [allTrades, setAllTrades] = useState(false);
+  const [query, setQuery] = useState("");
+
+  // Two words is where a search stops matching everything. Below that the
+  // list is not narrowed, it is shuffled.
+  const searching = query.trim().length >= 2;
   const [offerTrade, setOfferTrade] = useState(null);
   const [offerRate, setOfferRate] = useState(null);
 
   const showOffer = mode === "offer" && mayPublish;
 
-  const familyTrades = useMemo(() => serviceTradesInFamily(family), [family]);
+  // Everything published before the form started saving the trade.
+  //
+  // `trade` was only ever used to pick a worked example and was thrown
+  // away, so every service listing that existed this morning carries none —
+  // and a directory that groups by trade shows exactly none of them. Each
+  // family read "0 prestataires" over a category with live listings in it,
+  // which is the most confident way an app can lie.
+  //
+  // So they get a shelf of their own, last in the grid: no trade declared,
+  // still somebody's business. It empties itself as providers republish.
+  const UNTYPED = "untyped";
+  const knownTrades = useMemo(
+    () => new Set(serviceTrades.map((item) => item.key)),
+    [],
+  );
+
+  const familyTrades = useMemo(
+    () => (family === UNTYPED ? [] : serviceTradesInFamily(family)),
+    [family],
+  );
   // Two rows, then a way to ask for the rest.
   //
   // Families are not the same size: Beauté has five trades and Véhicules
@@ -129,11 +154,53 @@ export function ServicesScreen({ navigation }) {
       const band = getServiceDepositBand(item.serviceDeposit);
       return band ? band.percent : Number.POSITIVE_INFINITY;
     };
+    // A search looks at the whole directory.
+    //
+    // Somebody typing a name is not browsing a family — they are looking
+    // for a person they have heard of, and honouring the family filter
+    // would answer "no such provider" about somebody the app is holding.
+    // So the controls step aside while there is a query.
+    if (searching) {
+      const needle = query.trim().toLowerCase();
+      const haystack = (item) =>
+        [
+          item.name,
+          item.trade ? t(getServiceTradeLabelKey(item.trade)) : null,
+          item.place,
+          item.city,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+      return providers
+        .filter((item) => haystack(item).includes(needle))
+        .sort((a, b) => rank(a) - rank(b));
+    }
+
     return providers
-      .filter((item) => (trade ? item.trade === trade : familyKeys.has(item.trade)))
+      .filter((item) => {
+        if (trade) return item.trade === trade;
+        if (family === UNTYPED) return !knownTrades.has(item.trade);
+        return familyKeys.has(item.trade);
+      })
       .filter(matchesWhere)
       .sort((a, b) => rank(a) - rank(b));
-  }, [providers, trade, familyKeys, where]);
+  }, [providers, trade, family, familyKeys, knownTrades, where, searching, query, t]);
+
+  // What the query means, if it means a trade.
+  //
+  // "plomb" is not a provider's name, it is somebody reaching for
+  // Plombier — and a directory that answers "no results" to that is being
+  // obtuse about a word it knows. These become chips: one tap moves them
+  // out of a text search and into the filtered list, which is the better
+  // tool for what they were actually doing.
+  const tradeMatches = useMemo(() => {
+    if (!searching) return [];
+    const needle = query.trim().toLowerCase();
+    return serviceTrades
+      .filter((item) => t(item.labelKey).toLowerCase().includes(needle))
+      .slice(0, 4);
+  }, [searching, query, t]);
 
   const ratings = useSellerRatings(
     useMemo(() => visible.map((item) => item.sellerId), [visible]),
@@ -169,14 +236,15 @@ export function ServicesScreen({ navigation }) {
 
   return (
     <Container edges={["left", "right"]}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* The banner scrolls, back button and all — the pattern the events
-            screen settled on, for the reason it settled on it: a bar fixed
-            over a list cuts the list in half the moment anything moves. */}
-        <Hero
+      {/* Fixed, and paying for it by being short.
+      
+          A tall banner that stays costs the same height on every screen of
+          the list, which is why the events screen let its own scroll away.
+          This one keeps only what has to be permanent — where you are, and
+          the one action a provider came for — and hands the sentence
+          explaining the screen to the top of the scrolling body, where it
+          is read once and then out of the way. */}
+      <Hero
           colors={["#93583A", "#7A4A2E", "#452818"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -186,8 +254,9 @@ export function ServicesScreen({ navigation }) {
             <Ionicons name="chevron-back" size={20} color="#ffffff" />
           </BackButton>
           <HeroKicker>{t("servicesKicker")}</HeroKicker>
-          <HeroTitle>{t("servicesHeroTitle")}</HeroTitle>
-          <HeroCopy>{t("servicesHeroCopy")}</HeroCopy>
+          <HeroRow>
+            <HeroTitle numberOfLines={2}>{t("servicesHeroTitle")}</HeroTitle>
+
           {/* The one action this screen wants from a provider, where the
               Events banner puts its own: on the gradient, white on clay so
               it is the brightest thing on the screen, and reachable on
@@ -197,17 +266,41 @@ export function ServicesScreen({ navigation }) {
               offer tab: the tab is where somebody who is browsing decides
               to publish, this is for somebody who came to publish. Both
               end in the same place. */}
-          {mayPublish ? (
-            <HeroActions>
+            {mayPublish ? (
               <HeroPostButton onPress={publish} hitSlop={6}>
                 <Ionicons name="add" size={16} color={CLAY} />
-                <HeroPostLabel>{t("servicesOfferCta")}</HeroPostLabel>
+                <HeroPostLabel>{t("servicesOfferCtaShort")}</HeroPostLabel>
               </HeroPostButton>
-            </HeroActions>
-          ) : null}
+            ) : null}
+          </HeroRow>
+
+          {/* In the banner, so it is reachable from anywhere in the list
+              rather than only from the top — which is the whole reason the
+              banner stopped scrolling. */}
+          <SearchField>
+            <Ionicons name="search" size={17} color="rgba(255,255,255,0.7)" />
+            <SearchInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t("servicesSearchPlaceholder")}
+              placeholderTextColor="rgba(255,255,255,0.6)"
+              returnKeyType="search"
+              autoCorrect={false}
+            />
+            {query.length ? (
+              <Pressable onPress={() => setQuery("")} hitSlop={10}>
+                <Ionicons name="close-circle" size={17} color="rgba(255,255,255,0.7)" />
+              </Pressable>
+            ) : null}
+          </SearchField>
         </Hero>
 
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
+        showsVerticalScrollIndicator={false}
+      >
         <Body>
+          <Lede>{t("servicesHeroCopy")}</Lede>
           <ModeRow>
             {/* The offer tab goes with it. Leaving it up would move the
                 same dead end one tap further in. */}
@@ -238,6 +331,40 @@ export function ServicesScreen({ navigation }) {
               publishing it is "votre métier". Same picker, different
               sentence, because the second person is describing themselves
               rather than looking for someone. */}
+          {searching ? (
+            <SearchHeader>
+              <SearchScope numberOfLines={1}>
+                {t("servicesSearchScope", { query: query.trim() })}
+              </SearchScope>
+              <ClearButton onPress={() => setQuery("")} hitSlop={8}>
+                <ClearLabel>{t("servicesSearchClear")}</ClearLabel>
+              </ClearButton>
+            </SearchHeader>
+          ) : null}
+
+          {tradeMatches.length ? (
+            <ChipWrap>
+              {tradeMatches.map((item) => (
+                <Chip
+                  key={item.key}
+                  on={false}
+                  onPress={() => {
+                    setFamily(item.family);
+                    setTrade(item.key);
+                    setAllTrades(false);
+                    setQuery("");
+                  }}
+                >
+                  <ChipLabel on={false} numberOfLines={1}>
+                    {t(item.labelKey)}
+                  </ChipLabel>
+                </Chip>
+              ))}
+            </ChipWrap>
+          ) : null}
+
+          {searching ? null : (
+            <>
           <StepRow>
             <StepMark>
               <StepNumber>1</StepNumber>
@@ -249,7 +376,14 @@ export function ServicesScreen({ navigation }) {
             </SectionLabel>
           </StepRow>
           <FamilyGrid>
-            {serviceFamilies.map((item) => {
+            {[
+              ...serviceFamilies,
+              {
+                key: UNTYPED,
+                icon: "ellipsis-horizontal-circle-outline",
+                labelKey: "servicesFamilyUntyped",
+              },
+            ].map((item) => {
               const on = family === item.key;
               return (
                 <FamilyTile
@@ -274,7 +408,10 @@ export function ServicesScreen({ navigation }) {
               );
             })}
           </FamilyGrid>
+            </>
+          )}
 
+          {familyTrades.length && !searching ? (
           <ChipWrap>
             {shownTrades.map((item) => {
               const on =
@@ -312,6 +449,7 @@ export function ServicesScreen({ navigation }) {
               </MoreChip>
             ) : null}
           </ChipWrap>
+          ) : null}
 
           {!showOffer ? (
             <>
@@ -359,6 +497,15 @@ export function ServicesScreen({ navigation }) {
                       navigation.navigate("ProductDetail", { listing: item })
                     }
                   >
+                    <CardRail
+                      tone={
+                        heavy
+                          ? "#E0A415"
+                          : depositLabel
+                            ? EMERALD
+                            : "rgba(0,0,0,0.08)"
+                      }
+                    />
                     <CardTop>
                       {item.photoUrl ? (
                         <PhotoWrap>
@@ -455,7 +602,11 @@ export function ServicesScreen({ navigation }) {
               })}
 
               {visible.length === 0 ? (
-                <Empty>{t("servicesEmpty")}</Empty>
+                <Empty>
+                  {searching
+                    ? t("servicesSearchEmpty", { query: query.trim() })
+                    : t("servicesEmpty")}
+                </Empty>
               ) : null}
 
               <SafetyNote>
@@ -553,7 +704,51 @@ const Container = styled(SafeAreaView)`
 `;
 
 const Hero = styled(LinearGradient)`
-  padding: ${spacing.sm}px ${spacing.md}px ${spacing.lg}px;
+  padding: ${spacing.md}px ${spacing.md}px ${spacing.lg}px;
+  z-index: 2;
+  shadow-color: #2a1409;
+  shadow-offset: 0px 3px;
+  shadow-opacity: 0.18;
+  shadow-radius: 8px;
+  elevation: 6;
+`;
+
+// Title and action on one line: the title says where you are, the button is
+// why a provider opened the screen, and neither needs a paragraph between
+// them to be understood.
+const HeroRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.md}px;
+`;
+
+const SearchField = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.sm}px;
+  min-height: 46px;
+  margin-top: ${spacing.md}px;
+  padding: 0 ${spacing.md}px;
+  border-radius: ${radius.pill}px;
+  background-color: rgba(255, 255, 255, 0.16);
+  border-width: 1px;
+  border-color: rgba(255, 255, 255, 0.24);
+`;
+
+const SearchInput = styled(TextInput)`
+  flex: 1;
+  padding: 0;
+  font-family: ${fontFamily.regular};
+  font-size: 15px;
+  color: #ffffff;
+`;
+
+const Lede = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 15px;
+  line-height: 21px;
+  color: ${(props) => props.theme.textMuted};
+  margin-bottom: ${spacing.md}px;
 `;
 
 const BackButton = styled(Pressable)`
@@ -566,31 +761,19 @@ const BackButton = styled(Pressable)`
 
 const HeroKicker = styled.Text`
   font-family: ${fontFamily.bold};
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 1.6px;
   color: rgba(255, 255, 255, 0.7);
   text-transform: uppercase;
-  margin-bottom: ${spacing.xs}px;
+  margin-bottom: ${spacing.sm}px;
 `;
 
 const HeroTitle = styled.Text`
+  flex: 1;
   font-family: ${fontFamily.bold};
-  font-size: 26px;
-  line-height: 31px;
+  font-size: 24px;
+  line-height: 30px;
   color: #ffffff;
-  margin-bottom: ${spacing.xs}px;
-`;
-
-const HeroCopy = styled.Text`
-  font-family: ${fontFamily.regular};
-  font-size: 13px;
-  line-height: 19px;
-  color: rgba(255, 255, 255, 0.78);
-`;
-
-const HeroActions = styled.View`
-  flex-direction: row;
-  margin-top: ${spacing.md}px;
 `;
 
 // White on the gradient rather than an outline: this is the primary action
@@ -608,7 +791,7 @@ const HeroPostButton = styled(Pressable)`
 
 const HeroPostLabel = styled.Text`
   font-family: ${fontFamily.bold};
-  font-size: 13.5px;
+  font-size: 15px;
   color: ${CLAY};
 `;
 
@@ -635,13 +818,13 @@ const ModeTab = styled(Pressable)`
 
 const ModeLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
-  font-size: 13px;
+  font-size: 15px;
   color: ${(props) => (props.on ? props.theme.text : props.theme.textMuted)};
 `;
 
 const ModeHint = styled.Text`
   font-family: ${fontFamily.regular};
-  font-size: 10px;
+  font-size: 12px;
   margin-top: 2px;
   color: ${(props) => (props.on ? CLAY : props.theme.textMuted)};
 `;
@@ -667,7 +850,7 @@ const StepMark = styled.View`
 
 const StepNumber = styled.Text`
   font-family: ${fontFamily.bold};
-  font-size: 11px;
+  font-size: 12px;
   color: ${CLAY};
 `;
 
@@ -693,13 +876,39 @@ const SummaryRow = styled.View`
 const SummaryText = styled.Text`
   flex: 1;
   font-family: ${fontFamily.semiBold};
-  font-size: 13px;
+  font-size: 15px;
   color: ${(props) => props.theme.text};
+`;
+
+const SearchHeader = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.sm}px;
+  margin-bottom: ${spacing.md}px;
+`;
+
+const SearchScope = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.semiBold};
+  font-size: 15px;
+  color: ${(props) => props.theme.text};
+`;
+
+const ClearButton = styled(Pressable)`
+  padding: ${spacing.xs}px ${spacing.sm}px;
+  border-radius: ${radius.sm}px;
+  background-color: rgba(122, 74, 46, 0.07);
+`;
+
+const ClearLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 14px;
+  color: ${CLAY};
 `;
 
 const SectionLabel = styled.Text`
   font-family: ${fontFamily.bold};
-  font-size: 10.5px;
+  font-size: 12px;
   letter-spacing: 1.4px;
   text-transform: uppercase;
   color: ${(props) => props.theme.textMuted};
@@ -737,7 +946,7 @@ const FamilyTile = styled(Pressable)`
 
 const FamilyLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
-  font-size: 11px;
+  font-size: 13px;
   text-align: center;
   color: ${(props) => (props.on ? "#ffffff" : props.theme.text)};
 `;
@@ -808,7 +1017,7 @@ const Chip = styled(Pressable)`
 
 const ChipLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
-  font-size: 12px;
+  font-size: 14px;
   text-align: center;
   color: ${(props) => (props.on ? "#ffffff" : CLAY)};
 `;
@@ -831,7 +1040,7 @@ const MoreChip = styled(Pressable)`
 
 const MoreChipLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
-  font-size: 12px;
+  font-size: 14px;
   text-align: center;
   color: ${CLAY};
 `;
@@ -865,7 +1074,7 @@ const WhereTab = styled(Pressable)`
 
 const WhereLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
-  font-size: 12px;
+  font-size: 13.5px;
   text-align: center;
   color: ${(props) => (props.on ? CLAY : props.theme.textMuted)};
 `;
@@ -879,24 +1088,48 @@ const CountRow = styled.View`
 
 const CountText = styled.Text`
   font-family: ${fontFamily.semiBold};
-  font-size: 12.5px;
+  font-size: 14px;
   color: ${(props) => props.theme.textMuted};
 `;
 
 const SortNote = styled.Text`
   font-family: ${fontFamily.regular};
-  font-size: 11.5px;
+  font-size: 13px;
   color: ${(props) => props.theme.textMuted};
 `;
 
+// A card has to look like it is on top of the page, not printed on it.
+//
+// White on off-white, a hairline border and the standard card shadow put
+// three weak signals in the same place and produced one weak result: at
+// arm's length the providers read as paragraphs of a single document. A
+// border AND a shadow is also muddled — either the card is a sheet above
+// the page or a region drawn on it, and it should pick one.
+//
+// It picks the sheet: no border, a deeper shadow, a wider corner, and more
+// air inside. The rail down the left is the deposit — green for none,
+// amber for half or more — so the thing this whole screen is ordered by can
+// be scanned without reading a word.
 const Card = styled(Pressable)`
-  padding: ${spacing.md}px;
-  border-radius: ${radius.lg}px;
+  padding: ${spacing.md}px ${spacing.md}px ${spacing.md}px ${spacing.md}px;
+  border-radius: 20px;
+  overflow: hidden;
   background-color: ${(props) => props.theme.surface};
-  border-width: 1px;
-  border-color: ${(props) => props.theme.border};
   margin-bottom: ${spacing.md}px;
-  ${shadow.card};
+  shadow-color: #2a1409;
+  shadow-offset: 0px 6px;
+  shadow-opacity: 0.1;
+  shadow-radius: 16px;
+  elevation: 4;
+`;
+
+const CardRail = styled.View`
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: ${(props) => props.tone};
 `;
 
 const CardTop = styled.View`
@@ -930,7 +1163,7 @@ const Monogram = styled.View`
 
 const MonogramText = styled.Text`
   font-family: ${fontFamily.bold};
-  font-size: 16px;
+  font-size: 18px;
   color: ${CLAY};
 `;
 
@@ -940,7 +1173,8 @@ const CardTopCol = styled.View`
 
 const ProviderName = styled.Text`
   font-family: ${fontFamily.semiBold};
-  font-size: 15px;
+  font-size: 17px;
+  line-height: 22px;
   color: ${(props) => props.theme.text};
 `;
 
@@ -960,25 +1194,25 @@ const RatingWrap = styled.View`
 
 const RatingValue = styled.Text`
   font-family: ${fontFamily.bold};
-  font-size: 12px;
+  font-size: 13.5px;
   color: ${(props) => props.theme.text};
 `;
 
 const RatingCount = styled.Text`
   font-family: ${fontFamily.regular};
-  font-size: 11.5px;
+  font-size: 13px;
   color: ${(props) => props.theme.textMuted};
 `;
 
 const NoRating = styled.Text`
   font-family: ${fontFamily.regular};
-  font-size: 11.5px;
+  font-size: 13px;
   color: ${(props) => props.theme.textMuted};
 `;
 
 const TradeTag = styled.Text`
   font-family: ${fontFamily.semiBold};
-  font-size: 11px;
+  font-size: 13px;
   color: ${CLAY};
 `;
 
@@ -1001,7 +1235,7 @@ const DepositPill = styled.View`
 
 const DepositLabel = styled.Text`
   font-family: ${fontFamily.bold};
-  font-size: 10.5px;
+  font-size: 12px;
   color: ${(props) => (props.heavy ? "#8a6415" : EMERALD)};
 `;
 
@@ -1013,7 +1247,7 @@ const UnknownPill = styled.View`
 
 const UnknownLabel = styled.Text`
   font-family: ${fontFamily.bold};
-  font-size: 10.5px;
+  font-size: 12px;
   color: ${(props) => props.theme.textMuted};
 `;
 
@@ -1022,7 +1256,7 @@ const RatePill = styled.Text`
   border-radius: 999px;
   background-color: rgba(0, 0, 0, 0.045);
   font-family: ${fontFamily.semiBold};
-  font-size: 10.5px;
+  font-size: 12px;
   color: ${(props) => props.theme.text};
 `;
 
@@ -1036,15 +1270,15 @@ const FactRow = styled.View`
 const FactText = styled.Text`
   flex: 1;
   font-family: ${fontFamily.regular};
-  font-size: 12px;
-  line-height: 17px;
+  font-size: 14px;
+  line-height: 20px;
   color: ${(props) => props.theme.textMuted};
 `;
 
 const HeavyNote = styled.Text`
   font-family: ${fontFamily.regular};
-  font-size: 11.5px;
-  line-height: 17px;
+  font-size: 13px;
+  line-height: 19px;
   color: #8a6415;
   background-color: rgba(224, 164, 21, 0.09);
   padding: ${spacing.sm}px;
@@ -1071,7 +1305,7 @@ const CallButton = styled(Pressable)`
 
 const CallLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
-  font-size: 13px;
+  font-size: 15px;
   color: #ffffff;
 `;
 
@@ -1090,14 +1324,14 @@ const WhatsappButton = styled(Pressable)`
 
 const WhatsappLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
-  font-size: 13px;
+  font-size: 15px;
   color: ${CLAY};
 `;
 
 const Empty = styled.Text`
   font-family: ${fontFamily.regular};
-  font-size: 13.5px;
-  line-height: 21px;
+  font-size: 15px;
+  line-height: 22px;
   text-align: center;
   color: ${(props) => props.theme.textMuted};
   padding: ${spacing.lg}px ${spacing.md}px;
@@ -1118,15 +1352,15 @@ const SafetyNote = styled.View`
 const SafetyText = styled.Text`
   flex: 1;
   font-family: ${fontFamily.regular};
-  font-size: 11.5px;
-  line-height: 18px;
+  font-size: 13px;
+  line-height: 19px;
   color: #6b5a2e;
 `;
 
 const OfferNote = styled.Text`
   font-family: ${fontFamily.regular};
-  font-size: 12.5px;
-  line-height: 19px;
+  font-size: 14px;
+  line-height: 20px;
   color: ${(props) => props.theme.textMuted};
   margin-bottom: ${spacing.sm}px;
 `;
@@ -1145,6 +1379,6 @@ const PublishButton = styled(Pressable)`
 
 const PublishLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
-  font-size: 15px;
+  font-size: 16px;
   color: #ffffff;
 `;

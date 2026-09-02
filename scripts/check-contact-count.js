@@ -101,6 +101,28 @@ if (writers.length !== 1 || writers[0] !== path.join("src", "utils", "contactCou
   );
 }
 
+// The two rules that keep the number honest, both learned the hard way on
+// the view counter: a seller's own tap is not a lead, and a listing the app
+// invented for a demonstration has nobody to call.
+const helper = read("src/utils/contactCount.js");
+if (!/currentUser\?\.uid/.test(helper)) {
+  failures.push(
+    "countContact does not skip the owner — a seller opening their own card " +
+      "to check the phone number adds a call to their own total",
+  );
+}
+if (!/isSample/.test(helper)) {
+  failures.push("countContact does not skip sample listings");
+}
+
+// And the seller's landing screen shows it, not only the list behind it.
+if (!/contactCount/.test(read("src/screens/SellerDashboardScreen.js"))) {
+  failures.push(
+    "the seller dashboard shows views without calls — half a sentence, and " +
+      "the half that invites the wrong conclusion",
+  );
+}
+
 // A count that the rules refuse is a count that silently never happens.
 const rules = read("firestore.rules");
 if (!/hasOnly\(\['contactCount', 'contactCountToday', 'contactCountDate'\]\)/.test(rules)) {

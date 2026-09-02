@@ -272,6 +272,10 @@ export function SellerDashboardScreen({ navigation }) {
           sum + (item.viewCountDate === today ? (item.viewCountToday ?? 0) : 0),
         0,
       ),
+      // The other half of the views figure. Alone, "111 vues" invites the
+      // wrong conclusion in either direction; beside the calls it becomes a
+      // sentence a seller can act on.
+      contacts: items.reduce((sum, item) => sum + (item.contactCount ?? 0), 0),
       messages: conversations?.length ?? 0,
     };
   }, [listings, conversations]);
@@ -324,6 +328,12 @@ export function SellerDashboardScreen({ navigation }) {
           key: "views",
           value: stats.views,
           label: t("dashboardStatViews"),
+          onPress: () => navigation.navigate("MyListings", { filter: "all" }),
+        },
+        {
+          key: "contacts",
+          value: stats.contacts,
+          label: t("dashboardStatContacts"),
           onPress: () => navigation.navigate("MyListings", { filter: "all" }),
         },
         {

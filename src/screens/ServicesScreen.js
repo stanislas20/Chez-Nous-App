@@ -251,6 +251,19 @@ export function ServicesScreen({ navigation }) {
           end={{ x: 1, y: 1 }}
           style={{ paddingTop: insets.top + spacing.sm }}
         >
+          {/* The watermark the proposed design puts behind every one of
+              its banners, and the same one the events screen already
+              carries: the trade's own tool, oversized, cropped by the
+              corner, at a tenth of full white. It says which room you are
+              in before a word is read, and at that opacity it never
+              competes with the words for it. */}
+          <HeroMark pointerEvents="none">
+            <Ionicons
+              name="construct-outline"
+              size={170}
+              color="rgba(255,255,255,0.1)"
+            />
+          </HeroMark>
           <BackButton onPress={() => navigation.goBack()} hitSlop={10}>
             <Ionicons name="chevron-back" size={20} color="#ffffff" />
           </BackButton>
@@ -719,6 +732,7 @@ const Container = styled(SafeAreaView)`
 `;
 
 const Hero = styled(LinearGradient)`
+  overflow: hidden;
   padding: ${spacing.md}px ${spacing.md}px ${spacing.lg}px;
   z-index: 2;
   shadow-color: #2a1409;
@@ -731,6 +745,12 @@ const Hero = styled(LinearGradient)`
 // Title and action on one line: the title says where you are, the button is
 // why a provider opened the screen, and neither needs a paragraph between
 // them to be understood.
+const HeroMark = styled.View`
+  position: absolute;
+  right: -30px;
+  bottom: -46px;
+`;
+
 const HeroRow = styled.View`
   flex-direction: row;
   align-items: center;

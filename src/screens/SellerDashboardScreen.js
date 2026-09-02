@@ -89,10 +89,13 @@ function washOf(hex) {
 // closes up into a blob, and these sit next to a 21px numeral that is
 // meant to be the thing you look at.
 const STAT_ICONS = {
-  total: "pricetags-outline",
   active: "checkmark-circle-outline",
   sold: "cash-outline",
   views: "eye-outline",
+  // The contacts card was added without one, so it drew an empty disc — a
+  // hole where every card beside it has a glyph, on the number the card
+  // exists for.
+  contacts: "call-outline",
   messages: "chatbubble-ellipses-outline",
   saved: "heart-outline",
   following: "people-outline",
@@ -101,10 +104,10 @@ const STAT_ICONS = {
 const ACTION_TINTS = {
   // Stat cards share this table with the action cards, so "saved" is the
   // same pink in both places on the same screen.
-  total: "#2F6BB5",
   active: "#12876A",
   sold: "#C4478A",
   views: "#6A5AE0",
+  contacts: "#12876A",
   following: "#EC8B2B",
   listings: "#2F6BB5",
   messages: "#12908C",
@@ -261,7 +264,6 @@ export function SellerDashboardScreen({ navigation }) {
     const items = listings ?? [];
     const today = getTodayDateString();
     return {
-      total: items.length,
       active: items.filter(
         (item) => item.status === "approved" && item.saleStatus !== "sold",
       ).length,
@@ -305,12 +307,12 @@ export function SellerDashboardScreen({ navigation }) {
         },
       ]
     : [
-        {
-          key: "total",
-          value: stats.total,
-          label: t("dashboardStatTotal"),
-          onPress: () => navigation.navigate("MyListings", { filter: "all" }),
-        },
+        // No "Annonces" total. Mes annonces opens onto a filter row that
+        // already reads Annonces 13 / Actives 13 / Vendues 0 — the same
+        // three counts, one tap away, next to the listings they describe.
+        // Of the three it is the total that carries nothing the others do
+        // not: a seller does not act on how many adverts they have ever
+        // had, they act on how many are live and how many sold.
         {
           key: "active",
           value: stats.active,
@@ -715,26 +717,19 @@ export function SellerDashboardScreen({ navigation }) {
           </SettingsButton>
         </HeaderRow>
 
-        {/* The same three numbers visitors see, on the screen the owner
-            actually lands on. The public profile is reachable only from a
-            listing or the verified strip — neither is somewhere a company
-            goes to check on itself. */}
+        {/* The numbers visitors see, on the screen the owner actually lands
+            on — the public profile is reachable only from a listing or the
+            verified strip, neither of which is somewhere a company goes to
+            check on itself.
+
+            Two of the three, not all three. How many sellers you follow is
+            a fact about you and not about your shop: it cannot go up or
+            down because of anything you do here, and nothing you would do
+            differently depends on it. Followers are the audience you have
+            and J'aime is what they want, so both stay. It is still on the
+            public profile, where a visitor sizing up a company reads it as
+            part of who they are. */}
         <OwnStatRow>
-          <OwnStatCell>
-            <OwnStatValue>
-              {formatCount(ownStats?.following ?? 0, language)}
-            </OwnStatValue>
-            <OwnStatLabel>
-              {t(
-                statLabelKey(
-                  "profileStatFollowing",
-                  ownStats?.following ?? 0,
-                  language,
-                ),
-              )}
-            </OwnStatLabel>
-          </OwnStatCell>
-          <OwnStatSeparator />
           <OwnStatCell>
             <OwnStatValue>
               {formatCount(ownStats?.followers ?? 0, language)}

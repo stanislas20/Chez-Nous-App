@@ -1216,6 +1216,20 @@ async function applyFavouriteDelta(favourite, delta) {
   // there's simply no seller left to credit.
   if (!listing.exists) return;
   await bumpSellerStat(listing.data()?.sellerId, "likes", delta);
+
+  // And on the listing itself, because the seller's question is not "how
+  // many likes do I have" but "why is this one not selling". A listing with
+  // views, saves and no calls is priced wrong or missing something a buyer
+  // needs before they will ring; the same listing with views and no saves
+  // was simply not wanted. The total across a profile cannot tell them
+  // which, and `favorites` is per-user private, so a seller cannot count
+  // their own listing's saves from the client — this is the only place the
+  // number can come from.
+  //
+  // Floored at zero here for the same reason bumpSellerStat floors: a
+  // delete replayed after the counter was reset must not print "-1".
+  const current = Number(listing.data()?.saveCount) || 0;
+  await listing.ref.update({ saveCount: Math.max(0, current + delta) });
 }
 
 exports.onFavoriteCreated = onDocumentCreated(

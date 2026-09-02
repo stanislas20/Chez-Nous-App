@@ -27,6 +27,13 @@ import { withListingLink } from "../utils/listingLink";
 import { saleStatusLabelKey } from "../data/saleStatuses";
 import { useAuth } from "../auth/AuthContext";
 import { useMyListings } from "../hooks/useMyListings";
+import { useConversations } from "../hooks/useConversations";
+// The plural rule and the compact form both already exist for the profile
+// stat row, and both are language-dependent in ways worth getting wrong
+// only once: French takes the singular at zero ("0 vue"), English does not,
+// and 1 200 views should read "1,2 k" on a card this size rather than
+// pushing the next figure onto its own line.
+import { formatCount, statLabelKey } from "../utils/formatCount";
 import { firestore, storage } from "../config/firebase";
 import { getDutyLabel } from "../utils/pharmacyDuty";
 import { listingPriceText } from "../utils/listingPrice";
@@ -85,13 +92,31 @@ function matchesFilter(item, filter) {
   return true;
 }
 
-// "1 Appels" is not French, and the two languages do not agree on where
-// the singular stops: French writes "0 vue" and "1 vue", English writes
-// "0 views" and "1 view". So the rule is asked of the language rather than
-// guessed from the number.
-function countLabelKey(key, count, language) {
-  const singular = language === "fr" ? count < 2 : count === 1;
-  return singular ? `${key}One` : key;
+// How many people wrote about each advert.
+//
+// Unlike views, calls and saves this needs no counter and no rule: a
+// conversation already carries the listingId it was opened from, and the
+// seller is already subscribed to all of theirs for the Messages tab. So it
+// is a tally of data already on the phone, not a fourth number to write and
+// get wrong.
+//
+// Conversations, not messages. Twenty messages from one person is one
+// person interested, and showing "20" beside "3 appels" would invite the
+// seller to conclude the advert is doing four times better than it is.
+//
+// Only threads where they are the seller. Their own enquiries about other
+// people's adverts arrive in the same subscription, and a listing of theirs
+// must not be credited for a message they sent about somebody else's.
+function messagesByListing(conversations, uid) {
+  const counts = new Map();
+  (conversations ?? []).forEach((conversation) => {
+    if (!conversation?.listingId || conversation.sellerId !== uid) return;
+    counts.set(
+      conversation.listingId,
+      (counts.get(conversation.listingId) ?? 0) + 1,
+    );
+  });
+  return counts;
 }
 
 export function MyListingsScreen() {
@@ -103,6 +128,11 @@ export function MyListingsScreen() {
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const listings = useMyListings(user?.uid);
+  const conversations = useConversations(user?.uid);
+  const messageCounts = useMemo(
+    () => messagesByListing(conversations, user?.uid),
+    [conversations, user?.uid],
+  );
   const [filter, setFilter] = useState(route.params?.filter ?? "all");
 
   // A count on each tab, which is the summary this screen never had.
@@ -344,10 +374,10 @@ export function MyListingsScreen() {
                           color={colors.textMuted}
                         />
                       </StatIcon>
-                      <StatFigure>{item.viewCount ?? 0}</StatFigure>
+                      <StatFigure>{formatCount(item.viewCount ?? 0, language)}</StatFigure>
                       <StatLabel>
                         {t(
-                          countLabelKey(
+                          statLabelKey(
                             "dashboardStatViews",
                             item.viewCount ?? 0,
                             language,
@@ -355,7 +385,33 @@ export function MyListingsScreen() {
                         )}
                       </StatLabel>
                     </Stat>
-                    <StatDivider />
+                    {/* Between the view and the call on purpose: the row is
+                        a funnel, and this is the step where a listing that
+                        is seen but never rung tells you which of the two
+                        problems it has. Saved and not rung is a price or a
+                        missing detail — they want it and something is in
+                        the way. Never saved at all is simply not wanted. */}
+                    <Stat>
+                      <StatIcon tinted>
+                        <Ionicons
+                          name="heart"
+                          size={12}
+                          color={colors.primary}
+                        />
+                      </StatIcon>
+                      <StatFigure accent>
+                        {formatCount(item.saveCount ?? 0, language)}
+                      </StatFigure>
+                      <StatLabel>
+                        {t(
+                          statLabelKey(
+                            "profileStatLikes",
+                            item.saveCount ?? 0,
+                            language,
+                          ),
+                        )}
+                      </StatLabel>
+                    </Stat>
                     <Stat>
                       <StatIcon tinted>
                         <Ionicons
@@ -364,12 +420,35 @@ export function MyListingsScreen() {
                           color={colors.primary}
                         />
                       </StatIcon>
-                      <StatFigure accent>{item.contactCount ?? 0}</StatFigure>
+                      <StatFigure accent>
+                        {formatCount(item.contactCount ?? 0, language)}
+                      </StatFigure>
                       <StatLabel>
                         {t(
-                          countLabelKey(
+                          statLabelKey(
                             "dashboardStatContacts",
                             item.contactCount ?? 0,
+                            language,
+                          ),
+                        )}
+                      </StatLabel>
+                    </Stat>
+                    <Stat>
+                      <StatIcon tinted>
+                        <Ionicons
+                          name="chatbubble"
+                          size={11}
+                          color={colors.primary}
+                        />
+                      </StatIcon>
+                      <StatFigure accent>
+                        {formatCount(messageCounts.get(item.id) ?? 0, language)}
+                      </StatFigure>
+                      <StatLabel>
+                        {t(
+                          statLabelKey(
+                            "dashboardStatMessages",
+                            messageCounts.get(item.id) ?? 0,
                             language,
                           ),
                         )}
@@ -825,7 +904,9 @@ const SaleStatusPillLabel = styled.Text`
 const StatStrip = styled.View`
   flex-direction: row;
   align-items: center;
-  align-self: flex-start;
+  align-self: stretch;
+  flex-wrap: wrap;
+  row-gap: ${spacing.xs}px;
   margin-top: ${spacing.xs}px;
   padding: ${spacing.xs}px ${spacing.sm}px;
   border-radius: ${radius.md}px;
@@ -836,6 +917,7 @@ const Stat = styled.View`
   flex-direction: row;
   align-items: center;
   gap: 5px;
+  width: 50%;
 `;
 
 // The icon carries its own ground so the call figure is findable at a
@@ -864,12 +946,6 @@ const StatLabel = styled.Text`
   color: ${(props) => props.theme.textMuted};
 `;
 
-const StatDivider = styled.View`
-  width: 1px;
-  height: 14px;
-  margin-horizontal: ${spacing.sm}px;
-  background-color: ${(props) => props.theme.border};
-`;
 
 const EmptyMessage = styled.Text`
   ${type.body}

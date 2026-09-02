@@ -9,7 +9,7 @@ import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { useApprovedListings } from "../hooks/useApprovedListings";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../auth/AuthContext";
 import { canPublish } from "../utils/canPublish";
 import { useSellerRatings } from "../hooks/useSellerRatings";
 import { useBannerStatusBar } from "../hooks/useBannerStatusBar";

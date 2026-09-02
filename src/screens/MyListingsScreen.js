@@ -13,7 +13,7 @@ import { deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { deleteObject, ref } from "firebase/storage";
 import { Ionicons } from "@expo/vector-icons";
 import styled from "styled-components/native";
-import { radius, spacing } from "../theme/colors";
+import { radius, shadow, spacing } from "../theme/colors";
 import { ListingMedia } from "../components/ListingMedia";
 import { RailChip } from "../components/RailChip";
 import { useTheme } from "../theme/ThemeContext";
@@ -40,12 +40,12 @@ import { listingPriceText } from "../utils/listingPrice";
 import { openListing } from "../utils/openListing";
 import { TabSafeAreaView } from "../components/TabSafeAreaView";
 
-// Two pixels horizontally, like the Local grid, so the rows reach the edges
-// and the photograph gets the width. The vertical padding stays: a list
-// that starts hard against the header reads as clipped.
+// No horizontal padding: the cards carry their own margin, which is what
+// lets them cast a shadow on both sides. The vertical padding stays — a
+// list that starts hard against the header reads as clipped.
 const listContentStyle = {
-  paddingHorizontal: 2,
-  paddingVertical: spacing.md,
+  paddingTop: spacing.md,
+  paddingBottom: spacing.md,
 };
 
 function getSaleStatuses(colors) {
@@ -306,191 +306,216 @@ export function MyListingsScreen() {
           // told no without being told why is unactionable.
           const isRejected = item.status === "rejected";
           const isPharmacy = item.categoryKey === "pharmacyOnDuty";
+          const priceText = isPharmacy
+            ? dutyLabel
+            : listingPriceText(item, t, language);
+          const saleStatusShown =
+            !isPharmacy &&
+            !!item.saleStatus &&
+            item.saleStatus !== "available";
           const dutyLabel = isPharmacy
             ? getDutyLabel(item, language, t).text || item.phone
             : "";
 
           return (
-            <Row
+            <Card
               onPress={() => openListing(navigation, item, t, language)}
               onLongPress={() => setMenuItem(item)}
             >
-              {/* Was a bare Image, so a listing with no photo showed an
-                  empty panel — the larger the square got, the more it read
-                  as a broken image rather than an absent one. */}
-              <ThumbnailWrap>
-                <ListingMedia listing={item} size="thumb" />
-              </ThumbnailWrap>
-              <RowBody>
-                <RowTitle numberOfLines={1}>{title}</RowTitle>
-                <RowPrice>
-                  {isPharmacy
-                    ? dutyLabel
-                    : listingPriceText(item, t, language)}
-                </RowPrice>
-                <PillRow>
-                  <StatusPill approved={isApproved} rejected={isRejected}>
-                    <StatusPillLabel
-                      approved={isApproved}
-                      rejected={isRejected}
-                    >
-                      {isApproved
-                        ? t("listingStatusApproved")
-                        : isRejected
-                          ? t("listingStatusRejected")
-                          : t("listingStatusPending")}
-                    </StatusPillLabel>
-                  </StatusPill>
-                  {!isPharmacy &&
-                  item.saleStatus &&
-                  item.saleStatus !== "available" ? (
-                    <SaleStatusPill saleStatus={item.saleStatus}>
-                      <SaleStatusPillLabel saleStatus={item.saleStatus}>
-                        {t(
-                          saleStatusLabelKey(item.categoryKey, item.saleStatus),
-                        )}
-                      </SaleStatusPillLabel>
-                    </SaleStatusPill>
+              <CardTop>
+                {/* Was a bare Image, so a listing with no photo showed an
+                    empty panel — the larger the square got, the more it
+                    read as a broken image rather than an absent one. */}
+                <ThumbnailWrap>
+                  <ListingMedia listing={item} size="thumb" />
+                </ThumbnailWrap>
+                <RowBody>
+                  <TitleRow>
+                    <RowTitle numberOfLines={2}>{title}</RowTitle>
+                    {/* Edit, share and delete were reachable only by
+                        long-press, which is why the screen carried a line
+                        of text explaining that they existed. A control
+                        nobody can see is not a feature you can document
+                        your way out of — this opens the same sheet.
+
+                        In the title row rather than centred against the
+                        whole card: it used to float level with the middle
+                        of the photograph, lining up with nothing, and a
+                        control that belongs to the whole advert belongs at
+                        the top of it. */}
+                    <MoreButton onPress={() => setMenuItem(item)} hitSlop={10}>
+                      <Ionicons
+                        name="ellipsis-horizontal"
+                        size={18}
+                        color={colors.textMuted}
+                      />
+                    </MoreButton>
+                  </TitleRow>
+                  {priceText ? (
+                    <RowPrice numberOfLines={1}>{priceText}</RowPrice>
                   ) : null}
-                </PillRow>
-                {/* The two figures together, because either alone misleads:
-                    many views and no calls is a price or a photograph
-                    problem, few views and calls on most of them means the
-                    listing is fine and nobody is finding it. A seller shown
-                    only the first number concludes the wrong thing.
+                  {/* Where it is. On a screen holding thirteen adverts the
+                      photograph and the title are not always enough to tell
+                      two of them apart — two rooms in different towns look
+                      identical at 96px — and without it the body of the
+                      card ran out of things to say halfway up the
+                      photograph beside it. */}
+                  {item.city ? (
+                    <MetaRow>
+                      <Ionicons
+                        name="location-outline"
+                        size={12}
+                        color={colors.textMuted}
+                      />
+                      <MetaLabel numberOfLines={1}>{item.city}</MetaLabel>
+                    </MetaRow>
+                  ) : null}
+                  {/* Only what is not the normal case.
+                
+                      Every approved listing used to carry a green
+                      "Approuvée" pill, so a shop with thirteen live adverts
+                      showed thirteen identical green pills and none of them
+                      told the seller anything — the word was wallpaper, and
+                      it sat in the same row as the states that do need
+                      reading. Pending and rejected still show, because
+                      those are the ones with something to do about them,
+                      and so does a sale status the seller set themselves. */}
+                  {!isApproved || saleStatusShown ? (
+                    <PillRow>
+                      {!isApproved ? (
+                        <StatusPill rejected={isRejected}>
+                          <StatusPillLabel rejected={isRejected}>
+                            {isRejected
+                              ? t("listingStatusRejected")
+                              : t("listingStatusPending")}
+                          </StatusPillLabel>
+                        </StatusPill>
+                      ) : null}
+                      {saleStatusShown ? (
+                        <SaleStatusPill saleStatus={item.saleStatus}>
+                          <SaleStatusPillLabel saleStatus={item.saleStatus}>
+                            {t(
+                              saleStatusLabelKey(
+                                item.categoryKey,
+                                item.saleStatus,
+                              ),
+                            )}
+                          </SaleStatusPillLabel>
+                        </SaleStatusPill>
+                      ) : null}
+                    </PillRow>
+                  ) : null}
+                  {isRejected ? (
+                    <>
+                      <RejectionNote numberOfLines={3}>
+                        {item.moderationNote || t("listingRejectedNoReason")}
+                      </RejectionNote>
+                      {/* Said every time, not only when moderation left no
+                          reason. The sentence used to be the tail of
+                          listingRejectedNoReason, so the sellers who were
+                          given a reason — the ones who can actually act on
+                          it — were the only ones never told what to do with
+                          it. */}
+                      <RejectionHint>
+                        {t("listingRejectedResubmitHint")}
+                      </RejectionHint>
+                    </>
+                  ) : null}
+                </RowBody>
+              </CardTop>
 
-                    They used to be two 11px chips carrying a bare digit
-                    each, which is the size the app uses for a status word —
-                    so the only numbers on the screen that say whether the
-                    advert is working read as decoration, and neither said
-                    what it counted. */}
-                {isApproved ? (
-                  <StatStrip>
-                    <Stat>
-                      <StatIcon>
-                        <Ionicons
-                          name="eye-outline"
-                          size={13}
-                          color={colors.textMuted}
-                        />
-                      </StatIcon>
-                      <StatFigure>{formatCount(item.viewCount ?? 0, language)}</StatFigure>
-                      <StatLabel>
-                        {t(
-                          statLabelKey(
-                            "dashboardStatViews",
-                            item.viewCount ?? 0,
-                            language,
-                          ),
-                        )}
-                      </StatLabel>
-                    </Stat>
-                    {/* Between the view and the call on purpose: the row is
-                        a funnel, and this is the step where a listing that
-                        is seen but never rung tells you which of the two
-                        problems it has. Saved and not rung is a price or a
-                        missing detail — they want it and something is in
-                        the way. Never saved at all is simply not wanted. */}
-                    <Stat>
-                      <StatIcon tinted>
-                        <Ionicons
-                          name="heart"
-                          size={12}
-                          color={colors.primary}
-                        />
-                      </StatIcon>
-                      <StatFigure accent>
-                        {formatCount(item.saveCount ?? 0, language)}
-                      </StatFigure>
-                      <StatLabel>
-                        {t(
-                          statLabelKey(
-                            "profileStatLikes",
-                            item.saveCount ?? 0,
-                            language,
-                          ),
-                        )}
-                      </StatLabel>
-                    </Stat>
-                    <Stat>
-                      <StatIcon tinted>
-                        <Ionicons
-                          name="call"
-                          size={12}
-                          color={colors.primary}
-                        />
-                      </StatIcon>
-                      <StatFigure accent>
-                        {formatCount(item.contactCount ?? 0, language)}
-                      </StatFigure>
-                      <StatLabel>
-                        {t(
-                          statLabelKey(
-                            "dashboardStatContacts",
-                            item.contactCount ?? 0,
-                            language,
-                          ),
-                        )}
-                      </StatLabel>
-                    </Stat>
-                    <Stat>
-                      <StatIcon tinted>
-                        <Ionicons
-                          name="chatbubble"
-                          size={11}
-                          color={colors.primary}
-                        />
-                      </StatIcon>
-                      <StatFigure accent>
-                        {formatCount(messageCounts.get(item.id) ?? 0, language)}
-                      </StatFigure>
-                      <StatLabel>
-                        {t(
-                          statLabelKey(
-                            "dashboardStatMessages",
-                            messageCounts.get(item.id) ?? 0,
-                            language,
-                          ),
-                        )}
-                      </StatLabel>
-                    </Stat>
-                  </StatStrip>
-                ) : null}
-                {isRejected ? (
-                  <>
-                    <RejectionNote numberOfLines={3}>
-                      {item.moderationNote || t("listingRejectedNoReason")}
-                    </RejectionNote>
-                    {/* Said every time, not only when moderation left no
-                        reason. The sentence used to be the tail of
-                        listingRejectedNoReason, so the sellers who were
-                        given a reason — the ones who can actually act on
-                        it — were the only ones never told what to do with
-                        it. */}
-                    <RejectionHint>
-                      {t("listingRejectedResubmitHint")}
-                    </RejectionHint>
-                  </>
-                ) : null}
-              </RowBody>
-
-              {/* Edit, share and delete were reachable only by long-press,
-                  which is why the screen carried a line of text explaining
-                  that they existed. A control nobody can see is not a
-                  feature you can document your way out of — this opens the
-                  same sheet, and the sentence is gone. Long-press still
-                  works for anybody already used to it. */}
-              <MoreButton
-                onPress={() => setMenuItem(item)}
-                hitSlop={10}
-              >
-                <Ionicons
-                  name="ellipsis-vertical"
-                  size={18}
-                  color={colors.textMuted}
-                />
-              </MoreButton>
-            </Row>
+              {/* Across the foot of the card rather than tucked beside the
+                  text, because these four belong to the advert and not to
+                  the paragraph. A tinted panel here would have been a box
+                  inside a box; a hairline says the same thing and adds
+                  nothing to look at. */}
+              {isApproved ? (
+                <StatStrip>
+                  <Stat>
+                    <Ionicons
+                      name="eye-outline"
+                      size={13}
+                      color={colors.textMuted}
+                    />
+                    <StatFigure zero={(item.viewCount ?? 0) === 0}>
+                      {formatCount(item.viewCount ?? 0, language)}
+                    </StatFigure>
+                    <StatLabel>
+                      {t(
+                        statLabelKey(
+                          "dashboardStatViews",
+                          item.viewCount ?? 0,
+                          language,
+                        ),
+                      )}
+                    </StatLabel>
+                  </Stat>
+                  {/* Between the view and the call on purpose: the row is a
+                      funnel, and this is the step where a listing that is
+                      seen but never rung tells you which of the two
+                      problems it has. Saved and not rung is a price or a
+                      missing detail — they want it and something is in the
+                      way. Never saved at all is simply not wanted. */}
+                  <Stat>
+                    <Ionicons
+                      name="heart-outline"
+                      size={13}
+                      color={colors.textMuted}
+                    />
+                    <StatFigure zero={(item.saveCount ?? 0) === 0}>
+                      {formatCount(item.saveCount ?? 0, language)}
+                    </StatFigure>
+                    <StatLabel>
+                      {t(
+                        statLabelKey(
+                          "profileStatLikes",
+                          item.saveCount ?? 0,
+                          language,
+                        ),
+                      )}
+                    </StatLabel>
+                  </Stat>
+                  <Stat>
+                    <Ionicons
+                      name="call-outline"
+                      size={13}
+                      color={colors.textMuted}
+                    />
+                    <StatFigure zero={(item.contactCount ?? 0) === 0}>
+                      {formatCount(item.contactCount ?? 0, language)}
+                    </StatFigure>
+                    <StatLabel>
+                      {t(
+                        statLabelKey(
+                          "dashboardStatContacts",
+                          item.contactCount ?? 0,
+                          language,
+                        ),
+                      )}
+                    </StatLabel>
+                  </Stat>
+                  <Stat>
+                    <Ionicons
+                      name="chatbubble-outline"
+                      size={13}
+                      color={colors.textMuted}
+                    />
+                    <StatFigure zero={(messageCounts.get(item.id) ?? 0) === 0}>
+                      {formatCount(messageCounts.get(item.id) ?? 0, language)}
+                    </StatFigure>
+                    <StatLabel>
+                      {t(
+                        statLabelKey(
+                          "dashboardStatMessages",
+                          messageCounts.get(item.id) ?? 0,
+                          language,
+                        ),
+                      )}
+                    </StatLabel>
+                  </Stat>
+                </StatStrip>
+              ) : null}
+            </Card>
           );
         }}
       />
@@ -772,33 +797,52 @@ const FilterChipLabel = styled.Text`
   color: ${(props) => (props.selected ? props.theme.textInverse : props.theme.text)};
 `;
 
-// Local's language, applied to a row rather than a grid cell: square
-// corners, a 2px seam between rows, and a hairline border instead of a drop
-// shadow — square rows two pixels apart read as one sheet, and a shadow in
-// that gap turns the seam into a smudge. Same reasoning as ListingCard's
-// flush variant, which this is deliberately matching rather than inventing
-// a third card style.
+// A card, with air around it, on a screen that used to be flush slabs.
 //
-// The row stays a row. It carries a status pill, a view count and the
-// edit and delete actions, none of which a browse card has anywhere to put.
-const Row = styled(Pressable)`
-  flex-direction: row;
-  align-items: center;
-  gap: ${spacing.md}px;
+// The flush idiom is right where it came from: the Local grid tiles
+// photographs edge to edge and two pixels of surface between them is a
+// seam, not a gap. This screen is not that. Each row here is one advert
+// you own and act on — rename it, price it, retire it — and a management
+// list wants the object bounded, not tiled. Square-cornered full-width
+// slabs with a four-figure footer inside them read as a spreadsheet, and
+// the eye cannot find where one advert stops.
+const Card = styled(Pressable)`
   background-color: ${(props) => props.theme.surface};
-  border-radius: 0px;
+  border-radius: ${radius.lg}px;
+  margin-horizontal: ${spacing.md}px;
+  margin-bottom: ${spacing.md}px;
   padding: ${spacing.sm}px;
-  margin-bottom: 2px;
-  border-width: 1px;
-  border-color: ${(props) => props.theme.border};
+  ${shadow.card}
 `;
 
-// 110 rather than 64, and square-cornered. On Local the photograph carries
-// the card; at 64px it was a stamp beside the text, which is what made this
-// screen look unrelated to the rest of the app.
+const CardTop = styled.View`
+  flex-direction: row;
+  align-items: flex-start;
+  gap: ${spacing.sm}px;
+`;
+
+// The title and the control that acts on the whole advert, on one line at
+// the top. Baseline-aligned by sitting in the same row rather than by being
+// centred against a photograph that is taller than either of them.
+const TitleRow = styled.View`
+  flex-direction: row;
+  align-items: flex-start;
+  gap: ${spacing.xs}px;
+`;
+
+// Rounded now, and clipped to it. A hard square inside a rounded card is
+// the detail that makes a layout look assembled rather than drawn.
+//
+// 84 rather than 96, which is a proportion rather than a preference: a
+// title, a price and a town stack about eighty points high, and a square
+// taller than that leaves the right half of the card empty from the price
+// downwards. It reads as something failing to load. The photograph still
+// carries the row — the jump up from 64 was what stopped this screen
+// looking unrelated to the rest of the app, and this is nowhere near back.
 const ThumbnailWrap = styled.View`
-  width: 110px;
-  height: 110px;
+  width: 84px;
+  height: 84px;
+  border-radius: ${radius.md}px;
   overflow: hidden;
   background-color: ${(props) => props.theme.surfaceAlt};
 `;
@@ -810,42 +854,44 @@ const RowBody = styled.View`
 
 const RowTitle = styled.Text`
   ${type.bodyMedium}
+  flex: 1;
   color: ${(props) => props.theme.text};
+  line-height: 20px;
 `;
 
+// The price was 13px grey-green — smaller than the title and the same
+// colour as the status pill under it, on a screen where it is the second
+// thing anybody reads. It is money, so it is set like money: the largest
+// text on the card, in the text colour rather than the brand's, which the
+// buttons and the live-state have more use for.
 const RowPrice = styled.Text`
-  ${type.caption}
-  color: ${(props) => props.theme.primaryDark};
+  ${type.bodyMedium}
+  font-family: ${fontFamily.bold};
+  font-size: 16px;
+  color: ${(props) => props.theme.text};
+  margin-top: 2px;
 `;
 
 const PillRow = styled.View`
   flex-direction: row;
   flex-wrap: wrap;
   gap: ${spacing.xs}px;
-  margin-top: 2px;
+  margin-top: ${spacing.xs}px;
 `;
 
 const StatusPill = styled.View`
   align-self: flex-start;
   background-color: ${(props) =>
-    props.rejected
-      ? props.theme.errorLight
-      : props.approved
-        ? props.theme.primaryLight
-        : props.theme.accentLight};
+    props.rejected ? props.theme.errorLight : props.theme.accentLight};
   border-radius: ${radius.pill}px;
   padding-horizontal: ${spacing.sm}px;
-  padding-vertical: 2px;
+  padding-vertical: 3px;
 `;
 
 const StatusPillLabel = styled.Text`
   ${type.captionMedium}
   color: ${(props) =>
-    props.rejected
-      ? props.theme.error
-      : props.approved
-        ? props.theme.primaryDark
-        : props.theme.accentDark};
+    props.rejected ? props.theme.error : props.theme.accentDark};
   font-size: 11px;
 `;
 
@@ -895,24 +941,28 @@ const SaleStatusPillLabel = styled.Text`
   font-size: 11px;
 `;
 
-// How the advert is doing, told as two figures rather than two chips.
+// How the advert is doing, across the foot of the card.
 //
-// Sits on its own line under the status row and above anything else,
-// because a status pill is a state and these are a result — putting them in
-// the same row asked the eye to read "En ligne", "128" and "12" as three
-// facts of one kind.
+// Four figures in two columns, separated from the advert above by a
+// hairline rather than by a tint. They were on a tinted panel while the
+// card itself was a flat slab, which was the only thing giving them an
+// edge; inside a card with its own shadow that panel became a box drawn
+// inside a box.
 const StatStrip = styled.View`
   flex-direction: row;
-  align-items: center;
-  align-self: stretch;
   flex-wrap: wrap;
   row-gap: ${spacing.xs}px;
-  margin-top: ${spacing.xs}px;
-  padding: ${spacing.xs}px ${spacing.sm}px;
-  border-radius: ${radius.md}px;
-  background-color: ${(props) => props.theme.surfaceAlt};
+  margin-top: ${spacing.sm}px;
+  padding-top: ${spacing.sm}px;
+  border-top-width: 1px;
+  border-top-color: ${(props) => props.theme.border};
 `;
 
+// Two per line, which is what four figures want at this width. An earlier
+// version put all four on one line with rules between them, and a wrap
+// breaks between a figure and the rule that follows it — so the first line
+// ended in a hairline pointing at nothing. Alignment separates four things
+// better than lines do.
 const Stat = styled.View`
   flex-direction: row;
   align-items: center;
@@ -920,23 +970,31 @@ const Stat = styled.View`
   width: 50%;
 `;
 
-// The icon carries its own ground so the call figure is findable at a
-// glance down a list of adverts — that is the number a seller is scanning
-// for, and it is the one the old row made smallest.
-const StatIcon = styled.View`
-  width: 20px;
-  height: 20px;
-  align-items: center;
-  justify-content: center;
-  border-radius: ${radius.pill}px;
-  background-color: ${(props) =>
-    props.tinted ? "rgba(11, 110, 79, 0.12)" : "transparent"};
-`;
-
+// A zero is greyed and a real number is not.
+//
+// Most adverts have a zero in at least one of these, and drawn at full
+// weight the four figures all shout equally — the seller has to read every
+// one to find the one that happened. This way what happened is the only
+// thing dark on the row, and a card with nothing to report goes quiet by
+// itself without anything being hidden.
 const StatFigure = styled.Text`
   ${type.captionMedium}
   font-size: 14px;
-  color: ${(props) => (props.accent ? props.theme.primary : props.theme.text)};
+  color: ${(props) => (props.zero ? props.theme.textMuted : props.theme.text)};
+`;
+
+const MetaRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 3px;
+  margin-top: 3px;
+`;
+
+const MetaLabel = styled.Text`
+  ${type.caption}
+  font-size: 12px;
+  color: ${(props) => props.theme.textMuted};
+  flex: 1;
 `;
 
 // Named, not implied. A digit on its own is not a measurement.
@@ -946,7 +1004,6 @@ const StatLabel = styled.Text`
   color: ${(props) => props.theme.textMuted};
 `;
 
-
 const EmptyMessage = styled.Text`
   ${type.body}
   color: ${(props) => props.theme.textMuted};
@@ -954,9 +1011,15 @@ const EmptyMessage = styled.Text`
   margin-top: ${spacing.xl}px;
 `;
 
+// 32 rather than 40, and pulled up by the difference between its own
+// height and the title's line box, so the dots sit on the first line of the
+// title instead of hanging below it. hitSlop keeps the tap target the size
+// it was.
 const MoreButton = styled(Pressable)`
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
+  margin-top: -6px;
+  margin-right: -6px;
   align-self: flex-start;
   align-items: center;
   justify-content: center;

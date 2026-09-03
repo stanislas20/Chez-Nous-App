@@ -23,6 +23,7 @@ import { isVerifiedCompanyProfile } from "../utils/listingLifecycle";
 import { cities } from "../data/cities";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { nearestKnownCity } from "../utils/nearestCity";
+import osmLodging from "../data/osmLodging.json";
 import { distanceInKm } from "../utils/geo";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useSellerRatings } from "../hooks/useSellerRatings";
@@ -219,6 +220,39 @@ export function HotelsScreen({ navigation }) {
     !city &&
     matched.length > 0 &&
     matched.every((item) => item.distanceKm != null);
+
+  // The second tier, and the reason "hôtels autour de moi" can be answered
+  // at all before hoteliers sign up.
+  //
+  // The same shape the pharmacy screen already has: an authoritative import
+  // beside the app's own records, in its own section, saying where it came
+  // from. OpenStreetMap carries these; it does not carry a rate, a taxe de
+  // séjour or a generator, so a card here states what is known and says the
+  // price is not — it never guesses one. Its distance is exact, computed
+  // against the place's own coordinates rather than its city's, which is
+  // more than the priced listings above can offer.
+  const DIRECTORY_SHOWN = 20;
+  const directory = useMemo(() => {
+    if (!isStay) return [];
+    const list = osmLodging
+      .filter((place) => (city ? place.city === city : true))
+      .filter(
+        (place) =>
+          !trimmed ||
+          place.name.toLowerCase().includes(trimmed) ||
+          place.city.toLowerCase().includes(trimmed),
+      )
+      .map((place) => ({
+        ...place,
+        distanceKm: coords ? distanceInKm(coords, place) : null,
+      }));
+    list.sort((a, b) =>
+      a.distanceKm != null && b.distanceKm != null
+        ? a.distanceKm - b.distanceKm
+        : a.name.localeCompare(b.name, "fr"),
+    );
+    return list;
+  }, [isStay, city, trimmed, coords]);
 
   const sheetCities = useMemo(
     () =>
@@ -618,6 +652,81 @@ export function HotelsScreen({ navigation }) {
               ? t("postingCountryTitle")
               : t("hotelsPublishVerifiedOnly")}
           </SampleNote>
+        ) : null}
+
+        {/* Named for what it is, and separated from what is above it. A
+            priced listing and a directory entry answer different questions,
+            and merging them would let a card with no rate sit in a list
+            sorted by rate. */}
+        {directory.length ? (
+          <>
+            <SectionTitle>{t("hotelsDirectoryTitle")}</SectionTitle>
+            <SectionNote>
+              {t("hotelsDirectoryNote", { count: directory.length })}
+            </SectionNote>
+            {directory.slice(0, DIRECTORY_SHOWN).map((place) => (
+              <DirectoryCard key={place.id}>
+                <DirectoryHead>
+                  <DirectoryName numberOfLines={2}>{place.name}</DirectoryName>
+                  <KindTag>
+                    <KindLabel>{t(`hotelsKind_${place.kind}`)}</KindLabel>
+                  </KindTag>
+                </DirectoryHead>
+                <FactRow>
+                  <Ionicons
+                    name="location-outline"
+                    size={12}
+                    color={colors.textMuted}
+                  />
+                  <FactLabel numberOfLines={1}>
+                    {place.city}
+                    {place.distanceKm != null
+                      ? ` · ${place.distanceKm.toFixed(1).replace(".", ",")} km`
+                      : ""}
+                  </FactLabel>
+                </FactRow>
+                {/* Said out loud, because the whole screen above is about
+                    the price and this card has none. Silence here would
+                    read as free, or as an oversight. */}
+                <FactRow>
+                  <Ionicons
+                    name="pricetag-outline"
+                    size={12}
+                    color={colors.textMuted}
+                  />
+                  <FactLabel>{t("hotelsDirectoryNoRate")}</FactLabel>
+                </FactRow>
+                <ActionRow>
+                  <CallButton
+                    muted={!place.phone}
+                    disabled={!place.phone}
+                    onPress={() => call(place)}
+                  >
+                    <Ionicons
+                      name="call"
+                      size={15}
+                      color={place.phone ? "#ffffff" : colors.textMuted}
+                    />
+                    <CallLabel muted={!place.phone}>
+                      {place.phone
+                        ? t("callButtonLabel")
+                        : t("hotelsDirectoryNoPhone")}
+                    </CallLabel>
+                  </CallButton>
+                </ActionRow>
+              </DirectoryCard>
+            ))}
+            {/* Never a silent truncation: a list that stops at twenty and
+                does not say so reads as "that is all there is". */}
+            {directory.length > DIRECTORY_SHOWN ? (
+              <SampleNote>
+                {t("hotelsDirectoryMore", {
+                  count: directory.length - DIRECTORY_SHOWN,
+                })}
+              </SampleNote>
+            ) : null}
+            <SampleNote>{t("hotelsDirectoryCredit")}</SampleNote>
+          </>
         ) : null}
 
         {/* The sentence the design ends on, and the one this screen most
@@ -1231,6 +1340,56 @@ const WhatsappLabel = styled.Text`
   font-family: ${fontFamily.bold};
   font-size: 13px;
   color: ${(props) => lagoonInk(props.theme)};
+`;
+
+const SectionTitle = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 16px;
+  color: ${(props) => props.theme.text};
+  margin-top: ${spacing.sm}px;
+`;
+
+const SectionNote = styled.Text`
+  font-family: ${fontFamily.regular};
+  font-size: 11.5px;
+  line-height: 18px;
+  color: ${(props) => props.theme.textMuted};
+  margin: 4px 0 ${spacing.md}px;
+`;
+
+const DirectoryCard = styled.View`
+  padding: ${spacing.md}px;
+  margin-bottom: ${spacing.sm}px;
+  border-radius: ${radius.md}px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+`;
+
+const DirectoryHead = styled.View`
+  flex-direction: row;
+  align-items: flex-start;
+  gap: ${spacing.sm}px;
+`;
+
+const DirectoryName = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.medium};
+  font-size: 14.5px;
+  line-height: 19px;
+  color: ${(props) => props.theme.text};
+`;
+
+const KindTag = styled.View`
+  padding: 4px ${spacing.sm}px;
+  border-radius: ${radius.pill}px;
+  background-color: ${(props) => props.theme.surfaceAlt};
+`;
+
+const KindLabel = styled.Text`
+  font-family: ${fontFamily.medium};
+  font-size: 10.5px;
+  color: ${(props) => props.theme.textMuted};
 `;
 
 const EmptyLabel = styled.Text`

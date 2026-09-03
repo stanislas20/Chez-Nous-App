@@ -3,6 +3,7 @@ import { useApprovedListings } from "./useApprovedListings";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { distanceInKm } from "../utils/geo";
 import { allInNightly } from "../data/hotelTerms";
+import { realEstateHasCapacity } from "../data/realEstate";
 
 // Who counts as a hotel.
 //
@@ -40,13 +41,17 @@ export function useHotels(userCoords) {
       rooms: property
         .filter((listing) => listing.realEstateDeal === "shortStay")
         .map(decorate),
-      halls: property
-        .filter(
-          (listing) =>
-            listing.realEstateDeal === "commercial" &&
-            listing.commercialType === "hall",
-        )
-        .map(decorate),
+      // Asked of realEstate.js rather than compared against a string.
+      //
+      // This filter was written as commercialType === "hall". The key is
+      // "eventHall", so it matched nothing and the Salle tab would have
+      // stayed empty however many halls were posted — indistinguishable
+      // from nobody having posted one, which is the failure this codebase
+      // keeps finding. realEstateHasCapacity is the form's own test for
+      // "is this a hall", so the screen and the form cannot disagree.
+      halls: property.filter((listing) =>
+        realEstateHasCapacity(listing.realEstateDeal, listing.commercialType),
+      ).map(decorate),
     };
   }, [listings, userCoords]);
 }

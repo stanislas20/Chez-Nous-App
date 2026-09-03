@@ -518,6 +518,31 @@ Respond with ONLY valid JSON, no prose, no markdown fences, matching exactly thi
   "imageQualityNote": "any concern about the photo itself (blur, glare, cropped edge), or an empty string if none"
 }`;
 
+// How much JSON one roster may produce.
+//
+// Raised twice now, both times by a region outgrowing it in production and
+// both times silently until it wasn't:
+//
+//   4096  — truncated the JSON mid-string on the larger rosters, which
+//           surfaced as an unterminated-string parse error.
+//   8192  — held for a year, then failed on Zou-Collines-Mono-Couffo. That
+//           post is one roster covering FOUR departments, so it is roughly
+//           twice the size of any other region's, and it sat just under the
+//           ceiling until a week with more pharmacies on duty pushed it
+//           over. The others draft 27 to 50 entries; this one is the only
+//           four-department post ONPB publishes.
+//
+// So the ceiling is not set to "enough for today" a third time. Output
+// tokens are billed as generated, not as reserved, so a cap far above the
+// need costs nothing until it is used.
+const MAX_OUTPUT_TOKENS = 32000;
+
+// If the model ever stops accepting a cap this high, the request 400s and
+// every region fails — a worse outcome than the one being fixed. So a
+// rejection specifically about max_tokens retries once at the old ceiling,
+// which is known to work for four regions out of five.
+const FALLBACK_OUTPUT_TOKENS = 8192;
+
 async function transcribeRosterImages(imageUrls, apiKey) {
   const images = await Promise.all(imageUrls.map(downloadImageAsBase64));
 
@@ -529,22 +554,39 @@ async function transcribeRosterImages(imageUrls, apiKey) {
     { type: "text", text: TRANSCRIPTION_PROMPT },
   ];
 
-  const response = await fetch(ANTHROPIC_API_URL, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: ANTHROPIC_MODEL,
-      // A single ONPB post can list 30+ pharmacies across sub-departments
-      // (observed live: 27 entries for one region alone) — 4096 was
-      // silently truncating the JSON mid-string on the larger rosters.
-      max_tokens: 8192,
-      messages: [{ role: "user", content }],
-    }),
-  });
+  const ask = (maxTokens) =>
+    fetch(ANTHROPIC_API_URL, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: ANTHROPIC_MODEL,
+        max_tokens: maxTokens,
+        messages: [{ role: "user", content }],
+      }),
+    });
+
+  let response = await ask(MAX_OUTPUT_TOKENS);
+
+  // Only this one rejection is retried, and only downwards. A 401, a 429 or
+  // a 500 means something else is wrong and quietly asking again would hide
+  // it; a cap the model will not accept is the one failure where the old
+  // ceiling is strictly better than nothing.
+  if (response.status === 400) {
+    const body = await response.text();
+    if (/max_tokens/i.test(body)) {
+      logger.warn(
+        `max_tokens=${MAX_OUTPUT_TOKENS} refused, retrying at ` +
+          `${FALLBACK_OUTPUT_TOKENS}: ${body.slice(0, 200)}`,
+      );
+      response = await ask(FALLBACK_OUTPUT_TOKENS);
+    } else {
+      throw new Error(`Anthropic API error 400: ${body.slice(0, 500)}`);
+    }
+  }
 
   if (!response.ok) {
     const errorBody = await response.text();
@@ -556,9 +598,13 @@ async function transcribeRosterImages(imageUrls, apiKey) {
   const data = await response.json();
   if (data.stop_reason === "max_tokens") {
     // Fail loudly and specifically rather than let JSON.parse throw a
-    // confusing "unterminated string" error further down.
+    // confusing "unterminated string" error further down. The figure comes
+    // from the constant, because the first version wrote it into the
+    // sentence by hand and the sentence would have gone on saying 8192
+    // after the limit was raised.
     throw new Error(
-      `Anthropic response was truncated at the token limit (roster too large for max_tokens=8192).`,
+      `Anthropic response was truncated at the token limit ` +
+        `(roster too large for max_tokens=${MAX_OUTPUT_TOKENS}).`,
     );
   }
 

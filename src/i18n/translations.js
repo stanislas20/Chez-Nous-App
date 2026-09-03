@@ -2634,6 +2634,9 @@ export const translations = {
     hotelsSortStay: "Cheapest first, tax included",
     hotelsSortNearest: "Nearest first",
     hotelsAroundYou: "Around you",
+    hotelsAroundYouIn: "Around you \u00b7 {city}",
+    hotelsOutOfRange:
+      "You are about {km} km from {city}. Chez-Nous lists B\u00e9nin, so there is nothing near you tonight \u2014 tap to choose the city you are travelling to.",
     hotelsPublish: "List yours",
     hotelsPublishVerifiedOnly:
       "Listing an establishment is open to verified company accounts. Guests ring the number on the card and arrive expecting the rate.",
@@ -5655,6 +5658,9 @@ export const translations = {
     hotelsSortStay: "Du moins cher, taxe comprise",
     hotelsSortNearest: "Le plus proche",
     hotelsAroundYou: "Autour de vous",
+    hotelsAroundYouIn: "Autour de vous \u00b7 {city}",
+    hotelsOutOfRange:
+      "Vous \u00eates \u00e0 environ {km} km de {city}. Chez-Nous r\u00e9f\u00e9rence le B\u00e9nin, donc rien n\u2019est proche de vous ce soir \u2014 touchez pour choisir la ville o\u00f9 vous allez.",
     hotelsPublish: "Publier",
     hotelsPublishVerifiedOnly:
       "La publication d\u2019un \u00e9tablissement est r\u00e9serv\u00e9e aux comptes entreprise v\u00e9rifi\u00e9s. Les clients appellent le num\u00e9ro affich\u00e9 et arrivent en comptant sur le tarif.",

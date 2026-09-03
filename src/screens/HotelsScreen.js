@@ -22,6 +22,7 @@ import { canPublish, publishBlockReason } from "../utils/canPublish";
 import { isVerifiedCompanyProfile } from "../utils/listingLifecycle";
 import { cities } from "../data/cities";
 import { cityCoordinates } from "../data/cityCoordinates";
+import { nearestKnownCity } from "../utils/nearestCity";
 import { distanceInKm } from "../utils/geo";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useSellerRatings } from "../hooks/useSellerRatings";
@@ -90,7 +91,10 @@ export function HotelsScreen({ navigation }) {
   const [city, setCity] = useState(null);
   const [citySheetOpen, setCitySheetOpen] = useState(false);
   const [citySearch, setCitySearch] = useState("");
-  const [nearestFirst, setNearestFirst] = useState(false);
+  // null means "follow the position": nearest-first when the phone is
+  // somewhere this app covers, cheapest-first otherwise. A tap on the
+  // switch pins the choice and stops it following anything.
+  const [sortPref, setSortPref] = useState(null);
 
   const { user, sellerProfile } = useAuth();
   const { coords } = useCurrentLocation();
@@ -157,6 +161,19 @@ export function HotelsScreen({ navigation }) {
     openHotelPostForm();
   };
 
+  // Where the phone says it is, resolved to one of the 61 cities the app
+  // stores. nearestKnownCity refuses beyond 120 km on purpose — over a list
+  // covering one country, "nearest" is always some city however far away,
+  // and a confident wrong one is worse than none.
+  const fix = useMemo(() => nearestKnownCity(coords), [coords]);
+  // The same answer without the radius, used only to say how far outside
+  // the country somebody is. It names a distance, never a location.
+  const farFix = useMemo(
+    () => nearestKnownCity(coords, Number.POSITIVE_INFINITY),
+    [coords],
+  );
+  const outOfRange = !!coords && !fix && !!farFix;
+
   const nameOf = (item) =>
     item.isSample
       ? language === "en"
@@ -169,6 +186,7 @@ export function HotelsScreen({ navigation }) {
   // nothing — "Haie Vive" is not a district of Parakou — so the city takes
   // over as the location filter and the zone row goes away with it.
   const zoning = !city;
+  const nearestFirst = sortPref ?? (!!fix && !city);
   const matched = useMemo(() => {
     const list = pool
       .filter((item) => (city ? item.city === city : true))
@@ -438,7 +456,10 @@ export function HotelsScreen({ navigation }) {
             color={lagoonInk(colors)}
           />
           <LocationLabel numberOfLines={1}>
-            {city ?? t("hotelsAroundYou")}
+            {city ??
+              (fix
+                ? t("hotelsAroundYouIn", { city: fix.city })
+                : t("hotelsAroundYou"))}
           </LocationLabel>
           <Ionicons
             name="chevron-forward"
@@ -446,6 +467,29 @@ export function HotelsScreen({ navigation }) {
             color={colors.textMuted}
           />
         </LocationRow>
+
+        {/* The honest answer to "hotels near me" from nine thousand
+            kilometres away.
+        
+            The position was read and is stated — that is the point of
+            naming the distance rather than saying "unavailable". But this
+            app lists Bénin, so the nearest room really is that far, and
+            "hotels around you" cannot be answered where the user is
+            standing. Somebody opening this from abroad is almost always
+            booking a room in Bénin for a trip home, so the useful reply is
+            not an empty list: it is the city picker, one tap away, said in
+            words. */}
+        {outOfRange && !city ? (
+          <OutOfRange onPress={() => setCitySheetOpen(true)}>
+            <Ionicons name="airplane-outline" size={16} color="#8a6415" />
+            <OutOfRangeLabel>
+              {t("hotelsOutOfRange", {
+                km: Math.round(farFix.distanceKm).toLocaleString("fr-FR"),
+                city: farFix.city,
+              })}
+            </OutOfRangeLabel>
+          </OutOfRange>
+        ) : null}
 
         <ModeRow>
           {[
@@ -513,7 +557,7 @@ export function HotelsScreen({ navigation }) {
               : t("hotelsCountHall", { count: matched.length })}
           </CountLabel>
           {canSortByDistance ? (
-            <SortToggle onPress={() => setNearestFirst((prev) => !prev)}>
+            <SortToggle onPress={() => setSortPref(!nearestFirst)}>
               <Ionicons
                 name={nearestFirst ? "navigate" : "swap-vertical"}
                 size={13}
@@ -612,7 +656,7 @@ export function HotelsScreen({ navigation }) {
                     setCitySearch("");
                     // A city and a proximity sort are two answers to the
                     // same question, and the city is the one just given.
-                    setNearestFirst(false);
+                    setSortPref(null);
                   }}
                 >
                   <SheetRowLabel>{name}</SheetRowLabel>
@@ -750,6 +794,26 @@ const LocationLabel = styled.Text`
   font-family: ${fontFamily.medium};
   font-size: 14px;
   color: ${(props) => props.theme.text};
+`;
+
+const OutOfRange = styled(Pressable)`
+  flex-direction: row;
+  align-items: flex-start;
+  gap: ${spacing.sm}px;
+  padding: ${spacing.md}px;
+  margin-bottom: ${spacing.md}px;
+  border-radius: ${radius.md}px;
+  background-color: rgba(224, 164, 21, 0.1);
+  border-width: 1px;
+  border-color: rgba(224, 164, 21, 0.28);
+`;
+
+const OutOfRangeLabel = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.regular};
+  font-size: 12px;
+  line-height: 18px;
+  color: #6b5a2e;
 `;
 
 const SortToggle = styled(Pressable)`

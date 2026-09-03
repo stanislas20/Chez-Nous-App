@@ -111,18 +111,21 @@ check(
   /hotel: null, reasonKey: null/.test(terms),
 );
 
-// ── the samples carry no invented contact or reputation ────────────────
-const samples = readCode("src/data/sampleHotels.js");
-["phone", "whatsapp", "rating", "reviews"].forEach((field) => {
-  check(
-    `the sample hotels declare no ${field}`,
-    !new RegExp(`^\\s*${field}:`, "m").test(samples),
-  );
-});
+// ── and nothing invented stands in for a listing ───────────────────────
+//
+// There were two sample cards here, on the rule sampleGarages set: an
+// empty directory teaches nobody anything. That held while the screen was
+// empty and stopped holding when the OpenStreetMap tier landed — against
+// 737 real places, an invented card at the top badged "notre
+// recommandation" was the app recommending a fiction. The priced tier now
+// shows what has been listed, and says plainly when that is nothing.
 check(
-  "every sample is flagged as one",
-  (samples.match(/isSample: true/g) ?? []).length ===
-    (samples.match(/^\s{4}id:/gm) ?? []).length,
+  "no sample listing stands in for a priced one",
+  !/sampleHotels|sampleHalls/.test(screen),
+);
+check(
+  "an unlisted priced tier says so, rather than blaming the filters",
+  /t\("hotelsNoneListed"\)/.test(screen),
 );
 
 if (failures.length) {

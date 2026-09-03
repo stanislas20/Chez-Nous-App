@@ -2655,6 +2655,10 @@ export const translations = {
     hotelsDeclaredStars: "{count} star(s), declared by the establishment",
     hotelsHotWater: "Hot water 24 h",
     hotelsRateConfirmedOn: "Rate confirmed on {date}",
+    hotelsNoneListed:
+      "No establishment has published its rates here yet. The places below are from the public map \u2014 telephone them for a price.",
+    hotelsNoHallsListed:
+      "No venue has published a hall here yet.",
     hotelsDirectoryTitle: "Other lodging nearby",
     hotelsDirectoryNote:
       "{count} place(s) from the public map. They have not listed with Chez-Nous, so there is no rate here \u2014 telephone them.",
@@ -5691,6 +5695,10 @@ export const translations = {
     hotelsDeclaredStars: "{count} \u00e9toile(s) d\u00e9clar\u00e9e(s) par l\u2019\u00e9tablissement",
     hotelsHotWater: "Eau chaude 24 h",
     hotelsRateConfirmedOn: "Tarif confirm\u00e9 le {date}",
+    hotelsNoneListed:
+      "Aucun \u00e9tablissement n\u2019a encore publi\u00e9 ses tarifs ici. Les adresses ci-dessous viennent de la carte publique \u2014 t\u00e9l\u00e9phonez-leur pour un prix.",
+    hotelsNoHallsListed:
+      "Aucun \u00e9tablissement n\u2019a encore publi\u00e9 de salle ici.",
     hotelsDirectoryTitle: "Autres h\u00e9bergements \u00e0 proximit\u00e9",
     hotelsDirectoryNote:
       "{count} \u00e9tablissement(s) issus de la carte publique. Ils ne sont pas r\u00e9f\u00e9renc\u00e9s sur Chez-Nous, donc aucun tarif ici \u2014 t\u00e9l\u00e9phonez-leur.",

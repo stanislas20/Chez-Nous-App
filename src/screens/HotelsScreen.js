@@ -28,7 +28,6 @@ import { distanceInKm } from "../utils/geo";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useSellerRatings } from "../hooks/useSellerRatings";
 import { useBannerStatusBar } from "../hooks/useBannerStatusBar";
-import { sampleHalls, sampleHotels } from "../data/sampleHotels";
 import {
   allInNightly,
   byAllInNightly,
@@ -105,29 +104,23 @@ export function HotelsScreen({ navigation }) {
   // Samples only while there are none of the real thing, per tab. A tab is
   // swapped on its own: one real hotel must not empty the halls tab, and
   // one real hall must not empty the hotels tab.
-  const real = isStay ? rooms : halls;
-  const showingSamples = !!real && real.length === 0;
-  const pool = useMemo(() => {
-    if (real && real.length) return real;
-    if (!real) return [];
-    // The distance is real even on a sample: computed at render from the
-    // device's own position against the city's coordinates, never stored
-    // here. Same rule sampleGarages follows — the card may be an example,
-    // but no figure on it is invented. It also means "le plus proche" can
-    // be demonstrated before the first hotel posts.
-    return (isStay ? sampleHotels : sampleHalls).map((item) => {
-      const cityCoord = cityCoordinates[item.city];
-      return {
-        ...item,
-        allIn: allInNightly(item),
-        distanceKm:
-          coords && cityCoord ? distanceInKm(coords, cityCoord) : null,
-      };
-    });
-  }, [real, isStay, coords]);
+  // No example cards.
+  //
+  // There were two, on the rule sampleGarages set: an empty directory
+  // teaches nobody anything, least of all an hotelier deciding whether to
+  // list. That rule was right while the screen was empty. It stopped being
+  // right the moment the OpenStreetMap tier landed, because the screen now
+  // opens on 737 real places — and against those, an invented card at the
+  // top badged "notre recommandation" was the app recommending a fiction.
+  //
+  // So the priced tier shows what has actually been listed, which today is
+  // nothing, and says so in one line addressed at the only people who can
+  // change it.
+  const pool = isStay ? (rooms ?? []) : (halls ?? []);
+  const nothingListed = pool.length === 0;
 
   const ratings = useSellerRatings(
-    useMemo(() => (real ?? []).map((item) => item.sellerId), [real]),
+    useMemo(() => pool.map((item) => item.sellerId), [pool]),
   );
 
   // Posting a hotel is not posting a sofa.
@@ -176,11 +169,7 @@ export function HotelsScreen({ navigation }) {
   const outOfRange = !!coords && !fix && !!farFix;
 
   const nameOf = (item) =>
-    item.isSample
-      ? language === "en"
-        ? item.nameEn
-        : item.nameFr
-      : (language === "en" ? item.titleEn : item.titleFr) ?? "";
+    (language === "en" ? item.titleEn : item.titleFr) ?? "";
 
   const trimmed = query.trim().toLowerCase();
   // The zones are Cotonou quartiers. Once a city is named they describe
@@ -296,7 +285,7 @@ export function HotelsScreen({ navigation }) {
     const generator = item.generator ?? "none";
     const powered = generator === "full";
     const stars = Number(item.declaredStars) || 0;
-    const reachable = !item.isSample && (item.phone || item.whatsapp);
+    const reachable = !!(item.phone || item.whatsapp);
 
     return (
       <Card key={item.id} recommended={recommended}>
@@ -328,11 +317,6 @@ export function HotelsScreen({ navigation }) {
               ) : (
                 <MutedLabel>{t("hotelsNoRatingYet")}</MutedLabel>
               )}
-              {item.isSample ? (
-                <SampleTag>
-                  <SampleTagLabel>{t("hotelsSampleTag")}</SampleTagLabel>
-                </SampleTag>
-              ) : null}
             </MetaRow>
           </CardHead>
         </CardTop>
@@ -436,7 +420,7 @@ export function HotelsScreen({ navigation }) {
               color={reachable ? "#ffffff" : colors.textMuted}
             />
             <CallLabel muted={!reachable}>
-              {item.isSample ? t("hotelsSampleNoContact") : t("callButtonLabel")}
+              {t("callButtonLabel")}
             </CallLabel>
           </CallButton>
           {reachable ? (
@@ -634,12 +618,15 @@ export function HotelsScreen({ navigation }) {
         {pick ? renderCard(pick, { recommended: true }) : null}
         {rest.map((item) => renderCard(item))}
 
-        {matched.length === 0 ? (
+        {/* "Nobody has listed yet" and "your filters matched nothing" are
+            different facts, and telling somebody to widen a filter when
+            there is nothing behind it to find wastes their time. */}
+        {nothingListed ? (
+          <EmptyLabel>
+            {isStay ? t("hotelsNoneListed") : t("hotelsNoHallsListed")}
+          </EmptyLabel>
+        ) : matched.length === 0 ? (
           <EmptyLabel>{t("hotelsEmpty")}</EmptyLabel>
-        ) : null}
-
-        {showingSamples ? (
-          <SampleNote>{t("hotelsSampleNote")}</SampleNote>
         ) : null}
 
         {/* Why the button is not there. A seller in Bénin whose company is
@@ -1206,17 +1193,7 @@ const MutedLabel = styled.Text`
   color: ${(props) => props.theme.textMuted};
 `;
 
-const SampleTag = styled.View`
-  padding: 4px ${spacing.sm}px;
-  border-radius: ${radius.pill}px;
-  background-color: ${(props) => props.theme.surfaceAlt};
-`;
 
-const SampleTagLabel = styled.Text`
-  font-family: ${fontFamily.medium};
-  font-size: 10.5px;
-  color: ${(props) => props.theme.textMuted};
-`;
 
 const WhyLabel = styled.Text`
   font-family: ${fontFamily.regular};

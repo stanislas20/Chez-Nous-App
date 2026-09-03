@@ -27,6 +27,12 @@ const form = read("src/screens/CreateListingScreen.js");
 const readers = [
   "src/screens/RealEstateScreen.js",
   "src/screens/RealEstateDetailScreen.js",
+  // Hotels are property listings: a room for the night is the shortStay
+  // deal and a salle de fête is the commercial deal with the hall type.
+  // The screen therefore reads the same document and is bound by the same
+  // rule — it may not show a fact the form never asked for.
+  "src/screens/HotelsScreen.js",
+  "src/hooks/useHotels.js",
 ];
 
 const failures = [];

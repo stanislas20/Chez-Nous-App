@@ -172,14 +172,14 @@ const HOME_CATEGORIES = [
     labelKey: "categoryServicesShort",
   },
   {
-    // Opens the Tourism screen, for the same reason Events and Restaurants
-    // do — and for the same reason Events had to be changed: this filtered
-    // the feed by categoryKey "hotels", which no category defines, so it
-    // could only ever produce an empty marketplace. Hotels are not goods
-    // sorted by price; they live on their own screen, and they always did.
+    // Hotels are not goods sorted by price; they live on their own screen.
+    // This chip filtered the feed by categoryKey "hotels", which no category
+    // defines, so it could only ever produce an empty marketplace; it was
+    // then pointed at Tourism, which lists four names and a town because
+    // that was the closest thing that existed. It has its own screen now.
     key: "hotel",
     icon: "bed-outline",
-    screen: "Tourism",
+    screen: "Hotels",
     labelKey: "categoryHotels",
   },
 ];

@@ -337,6 +337,15 @@ export function MoreScreen({ navigation }) {
               color={colors.textMuted}
             />
           </CategoryRow>
+          <CategoryRow onPress={() => navigation.navigate("Hotels")}>
+            <CategoryEmoji>🏨</CategoryEmoji>
+            <CategoryRowLabel>{t("hotelsTitle")}</CategoryRowLabel>
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.textMuted}
+            />
+          </CategoryRow>
           <CategoryRow onPress={() => navigation.navigate("Tourism")}>
             <CategoryEmoji>🏝️</CategoryEmoji>
             <CategoryRowLabel>{t("menuTourismRow")}</CategoryRowLabel>

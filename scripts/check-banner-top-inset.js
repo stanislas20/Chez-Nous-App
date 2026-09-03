@@ -42,6 +42,9 @@ const MUST_CLAIM = [
   // which is the worst version of this fault, because it only shows on the
   // platform you are not holding.
   "ServicesScreen.js",
+  // The hotels directory, built from the same proposed design as Services
+  // and therefore leading with the same full-bleed gradient.
+  "HotelsScreen.js",
 ];
 
 for (const name of MUST_CLAIM) {

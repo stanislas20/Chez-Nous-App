@@ -62,6 +62,7 @@ const WIRED = [
   "src/screens/RealEstateScreen.js",
   "src/screens/RestaurantsScreen.js",
   "src/screens/ImportationScreen.js",
+  "src/screens/HotelsScreen.js",
 ];
 
 // Screens that contact a seller and do not count it yet. Every one is a

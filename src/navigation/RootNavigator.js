@@ -59,6 +59,7 @@ import { LoginScreen } from "../screens/LoginScreen";
 import { ForgotPasswordScreen } from "../screens/ForgotPasswordScreen";
 import { PharmacyDetailScreen } from "../screens/PharmacyDetailScreen";
 import { TourismScreen } from "../screens/TourismScreen";
+import { HotelsScreen } from "../screens/HotelsScreen";
 import { EventsScreen } from "../screens/EventsScreen";
 import { ServicesScreen } from "../screens/ServicesScreen";
 
@@ -328,6 +329,11 @@ export function RootNavigator() {
           <Stack.Screen
             name="Tourism"
             component={TourismScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Hotels"
+            component={HotelsScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen

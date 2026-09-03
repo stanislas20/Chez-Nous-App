@@ -104,6 +104,10 @@ import {
   realEstatePriceSuffixKey,
 } from "../data/realEstate";
 import {
+  generatorLevels,
+  getGeneratorLabel,
+} from "../data/hotelTerms";
+import {
   EVENT_CLEARED,
   eventKinds,
   eventPayModes,
@@ -1006,6 +1010,17 @@ export function CreateListingScreen({ route, navigation }) {
   const [bedrooms, setBedrooms] = useState(seed("bedrooms", null));
   const [bathrooms, setBathrooms] = useState(seed("bathrooms", null));
   const [isFurnished, setIsFurnished] = useState(seed("isFurnished", false));
+  // What a night actually costs and whether it is sleepable. See
+  // data/hotelTerms.js: the Hôtels screen compares the rate plus the tax,
+  // and ranks on the generator, so a listing that answers neither cannot be
+  // compared with one that does — it can only look cheaper than it is.
+  const [touristTax, setTouristTax] = useState(seedText("touristTax", ""));
+  const [generator, setGenerator] = useState(seed("generator", null));
+  const [breakfastIncluded, setBreakfastIncluded] = useState(
+    seed("breakfastIncluded", false),
+  );
+  const [hotWater24h, setHotWater24h] = useState(seed("hotWater24h", false));
+  const [declaredStars, setDeclaredStars] = useState(seed("declaredStars", null));
   // A vehicle offered with the place. Two fields, because "yes" alone
   // leaves every enquiry starting with "included or extra?" — the note is
   // where the poster answers that in their own words rather than in a price
@@ -1173,6 +1188,12 @@ export function CreateListingScreen({ route, navigation }) {
   // Renting and selling are different transactions sharing one category —
   // the deal type decides the price unit and which fields apply.
   const isRealEstate = selectedCategory === "realEstate";
+  // The two shapes the Hôtels screen reads. A short stay is a room for the
+  // night; a hall is the same building hired for a day. They share the
+  // generator question and nothing else.
+  const isShortStay = isRealEstate && realEstateDeal === "shortStay";
+  const isHall = realEstateHasCapacity(realEstateDeal, commercialType);
+  const isStayOrHall = isShortStay || isHall;
   // A restaurant is a place, not an item: it has no price, no condition and
   // nothing to negotiate. What it needs is how to find it and how to reach
   // it, which is closer to the pharmacy branch than to the goods form.
@@ -2425,6 +2446,15 @@ export function CreateListingScreen({ route, navigation }) {
               bedrooms,
               bathrooms,
               isFurnished,
+              // A short stay only. Asked of a hall, "petit-déjeuner compris"
+              // is a question about a room nobody is sleeping in.
+              touristTax: isShortStay ? Number(touristTax) || null : null,
+              breakfastIncluded: isShortStay ? breakfastIncluded : false,
+              hotWater24h: isShortStay ? hotWater24h : false,
+              declaredStars: isShortStay ? declaredStars : null,
+              // Asked of both: a hall in a power cut is a hall in the dark
+              // with the sound system off, which is the same evening lost.
+              generator: isStayOrHall ? generator : null,
               withCar,
               // Only when the box is ticked. Anything left behind after
               // unticking would sit in the document describing a car that is
@@ -4029,6 +4059,164 @@ export function CreateListingScreen({ route, navigation }) {
                           </ConditionPill>
                         ))}
                       </ConditionRow>
+                    </>
+                  ) : null}
+
+                  {/* The night, told the way it is paid.
+
+                      A hotel quotes a room rate; the taxe de séjour is
+                      added at the desk and breakfast may or may not be
+                      inside. Three hotels quoting "25 000" are therefore
+                      quoting three different nights, and the guest learns
+                      which after the bags are upstairs. The Hôtels screen
+                      compares the rate plus the tax, so a listing that
+                      leaves the tax blank is quoting the figure it will
+                      charge — not hiding one. */}
+                  {isShortStay ? (
+                    <>
+                      <Label>{t("sellFieldTouristTax")}</Label>
+                      <PriceFieldRow>
+                        <Ionicons
+                          name="receipt-outline"
+                          size={20}
+                          color={colors.textMuted}
+                        />
+                        <Input
+                          value={touristTax}
+                          onChangeText={(value) =>
+                            setTouristTax(value.replace(/\D/g, ""))
+                          }
+                          placeholder={t("sellFieldTouristTaxPlaceholder")}
+                          placeholderTextColor={colors.textMuted}
+                          keyboardType="numeric"
+                        />
+                        <CurrencyTag>
+                          <CurrencyTagLabel>{t("currencyFcfa")}</CurrencyTagLabel>
+                        </CurrencyTag>
+                      </PriceFieldRow>
+                      <BandHint>{t("sellFieldTouristTaxHint")}</BandHint>
+                    </>
+                  ) : null}
+
+                  {/* Ranked above the stars on purpose. A room without a
+                      groupe électrogène has air conditioning only while the
+                      grid does, and a Cotonou night without it is a night
+                      nobody sleeps. Saying nothing is its own answer and is
+                      shown as "non déclaré", never as "aucun" — the second
+                      would be an accusation the form has no basis for. */}
+                  {isStayOrHall ? (
+                    <>
+                      <Label>{t("sellFieldGenerator")}</Label>
+                      <PickerGrid>
+                        {generatorLevels.map((option, index) => {
+                          const active = generator === option.key;
+                          return (
+                            <PickerCard
+                              key={option.key}
+                              full={isPickerCardFull(
+                                index,
+                                generatorLevels.length,
+                              )}
+                              selected={active}
+                              accent={GENERATOR_TINT[option.key]}
+                              tint={sectorTint(GENERATOR_TINT[option.key], 0.09)}
+                              onPress={() =>
+                                setGenerator(active ? null : option.key)
+                              }
+                            >
+                              <CategoryIconWrap
+                                small
+                                tint={sectorTint(
+                                  GENERATOR_TINT[option.key],
+                                  active ? 0.22 : 0.12,
+                                )}
+                              >
+                                <Ionicons
+                                  name="flash-outline"
+                                  size={17}
+                                  color={GENERATOR_TINT[option.key]}
+                                />
+                              </CategoryIconWrap>
+                              <PickerCardLabel
+                                full={isPickerCardFull(
+                                  index,
+                                  generatorLevels.length,
+                                )}
+                                selected={active}
+                                numberOfLines={2}
+                              >
+                                {getGeneratorLabel(option.key, language)}
+                              </PickerCardLabel>
+                            </PickerCard>
+                          );
+                        })}
+                      </PickerGrid>
+                    </>
+                  ) : null}
+
+                  {isShortStay ? (
+                    <NegotiableRow
+                      onPress={() => setBreakfastIncluded((prev) => !prev)}
+                    >
+                      <Checkbox checked={breakfastIncluded}>
+                        {breakfastIncluded ? (
+                          <Ionicons name="checkmark" size={13} color="#ffffff" />
+                        ) : null}
+                      </Checkbox>
+                      <NegotiableLabel>
+                        {t("sellFieldBreakfastIncluded")}
+                      </NegotiableLabel>
+                    </NegotiableRow>
+                  ) : null}
+
+                  {isShortStay ? (
+                    <NegotiableRow onPress={() => setHotWater24h((prev) => !prev)}>
+                      <Checkbox checked={hotWater24h}>
+                        {hotWater24h ? (
+                          <Ionicons name="checkmark" size={13} color="#ffffff" />
+                        ) : null}
+                      </Checkbox>
+                      <NegotiableLabel>
+                        {t("sellFieldHotWater24h")}
+                      </NegotiableLabel>
+                    </NegotiableRow>
+                  ) : null}
+
+                  {/* Declared, and labelled as declared wherever it is
+                      shown. Nobody audits a star count here, so presenting
+                      one as verified would be the app vouching for a claim
+                      it never checked. */}
+                  {isShortStay ? (
+                    <>
+                      <Label>{t("sellFieldDeclaredStars")}</Label>
+                      <StarRow>
+                        {[1, 2, 3, 4, 5].map((count) => (
+                          <StarPick
+                            key={count}
+                            selected={declaredStars === count}
+                            onPress={() =>
+                              setDeclaredStars(
+                                declaredStars === count ? null : count,
+                              )
+                            }
+                          >
+                            <Ionicons
+                              name={
+                                declaredStars && declaredStars >= count
+                                  ? "star"
+                                  : "star-outline"
+                              }
+                              size={20}
+                              color={
+                                declaredStars && declaredStars >= count
+                                  ? "#D9A441"
+                                  : colors.textMuted
+                              }
+                            />
+                          </StarPick>
+                        ))}
+                      </StarRow>
+                      <BandHint>{t("sellFieldDeclaredStarsHint")}</BandHint>
                     </>
                   ) : null}
 
@@ -8683,6 +8871,31 @@ const BandName = styled.Text`
   font-family: ${(props) => (props.selected ? fontFamily.semiBold : fontFamily.medium)};
   font-size: 14px;
   color: ${(props) => props.theme.text};
+`;
+
+// Green for a night that will not go dark, amber for half of one, grey for
+// a question nobody answered. Grey rather than red: silence is not a fault
+// found, and colouring it as one would punish the honest blank.
+const GENERATOR_TINT = {
+  full: "#12876A",
+  night: "#D9A441",
+  none: "#7C8794",
+};
+
+const StarRow = styled.View`
+  flex-direction: row;
+  gap: ${spacing.xs}px;
+  margin-top: ${spacing.xs}px;
+`;
+
+const StarPick = styled(Pressable)`
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: ${radius.md}px;
+  background-color: ${(props) =>
+    props.selected ? "rgba(217, 164, 65, 0.14)" : props.theme.surfaceAlt};
 `;
 
 const BandHint = styled.Text`

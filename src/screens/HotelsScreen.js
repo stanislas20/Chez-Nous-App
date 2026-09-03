@@ -1,5 +1,11 @@
 import { useMemo, useState } from "react";
-import { Linking, Pressable, ScrollView, TextInput } from "react-native";
+import {
+  Linking,
+  Modal,
+  Pressable,
+  ScrollView,
+  TextInput,
+} from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -9,6 +15,14 @@ import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { useHotels } from "../hooks/useHotels";
+import { useAuth } from "../auth/AuthContext";
+import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
+import { openAccountGate } from "../utils/openAccountGate";
+import { canPublish, publishBlockReason } from "../utils/canPublish";
+import { isVerifiedCompanyProfile } from "../utils/listingLifecycle";
+import { cities } from "../data/cities";
+import { cityCoordinates } from "../data/cityCoordinates";
+import { distanceInKm } from "../utils/geo";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useSellerRatings } from "../hooks/useSellerRatings";
 import { useBannerStatusBar } from "../hooks/useBannerStatusBar";
@@ -70,7 +84,15 @@ export function HotelsScreen({ navigation }) {
   const [zone, setZone] = useState("all");
   const [budget, setBudget] = useState("all");
   const [query, setQuery] = useState("");
+  // Null means "wherever I am". A chosen city replaces the phone's own
+  // position, because somebody booking a room in Parakou on Tuesday is
+  // standing in Cotonou on Monday — the whole point of choosing.
+  const [city, setCity] = useState(null);
+  const [citySheetOpen, setCitySheetOpen] = useState(false);
+  const [citySearch, setCitySearch] = useState("");
+  const [nearestFirst, setNearestFirst] = useState(false);
 
+  const { user, sellerProfile } = useAuth();
   const { coords } = useCurrentLocation();
   const { rooms, halls } = useHotels(coords);
   const isStay = mode === "stay";
@@ -83,16 +105,57 @@ export function HotelsScreen({ navigation }) {
   const pool = useMemo(() => {
     if (real && real.length) return real;
     if (!real) return [];
-    return (isStay ? sampleHotels : sampleHalls).map((item) => ({
-      ...item,
-      allIn: allInNightly(item),
-      distanceKm: null,
-    }));
-  }, [real, isStay]);
+    // The distance is real even on a sample: computed at render from the
+    // device's own position against the city's coordinates, never stored
+    // here. Same rule sampleGarages follows — the card may be an example,
+    // but no figure on it is invented. It also means "le plus proche" can
+    // be demonstrated before the first hotel posts.
+    return (isStay ? sampleHotels : sampleHalls).map((item) => {
+      const cityCoord = cityCoordinates[item.city];
+      return {
+        ...item,
+        allIn: allInNightly(item),
+        distanceKm:
+          coords && cityCoord ? distanceInKm(coords, cityCoord) : null,
+      };
+    });
+  }, [real, isStay, coords]);
 
   const ratings = useSellerRatings(
     useMemo(() => (real ?? []).map((item) => item.sellerId), [real]),
   );
+
+  // Posting a hotel is not posting a sofa.
+  //
+  // An establishment card carries a telephone number people ring at night
+  // and a price they turn up expecting, and it sits in a directory beside
+  // the ONPB roster. So this one entry point asks for a verified company
+  // rather than any signed-in seller: the RCCM and the IFU behind that
+  // badge have been read by a human, which is the only check this app has
+  // that the business exists at all.
+  //
+  // A visitor still sees the button. Hiding it from the signed-out would
+  // hide the fact that listing is possible from exactly the hotelier who
+  // has not joined yet; they go through the account gate, and the gate
+  // brings them back here. What is hidden is the dead promise: a signed-in
+  // seller who cannot publish, or one whose company is not verified, is
+  // told which of the two it is rather than shown a button that fails.
+  const openHotelPostForm = () =>
+    navigation.navigate("CreateListing", {
+      categoryKey: "realEstate",
+      realEstateDeal: "shortStay",
+    });
+  const { remember } = useAccountGateIntent(user, openHotelPostForm);
+  const verifiedCompany = isVerifiedCompanyProfile(sellerProfile);
+  const mayPublish = !user || (canPublish(user) && verifiedCompany);
+  const startPosting = () => {
+    if (!user) {
+      remember();
+      openAccountGate(navigation);
+      return;
+    }
+    openHotelPostForm();
+  };
 
   const nameOf = (item) =>
     item.isSample
@@ -102,9 +165,14 @@ export function HotelsScreen({ navigation }) {
       : (language === "en" ? item.titleEn : item.titleFr) ?? "";
 
   const trimmed = query.trim().toLowerCase();
+  // The zones are Cotonou quartiers. Once a city is named they describe
+  // nothing — "Haie Vive" is not a district of Parakou — so the city takes
+  // over as the location filter and the zone row goes away with it.
+  const zoning = !city;
   const matched = useMemo(() => {
     const list = pool
-      .filter((item) => hotelZoneMatches(zone, item))
+      .filter((item) => (city ? item.city === city : true))
+      .filter((item) => (zoning ? hotelZoneMatches(zone, item) : true))
       .filter(
         (item) =>
           !trimmed ||
@@ -116,8 +184,31 @@ export function HotelsScreen({ navigation }) {
       // filtering on the rate would file a hotel one band below the one its
       // guest actually pays, which is the deception this screen is against.
       .filter((item) => !isStay || hotelBudgetMatches(budget, item.allIn));
+
+    // Distance only sorts when it is known for everything being sorted. A
+    // list where half the rows have no distance would order the unknown
+    // ones arbitrarily and still call itself "le plus proche".
+    if (nearestFirst && list.every((item) => item.distanceKm != null)) {
+      return list.sort((a, b) => a.distanceKm - b.distanceKm);
+    }
     return list.sort(isStay ? byAllInNightly : byCapacityDesc);
-  }, [pool, zone, trimmed, budget, isStay, language]);
+  }, [pool, city, zoning, zone, trimmed, budget, isStay, nearestFirst, language]);
+
+  // Offered only when it can be honoured: the phone knows where it is, no
+  // city has been named, and every row on screen has a distance.
+  const canSortByDistance =
+    !!coords &&
+    !city &&
+    matched.length > 0 &&
+    matched.every((item) => item.distanceKm != null);
+
+  const sheetCities = useMemo(
+    () =>
+      cities.filter((name) =>
+        name.toLowerCase().includes(citySearch.trim().toLowerCase()),
+      ),
+    [citySearch],
+  );
 
   // The recommendation, and its reason in the same card. Only on the
   // sleeping tab: a hall is chosen on how many people fit, and there is no
@@ -303,7 +394,15 @@ export function HotelsScreen({ navigation }) {
           <Ionicons name="chevron-back" size={20} color="#ffffff" />
         </BackButton>
         <HeroKicker>{t("hotelsKicker")}</HeroKicker>
-        <HeroTitle numberOfLines={2}>{t("hotelsHeroTitle")}</HeroTitle>
+        <HeroRow>
+          <HeroTitle numberOfLines={2}>{t("hotelsHeroTitle")}</HeroTitle>
+          {mayPublish ? (
+            <HeroPostButton onPress={startPosting}>
+              <Ionicons name="add" size={16} color={LAGOON} />
+              <HeroPostLabel>{t("hotelsPublish")}</HeroPostLabel>
+            </HeroPostButton>
+          ) : null}
+        </HeroRow>
         <HeroCopy>{t("hotelsHeroCopy")}</HeroCopy>
         <SearchField>
           <Ionicons name="search" size={16} color="rgba(255,255,255,0.7)" />
@@ -329,6 +428,25 @@ export function HotelsScreen({ navigation }) {
         {/* Two things a building is hired for, and they are chosen on
             different facts: a room on what the night costs, a hall on how
             many people fit. So the budget row belongs to one tab only. */}
+        {/* Where, before what. A city replaces the phone's own position,
+            because the person booking a room in Parakou on Tuesday is
+            standing in Cotonou on Monday. */}
+        <LocationRow onPress={() => setCitySheetOpen(true)}>
+          <Ionicons
+            name={city ? "location" : "navigate"}
+            size={15}
+            color={lagoonInk(colors)}
+          />
+          <LocationLabel numberOfLines={1}>
+            {city ?? t("hotelsAroundYou")}
+          </LocationLabel>
+          <Ionicons
+            name="chevron-forward"
+            size={14}
+            color={colors.textMuted}
+          />
+        </LocationRow>
+
         <ModeRow>
           {[
             { key: "stay", labelKey: "hotelsModeStay", hintKey: "hotelsModeStayHint" },
@@ -350,6 +468,7 @@ export function HotelsScreen({ navigation }) {
           })}
         </ModeRow>
 
+        {zoning ? (
         <ChipScroll horizontal showsHorizontalScrollIndicator={false}>
           {hotelZones.map((option) => {
             const active = zone === option.key;
@@ -366,6 +485,7 @@ export function HotelsScreen({ navigation }) {
             );
           })}
         </ChipScroll>
+        ) : null}
 
         {isStay ? (
           <BudgetRow>
@@ -392,9 +512,26 @@ export function HotelsScreen({ navigation }) {
               ? t("hotelsCountStay", { count: matched.length })
               : t("hotelsCountHall", { count: matched.length })}
           </CountLabel>
-          <SortNote>
-            {isStay ? t("hotelsSortStay") : t("hotelsSortHall")}
-          </SortNote>
+          {canSortByDistance ? (
+            <SortToggle onPress={() => setNearestFirst((prev) => !prev)}>
+              <Ionicons
+                name={nearestFirst ? "navigate" : "swap-vertical"}
+                size={13}
+                color={lagoonInk(colors)}
+              />
+              <SortToggleLabel>
+                {nearestFirst
+                  ? t("hotelsSortNearest")
+                  : isStay
+                    ? t("hotelsSortStay")
+                    : t("hotelsSortHall")}
+              </SortToggleLabel>
+            </SortToggle>
+          ) : (
+            <SortNote>
+              {isStay ? t("hotelsSortStay") : t("hotelsSortHall")}
+            </SortNote>
+          )}
         </CountRow>
 
         {pick ? renderCard(pick, { recommended: true }) : null}
@@ -408,6 +545,18 @@ export function HotelsScreen({ navigation }) {
           <SampleNote>{t("hotelsSampleNote")}</SampleNote>
         ) : null}
 
+        {/* Why the button is not there. A seller in Bénin whose company is
+            not yet verified is one form away and is told so; a seller
+            outside the country is not, and pointing them at verification
+            would send them at a door that does not open for them. */}
+        {user && !mayPublish ? (
+          <SampleNote>
+            {publishBlockReason(user) === "country"
+              ? t("postingCountryTitle")
+              : t("hotelsPublishVerifiedOnly")}
+          </SampleNote>
+        ) : null}
+
         {/* The sentence the design ends on, and the one this screen most
             has to say: a star count here is the establishment's own claim,
             and the tax and the power are worth one telephone call before a
@@ -419,6 +568,63 @@ export function HotelsScreen({ navigation }) {
 
         <ScreenFooter />
       </ScrollView>
+
+      <Modal
+        visible={citySheetOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setCitySheetOpen(false)}
+      >
+        <SheetBackdrop onPress={() => setCitySheetOpen(false)}>
+          <Sheet
+            onStartShouldSetResponder={() => true}
+            style={{ paddingBottom: spacing.lg + insets.bottom }}
+          >
+            <SheetHandle />
+            <SheetTitle>{t("chooseCityTitle")}</SheetTitle>
+            <SheetSearch
+              value={citySearch}
+              onChangeText={setCitySearch}
+              placeholder={t("searchCityPlaceholder")}
+              placeholderTextColor={colors.textMuted}
+            />
+            <SheetScroll>
+              <SheetRow
+                selected={!city}
+                onPress={() => {
+                  setCity(null);
+                  setCitySheetOpen(false);
+                  setCitySearch("");
+                }}
+              >
+                <SheetRowLabel>{t("hotelsAroundYou")}</SheetRowLabel>
+                {!city ? (
+                  <Ionicons name="checkmark" size={18} color={colors.primary} />
+                ) : null}
+              </SheetRow>
+              {sheetCities.map((name) => (
+                <SheetRow
+                  key={name}
+                  selected={city === name}
+                  onPress={() => {
+                    setCity(name);
+                    setCitySheetOpen(false);
+                    setCitySearch("");
+                    // A city and a proximity sort are two answers to the
+                    // same question, and the city is the one just given.
+                    setNearestFirst(false);
+                  }}
+                >
+                  <SheetRowLabel>{name}</SheetRowLabel>
+                  {city === name ? (
+                    <Ionicons name="checkmark" size={18} color={colors.primary} />
+                  ) : null}
+                </SheetRow>
+              ))}
+            </SheetScroll>
+          </Sheet>
+        </SheetBackdrop>
+      </Modal>
     </Container>
   );
 }
@@ -500,6 +706,124 @@ const SearchInput = styled(TextInput)`
   font-family: ${fontFamily.regular};
   font-size: 15px;
   color: #ffffff;
+`;
+
+const HeroRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.md}px;
+`;
+
+// White on the gradient, so the one action an hotelier came for is the
+// brightest thing on the banner rather than something found by scrolling.
+const HeroPostButton = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  min-height: 38px;
+  padding: 0 ${spacing.md}px;
+  border-radius: ${radius.pill}px;
+  background-color: #ffffff;
+`;
+
+const HeroPostLabel = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 13px;
+  color: ${LAGOON};
+`;
+
+const LocationRow = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.sm}px;
+  min-height: 46px;
+  padding: 0 ${spacing.md}px;
+  margin-bottom: ${spacing.md}px;
+  border-radius: ${radius.md}px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+`;
+
+const LocationLabel = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.medium};
+  font-size: 14px;
+  color: ${(props) => props.theme.text};
+`;
+
+const SortToggle = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+`;
+
+const SortToggleLabel = styled.Text`
+  font-family: ${fontFamily.medium};
+  font-size: 11.5px;
+  color: ${(props) => lagoonInk(props.theme)};
+`;
+
+const SheetBackdrop = styled(Pressable)`
+  flex: 1;
+  justify-content: flex-end;
+  background-color: ${(props) => props.theme.scrim};
+`;
+
+const Sheet = styled.View`
+  max-height: 70%;
+  padding: ${spacing.sm}px ${spacing.md}px 0;
+  border-top-left-radius: ${radius.xl}px;
+  border-top-right-radius: ${radius.xl}px;
+  background-color: ${(props) => props.theme.surface};
+`;
+
+const SheetHandle = styled.View`
+  width: 36px;
+  height: 4px;
+  align-self: center;
+  border-radius: ${radius.pill}px;
+  background-color: ${(props) => props.theme.border};
+  margin-bottom: ${spacing.md}px;
+`;
+
+const SheetTitle = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 16px;
+  color: ${(props) => props.theme.text};
+  margin-bottom: ${spacing.sm}px;
+`;
+
+const SheetSearch = styled(TextInput)`
+  min-height: 44px;
+  padding: 0 ${spacing.md}px;
+  margin-bottom: ${spacing.sm}px;
+  border-radius: ${radius.md}px;
+  background-color: ${(props) => props.theme.surfaceAlt};
+  font-family: ${fontFamily.regular};
+  font-size: 14px;
+  color: ${(props) => props.theme.text};
+`;
+
+const SheetScroll = styled.ScrollView``;
+
+const SheetRow = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${spacing.sm}px;
+  min-height: 48px;
+  padding: 0 ${spacing.sm}px;
+  border-radius: ${radius.sm}px;
+  background-color: ${(props) =>
+    props.selected ? "rgba(26, 90, 99, 0.09)" : "transparent"};
+`;
+
+const SheetRowLabel = styled.Text`
+  flex: 1;
+  font-family: ${fontFamily.regular};
+  font-size: 14.5px;
+  color: ${(props) => props.theme.text};
 `;
 
 const ModeRow = styled.View`

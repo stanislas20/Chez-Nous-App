@@ -2632,6 +2632,11 @@ export const translations = {
     hotelsCountStay: "{count} hotel(s)",
     hotelsCountHall: "{count} venue(s) with a hall",
     hotelsSortStay: "Cheapest first, tax included",
+    hotelsSortNearest: "Nearest first",
+    hotelsAroundYou: "Around you",
+    hotelsPublish: "List yours",
+    hotelsPublishVerifiedOnly:
+      "Listing an establishment is open to verified company accounts. Guests ring the number on the card and arrive expecting the rate.",
     hotelsSortHall: "Largest capacity first",
     hotelsPickKicker: "Our recommendation",
     hotelsPickReasonPowerWater:
@@ -5648,6 +5653,11 @@ export const translations = {
     hotelsCountStay: "{count} h\u00f4tel(s)",
     hotelsCountHall: "{count} lieu(x) avec salle",
     hotelsSortStay: "Du moins cher, taxe comprise",
+    hotelsSortNearest: "Le plus proche",
+    hotelsAroundYou: "Autour de vous",
+    hotelsPublish: "Publier",
+    hotelsPublishVerifiedOnly:
+      "La publication d\u2019un \u00e9tablissement est r\u00e9serv\u00e9e aux comptes entreprise v\u00e9rifi\u00e9s. Les clients appellent le num\u00e9ro affich\u00e9 et arrivent en comptant sur le tarif.",
     hotelsSortHall: "Plus grande capacit\u00e9",
     hotelsPickKicker: "Notre recommandation",
     hotelsPickReasonPowerWater:

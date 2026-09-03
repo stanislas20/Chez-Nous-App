@@ -90,6 +90,12 @@ const OPTIONAL = new Set([
   "sellerPhone", // listing.phone ?? listing.sellerPhone
   "sellerVerified", // only ever coerced with !!
   "sellerMemberSince", // ?? null
+  // Written by scripts/seedHotels.js, never by the form. A directory entry
+  // is a rate the operator confirmed by telephone on a stated day, and the
+  // card prints that day; a hotel that publishes its own listing states its
+  // own rate and has no such date. Read behind a truthiness check, so its
+  // absence on every ordinary listing costs nothing.
+  "confirmedOn",
 ]);
 
 // Anything a property screen reads off a listing has to be something the

@@ -1,0 +1,17 @@
+[
+  {
+    "_comment": "TEMPLATE ROW — delete this object before running. Every field below is required unless marked optional. Nothing here is written until it is replaced with facts somebody confirmed by telephone.",
+    "name": "",
+    "city": "",
+    "quartier": "",
+    "phone": "",
+    "whatsapp": "",
+    "price": 0,
+    "touristTax": 0,
+    "generator": "full | night | none",
+    "breakfastIncluded": false,
+    "hotWater24h": false,
+    "declaredStars": 0,
+    "confirmedOn": "YYYY-MM-DD"
+  }
+]

@@ -361,6 +361,25 @@ export function HotelsScreen({ navigation }) {
           </FactLabel>
         </FactRow>
 
+        {/* A rate somebody confirmed by telephone on a date, said with the
+            date. Directory entries carry it; a hotel that published its own
+            listing does not, because that rate is its own statement and is
+            dated by the listing itself. A price with no provenance is the
+            thing this screen exists to argue against, so where the
+            provenance is known it is printed. */}
+        {item.confirmedOn ? (
+          <FactRow>
+            <Ionicons
+              name="checkmark-circle-outline"
+              size={12}
+              color={lagoonInk(colors)}
+            />
+            <FactLabel>
+              {t("hotelsRateConfirmedOn", { date: item.confirmedOn })}
+            </FactLabel>
+          </FactRow>
+        ) : null}
+
         {isStay && item.hotWater24h ? (
           <FactRow>
             <Ionicons name="water-outline" size={12} color={lagoonInk(colors)} />

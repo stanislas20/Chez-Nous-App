@@ -2654,6 +2654,7 @@ export const translations = {
     hotelsBreakfastExtra: "Breakfast not included",
     hotelsDeclaredStars: "{count} star(s), declared by the establishment",
     hotelsHotWater: "Hot water 24 h",
+    hotelsRateConfirmedOn: "Rate confirmed on {date}",
     hotelsNoRatingYet: "No reviews yet",
     hotelsEmpty:
       "Nothing matches this area and price.\nTry \u201cAll areas\u201d or another band.",
@@ -5678,6 +5679,7 @@ export const translations = {
     hotelsBreakfastExtra: "Petit-d\u00e9jeuner non compris",
     hotelsDeclaredStars: "{count} \u00e9toile(s) d\u00e9clar\u00e9e(s) par l\u2019\u00e9tablissement",
     hotelsHotWater: "Eau chaude 24 h",
+    hotelsRateConfirmedOn: "Tarif confirm\u00e9 le {date}",
     hotelsNoRatingYet: "Aucun avis pour l\u2019instant",
     hotelsEmpty:
       "Rien ne correspond \u00e0 cette zone et ce budget.\nEssayez \u00ab\u00a0Toutes zones\u00a0\u00bb ou une autre tranche.",

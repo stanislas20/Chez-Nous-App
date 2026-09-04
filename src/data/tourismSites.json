@@ -1,0 +1,2589 @@
+[
+  {
+    "id": "Q189685",
+    "name": "Abomey",
+    "nameEn": "Abomey",
+    "types": [
+      "ville",
+      "établissement humain",
+      "ville moyenne"
+    ],
+    "heritage": [],
+    "admin": "Commune d'Abomey",
+    "article": "https://fr.wikipedia.org/wiki/Abomey",
+    "latitude": 7.185277777,
+    "longitude": 1.991388888,
+    "tier": "named",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Rue_d%27Abomey_%281%29.jpg/960px-Rue_d%27Abomey_%281%29.jpg",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 4.0",
+      "author": "Ji-Elle",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Rue_d%27Abomey_(1).jpg"
+    },
+    "summary": "Abomey est une ville et une commune du sud de la république du Bénin, située à 145 km de Cotonou, qui est la préfecture du département du Zou, dont elle est le chef-lieu."
+  },
+  {
+    "id": "Q130240731",
+    "name": "AgouaLand",
+    "nameEn": "AgouaLand",
+    "types": [
+      "parc",
+      "parc zoologique"
+    ],
+    "heritage": [],
+    "admin": "Togba",
+    "article": null,
+    "latitude": 6.4806957,
+    "longitude": 2.2951269,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/e/e7/B%C3%A9nin_Agoualand.png",
+      "width": 800,
+      "height": 997,
+      "licence": "CC BY-SA 4.0",
+      "author": "Zounmabejosue",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:B%C3%A9nin_Agoualand.png"
+    }
+  },
+  {
+    "id": "Q2091236",
+    "name": "basilique de l'Immaculée-Conception de Ouidah",
+    "nameEn": "Basilique de l'Immaculée Conception",
+    "types": [
+      "cathédrale",
+      "basilique mineure"
+    ],
+    "heritage": [
+      "patrimoine d'influence portugaise"
+    ],
+    "admin": "Ouidah",
+    "article": "https://fr.wikipedia.org/wiki/Basilique_de_l%27Immacul%C3%A9e-Conception_de_Ouidah",
+    "latitude": 6.360652,
+    "longitude": 2.084734,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Fa%C3%A7ade_principale_de_la_basilique_de_ouidah.jpg/960px-Fa%C3%A7ade_principale_de_la_basilique_de_ouidah.jpg",
+      "width": 800,
+      "height": 1067,
+      "licence": "CC BY-SA 4.0",
+      "author": "houaito affo daniel",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Fa%C3%A7ade_principale_de_la_basilique_de_ouidah.jpg"
+    },
+    "summary": "La Basilique de l'Immaculée-Conception est le principal lieu de culte catholique de la ville de Ouidah, au sud de la République du Bénin."
+  },
+  {
+    "id": "Q2887361",
+    "name": "basse Vallée de l'Ouémé, Lagune de Porto-Novo, Lac Nokoué",
+    "nameEn": "Basse Vallée de l'Ouémé, Lagune de Porto-Novo, Lac Nokoué",
+    "types": [
+      "zone humide",
+      "aire protégée",
+      "site Ramsar"
+    ],
+    "heritage": [
+      "site Ramsar"
+    ],
+    "admin": "Atlantique",
+    "article": "https://fr.wikipedia.org/wiki/Basse_vall%C3%A9e_de_l%27Ou%C3%A9m%C3%A9,_lagune_de_Porto-Novo,_lac_Nokou%C3%A9",
+    "latitude": 6.65,
+    "longitude": 2.533333333,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Vue_de_Porto_Novo_%28B%C3%A9nin%29.jpg/960px-Vue_de_Porto_Novo_%28B%C3%A9nin%29.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 4.0",
+      "author": "SebEsteban",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Vue_de_Porto_Novo_(B%C3%A9nin).jpg"
+    },
+    "summary": "La basse vallée de l'Ouémé, la lagune de Porto-Novo et le lac Nokoué forment ensemble une vaste zone humide, la plus grande du Bénin avec 91 600 ha."
+  },
+  {
+    "id": "Q137795348",
+    "name": "Bateau du départ",
+    "nameEn": null,
+    "types": [
+      "navire musée",
+      "navire négrier"
+    ],
+    "heritage": [],
+    "admin": "Ouidah",
+    "article": "https://fr.wikipedia.org/wiki/Bateau_du_D%C3%A9part",
+    "latitude": 6.322947,
+    "longitude": 2.085392,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Bateau_du_depart_-_1.jpg/960px-Bateau_du_depart_-_1.jpg",
+      "width": 800,
+      "height": 1200,
+      "licence": "CC BY-SA 4.0",
+      "author": "Fawaz.tairou",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Bateau_du_depart_-_1.jpg"
+    },
+    "summary": "Le Bateau du Départ est une réplique de l'Aurore, l'un des tout derniers navires négriers à avoir quitté le port de Ouidah vers Cuba autour de 1863."
+  },
+  {
+    "id": "Q68627837",
+    "name": "Bénin face à son destin",
+    "nameEn": null,
+    "types": [
+      "statue",
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": null,
+    "latitude": 6.372064,
+    "longitude": 2.426122,
+    "tier": "strong"
+  },
+  {
+    "id": "Q68629795",
+    "name": "biche à la rivière",
+    "nameEn": null,
+    "types": [
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": null,
+    "latitude": 6.371889,
+    "longitude": 2.451739,
+    "tier": "strong"
+  },
+  {
+    "id": "Q21788696",
+    "name": "Bouche du Roy",
+    "nameEn": "Bouche du Roy",
+    "types": [
+      "fleuve ou rivière"
+    ],
+    "heritage": [],
+    "admin": null,
+    "article": "https://fr.wikipedia.org/wiki/Bouche_du_Roy",
+    "latitude": 6.2952,
+    "longitude": 1.93116,
+    "tier": "named",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Mono_river_estuary_in_Avloh%2C_Grand-Popo%2C_Benin.jpg/960px-Mono_river_estuary_in_Avloh%2C_Grand-Popo%2C_Benin.jpg",
+      "width": 800,
+      "height": 449,
+      "licence": "CC BY-SA 4.0",
+      "author": "Kulttuurinavigaattori",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Mono_river_estuary_in_Avloh,_Grand-Popo,_Benin.jpg"
+    },
+    "summary": "À l'origine, la Bouche du Roy désigne l'embouchure du fleuve Mono dans le Sud du Bénin."
+  },
+  {
+    "id": "Q2269235",
+    "name": "Boukoumbé",
+    "nameEn": "Boukoumbé",
+    "types": [
+      "ville frontalière",
+      "commune du Bénin"
+    ],
+    "heritage": [],
+    "admin": "Atacora",
+    "article": "https://fr.wikipedia.org/wiki/Boukoumb%C3%A9",
+    "latitude": 10.183333,
+    "longitude": 1.1,
+    "tier": "named",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/da/Boukoumb%C3%A9-Rue_%282%29.jpg/960px-Boukoumb%C3%A9-Rue_%282%29.jpg",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 4.0",
+      "author": "Ji-Elle",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Boukoumb%C3%A9-Rue_(2).jpg"
+    },
+    "summary": "Boukoumbé (ou Boukombé) est l'une des neuf communes du département de l'Atacora, au nord-ouest du Bénin."
+  },
+  {
+    "id": "Q69002523",
+    "name": "calvaire de Fidjrossè",
+    "nameEn": null,
+    "types": [
+      "place",
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": null,
+    "latitude": 6.357859,
+    "longitude": 2.371604,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Place_du_Calvaire_de_Fidjross%C3%A8_%C3%A0_Cotonou.jpg/960px-Place_du_Calvaire_de_Fidjross%C3%A8_%C3%A0_Cotonou.jpg",
+      "width": 800,
+      "height": 1067,
+      "licence": "CC BY-SA 4.0",
+      "author": "Rachad sanoussi",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Place_du_Calvaire_de_Fidjross%C3%A8_%C3%A0_Cotonou.jpg"
+    }
+  },
+  {
+    "id": "Q21787651",
+    "name": "cascades De Sosso",
+    "nameEn": "Cascades De Sosso",
+    "types": [
+      "chute d'eau"
+    ],
+    "heritage": [],
+    "admin": "Atacora",
+    "article": null,
+    "latitude": 11.3203,
+    "longitude": 3.27194,
+    "tier": "strong"
+  },
+  {
+    "id": "Q123048404",
+    "name": "Cathedral of St. Mark the Evangelist",
+    "nameEn": "Cathedral of St. Mark the Evangelist",
+    "types": [
+      "cathédrale"
+    ],
+    "heritage": [],
+    "admin": "N'Dali",
+    "article": null,
+    "latitude": 9.86469,
+    "longitude": 2.71856,
+    "tier": "strong"
+  },
+  {
+    "id": "Q123048411",
+    "name": "Cathedral of St. Peter Claver",
+    "nameEn": "Cathedral of St. Peter Claver",
+    "types": [
+      "cathédrale catholique"
+    ],
+    "heritage": [],
+    "admin": "Lokossa",
+    "article": null,
+    "latitude": 6.64031,
+    "longitude": 1.71544,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Cath%C3%A9drale_Saint-Pierre-Claver%2C_Lokossa%2C_Mono%2C_Benin_05.jpg/960px-Cath%C3%A9drale_Saint-Pierre-Claver%2C_Lokossa%2C_Mono%2C_Benin_05.jpg",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 4.0",
+      "author": "Adoscam",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Cath%C3%A9drale_Saint-Pierre-Claver,_Lokossa,_Mono,_Benin_05.jpg"
+    }
+  },
+  {
+    "id": "Q123048402",
+    "name": "Cathedral of the Immaculate Conception",
+    "nameEn": "Cathedral of the Immaculate Conception",
+    "types": [
+      "cathédrale"
+    ],
+    "heritage": [],
+    "admin": "Natitingou",
+    "article": null,
+    "latitude": 10.30106,
+    "longitude": 1.37794,
+    "tier": "strong"
+  },
+  {
+    "id": "Q123048408",
+    "name": "Cathedral of the Sacred Heart",
+    "nameEn": "Cathedral of the Sacred Heart",
+    "types": [
+      "cathédrale catholique"
+    ],
+    "heritage": [],
+    "admin": "Djougou",
+    "article": null,
+    "latitude": 9.69994,
+    "longitude": 1.66581,
+    "tier": "strong"
+  },
+  {
+    "id": "Q66486582",
+    "name": "cathédrale Notre Dame de l'Immaculée Conception de Porto-Novo",
+    "nameEn": "cathedrale Notre Dame de l'Immaculée Conception in Porto-Novo",
+    "types": [
+      "cathédrale"
+    ],
+    "heritage": [],
+    "admin": "Porto-Novo",
+    "article": null,
+    "latitude": 6.472638888,
+    "longitude": 2.619777777,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Vue_de_c%C3%B4t%C3%A9_2_de_la_Cath%C3%A9drale_Notre_Dame_de_l%27Immacul%C3%A9e_Conception_Porto-Novo.jpg/960px-Vue_de_c%C3%B4t%C3%A9_2_de_la_Cath%C3%A9drale_Notre_Dame_de_l%27Immacul%C3%A9e_Conception_Porto-Novo.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 4.0",
+      "author": "FANOU FINANGNON GILDAS",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Vue_de_c%C3%B4t%C3%A9_2_de_la_Cath%C3%A9drale_Notre_Dame_de_l%27Immacul%C3%A9e_Conception_Porto-Novo.jpg"
+    }
+  },
+  {
+    "id": "Q121819098",
+    "name": "cathédrale Notre-Dame de Fourvière",
+    "nameEn": "Cathedral of Our Lady",
+    "types": [
+      "cathédrale catholique"
+    ],
+    "heritage": [],
+    "admin": "Dassa-Zoumè",
+    "article": null,
+    "latitude": 7.77931,
+    "longitude": 2.19606,
+    "tier": "strong"
+  },
+  {
+    "id": "Q2942229",
+    "name": "cathédrale Notre-Dame-de-Miséricorde de Cotonou",
+    "nameEn": "Cotonou Cathedral",
+    "types": [
+      "cathédrale catholique"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": "https://fr.wikipedia.org/wiki/Cath%C3%A9drale_Notre-Dame-de-Mis%C3%A9ricorde_de_Cotonou",
+    "latitude": 6.356342,
+    "longitude": 2.439158,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Cotonoucathedral.jpg/960px-Cotonoucathedral.jpg",
+      "width": 800,
+      "height": 550,
+      "licence": "CC BY 2.0",
+      "author": "MVN",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Cotonoucathedral.jpg"
+    },
+    "summary": "La cathédrale Notre-Dame-de-Miséricorde est le principal sanctuaire catholique de la ville de Cotonou, la capitale économique de la république du Bénin."
+  },
+  {
+    "id": "Q106730239",
+    "name": "cathédrale Notre-Dame-du-Mont-Carmel de Kandi",
+    "nameEn": "Our Lady of Mount Carmel Cathedral, Kandi",
+    "types": [
+      "cathédrale"
+    ],
+    "heritage": [],
+    "admin": "Kandi",
+    "article": "https://fr.wikipedia.org/wiki/Cath%C3%A9drale_Notre-Dame-du-Mont-Carmel_de_Kandi",
+    "latitude": 11.136111111,
+    "longitude": 2.937222222,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Vue_de_c%C3%B4t%C3%A9_de_la_Cath%C3%A9drale_Notre_dame_du_mont_carmel_de_Kandi_%286%29_03.jpg/960px-Vue_de_c%C3%B4t%C3%A9_de_la_Cath%C3%A9drale_Notre_dame_du_mont_carmel_de_Kandi_%286%29_03.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 4.0",
+      "author": "Ross.Patrick",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Vue_de_c%C3%B4t%C3%A9_de_la_Cath%C3%A9drale_Notre_dame_du_mont_carmel_de_Kandi_(6)_03.jpg"
+    },
+    "summary": "La cathédrale Notre-Dame-du-Mont-Carmel de Kandi est le principal sanctuaire catholique de la ville Kandi, chef-lieu du département de l'Alibori en République du Bénin."
+  },
+  {
+    "id": "Q3663644",
+    "name": "cathédrale Saints Pierre et Paul d'Abomey",
+    "nameEn": "Saints Peter and Paul Cathedral of Abomey",
+    "types": [
+      "cathédrale"
+    ],
+    "heritage": [],
+    "admin": "Abomey",
+    "article": "https://fr.wikipedia.org/wiki/Cath%C3%A9drale_Saints-Pierre-et-Paul_d%27Abomey",
+    "latitude": 7.17844,
+    "longitude": 1.99256,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Entr%C3%A9e_principale_de_la_Cath%C3%A9drale_Saints_Pierre_et_Paul_d%27Abomey_au_B%C3%A9nin.jpg/960px-Entr%C3%A9e_principale_de_la_Cath%C3%A9drale_Saints_Pierre_et_Paul_d%27Abomey_au_B%C3%A9nin.jpg",
+      "width": 800,
+      "height": 1067,
+      "licence": "CC BY-SA 4.0",
+      "author": "Fawaz.tairou",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Entr%C3%A9e_principale_de_la_Cath%C3%A9drale_Saints_Pierre_et_Paul_d%27Abomey_au_B%C3%A9nin.jpg"
+    },
+    "summary": "La cathédrale Saints-Pierre-et-Paul est la cathédrale d'Abomey, siège du diocèse d'Abomey au Bénin."
+  },
+  {
+    "id": "Q24046155",
+    "name": "cathédrale Saints-Pierre-et-Paul de Parakou",
+    "nameEn": "Sts. Peter and Paul Cathedral, Parakou",
+    "types": [
+      "cathédrale catholique"
+    ],
+    "heritage": [],
+    "admin": "Parakou",
+    "article": "https://fr.wikipedia.org/wiki/Cath%C3%A9drale_Saints-Pierre-et-Paul_de_Parakou",
+    "latitude": 9.3406,
+    "longitude": 2.623,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Grotte_mariale_de_la_paroisse_Marie-Auxiliatrice_de_Parakou-B%C3%A9nin_en_cours_de_construction_vue_de_face.jpg/960px-Grotte_mariale_de_la_paroisse_Marie-Auxiliatrice_de_Parakou-B%C3%A9nin_en_cours_de_construction_vue_de_face.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 4.0",
+      "author": "Adoscam",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Grotte_mariale_de_la_paroisse_Marie-Auxiliatrice_de_Parakou-B%C3%A9nin_en_cours_de_construction_vue_de_face.jpg"
+    },
+    "summary": "La cathédrale Saints-Pierre-et-Paul est la cathédrale de l'archidiocèse de Parakou au Bénin."
+  },
+  {
+    "id": "Q87550297",
+    "name": "Centre international de conférences de Cotonou",
+    "nameEn": "Centre international de conférences de Cotonou",
+    "types": [
+      "palais des congrès"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": "https://fr.wikipedia.org/wiki/Centre_international_de_conf%C3%A9rences_de_Cotonou",
+    "latitude": 6.349766,
+    "longitude": 2.3967599,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Vue_du_centre_international_de_conf%C3%A9rences_de_Cotonou.jpg/960px-Vue_du_centre_international_de_conf%C3%A9rences_de_Cotonou.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 4.0",
+      "author": "Fawaz.tairou",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Vue_du_centre_international_de_conf%C3%A9rences_de_Cotonou.jpg"
+    },
+    "summary": "Le Centre international de Conférences de Cotonou (CIC), est un palais des congrès à Cotonou, bâti pour accueillir le 6e sommet de la francophonie, à Cotonou en décembre 1995 sous le Président Nicéphore Soglo."
+  },
+  {
+    "id": "Q581452",
+    "name": "chaîne de l'Atacora",
+    "nameEn": "Togo Mountains",
+    "types": [
+      "chaîne de montagnes",
+      "massif de montagnes"
+    ],
+    "heritage": [],
+    "admin": "Ghana",
+    "article": "https://fr.wikipedia.org/wiki/Cha%C3%AEne_de_l%27Atacora",
+    "latitude": 10.75,
+    "longitude": 1.5,
+    "tier": "weak",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Atakora-Auslaufer.JPG/960px-Atakora-Auslaufer.JPG",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 3.0",
+      "author": "Wegmann",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Atakora-Auslaufer.JPG"
+    },
+    "summary": "La chaîne de l'Atacora, aussi orthographié Atakora, est le nom donné au Bénin, au massif montagneux qui s'étend sur un axe nord-est/sud-ouest dans le Nord-Ouest du Bénin, dans le Nord du Togo — où il est appelé…"
+  },
+  {
+    "id": "Q29098237",
+    "name": "chutes de Kota",
+    "nameEn": "Kota Falls",
+    "types": [
+      "chute d'eau"
+    ],
+    "heritage": [],
+    "admin": "Natitingou",
+    "article": "https://fr.wikipedia.org/wiki/Chutes_de_Kota",
+    "latitude": 10.21306,
+    "longitude": 1.445,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Baignade_aux_chutes_de_Kota.jpg/960px-Baignade_aux_chutes_de_Kota.jpg",
+      "width": 800,
+      "height": 1200,
+      "licence": "CC BY-SA 4.0",
+      "author": "Ji-Elle",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Baignade_aux_chutes_de_Kota.jpg"
+    },
+    "summary": "Les chutes de Kota (ou chutes de la Kota) forment un chapelet de cascades à l'est de la chaîne de l'Atacora au Bénin."
+  },
+  {
+    "id": "Q21773064",
+    "name": "chutes de Koudou",
+    "nameEn": "Chutes de Koudou",
+    "types": [
+      "chute d'eau"
+    ],
+    "heritage": [],
+    "admin": "Burkina Faso",
+    "article": "https://fr.wikipedia.org/wiki/Chutes_de_Koudou",
+    "latitude": 11.68333,
+    "longitude": 2.31667,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/La_boule_du_monde%2C_Chutes_de_koudou%2C_Parc_W%2C_Benin.jpg/960px-La_boule_du_monde%2C_Chutes_de_koudou%2C_Parc_W%2C_Benin.jpg",
+      "width": 800,
+      "height": 1067,
+      "licence": "CC BY-SA 4.0",
+      "author": "Juanlopezvillar",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:La_boule_du_monde,_Chutes_de_koudou,_Parc_W,_Benin.jpg"
+    },
+    "summary": "Les chutes de Koudou sont des chutes d'eau au Bénin situées dans le Parc W qui traverse trois pays : Le Bénin, le Burkina et le Niger."
+  },
+  {
+    "id": "Q30596112",
+    "name": "chutes de Tanougou",
+    "nameEn": "Tanougou Falls",
+    "types": [
+      "chute d'eau"
+    ],
+    "heritage": [],
+    "admin": null,
+    "article": "https://fr.wikipedia.org/wiki/Chutes_de_Tanougou",
+    "latitude": 10.8053724,
+    "longitude": 1.4444946,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Jeune_homme_sautant_des_cascades_de_Tanougou_2_%28B%C3%A9nin%29.jpg/960px-Jeune_homme_sautant_des_cascades_de_Tanougou_2_%28B%C3%A9nin%29.jpg",
+      "width": 800,
+      "height": 1200,
+      "licence": "CC BY-SA 4.0",
+      "author": "Fawaz.tairou",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Jeune_homme_sautant_des_cascades_de_Tanougou_2_(B%C3%A9nin).jpg"
+    },
+    "summary": "Les chutes ou cascades de Tanougou sont des chutes d'eau situées à Tanougou, un village du département de l'Atacora au Nord-Ouest du Bénin dans la commune de Tanguiéta."
+  },
+  {
+    "id": "Q2609335",
+    "name": "Dassa-Zoumè",
+    "nameEn": "Dassa-Zoumé",
+    "types": [
+      "commune du Bénin"
+    ],
+    "heritage": [],
+    "admin": "Collines",
+    "article": "https://fr.wikipedia.org/wiki/Dassa-Zoum%C3%A9",
+    "latitude": 7.75,
+    "longitude": 2.183333333,
+    "tier": "named",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Vue_de_Dassa_depuis_la_colline_de_Kamat%C3%A9.jpg/960px-Vue_de_Dassa_depuis_la_colline_de_Kamat%C3%A9.jpg",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 4.0",
+      "author": "Padonou Dotou",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Vue_de_Dassa_depuis_la_colline_de_Kamat%C3%A9.jpg"
+    },
+    "summary": "Dassa-Zoumé , également appelée Igbo Idaasha ou simplement Idaasha, est une commune et une ville du Centre-Sud du Bénin, préfecture du département des Collines depuis le 22 juin 2016."
+  },
+  {
+    "id": "Q112030677",
+    "name": "esplanade des Amazones",
+    "nameEn": null,
+    "types": [
+      "place"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": "https://fr.wikipedia.org/wiki/Esplanade_des_Amazones",
+    "latitude": 6.34971296,
+    "longitude": 2.407492853,
+    "tier": "weak",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Esplanade_des_Amazones%2C_ville_de_Cotonou%2C_d%C3%A9partement_du_Littoral_au_sud_du_B%C3%A9nin_04.jpg/960px-Esplanade_des_Amazones%2C_ville_de_Cotonou%2C_d%C3%A9partement_du_Littoral_au_sud_du_B%C3%A9nin_04.jpg",
+      "width": 800,
+      "height": 518,
+      "licence": "CC BY-SA 4.0",
+      "author": "Saliousoft",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Esplanade_des_Amazones,_ville_de_Cotonou,_d%C3%A9partement_du_Littoral_au_sud_du_B%C3%A9nin_04.jpg"
+    },
+    "summary": "L'Esplanade des Amazones est une place publique située à Cotonou au Bénin."
+  },
+  {
+    "id": "Q68630247",
+    "name": "femmes allant et revenant du marché",
+    "nameEn": null,
+    "types": [
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": null,
+    "latitude": 6.384359,
+    "longitude": 2.41624,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Statue_de_femmes_allant_et_revenant_du_march%C3%A9_%C3%A0_Gb%C3%AAdjrom%C3%A8d%C3%A9_cotonou_B%C3%A9nin.jpg/960px-Statue_de_femmes_allant_et_revenant_du_march%C3%A9_%C3%A0_Gb%C3%AAdjrom%C3%A8d%C3%A9_cotonou_B%C3%A9nin.jpg",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 4.0",
+      "author": "Adoscam",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Statue_de_femmes_allant_et_revenant_du_march%C3%A9_%C3%A0_Gb%C3%AAdjrom%C3%A8d%C3%A9_cotonou_B%C3%A9nin.jpg"
+    }
+  },
+  {
+    "id": "Q3075592",
+    "name": "Fondation Zinsou",
+    "nameEn": "Fondation Zinsou",
+    "types": [
+      "fondation",
+      "musée d'art"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": "https://fr.wikipedia.org/wiki/Fondation_Zinsou",
+    "latitude": 6.35172,
+    "longitude": 2.37275,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Fondation_Zinsou_in_Cotonou_2015.jpg/960px-Fondation_Zinsou_in_Cotonou_2015.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY 2.0",
+      "author": "David Stanley from Nanaimo, Canada",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Fondation_Zinsou_in_Cotonou_2015.jpg"
+    },
+    "summary": "La Fondation Zinsou est une fondation privée créée en 2005 à Cotonou (Bénin), tournée vers l'action sociale et la culture, et consacrée à l'art contemporain africain."
+  },
+  {
+    "id": "Q86662106",
+    "name": "forêt classée de la Sota",
+    "nameEn": null,
+    "types": [
+      "forêt classée"
+    ],
+    "heritage": [],
+    "admin": null,
+    "article": "https://fr.wikipedia.org/wiki/For%C3%AAt_class%C3%A9e_de_la_Sota",
+    "latitude": 11.053851,
+    "longitude": 3.241809,
+    "tier": "weak",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Bensekou.jpg/960px-Bensekou.jpg",
+      "width": 800,
+      "height": 450,
+      "licence": "CC BY-SA 4.0",
+      "author": "Tofnature",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Bensekou.jpg"
+    },
+    "summary": "La forêt classée de la Sota est une zone protégée au Bénin."
+  },
+  {
+    "id": "Q110304546",
+    "name": "forêt classée de N'Dali",
+    "nameEn": "N’Dali classified forest",
+    "types": [
+      "forêt classée"
+    ],
+    "heritage": [],
+    "admin": "N'Dali",
+    "article": "https://fr.wikipedia.org/wiki/For%C3%AAt_class%C3%A9e_de_N%27Dali",
+    "latitude": 9.7939,
+    "longitude": 2.6777,
+    "tier": "weak",
+    "summary": "La Forêt classée de N'Dali est une des aires protégées du Bénin."
+  },
+  {
+    "id": "Q106234793",
+    "name": "forêt classée des Trois Rivières du Bénin",
+    "nameEn": null,
+    "types": [
+      "forêt classée"
+    ],
+    "heritage": [],
+    "admin": null,
+    "article": "https://fr.wikipedia.org/wiki/For%C3%AAt_class%C3%A9e_des_Trois_Rivi%C3%A8res_du_B%C3%A9nin",
+    "latitude": 10.5833,
+    "longitude": 3.25,
+    "tier": "weak",
+    "summary": "La forêt classée des Trois Rivières est une aire protégée du Bénin relevant de la catégorie II."
+  },
+  {
+    "id": "Q131445907",
+    "name": "Forêt de Ndali",
+    "nameEn": null,
+    "types": [
+      "aire protégée"
+    ],
+    "heritage": [],
+    "admin": null,
+    "article": null,
+    "latitude": 9.795037084,
+    "longitude": 2.688022972,
+    "tier": "strong"
+  },
+  {
+    "id": "Q66104207",
+    "name": "forêt marécageuse de Lokoli",
+    "nameEn": null,
+    "types": [
+      "forêt",
+      "marécage"
+    ],
+    "heritage": [],
+    "admin": "Zou",
+    "article": "https://fr.wikipedia.org/wiki/For%C3%AAt_mar%C3%A9cageuse_de_Lokoli",
+    "latitude": 7.05,
+    "longitude": 2.25,
+    "tier": "weak",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Embarcad%C3%A8re_dans_la_for%C3%AAt_de_Lokoli.jpg/960px-Embarcad%C3%A8re_dans_la_for%C3%AAt_de_Lokoli.jpg",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 4.0",
+      "author": "Padonou Dotou",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Embarcad%C3%A8re_dans_la_for%C3%AAt_de_Lokoli.jpg"
+    },
+    "summary": "La forêt marécageuse de Lokoli, également appelée forêt inondée de Lokoli, est une zone protégée du Bénin, localisée dans le sud du pays, sur le territoire de la commune de Zogbodomey, dans le département du Zou."
+  },
+  {
+    "id": "Q132444233",
+    "name": "forêt sacrée de Kikélé",
+    "nameEn": null,
+    "types": [
+      "aire protégée",
+      "bois sacré"
+    ],
+    "heritage": [],
+    "admin": "Bassila",
+    "article": null,
+    "latitude": 9.009325792,
+    "longitude": 1.729209157,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/For%C3%AAt_Sacr%C3%A9_de_Kik%C3%A9l%C3%A9_au_Benin_04.jpg/960px-For%C3%AAt_Sacr%C3%A9_de_Kik%C3%A9l%C3%A9_au_Benin_04.jpg",
+      "width": 800,
+      "height": 450,
+      "licence": "CC BY-SA 4.0",
+      "author": "Barke11",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:For%C3%AAt_Sacr%C3%A9_de_Kik%C3%A9l%C3%A9_au_Benin_04.jpg"
+    }
+  },
+  {
+    "id": "Q64913679",
+    "name": "forêt sacrée de Kpassè",
+    "nameEn": "Forêt sacrée de Kpassè",
+    "types": [
+      "aire protégée",
+      "bois sacré"
+    ],
+    "heritage": [],
+    "admin": null,
+    "article": "https://fr.wikipedia.org/wiki/For%C3%AAt_sacr%C3%A9e_de_Kpass%C3%A8",
+    "latitude": 6.36463,
+    "longitude": 2.095942,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Les_champions_blancs_%C3%A0_la_For%C3%AAt_Sacr%C3%A9e_de_Kpass%C3%A8.jpg/960px-Les_champions_blancs_%C3%A0_la_For%C3%AAt_Sacr%C3%A9e_de_Kpass%C3%A8.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 4.0",
+      "author": "Rachad sanoussi",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Les_champions_blancs_%C3%A0_la_For%C3%AAt_Sacr%C3%A9e_de_Kpass%C3%A8.jpg"
+    },
+    "summary": "La forêt sacrée de Kpassè constitue un îlot forestier à Ouidah, un centre important du vaudou dans le sud du Bénin."
+  },
+  {
+    "id": "Q115599612",
+    "name": "forêt Sacrée de Wêwêré",
+    "nameEn": null,
+    "types": [
+      "forêt",
+      "bois sacré"
+    ],
+    "heritage": [],
+    "admin": "Bembéréké",
+    "article": "https://fr.wikipedia.org/wiki/For%C3%AAt_Sacr%C3%A9e_de_W%C3%AAw%C3%AAr%C3%A9",
+    "latitude": 10.2242175,
+    "longitude": 2.6675063,
+    "tier": "weak",
+    "summary": "La forêt sarée Wêwêré est un îlot forestier, situé dans la commune de Bembéréké, dans le département du Borgou, au Nord-Est du Bénin."
+  },
+  {
+    "id": "Q1969968",
+    "name": "fort Saint-Jean-Baptiste d'Ajudá",
+    "nameEn": "São João Baptista d’Ajudá",
+    "types": [
+      "forteresse"
+    ],
+    "heritage": [
+      "patrimoine d'influence portugaise"
+    ],
+    "admin": "Ouidah",
+    "article": "https://fr.wikipedia.org/wiki/Fort_portugais_de_Ouidah",
+    "latitude": 6.35888889,
+    "longitude": 2.09,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Fort_of_S%C3%A3o_Jo%C3%A3o_Baptista_de_Ajud%C3%A1_%281890%29.jpg/960px-Fort_of_S%C3%A3o_Jo%C3%A3o_Baptista_de_Ajud%C3%A1_%281890%29.jpg",
+      "width": 800,
+      "height": 419,
+      "licence": "Public domain",
+      "author": "French naval officer, 1890",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Fort_of_S%C3%A3o_Jo%C3%A3o_Baptista_de_Ajud%C3%A1_(1890).jpg"
+    },
+    "summary": "Le Fort portugais de Ouidah, ou Fort Saint-Jean-Baptiste-d'Ajuda, est un ancien fort défensif situé dans la commune de Ouidah, dans le département de l'Atlantique, au Bénin."
+  },
+  {
+    "id": "Q112057382",
+    "name": "Galerie nationale du Bénin",
+    "nameEn": null,
+    "types": [
+      "musée"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": "https://fr.wikipedia.org/wiki/Galerie_nationale_du_B%C3%A9nin",
+    "latitude": 6.356583333,
+    "longitude": 2.394305555,
+    "tier": "strong",
+    "summary": "La Galerie nationale du Bénin est une galerie d'art créée le 20 mars 2020 par le gouvernement béninois pour donner une nouvelle dynamique aux arts visuels."
+  },
+  {
+    "id": "Q1493703",
+    "name": "Ganvié",
+    "nameEn": "Ganvie",
+    "types": [
+      "établissement humain"
+    ],
+    "heritage": [
+      "liste indicative du patrimoine mondial"
+    ],
+    "admin": "Sô-Ava",
+    "article": "https://fr.wikipedia.org/wiki/Ganvi%C3%A9",
+    "latitude": 6.467694444,
+    "longitude": 2.39125,
+    "tier": "named",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Ganvie2.jpg/960px-Ganvie2.jpg",
+      "width": 800,
+      "height": 534,
+      "licence": "CC BY-SA 3.0",
+      "author": "Manu25 at French Wikipedia",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Ganvie2.jpg"
+    },
+    "summary": "Ganvié est une cité lacustre du sud du Bénin, située sur le lac Nokoué au nord de la métropole de Cotonou."
+  },
+  {
+    "id": "Q1542478",
+    "name": "Grand-Popo",
+    "nameEn": "Grand-Popo",
+    "types": [
+      "commune du Bénin"
+    ],
+    "heritage": [],
+    "admin": "Mono",
+    "article": "https://fr.wikipedia.org/wiki/Grand-Popo",
+    "latitude": 6.283333333,
+    "longitude": 1.833333333,
+    "tier": "named",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Benin4.jpg",
+      "width": 800,
+      "height": 534,
+      "licence": "CC BY-SA 1.0",
+      "author": "Tonio94",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Benin4.jpg"
+    },
+    "summary": "Grand-Popo est une commune et une ville côtière du sud-ouest du Bénin, au sein du département du Mono."
+  },
+  {
+    "id": "Q94238736",
+    "name": "grande mosquée de Porto-Novo",
+    "nameEn": "Great Mosque of Porto-Novo",
+    "types": [
+      "mosquée"
+    ],
+    "heritage": [],
+    "admin": "Porto-Novo",
+    "article": "https://fr.wikipedia.org/wiki/Grande_mosqu%C3%A9e_de_Porto-Novo",
+    "latitude": 6.470333333,
+    "longitude": 2.626611111,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Grande_Mosquee_de_Porto-Novo.jpg/960px-Grande_Mosquee_de_Porto-Novo.jpg",
+      "width": 800,
+      "height": 571,
+      "licence": "CC BY 4.0",
+      "author": "Caroline Léna Becker",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Grande_Mosquee_de_Porto-Novo.jpg"
+    },
+    "summary": "La mosquée de Porto-Novo est située dans la capitale du Bénin."
+  },
+  {
+    "id": "Q387790",
+    "name": "Grande muraille verte",
+    "nameEn": "African Great Green Wall",
+    "types": [
+      "afforestation",
+      "climate project"
+    ],
+    "heritage": [],
+    "admin": null,
+    "article": "https://fr.wikipedia.org/wiki/Grande_muraille_verte_(Afrique)",
+    "latitude": 17,
+    "longitude": 10,
+    "tier": "weak",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Sahel_Map-Africa_rough.png/960px-Sahel_Map-Africa_rough.png",
+      "width": 800,
+      "height": 370,
+      "licence": "CC BY-SA 4.0",
+      "author": "Map_sahel.jpg: King BlankMap-Africa2.png: Sadalmelik",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Sahel_Map-Africa_rough.png"
+    },
+    "summary": "La Grande muraille verte pour le Sahara et le Sahel, communément appelée Grande muraille verte (GMV), est l’initiative phare de l’Union africaine pour lutter contre les effets du changement climatique et de la…"
+  },
+  {
+    "id": "Q21040903",
+    "name": "grotte Notre-Dame-d'Arigbo",
+    "nameEn": "Grotte Notre-Dame d'Arigbo",
+    "types": [
+      "grotte",
+      "lieu de pèlerinage"
+    ],
+    "heritage": [],
+    "admin": "Dassa-Zoumè",
+    "article": "https://fr.wikipedia.org/wiki/Grotte_Notre-Dame_d%27Arigbo",
+    "latitude": 7.775339,
+    "longitude": 2.186524,
+    "tier": "weak",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Basilique_Notre-Dame_d%27Arigbo.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC0",
+      "author": "Élisabeth",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Basilique_Notre-Dame_d%27Arigbo.jpg"
+    },
+    "summary": "La grotte Notre-Dame d'Arigbo est un lieu de pèlerinage catholique situé à Dassa-Zoumè, dans les Collines, au Bénin."
+  },
+  {
+    "id": "Q136148430",
+    "name": "Jardin d'Essai",
+    "nameEn": null,
+    "types": [
+      "jardin public",
+      "jardin botanique"
+    ],
+    "heritage": [],
+    "admin": "Ouidah",
+    "article": "https://fr.wikipedia.org/wiki/Jardin_d%27Essai_(Ouidah)",
+    "latitude": 6.367569,
+    "longitude": 2.125131,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Entr%C3%A9e_du_Jardin_d%27Essai_%C3%A0_Ouidah.jpg/960px-Entr%C3%A9e_du_Jardin_d%27Essai_%C3%A0_Ouidah.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 4.0",
+      "author": "Fawaz.tairou",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Entr%C3%A9e_du_Jardin_d%27Essai_%C3%A0_Ouidah.jpg"
+    },
+    "summary": "Le Jardin d’Essai de la Fondation Zinsou est un espace hybride d’environ 6 ha situé à Ouidah, au Bénin, qui combine une exposition artistique et un patrimoine végétal unique ."
+  },
+  {
+    "id": "Q64859482",
+    "name": "jardin des plantes et de la nature",
+    "nameEn": "Jardin des plantes et de la nature",
+    "types": [
+      "musée",
+      "aire protégée",
+      "jardin"
+    ],
+    "heritage": [],
+    "admin": null,
+    "article": "https://fr.wikipedia.org/wiki/Jardin_des_plantes_et_de_la_nature",
+    "latitude": 6.473908439,
+    "longitude": 2.614994377,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/JPN_r%C3%A9nov%C3%A9_Porto-Novo.jpg/960px-JPN_r%C3%A9nov%C3%A9_Porto-Novo.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC0",
+      "author": "Chado07",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:JPN_r%C3%A9nov%C3%A9_Porto-Novo.jpg"
+    },
+    "summary": "Le Jardin des Plantes et de la Nature (JPN) de Porto-Novo, autrefois connu comme la forêt sacrée du royaume de Porto-Novo, a vu le jour avant 1895, probablement au XVIIe siècle."
+  },
+  {
+    "id": "Q126740648",
+    "name": "Jardin National des Plantes Médicinales (Bénin)",
+    "nameEn": null,
+    "types": [
+      "aire protégée",
+      "jardin",
+      "musée"
+    ],
+    "heritage": [],
+    "admin": "Porto-Novo",
+    "article": null,
+    "latitude": 6.472222222,
+    "longitude": 2.614166666,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/JNPM_Erytrophleum_guineense.jpg/960px-JNPM_Erytrophleum_guineense.jpg",
+      "width": 800,
+      "height": 1067,
+      "licence": "CC BY-SA 4.0",
+      "author": "Chado07",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:JNPM_Erytrophleum_guineense.jpg"
+    }
+  },
+  {
+    "id": "Q69001631",
+    "name": "jet d’eau d’Akossombo",
+    "nameEn": null,
+    "types": [
+      "fontaine",
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": null,
+    "latitude": 6.377051,
+    "longitude": 2.389689,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Jet_d%27eau_d%27Akossombo.jpg/960px-Jet_d%27eau_d%27Akossombo.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 4.0",
+      "author": "Fawaz.tairou",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Jet_d%27eau_d%27Akossombo.jpg"
+    }
+  },
+  {
+    "id": "Q508040",
+    "name": "Koutammakou",
+    "nameEn": "Koutammakou",
+    "types": [
+      "établissement humain",
+      "paysage culturel",
+      "monument"
+    ],
+    "heritage": [
+      "patrimoine mondial"
+    ],
+    "admin": "Région de la Kara",
+    "article": "https://fr.wikipedia.org/wiki/Koutammakou",
+    "latitude": 10.0674441,
+    "longitude": 1.1345348,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Togo_Taberma_house_02.jpg/960px-Togo_Taberma_house_02.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY 2.0",
+      "author": "Erik Kristensen",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Togo_Taberma_house_02.jpg"
+    },
+    "summary": "Koutammakou est une région du Togo et du Bénin, en Afrique de l'Ouest, qui abrite les Batammariba, Tamberma, Somba et Tamba."
+  },
+  {
+    "id": "Q69000955",
+    "name": "kwabo (statue)",
+    "nameEn": null,
+    "types": [
+      "statue",
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": null,
+    "latitude": 6.352377,
+    "longitude": 2.385985,
+    "tier": "strong"
+  },
+  {
+    "id": "Q21787689",
+    "name": "lac Ahémé",
+    "nameEn": "Lake Ahémé",
+    "types": [
+      "lac"
+    ],
+    "heritage": [],
+    "admin": null,
+    "article": "https://fr.wikipedia.org/wiki/Lac_Ah%C3%A9m%C3%A9",
+    "latitude": 6.495,
+    "longitude": 1.975,
+    "tier": "weak",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/LE_LAC_AHEME_AU_BENIN_en_2018.jpg/960px-LE_LAC_AHEME_AU_BENIN_en_2018.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 4.0",
+      "author": "Adoscam",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:LE_LAC_AHEME_AU_BENIN_en_2018.jpg"
+    },
+    "summary": "Le lac Ahémé est alimenté par les eaux paresseuses de la rivière Couffo, qui rejoignent au sud celles du fleuve Mono, pour former un vaste delta aux environs de la Bouche du Roy."
+  },
+  {
+    "id": "Q65491635",
+    "name": "lac Azili",
+    "nameEn": "Lake Azili",
+    "types": [
+      "lac"
+    ],
+    "heritage": [],
+    "admin": null,
+    "article": "https://fr.wikipedia.org/wiki/Lac_Azili",
+    "latitude": 7.2555,
+    "longitude": 2.4548,
+    "tier": "weak",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Azili_Ketou_Benin_03-05-2019.jpg/960px-Azili_Ketou_Benin_03-05-2019.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 4.0",
+      "author": "AGIR au Benin",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Azili_Ketou_Benin_03-05-2019.jpg"
+    },
+    "summary": "Le lac Azili est un plan d'eau du Bénin, situé dans l'arrondissement de Kpédékpo et la commune de Zagnanado (département du Zou)."
+  },
+  {
+    "id": "Q140077477",
+    "name": "Lac de Djougou",
+    "nameEn": null,
+    "types": [
+      "lac"
+    ],
+    "heritage": [],
+    "admin": null,
+    "article": "https://fr.wikipedia.org/wiki/Lac_de_Djougou",
+    "latitude": 9.68246,
+    "longitude": 1.652276,
+    "tier": "weak",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Berge_du_lac_de_Djougou_09.jpg/960px-Berge_du_lac_de_Djougou_09.jpg",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 4.0",
+      "author": "Fawaz.tairou",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Berge_du_lac_de_Djougou_09.jpg"
+    },
+    "summary": "Le lac de Djougou, connu officiellement sous le nom de barrage de Téro ou retenue de Djougou, est une importante réserve d'eau douce du Bénin, implantée en région nord-occidentale du pays."
+  },
+  {
+    "id": "Q140890238",
+    "name": "Lac Djètoè",
+    "nameEn": null,
+    "types": [
+      "lac"
+    ],
+    "heritage": [],
+    "admin": "Lokossa",
+    "article": "https://fr.wikipedia.org/wiki/Lac_Dj%C3%A8to%C3%A8",
+    "latitude": 6.57,
+    "longitude": 1.72,
+    "tier": "weak",
+    "summary": "Le lac Djètoè, aussi orthographié Djétoé ou Djèto, est un plan d'eau situé dans le sud-ouest du Bénin, au sein de la commune de Lokossa, département du Mono."
+  },
+  {
+    "id": "Q140865429",
+    "name": "Lac Doukon",
+    "nameEn": null,
+    "types": [
+      "lac"
+    ],
+    "heritage": [],
+    "admin": "Lokossa",
+    "article": "https://fr.wikipedia.org/wiki/Lac_Doukon",
+    "latitude": 6.6738,
+    "longitude": 1.7091,
+    "tier": "weak",
+    "summary": "Le lac Doukon est un plan d'eau continental du Bénin, situé dans la commune de Lokossa, au cœur du département du Mono."
+  },
+  {
+    "id": "Q268631",
+    "name": "lac Nokoué",
+    "nameEn": "Lake Nokoué",
+    "types": [
+      "lac",
+      "lagune"
+    ],
+    "heritage": [
+      "site Ramsar"
+    ],
+    "admin": null,
+    "article": "https://fr.wikipedia.org/wiki/Lac_Nokou%C3%A9",
+    "latitude": 6.432777777,
+    "longitude": 2.425555555,
+    "tier": "weak",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Lake_Nokoue_NASA.jpg/960px-Lake_Nokoue_NASA.jpg",
+      "width": 800,
+      "height": 548,
+      "licence": "Public domain",
+      "author": "NASA",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Lake_Nokoue_NASA.jpg"
+    },
+    "summary": "Le lac Nokoué est un lac situé dans le sud du Bénin, à proximité de Cotonou et de Ganvié."
+  },
+  {
+    "id": "Q140913094",
+    "name": "Lac Sèlè",
+    "nameEn": null,
+    "types": [
+      "lac"
+    ],
+    "heritage": [],
+    "admin": "Ouinhi",
+    "article": "https://fr.wikipedia.org/wiki/Lac_S%C3%A8l%C3%A8",
+    "latitude": 7.158055555,
+    "longitude": 2.438888888,
+    "tier": "weak",
+    "summary": "Le lac Sèlè est une étendue d'eau douce située dans le sud du Bénin."
+  },
+  {
+    "id": "Q85775674",
+    "name": "Lac Togbadji",
+    "nameEn": "Lake Togbadji",
+    "types": [
+      "lac"
+    ],
+    "heritage": [],
+    "admin": null,
+    "article": "https://fr.wikipedia.org/wiki/Lac_Togbadji",
+    "latitude": 6.743,
+    "longitude": 1.703,
+    "tier": "weak",
+    "summary": "Le lac Togbadji encore appelé lac Tobadji ou lagune Togbadji, situé au sud-ouest du Bénin dans le delta du Mono, au Bénin, est une vaste étendue d’eau stagnante d’une superficie d’environ 9,150 9 km2 et d’une…"
+  },
+  {
+    "id": "Q21786512",
+    "name": "lac Toho",
+    "nameEn": "Lac Toho",
+    "types": [
+      "lac"
+    ],
+    "heritage": [],
+    "admin": null,
+    "article": "https://fr.wikipedia.org/wiki/Lac_Toho",
+    "latitude": 6.61913,
+    "longitude": 1.77671,
+    "tier": "weak",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Pirogue_du_lac_toho_au_B%C3%A9nin.jpg/960px-Pirogue_du_lac_toho_au_B%C3%A9nin.jpg",
+      "width": 800,
+      "height": 1067,
+      "licence": "CC BY-SA 4.0",
+      "author": "Rachad sanoussi",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Pirogue_du_lac_toho_au_B%C3%A9nin.jpg"
+    },
+    "summary": "Le lac Toho est un lac du sud-ouest du Bénin, situé à proximité des localités de Houin, Kpinnou et Kpénou."
+  },
+  {
+    "id": "Q140841393",
+    "name": "Lagune de Grand-Popo",
+    "nameEn": null,
+    "types": [
+      "lagune"
+    ],
+    "heritage": [
+      "site Ramsar"
+    ],
+    "admin": "Grand-Popo",
+    "article": "https://fr.wikipedia.org/wiki/Lagune_de_Grand-Popo",
+    "latitude": 6.291666666,
+    "longitude": 1.883333333,
+    "tier": "weak",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Vue_panoramique_sur_la_lagune_de_Grand-popo.jpg/960px-Vue_panoramique_sur_la_lagune_de_Grand-popo.jpg",
+      "width": 800,
+      "height": 400,
+      "licence": "CC BY-SA 4.0",
+      "author": "BILLA1994",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Vue_panoramique_sur_la_lagune_de_Grand-popo.jpg"
+    },
+    "summary": "La lagune de Grand-Popo est un système fluvio-lagunaire majeur situé au sud-ouest du Bénin, à l'embouchure du fleuve Mono."
+  },
+  {
+    "id": "Q140834238",
+    "name": "Lagune de Ouidah",
+    "nameEn": null,
+    "types": [
+      "lagune"
+    ],
+    "heritage": [],
+    "admin": "Ouidah",
+    "article": "https://fr.wikipedia.org/wiki/Lagune_de_Ouidah",
+    "latitude": 6.327778,
+    "longitude": 2.0825,
+    "tier": "weak",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Traversseuse_de_la_lagune_du_village_Djegbaji.jpg/960px-Traversseuse_de_la_lagune_du_village_Djegbaji.jpg",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 4.0",
+      "author": "GARNI RAFIK",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Traversseuse_de_la_lagune_du_village_Djegbaji.jpg"
+    },
+    "summary": "La lagune de Ouidah, située dans le département de l'Atlantique est l'un des écosystèmes côtiers les plus importants de la République du Bénin."
+  },
+  {
+    "id": "Q111824766",
+    "name": "maison du Brésil",
+    "nameEn": "Maison du Brésil",
+    "types": [
+      "musée",
+      "bâtiment"
+    ],
+    "heritage": [],
+    "admin": "Ouidah",
+    "article": "https://fr.wikipedia.org/wiki/Maison_du_Br%C3%A9sil_(Ouidah)",
+    "latitude": 6.356388888,
+    "longitude": 2.076111111,
+    "tier": "strong",
+    "summary": "La Maison du Brésil ou Maison de Mémoire est un bâtiment administratif de la famille afro-brésilienne de Souza."
+  },
+  {
+    "id": "Q109044194",
+    "name": "Mamelles de Savè",
+    "nameEn": null,
+    "types": [
+      "montagne"
+    ],
+    "heritage": [],
+    "admin": "Savè",
+    "article": "https://fr.wikipedia.org/wiki/Mamelles_de_Sav%C3%A8",
+    "latitude": 8.0402,
+    "longitude": 2.5047,
+    "tier": "weak",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Les_mamelles_de_Sav%C3%A8_au_centre_du_B%C3%A9nin%2C_vues_du_ciel_03.jpg/960px-Les_mamelles_de_Sav%C3%A8_au_centre_du_B%C3%A9nin%2C_vues_du_ciel_03.jpg",
+      "width": 800,
+      "height": 450,
+      "licence": "CC BY-SA 4.0",
+      "author": "Fawaz.tairou",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Les_mamelles_de_Sav%C3%A8_au_centre_du_B%C3%A9nin,_vues_du_ciel_03.jpg"
+    },
+    "summary": "Les mamelles de Savè, ou trois mamelles de Savè, sont trois collines situées dans la ville de Savè et qui se distinguent par leurs formes en position de trois seins orientés vers le ciel."
+  },
+  {
+    "id": "Q3015740",
+    "name": "Marché Dantokpa",
+    "nameEn": "Dantokpa Market",
+    "types": [
+      "marché"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": "https://fr.wikipedia.org/wiki/March%C3%A9_Dantokpa",
+    "latitude": 6.372048,
+    "longitude": 2.434158,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/March%C3%A9_DANTOKPA.jpg/960px-March%C3%A9_DANTOKPA.jpg",
+      "width": 800,
+      "height": 530,
+      "licence": "CC BY 2.0",
+      "author": "jbdodane",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:March%C3%A9_DANTOKPA.jpg"
+    },
+    "summary": "Le marché Dantokpa (ou tout simplement Tokpa) se situe à Cotonou, la capitale économique du Bénin ; il est le plus grand marché à ciel ouvert d'Afrique de l'Ouest."
+  },
+  {
+    "id": "Q66480982",
+    "name": "mémorial de l'arbre de l'oubli",
+    "nameEn": null,
+    "types": [
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Ouidah",
+    "article": null,
+    "latitude": 6.3480979,
+    "longitude": 2.0868848,
+    "tier": "strong"
+  },
+  {
+    "id": "Q66473431",
+    "name": "mémorial du Grand Jubilé de l'an 2000",
+    "nameEn": "Mémorial du Grand Jubilé de l'an 2000",
+    "types": [
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Ouidah",
+    "article": null,
+    "latitude": 6.323236,
+    "longitude": 2.087788,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/Ouidah-M%C3%A9morial_du_Grand_Jubil%C3%A9_de_l%27an_2000_%282%29.jpg/960px-Ouidah-M%C3%A9morial_du_Grand_Jubil%C3%A9_de_l%27an_2000_%282%29.jpg",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 4.0",
+      "author": "Ji-Elle",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Ouidah-M%C3%A9morial_du_Grand_Jubil%C3%A9_de_l%27an_2000_(2).jpg"
+    }
+  },
+  {
+    "id": "Q111462087",
+    "name": "mémorial Zomachi",
+    "nameEn": "Memorial Zomachi",
+    "types": [
+      "mémorial",
+      "monument en mémoire de l'esclavage"
+    ],
+    "heritage": [],
+    "admin": "Ouidah",
+    "article": "https://fr.wikipedia.org/wiki/M%C3%A9morial_Zomachi",
+    "latitude": 6.341236776,
+    "longitude": 2.08797038,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Les_sept_piliers_de_l%27abolition_de_l%27esclavage%2C_M%C3%A9morial_ZOMACHI-route_des_esclaves_de_Ouidah.jpg/960px-Les_sept_piliers_de_l%27abolition_de_l%27esclavage%2C_M%C3%A9morial_ZOMACHI-route_des_esclaves_de_Ouidah.jpg",
+      "width": 800,
+      "height": 1422,
+      "licence": "CC BY-SA 4.0",
+      "author": "Yelouassi",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Les_sept_piliers_de_l%27abolition_de_l%27esclavage,_M%C3%A9morial_ZOMACHI-route_des_esclaves_de_Ouidah.jpg"
+    },
+    "summary": "Le Mémorial ZOMACHI était un site de mémoire et de recueillement situé au sud du Bénin à Ouidah, consacré à l’histoire de la mise en esclavage des Africains et de la traite transatlantique, mais également à la…"
+  },
+  {
+    "id": "Q68999815",
+    "name": "ménagère (statue)",
+    "nameEn": null,
+    "types": [
+      "statue",
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": null,
+    "latitude": 6.37037,
+    "longitude": 2.433718,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Satatue_d%27une_femme_m%C3%A9nag%C3%A8re_avec_un_enfant_au_dos_et_autre_tenu_par_sa_main_au_marche_Dantokpa.jpg/960px-Satatue_d%27une_femme_m%C3%A9nag%C3%A8re_avec_un_enfant_au_dos_et_autre_tenu_par_sa_main_au_marche_Dantokpa.jpg",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 4.0",
+      "author": "Adoscam",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Satatue_d%27une_femme_m%C3%A9nag%C3%A8re_avec_un_enfant_au_dos_et_autre_tenu_par_sa_main_au_marche_Dantokpa.jpg"
+    }
+  },
+  {
+    "id": "Q111950862",
+    "name": "Mini-Musée à Zangnanado",
+    "nameEn": "Mini-Museum in Zagnanado",
+    "types": [
+      "musée"
+    ],
+    "heritage": [],
+    "admin": "Zagnanado",
+    "article": null,
+    "latitude": 7.25408,
+    "longitude": 2.4683,
+    "tier": "strong"
+  },
+  {
+    "id": "Q923330",
+    "name": "mont Sokbaro",
+    "nameEn": "Mont Sokbaro",
+    "types": [
+      "montagne"
+    ],
+    "heritage": [],
+    "admin": "Bassila",
+    "article": "https://fr.wikipedia.org/wiki/Mont_Sokbaro",
+    "latitude": 9.328055555,
+    "longitude": 1.415555555,
+    "tier": "weak",
+    "summary": "Le mont Sokbaro est une montagne située sur la frontière entre le Bénin et le Togo, point culminant du Bénin avec 658 mètres d'altitude."
+  },
+  {
+    "id": "Q65156159",
+    "name": "mont Tanéka",
+    "nameEn": null,
+    "types": [
+      "montagne"
+    ],
+    "heritage": [],
+    "admin": null,
+    "article": "https://fr.wikipedia.org/wiki/Mont_Tan%C3%A9ka",
+    "latitude": 9.849722,
+    "longitude": 1.500833,
+    "tier": "weak",
+    "summary": "Le mont Tanéka est une montagne du Bénin."
+  },
+  {
+    "id": "Q112032217",
+    "name": "monument Amazone",
+    "nameEn": "Amazon Monument",
+    "types": [
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": "https://fr.wikipedia.org/wiki/Monument_Amazone",
+    "latitude": 6.349012,
+    "longitude": 2.407547,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Monument_de_l%27Amazone_au_Benin.jpg/960px-Monument_de_l%27Amazone_au_Benin.jpg",
+      "width": 800,
+      "height": 1067,
+      "licence": "CC BY-SA 4.0",
+      "author": "Alfrednadjere",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Monument_de_l%27Amazone_au_Benin.jpg"
+    },
+    "summary": "Le Monument Amazone ou l'Amazone est une statue érigée en hommage aux Amazones du Dahomey, inaugurée le 30 juillet 2022 par le Président de la République du Bénin, Patrice Talon."
+  },
+  {
+    "id": "Q68624933",
+    "name": "monument aux morts de Xwlacodji",
+    "nameEn": null,
+    "types": [
+      "place",
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": null,
+    "latitude": 6.353157,
+    "longitude": 2.438524,
+    "tier": "strong"
+  },
+  {
+    "id": "Q68627387",
+    "name": "monument de la paix",
+    "nameEn": null,
+    "types": [
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": null,
+    "latitude": 6.351739,
+    "longitude": 2.43306,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Le_Monument_de_la_paix_%C3%A0_Cotonou%2C_une_vue.jpg/960px-Le_Monument_de_la_paix_%C3%A0_Cotonou%2C_une_vue.jpg",
+      "width": 800,
+      "height": 1067,
+      "licence": "CC BY-SA 4.0",
+      "author": "Rachad sanoussi",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Le_Monument_de_la_paix_%C3%A0_Cotonou,_une_vue.jpg"
+    }
+  },
+  {
+    "id": "Q114714711",
+    "name": "mosquée Oumar Ibn Khattab",
+    "nameEn": "Oumar Ibn Khattab mosque",
+    "types": [
+      "mosquée"
+    ],
+    "heritage": [],
+    "admin": "Abomey-Calavi",
+    "article": null,
+    "latitude": 6.414750968,
+    "longitude": 2.337265277,
+    "tier": "strong"
+  },
+  {
+    "id": "Q66486534",
+    "name": "mosquée Zongo de Cotonou",
+    "nameEn": null,
+    "types": [
+      "mosquée"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": null,
+    "latitude": 6.356944444,
+    "longitude": 2.426388888,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Petite_mosqu%C3%A9e_de_Zongo_02.jpg/960px-Petite_mosqu%C3%A9e_de_Zongo_02.jpg",
+      "width": 800,
+      "height": 450,
+      "licence": "CC BY-SA 4.0",
+      "author": "Richmond Dakpogan",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Petite_mosqu%C3%A9e_de_Zongo_02.jpg"
+    }
+  },
+  {
+    "id": "Q108219385",
+    "name": "Mur du patrimoine",
+    "nameEn": null,
+    "types": [
+      "patrimoine culturel"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": "https://fr.wikipedia.org/wiki/Mur_du_patrimoine",
+    "latitude": 6.356111111,
+    "longitude": 2.429444444,
+    "tier": "strong",
+    "summary": "Le mur du patrimoine est un mur de graffitis situé au sud de la ville de Cotonou, département du Littoral au Bénin."
+  },
+  {
+    "id": "Q66437203",
+    "name": "musée Akaba Idena",
+    "nameEn": "Akaba Idena",
+    "types": [
+      "musée",
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Kétou",
+    "article": "https://fr.wikipedia.org/wiki/Mus%C3%A9e_Akaba_Idena",
+    "latitude": 7.36343,
+    "longitude": 2.60168,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Vue_de_face_de_l%27entr%C3%A9e_du_palais_au_mus%C3%A9e_Akaba_idena.jpg/960px-Vue_de_face_de_l%27entr%C3%A9e_du_palais_au_mus%C3%A9e_Akaba_idena.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 4.0",
+      "author": "Rachad sanoussi",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Vue_de_face_de_l%27entr%C3%A9e_du_palais_au_mus%C3%A9e_Akaba_idena.jpg"
+    },
+    "summary": "Le musée Akaba-Idena est un des sites touristiques du Bénin, situé dans la cité historique de Kétou ."
+  },
+  {
+    "id": "Q67931810",
+    "name": "musée d’art contemporain de Ouidah",
+    "nameEn": "museum of contemporary art in Ouidah",
+    "types": [
+      "musée",
+      "musée d'art"
+    ],
+    "heritage": [],
+    "admin": "Ouidah",
+    "article": "https://fr.wikipedia.org/wiki/Mus%C3%A9e_d%27Art_contemporain_de_Ouidah",
+    "latitude": 6.361793888,
+    "longitude": 2.085318055,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Les_lieux_touristiques_de_Ouidah%2C_Villa_Ajavon.jpg/960px-Les_lieux_touristiques_de_Ouidah%2C_Villa_Ajavon.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 4.0",
+      "author": "Saliousoft",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Les_lieux_touristiques_de_Ouidah,_Villa_Ajavon.jpg"
+    },
+    "summary": "Le musée d'art contemporain de Ouidah, inauguré le 11 novembre 2013, est une institution culturelle située à Ouidah, dans le département de l'Atlantique, au Bénin."
+  },
+  {
+    "id": "Q7110333",
+    "name": "musée d'histoire de Ouidah",
+    "nameEn": "Ouidah Museum of History",
+    "types": [
+      "musée",
+      "musée historique"
+    ],
+    "heritage": [],
+    "admin": "Ouidah",
+    "article": "https://fr.wikipedia.org/wiki/Mus%C3%A9e_d%27histoire_de_Ouidah",
+    "latitude": 6.359086111,
+    "longitude": 2.090058888,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Chapel_in_Ouidah_historical_museum_Benin_Jan_2018_in_January_2018.jpg/960px-Chapel_in_Ouidah_historical_museum_Benin_Jan_2018_in_January_2018.jpg",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 4.0",
+      "author": "Kulttuurinavigaattori",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Chapel_in_Ouidah_historical_museum_Benin_Jan_2018_in_January_2018.jpg"
+    },
+    "summary": "Le musée d'histoire de Ouidah est un musée du Bénin localisé dans la ville de Ouidah, dans le département d'Atlantique."
+  },
+  {
+    "id": "Q106834446",
+    "name": "musée Da-Silva",
+    "nameEn": "Musée Da-Silva",
+    "types": [
+      "musée"
+    ],
+    "heritage": [],
+    "admin": "Porto-Novo",
+    "article": "https://fr.wikipedia.org/wiki/Mus%C3%A9e_Da-Silva",
+    "latitude": 6.47073,
+    "longitude": 2.6203,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Mus%C3%A9e_da_Silva.jpg/960px-Mus%C3%A9e_da_Silva.jpg",
+      "width": 800,
+      "height": 532,
+      "licence": "CC BY-SA 4.0",
+      "author": "Ksperentos",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Mus%C3%A9e_da_Silva.jpg"
+    },
+    "summary": "Le musée Da-Silva, situé à Porto-Novo, au Bénin, est une institution culturelle privée inaugurée en 1998 par Karim da Silva."
+  },
+  {
+    "id": "Q110269997",
+    "name": "musée Danri",
+    "nameEn": "Danri Museum",
+    "types": [
+      "musée"
+    ],
+    "heritage": [],
+    "admin": "Nikki",
+    "article": "https://fr.wikipedia.org/wiki/Mus%C3%A9e_Danri_de_Nikki",
+    "latitude": 9.925805555,
+    "longitude": 3.208083333,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Mus%C3%A9e_palais_royal_de_Danri_%C3%A0_Nikki_au_B%C3%A9nin_05.jpg/960px-Mus%C3%A9e_palais_royal_de_Danri_%C3%A0_Nikki_au_B%C3%A9nin_05.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 4.0",
+      "author": "Saliousoft",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Mus%C3%A9e_palais_royal_de_Danri_%C3%A0_Nikki_au_B%C3%A9nin_05.jpg"
+    },
+    "summary": "Le musée Danri de Nikki est un des sites historiques du Bénin, situé dans le quartier de Danri au Bénin."
+  },
+  {
+    "id": "Q106720704",
+    "name": "musée des masques d'Adjarra",
+    "nameEn": "Musée des masques d'Adjarra",
+    "types": [
+      "musée"
+    ],
+    "heritage": [],
+    "admin": "Ouémé",
+    "article": "https://fr.wikipedia.org/wiki/Mus%C3%A9e_des_masques_d%27Adjarra",
+    "latitude": 6.523442512,
+    "longitude": 2.663726529,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Batiment_abritant_le_mus%C3%A9e_des_masques_d%27Adjarra%2C_au_B%C3%A9nin.jpg/960px-Batiment_abritant_le_mus%C3%A9e_des_masques_d%27Adjarra%2C_au_B%C3%A9nin.jpg",
+      "width": 800,
+      "height": 800,
+      "licence": "CC BY-SA 4.0",
+      "author": "Saliousoft",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Batiment_abritant_le_mus%C3%A9e_des_masques_d%27Adjarra,_au_B%C3%A9nin.jpg"
+    },
+    "summary": "Le musée des masques d'Adjarra est un musée situé dans le département de l'Ouémé, dans la commune d'Adjarra, au Bénin."
+  },
+  {
+    "id": "Q110264566",
+    "name": "musée des sciences naturelles de Cotonou",
+    "nameEn": "Musée des sciences naturelles de Cotonou",
+    "types": [
+      "musée"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": "https://fr.wikipedia.org/wiki/Mus%C3%A9e_des_sciences_naturelles_(Cotonou)",
+    "latitude": 6.373388,
+    "longitude": 2.471739,
+    "tier": "strong",
+    "summary": "Le musée des sciences naturelles aussi connu sous le nom Nature tropicale est un musée béninois situé à Yagbé Akpakpa, près de l'autoroute Cotonou - Porto-Novo."
+  },
+  {
+    "id": "Q110272681",
+    "name": "musée Don Francisco Felix De Souza",
+    "nameEn": "Musée Don Francisco Felix De Souza",
+    "types": [
+      "musée"
+    ],
+    "heritage": [],
+    "admin": "Ouidah",
+    "article": "https://fr.wikipedia.org/wiki/Mus%C3%A9e_Don-Francisco-Felix-de-Souza-Chacha",
+    "latitude": 7.2245269,
+    "longitude": 1.9139232,
+    "tier": "strong",
+    "summary": "Le musée Don-Francisco-Felix-de-Souza-Chacha aussi connu sous le nom de musée de Souza est un des sites historiques du Bénin, situé dans le quartier Docomè à Ouidah."
+  },
+  {
+    "id": "Q111951033",
+    "name": "musée éthnographique à Takon",
+    "nameEn": "ethnographic museum in Takon",
+    "types": [
+      "musée ethnographique"
+    ],
+    "heritage": [],
+    "admin": "Takon",
+    "article": null,
+    "latitude": 6.65381,
+    "longitude": 2.61616,
+    "tier": "strong"
+  },
+  {
+    "id": "Q4720905",
+    "name": "musée ethnographique Alexandre Sènou Adandé",
+    "nameEn": "Alexandre Sènou Adandé Ethnographic Museum",
+    "types": [
+      "musée",
+      "musée ethnographique"
+    ],
+    "heritage": [],
+    "admin": "Porto-Novo",
+    "article": "https://fr.wikipedia.org/wiki/Mus%C3%A9e_ethnographique_Alexandre_S%C3%A8nou_Adand%C3%A9",
+    "latitude": 6.4732,
+    "longitude": 2.617438,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Gate_of_Porto_Novo_ethnographic_museum_Benin_Dec_2017.jpg/960px-Gate_of_Porto_Novo_ethnographic_museum_Benin_Dec_2017.jpg",
+      "width": 800,
+      "height": 449,
+      "licence": "CC BY-SA 4.0",
+      "author": "Kulttuurinavigaattori",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Gate_of_Porto_Novo_ethnographic_museum_Benin_Dec_2017.jpg"
+    },
+    "summary": "Le Musée ethnographique Alexandre Sènou Adandé est un musée béninois installé dans un bâtiment colonial construit en 1922, à Porto-Novo, la capitale du pays."
+  },
+  {
+    "id": "Q2784689",
+    "name": "musée ethnographique et de plein air de Parakou",
+    "nameEn": "Musée en Plein Air de Parakou",
+    "types": [
+      "musée",
+      "jardin botanique",
+      "musée ethnographique"
+    ],
+    "heritage": [],
+    "admin": "Parakou",
+    "article": "https://fr.wikipedia.org/wiki/Mus%C3%A9e_ethnographique_et_de_plein_air_de_Parakou",
+    "latitude": 9.32896,
+    "longitude": 2.61851,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Parakoupleinairmuseum.jpg/960px-Parakoupleinairmuseum.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY 3.0",
+      "author": "UXrocks",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Parakoupleinairmuseum.jpg"
+    },
+    "summary": "Le musée ethnographique et de plein air de Parakou est un musée localisé dans la ville de Parakou, dans le département du Borgou au Bénin."
+  },
+  {
+    "id": "Q111948536",
+    "name": "Musée Gnonnas Pédro",
+    "nameEn": "Gnonnas Pédro Museum",
+    "types": [
+      "musée",
+      "musée privé",
+      "centre culturel",
+      "musée biographique"
+    ],
+    "heritage": [],
+    "admin": "Lokossa",
+    "article": null,
+    "latitude": 6.63256,
+    "longitude": 1.71458,
+    "tier": "strong"
+  },
+  {
+    "id": "Q10333504",
+    "name": "musée historique d'Abomey",
+    "nameEn": "Historical Museum of Abomey",
+    "types": [
+      "musée"
+    ],
+    "heritage": [],
+    "admin": "Abomey",
+    "article": "https://fr.wikipedia.org/wiki/Mus%C3%A9e_historique_d%27Abomey",
+    "latitude": 7.185555555,
+    "longitude": 1.988055555,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Abomey-K%C3%B6nigspalast2.jpg/960px-Abomey-K%C3%B6nigspalast2.jpg",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 3.0",
+      "author": "Dominik Schwarz",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Abomey-K%C3%B6nigspalast2.jpg"
+    },
+    "summary": "Le musée historique d’Abomey est un ensemble de palais royaux dont une partie contient l’un des plus prestigieux musées du Bénin."
+  },
+  {
+    "id": "Q2784858",
+    "name": "musée Honmè",
+    "nameEn": "Royal Palace Museum",
+    "types": [
+      "palais",
+      "musée"
+    ],
+    "heritage": [
+      "patrimoine mondial",
+      "patrimoine culturel immatériel"
+    ],
+    "admin": "Porto-Novo",
+    "article": "https://fr.wikipedia.org/wiki/Mus%C3%A9e_Honm%C3%A8",
+    "latitude": 6.469472222,
+    "longitude": 2.625194444,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Honm%C3%A92.jpg/960px-Honm%C3%A92.jpg",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 3.0",
+      "author": "Dominik Schwarz",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Honm%C3%A92.jpg"
+    },
+    "summary": "Le musée Honmè ou Honmey est un musée béninois installé dans le palais des anciens rois de Hogbonou, situé dans le quartier Avassa de Porto-Novo, la capitale du pays."
+  },
+  {
+    "id": "Q111730279",
+    "name": "musée International Avimadjessi d'Ahozon",
+    "nameEn": "Musée International Avimadjessi d'Ahozon",
+    "types": [
+      "musée"
+    ],
+    "heritage": [],
+    "admin": "Ouidah",
+    "article": "https://fr.wikipedia.org/wiki/Mus%C3%A9e_International_Avimadjessi_d%27Ahozon",
+    "latitude": 6.399715562,
+    "longitude": 2.189892172,
+    "tier": "strong",
+    "summary": "Le Musée International Avimadjessi d'Ahozon est un musée béninois, situé dans la commune de Ouidah."
+  },
+  {
+    "id": "Q16335735",
+    "name": "musée olympique du Bénin",
+    "nameEn": "Olympic Museum of Benin",
+    "types": [
+      "musée"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": "https://fr.wikipedia.org/wiki/Mus%C3%A9e_olympique_du_B%C3%A9nin",
+    "latitude": 6.386,
+    "longitude": 2.37933,
+    "tier": "strong",
+    "summary": "Le musée olympique du Bénin est un musée béninois situé à Cotonou et consacré à l'histoire des Jeux olympiques."
+  },
+  {
+    "id": "Q111210713",
+    "name": "musée régional de Kinkinhoué",
+    "nameEn": "regional museum in Kinkinhoué",
+    "types": [
+      "musée d'histoire locale"
+    ],
+    "heritage": [],
+    "admin": "Couffo",
+    "article": "https://fr.wikipedia.org/wiki/Mus%C3%A9e_r%C3%A9gional_de_Kinkinhou%C3%A9",
+    "latitude": 6.915616362,
+    "longitude": 1.718449738,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Plaque_du_mus%C3%A9e_r%C3%A9gional_de_Kinkinhou%C3%A9_01.jpg/960px-Plaque_du_mus%C3%A9e_r%C3%A9gional_de_Kinkinhou%C3%A9_01.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 4.0",
+      "author": "Aimeabibis",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Plaque_du_mus%C3%A9e_r%C3%A9gional_de_Kinkinhou%C3%A9_01.jpg"
+    },
+    "summary": "Le Musée régional de Kinkinhoué est un musée béninois érigé en musée le 7 juin 2014 gouvernement béninois est localisé dans la ville de commune de Djakotomey dans le département du Couffo"
+  },
+  {
+    "id": "Q16335723",
+    "name": "musée régional de Natitingou",
+    "nameEn": "Musée régional de Natitingou",
+    "types": [
+      "musée",
+      "musée d'histoire locale"
+    ],
+    "heritage": [],
+    "admin": "Natitingou",
+    "article": "https://fr.wikipedia.org/wiki/Mus%C3%A9e_r%C3%A9gional_de_Natitingou",
+    "latitude": 10.3109,
+    "longitude": 1.38031,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Mus%C3%A9e_de_Natitingou.jpg/960px-Mus%C3%A9e_de_Natitingou.jpg",
+      "width": 800,
+      "height": 502,
+      "licence": "CC BY 3.0",
+      "author": "Balkass",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Mus%C3%A9e_de_Natitingou.jpg"
+    },
+    "summary": "Le Musée régional de Natitingou est un musée béninois localisé dans la ville de Natitingou, dans le département d'Atacora."
+  },
+  {
+    "id": "Q994125",
+    "name": "Natitingou",
+    "nameEn": "Natitingou",
+    "types": [
+      "commune du Bénin"
+    ],
+    "heritage": [],
+    "admin": "Atacora",
+    "article": "https://fr.wikipedia.org/wiki/Natitingou",
+    "latitude": 10.3,
+    "longitude": 1.366666666,
+    "tier": "named",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Hotel_de_ville_de_Natitingou.JPG/960px-Hotel_de_ville_de_Natitingou.JPG",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY 3.0",
+      "author": "Balkass",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Hotel_de_ville_de_Natitingou.JPG"
+    },
+    "summary": "Natitingou est une commune et une ville du nord-ouest du Bénin, préfecture du département de l'Atakora."
+  },
+  {
+    "id": "Q106195578",
+    "name": "palais de la Marina",
+    "nameEn": "Presidential Palace, Cotonou",
+    "types": [
+      "palais présidentiel"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": "https://fr.wikipedia.org/wiki/Palais_de_la_Marina",
+    "latitude": 6.3517,
+    "longitude": 2.409,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Palais_de_la_Marina_ou_Pr%C3%A9sidence_de_la_R%C3%A9publique_du_B%C3%A9nin_01.jpg/960px-Palais_de_la_Marina_ou_Pr%C3%A9sidence_de_la_R%C3%A9publique_du_B%C3%A9nin_01.jpg",
+      "width": 800,
+      "height": 534,
+      "licence": "CC BY-SA 4.0",
+      "author": "Adoscam",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Palais_de_la_Marina_ou_Pr%C3%A9sidence_de_la_R%C3%A9publique_du_B%C3%A9nin_01.jpg"
+    },
+    "summary": "Le palais de la Marina est la résidence officielle du président de la république du Bénin."
+  },
+  {
+    "id": "Q62117208",
+    "name": "Palais des congrès de Cotonou",
+    "nameEn": "Cotonou congress centre",
+    "types": [
+      "palais des congrès"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": "https://fr.wikipedia.org/wiki/Palais_des_congr%C3%A8s_de_Cotonou",
+    "latitude": 6.349199,
+    "longitude": 2.404815,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Palais_des_congr%C3%A8s_Cotonou_%28cropped%29.jpg/960px-Palais_des_congr%C3%A8s_Cotonou_%28cropped%29.jpg",
+      "width": 800,
+      "height": 330,
+      "licence": "CC BY 4.0",
+      "author": "Yendifa",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Palais_des_congr%C3%A8s_Cotonou_(cropped).jpg"
+    },
+    "summary": "Le palais des congrès de Cotonou, est un centre de congrès et de spectacles situé dans la ville de Cotonou."
+  },
+  {
+    "id": "Q66480622",
+    "name": "palais royal d'Allada",
+    "nameEn": null,
+    "types": [
+      "palais royal"
+    ],
+    "heritage": [],
+    "admin": "Allada",
+    "article": null,
+    "latitude": 6.6661818,
+    "longitude": 2.1707875,
+    "tier": "strong"
+  },
+  {
+    "id": "Q66436167",
+    "name": "Palais royal de Djougou",
+    "nameEn": null,
+    "types": [
+      "palais royal"
+    ],
+    "heritage": [],
+    "admin": "Djougou",
+    "article": null,
+    "latitude": 9.705277777,
+    "longitude": 1.660277777,
+    "tier": "strong"
+  },
+  {
+    "id": "Q66436547",
+    "name": "palais royal de Savalou",
+    "nameEn": null,
+    "types": [
+      "palais royal"
+    ],
+    "heritage": [],
+    "admin": "Savalou",
+    "article": null,
+    "latitude": 7.931639,
+    "longitude": 1.972788,
+    "tier": "strong"
+  },
+  {
+    "id": "Q2425839",
+    "name": "Palais royaux d'Abomey",
+    "nameEn": "Royal Palaces of Abomey",
+    "types": [
+      "palais",
+      "musée historique d'Abomey"
+    ],
+    "heritage": [
+      "patrimoine mondial"
+    ],
+    "admin": "Abomey",
+    "article": null,
+    "latitude": 7.18645,
+    "longitude": 1.994002777,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Abomey_2006_1.jpg/960px-Abomey_2006_1.jpg",
+      "width": 800,
+      "height": 532,
+      "licence": "CC BY-SA 2.0",
+      "author": "Joachim Huber",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Abomey_2006_1.jpg"
+    }
+  },
+  {
+    "id": "Q7132513",
+    "name": "Papatia Botanical Garden",
+    "nameEn": "Papatia Botanical Garden",
+    "types": [
+      "jardin botanique"
+    ],
+    "heritage": [],
+    "admin": null,
+    "article": null,
+    "latitude": 9.3076,
+    "longitude": 2.3158,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Monotes_kerstingii_MS_6635.JPG/960px-Monotes_kerstingii_MS_6635.JPG",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 3.0",
+      "author": "Marco Schmidt",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Monotes_kerstingii_MS_6635.JPG"
+    }
+  },
+  {
+    "id": "Q1474363",
+    "name": "parc national de la Pendjari",
+    "nameEn": "Pendjari National Park",
+    "types": [
+      "parc national",
+      "réserve de biosphère"
+    ],
+    "heritage": [
+      "partie d'un site du patrimoine mondial"
+    ],
+    "admin": "Atacora",
+    "article": "https://fr.wikipedia.org/wiki/Parc_national_de_la_Pendjari",
+    "latitude": 11.25,
+    "longitude": 1.518055555,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Parc_national_de_la_Pendjari.JPG/960px-Parc_national_de_la_Pendjari.JPG",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 3.0",
+      "author": "Fawaz.tairou",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Parc_national_de_la_Pendjari.JPG"
+    },
+    "summary": "Le parc national de la Pendjari (PNP) est une aire protégée du Bénin, située à l'extrême nord-ouest du pays, dans le département de l’Atacora, sur les communes de Tanguiéta, Matéri et Kérou, à la frontière du Burkina…"
+  },
+  {
+    "id": "Q726863",
+    "name": "parc national du W",
+    "nameEn": "W National Park",
+    "types": [
+      "parc national",
+      "réserve de biosphère",
+      "aire protégée"
+    ],
+    "heritage": [
+      "partie d'un site du patrimoine mondial"
+    ],
+    "admin": null,
+    "article": "https://fr.wikipedia.org/wiki/Parc_national_du_W",
+    "latitude": 12.350047268,
+    "longitude": 2.354983783,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Elephants_bath_park_w_wide_2006.jpg/960px-Elephants_bath_park_w_wide_2006.jpg",
+      "width": 800,
+      "height": 532,
+      "licence": "CC BY-SA 2.0",
+      "author": "Roland Hunziker https://www.flickr.com/photos/rolandh/",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Elephants_bath_park_w_wide_2006.jpg"
+    },
+    "summary": "Le parc national du W du Niger est au cœur d'un complexe naturel transfrontalier de près d'un million d'hectares géré conjointement par le Bénin, le Niger et le Burkina Faso et protégé depuis 2007 par la convention de…"
+  },
+  {
+    "id": "Q64188731",
+    "name": "parc national du W du Bénin",
+    "nameEn": "W National Park of Benin",
+    "types": [
+      "parc national"
+    ],
+    "heritage": [
+      "site Ramsar",
+      "partie d'un site du patrimoine mondial"
+    ],
+    "admin": "Atacora",
+    "article": "https://fr.wikipedia.org/wiki/Parc_national_du_W_du_B%C3%A9nin",
+    "latitude": 11.884167,
+    "longitude": 2.654444,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Plaque_du_Parc_du_W.jpg/960px-Plaque_du_Parc_du_W.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 4.0",
+      "author": "DoussFrance",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Plaque_du_Parc_du_W.jpg"
+    },
+    "summary": "Le parc national du W est une aire protégée du Bénin, constituée par la réserve de biosphère transfrontalière, partagée entre le Bénin, le Niger et le Burkina Faso."
+  },
+  {
+    "id": "Q56310947",
+    "name": "Petit musée de la Récade",
+    "nameEn": "Petit Musée de la Récade",
+    "types": [
+      "musée"
+    ],
+    "heritage": [],
+    "admin": "Abomey-Calavi",
+    "article": "https://fr.wikipedia.org/wiki/Petit_Mus%C3%A9e_de_la_R%C3%A9cade",
+    "latitude": 6.38619,
+    "longitude": 2.31856,
+    "tier": "strong",
+    "summary": "Le Musée de la Récade, inauguré le 1er décembre 2015, est un musée béninois situé à Abomey-Calavi, au sud du pays."
+  },
+  {
+    "id": "Q16510194",
+    "name": "place du Souvenir",
+    "nameEn": "Place du Souvenir",
+    "types": [
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": "https://fr.wikipedia.org/wiki/Place_du_Souvenir",
+    "latitude": 6.35407,
+    "longitude": 2.40474,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Place_du_souvenir_01.JPG/960px-Place_du_souvenir_01.JPG",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 3.0",
+      "author": "Fawaz.tairou",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Place_du_souvenir_01.JPG"
+    },
+    "summary": "La place du Souvenir, anciennement appelée place des Martyrs, est une place de la ville de Cotonou, au Bénin, située dans le quartier Haie Vive."
+  },
+  {
+    "id": "Q18467833",
+    "name": "porte du non-retour",
+    "nameEn": "Door of No Return",
+    "types": [
+      "monument",
+      "mémorial"
+    ],
+    "heritage": [],
+    "admin": "Ouidah",
+    "article": "https://fr.wikipedia.org/wiki/Porte_du_non-retour",
+    "latitude": 6.324,
+    "longitude": 2.0894,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Porte_du_non-retour_au_Benin.jpg/960px-Porte_du_non-retour_au_Benin.jpg",
+      "width": 800,
+      "height": 450,
+      "licence": "CC0",
+      "author": "Borisghost",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Porte_du_non-retour_au_Benin.jpg"
+    },
+    "summary": "La Porte du non-retour est un arc mémorial en béton et bronze située sur une plage de la ville de Ouidah, au Bénin."
+  },
+  {
+    "id": "Q68628890",
+    "name": "porte du retour",
+    "nameEn": null,
+    "types": [
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": null,
+    "latitude": 6.3498,
+    "longitude": 2.40748,
+    "tier": "strong"
+  },
+  {
+    "id": "Q86661874",
+    "name": "réserve de biosphère transfrontière du delta du Mono",
+    "nameEn": "Mono Transboundary Biosphere Reserve",
+    "types": [
+      "réserve de biosphère",
+      "aire protégée"
+    ],
+    "heritage": [],
+    "admin": null,
+    "article": "https://fr.wikipedia.org/wiki/R%C3%A9serve_de_biosph%C3%A8re_transfronti%C3%A8re_du_Mono",
+    "latitude": 6.4529631,
+    "longitude": 1.5443496,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Paysage_c%C3%B4tier.jpg/960px-Paysage_c%C3%B4tier.jpg",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 4.0",
+      "author": "Padonou Dotou",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Paysage_c%C3%B4tier.jpg"
+    },
+    "summary": "La réserve de biosphère transfrontalière du Mono s’étend autour de l’embouchure du fleuve Mono, à la frontière entre le Bénin et le Togo."
+  },
+  {
+    "id": "Q71274502",
+    "name": "Site des hommes à queue",
+    "nameEn": null,
+    "types": [
+      "site archéologique"
+    ],
+    "heritage": [],
+    "admin": "Dogbo",
+    "article": "https://fr.wikipedia.org/wiki/Site_des_hommes_%C3%A0_queue",
+    "latitude": 6.81681,
+    "longitude": 1.78399,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Vue_d%27entr%C3%A9e_du_site_des_hommes_%C3%A0_queue_a_Dogo_au_B%C3%A9nin.jpg/960px-Vue_d%27entr%C3%A9e_du_site_des_hommes_%C3%A0_queue_a_Dogo_au_B%C3%A9nin.jpg",
+      "width": 800,
+      "height": 400,
+      "licence": "CC BY-SA 4.0",
+      "author": "Adoscam",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Vue_d%27entr%C3%A9e_du_site_des_hommes_%C3%A0_queue_a_Dogo_au_B%C3%A9nin.jpg"
+    },
+    "summary": "Le site des hommes à queue est un site archéologique et historique du Bénin situé dans la commune de Dogbo (département du Couffo), à 136 km au nord-ouest de Cotonou."
+  },
+  {
+    "id": "Q66481246",
+    "name": "statue Dadjè soka",
+    "nameEn": null,
+    "types": [
+      "statue",
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Comè",
+    "article": null,
+    "latitude": 6.400777777,
+    "longitude": 1.891055555,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Statue_of_liberation_from_slavery_at_the_entrance_of_Com%C3%A8_city_in_Benin.jpg/960px-Statue_of_liberation_from_slavery_at_the_entrance_of_Com%C3%A8_city_in_Benin.jpg",
+      "width": 800,
+      "height": 599,
+      "licence": "CC BY-SA 4.0",
+      "author": "Adoscam",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Statue_of_liberation_from_slavery_at_the_entrance_of_Com%C3%A8_city_in_Benin.jpg"
+    }
+  },
+  {
+    "id": "Q66436141",
+    "name": "stèle de Kaba",
+    "nameEn": "Stèle de Kaba",
+    "types": [
+      "musée",
+      "stèle"
+    ],
+    "heritage": [],
+    "admin": "Natitingou",
+    "article": "https://fr.wikipedia.org/wiki/St%C3%A8le_de_Kaba",
+    "latitude": 10.254444444,
+    "longitude": 1.381388888,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/1/1a/Vue_de_face_du_Statut_au_carrefour_KABA_de_Natitingou.jpg",
+      "width": 800,
+      "height": 1067,
+      "licence": "CC BY-SA 4.0",
+      "author": "Adoscam",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Vue_de_face_du_Statut_au_carrefour_KABA_de_Natitingou.jpg"
+    },
+    "summary": "La stèle de Kaba ou musée Kaba de la résistance ou encore musée Kaba est un monument érigé en mémoire de Kaba, à la sortie de la ville de Natitingou au nord-ouest du Bénin."
+  },
+  {
+    "id": "Q68998463",
+    "name": "synchronisation musique et sport",
+    "nameEn": null,
+    "types": [
+      "sculpture",
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": null,
+    "latitude": 6.384261,
+    "longitude": 2.377874,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Front_of_view_Statue_erected_at_the_entrance_of_the_stade_de_l%27amiti%C3%A9_G%C3%A9n%C3%A9ral_Mathieu_K%C3%A9r%C3%A9kou_in_Cotonou-Benin.jpg/960px-Front_of_view_Statue_erected_at_the_entrance_of_the_stade_de_l%27amiti%C3%A9_G%C3%A9n%C3%A9ral_Mathieu_K%C3%A9r%C3%A9kou_in_Cotonou-Benin.jpg",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 4.0",
+      "author": "Adoscam",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Front_of_view_Statue_erected_at_the_entrance_of_the_stade_de_l%27amiti%C3%A9_G%C3%A9n%C3%A9ral_Mathieu_K%C3%A9r%C3%A9kou_in_Cotonou-Benin.jpg"
+    }
+  },
+  {
+    "id": "Q136718522",
+    "name": "Tangbo-Djevié",
+    "nameEn": null,
+    "types": [
+      "marché"
+    ],
+    "heritage": [],
+    "admin": "Atlantique",
+    "article": null,
+    "latitude": 6.58911,
+    "longitude": 2.278842,
+    "tier": "strong"
+  },
+  {
+    "id": "Q2269248",
+    "name": "Tanguiéta",
+    "nameEn": "Tanguiéta",
+    "types": [
+      "commune du Bénin"
+    ],
+    "heritage": [],
+    "admin": "Atacora",
+    "article": "https://fr.wikipedia.org/wiki/Tangui%C3%A9ta",
+    "latitude": 11.03621,
+    "longitude": 1.41757,
+    "tier": "named",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/93/Tanguieta_sign%2C_Benin.jpg",
+      "width": 800,
+      "height": 1067,
+      "licence": "CC BY-SA 3.0",
+      "author": "Wxgirl11",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Tanguieta_sign,_Benin.jpg"
+    },
+    "summary": "Tanguiéta est une commune du nord-ouest du Bénin, située dans le département de l'Atacora."
+  },
+  {
+    "id": "Q36698317",
+    "name": "temple des Pythons",
+    "nameEn": "Temple des Pythons",
+    "types": [
+      "temple",
+      "vaudou",
+      "sanctuaire"
+    ],
+    "heritage": [],
+    "admin": "Ouidah",
+    "article": "https://fr.wikipedia.org/wiki/Temple_des_Pythons",
+    "latitude": 6.35997,
+    "longitude": 2.08504,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Temple_des_Pythons_de_Ouidah_02.jpg/960px-Temple_des_Pythons_de_Ouidah_02.jpg",
+      "width": 800,
+      "height": 600,
+      "licence": "CC BY-SA 4.0",
+      "author": "Gildaskiki",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Temple_des_Pythons_de_Ouidah_02.jpg"
+    },
+    "summary": "Le temple des Pythons est un sanctuaire vaudou situé à Ouidah (Bénin), dans un lieu où l'existence d'un culte du serpent (Dangbé) une forme particulière du vaudou est attestée depuis la fin du XVIIe siècle."
+  },
+  {
+    "id": "Q68628764",
+    "name": "triangle réconciliation",
+    "nameEn": null,
+    "types": [
+      "monument"
+    ],
+    "heritage": [],
+    "admin": "Cotonou",
+    "article": null,
+    "latitude": 6.349287,
+    "longitude": 2.407518,
+    "tier": "strong"
+  },
+  {
+    "id": "Q127327299",
+    "name": "Vallée du Sitatunga",
+    "nameEn": "Sitatunga Valley",
+    "types": [
+      "réserve naturelle"
+    ],
+    "heritage": [],
+    "admin": "Sô-Ava",
+    "article": "https://fr.wikipedia.org/wiki/Vall%C3%A9e_du_Sitatunga",
+    "latitude": 6.624166666,
+    "longitude": 2.353888888,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Vall%C3%A9e_de_Sitatunga_01.jpg/960px-Vall%C3%A9e_de_Sitatunga_01.jpg",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 4.0",
+      "author": "BOKOSSA Aurele Rufu5",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Vall%C3%A9e_de_Sitatunga_01.jpg"
+    },
+    "summary": "La vallée du Sitatunga est une réserve naturelle communautaire située dans une zone humide au sud du Bénin."
+  },
+  {
+    "id": "Q20380202",
+    "name": "Villa Karo",
+    "nameEn": "Villa Karo",
+    "types": [
+      "musée",
+      "laboratoire",
+      "centre culturel",
+      "résidence créative"
+    ],
+    "heritage": [],
+    "admin": "Grand-Popo",
+    "article": "https://fr.wikipedia.org/wiki/Villa_Karo",
+    "latitude": 6.2789,
+    "longitude": 1.8255,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Villa_Karo_-_Grand-Popo.jpg/960px-Villa_Karo_-_Grand-Popo.jpg",
+      "width": 800,
+      "height": 533,
+      "licence": "CC BY-SA 4.0",
+      "author": "Fawaz.tairou",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Villa_Karo_-_Grand-Popo.jpg"
+    },
+    "summary": "La Villa Karo est un centre culturel et une résidence d'artistes finno-africain."
+  },
+  {
+    "id": "Q4693350",
+    "name": "Village souterrain d'Agongointo-Zoungoudo",
+    "nameEn": "Agongointo-Zoungoudo Underground Town",
+    "types": [
+      "site archéologique"
+    ],
+    "heritage": [
+      "liste indicative du patrimoine mondial"
+    ],
+    "admin": "Bohicon",
+    "article": "https://fr.wikipedia.org/wiki/Village_souterrain_d%27Agongointo-Zoungoudo",
+    "latitude": 7.1885,
+    "longitude": 2.0835,
+    "tier": "strong",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Village_souterrain_d%27Agongointo.jpg/960px-Village_souterrain_d%27Agongointo.jpg",
+      "width": 800,
+      "height": 1067,
+      "licence": "CC BY-SA 4.0",
+      "author": "Rachad sanoussi",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Village_souterrain_d%27Agongointo.jpg"
+    },
+    "summary": "Le village souterrain d'Agongointo-Zoungoudo est un site archéologique du Bénin, situé dans la commune de Bohicon (département du Zou), à 115 km de Cotonou et à 9 km d'Abomey."
+  },
+  {
+    "id": "Q22674865",
+    "name": "W' Region Transboundary Biosphere Reserve",
+    "nameEn": "W' Region Transboundary Biosphere Reserve",
+    "types": [
+      "réserve de biosphère"
+    ],
+    "heritage": [],
+    "admin": null,
+    "article": null,
+    "latitude": 12.24,
+    "longitude": 2.61,
+    "tier": "strong"
+  }
+]

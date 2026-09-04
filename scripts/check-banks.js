@@ -196,6 +196,18 @@ check(
 withUrl.forEach((bank) => {
   check(`${bank.key}'s site is https`, /^https:\/\//.test(bank.url), true);
 });
+// Every url in the file was confirmed to be that bank's own, and one of
+// them could not be opened from here — BGFI's host does not resolve on
+// this machine, and the confirmation came from the indexed titles of its
+// own pages. That is a weaker instrument than the others and the file has
+// to keep saying so, because "no comment" would read as "opened and
+// checked like the rest".
+check(
+  "the one url confirmed indirectly still says how",
+  /does not resolve from this machine/.test(data) &&
+    /indexed with titles ending/.test(data.replace(/\n\s*\/\/\s*/g, " ")),
+  true,
+);
 // The ones with no url are not the ones with no website. Several of these
 // sites answer a script with 403, so the screen must say the site was not
 // verified rather than that there is none.
@@ -204,29 +216,6 @@ check(
   /banksSiteUnverified/.test(screen),
   true,
 );
-
-// A group's site must never be presented as the bank's own. BGFIBank
-// Bénin's own address could not be reached — the country subdomains do not
-// resolve — so what the app links to is the parent group, and the label on
-// screen has to say so. Silently promoting it to "Site web" is a one-word
-// change that turns a true statement into a false one.
-const grouped = beninBanks.filter((bank) => bank.urlScope === "group");
-grouped.forEach((bank) => {
-  check(`${bank.key} with a group url has a url at all`, Boolean(bank.url), true);
-});
-check(
-  "a group site is labelled as the group's",
-  grouped.length === 0 ||
-    /bank\.urlScope === "group"[\s\S]{0,80}banksGroupSite/.test(screen),
-  true,
-);
-beninBanks.forEach((bank) => {
-  check(
-    `${bank.key} uses a known url scope`,
-    bank.urlScope === undefined || bank.urlScope === "group",
-    true,
-  );
-});
 
 // ── A mark is the bank's own, or there is none ─────────────────────────
 //

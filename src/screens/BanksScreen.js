@@ -167,9 +167,7 @@ export function BanksScreen({ navigation }) {
                     <SecondaryAction onPress={() => Linking.openURL(bank.url)}>
                       <Ionicons name="globe-outline" size={15} color={colors.primary} />
                       <SecondaryActionLabel>
-                        {bank.urlScope === "group"
-                          ? t("banksGroupSite")
-                          : t("banksWebsite")}
+                        {t("banksWebsite")}
                       </SecondaryActionLabel>
                     </SecondaryAction>
                   ) : (

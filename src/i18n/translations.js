@@ -663,7 +663,6 @@ export const translations = {
       "The full register, in alphabetical order — not a selection and not a ranking.",
     banksCount: "{count} licensed bank(s)",
     banksWebsite: "Website",
-    banksGroupSite: "Group site",
     // Not "no website": the bank may well have one. It means nobody here
     // opened it and confirmed whose it is, which is a different claim.
     banksSiteUnverified: "Site not verified",
@@ -3687,7 +3686,6 @@ export const translations = {
       "Le registre complet, par ordre alphabétique — ni une sélection, ni un classement.",
     banksCount: "{count} banque(s) agréée(s)",
     banksWebsite: "Site web",
-    banksGroupSite: "Site du groupe",
     banksSiteUnverified: "Site non vérifié",
     banksFindBranch: "Trouver une agence",
 

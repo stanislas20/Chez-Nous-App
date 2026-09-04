@@ -37,25 +37,22 @@ export const beninBanks = [
     name: "Banque Sahélo-Saharienne pour l'Investissement et le Commerce",
     shortName: "BSIC",
   },
-  // The group's site, and labelled as the group's site on screen.
+  // Confirmed from the search index rather than by opening it here, which
+  // is worth saying because it is a weaker instrument than the rest of
+  // this file used.
   //
-  // BGFIBank Bénin's own address could not be confirmed from here.
-  // benin.groupebgfibank.com does not resolve at all — nor do the Côte
-  // d'Ivoire or Gabon equivalents, so those country sites look retired
-  // rather than merely unreachable — and bgfibankbenin.bgfi.com resolves
-  // but refuses connections on 443 and 80. What is verified is
-  // groupebgfibank.com, opened and read: "Groupe BGFIBank – Votre
-  // partenaire pour l'avenir", with BGFIBank Bénin on its contacts page.
-  //
-  // So urlScope says what it is. A customer sent to the group's home page
-  // has been sent somewhere real and told so; a group page dressed as the
-  // Bénin bank's own would be the small lie this file exists to avoid.
-  // If the subsidiary's site is reachable from Bénin, this becomes a plain
-  // url and the scope goes away.
+  // benin.groupebgfibank.com does not resolve from this machine — not on
+  // the local resolver and not via 8.8.8.8, 1.1.1.1 or 9.9.9.9 — and
+  // neither do the Côte d'Ivoire or Gabon equivalents, so a dev machine
+  // reading this file will find the host dead and should not conclude the
+  // site is. What confirms it: six distinct pages on that host are indexed
+  // with titles ending "- BGFIBank Bénin" (mentions légales, réseau
+  // d'agences, réseau de GAB among them), it is a subdomain of
+  // groupebgfibank.com which was opened and read directly here, and it
+  // loads for the person who asked for it.
   {
     key: "bgfi",
-    url: "https://groupebgfibank.com/",
-    urlScope: "group",
+    url: "https://benin.groupebgfibank.com/",
     name: "BGFIBank Bénin",
     shortName: "BGFI",
   },
@@ -71,11 +68,12 @@ export const beninBanks = [
   { key: "uba", url: "https://ubabenin.com/", name: "United Bank for Africa Bénin", shortName: "UBA" },
 ];
 
-// `url` is present only where a site was opened and its <title> confirmed
-// whose it is. `urlScope: "group"` marks the one case where what could be
-// confirmed was the parent group's site rather than the Bénin bank's own,
-// and the screen labels that link differently — the same rule companyLogos
-// follows when a local site is unreachable and the group publishes the mark. The rest have none rather than a guess: several are
+// `url` is present only where the site was confirmed to be that bank's own,
+// by reading a <title> that says so. All but one were opened directly from
+// here; BGFI's is noted above, where the host does not resolve from this
+// machine and the confirmation came from the indexed titles of its own
+// pages instead. The instrument is recorded with the entry rather than
+// left for somebody to assume. The rest have none rather than a guess: several are
 // behind Cloudflare (Orabank, NSIA Banque answer a script with 403) and a
 // plausible-looking domain that turns out to be a parked page or somebody
 // else's is the one mistake a banking directory cannot make.

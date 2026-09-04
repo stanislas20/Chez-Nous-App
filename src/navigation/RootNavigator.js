@@ -2,6 +2,7 @@ import { ActivityIndicator, Pressable, View } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme/ThemeContext";
+import { renderHeaderBackButton } from "./headerBackButton";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { LanguageSelectScreen } from "../screens/LanguageSelectScreen";
@@ -73,20 +74,6 @@ const Stack = createNativeStackNavigator();
 // UIKit issue that is, and matches the custom back buttons already used
 // elsewhere in the app (LocalScreen, MoreScreen, ProductDetailScreen),
 // which have never had this problem on either platform.
-function renderHeaderBackButton(navigation, color) {
-  return () => (
-    <Pressable
-      onPress={() => navigation.goBack()}
-      hitSlop={12}
-      style={backButtonStyle}
-    >
-      <Ionicons name="chevron-back" size={26} color={color} />
-    </Pressable>
-  );
-}
-
-const backButtonStyle = { paddingRight: 12, paddingVertical: 4 };
-
 // Temporary: the Restaurants search crash could not be reproduced on the
 // dev device, so the screen reports its own render errors rather than
 // disappearing. Remove once the cause is known.

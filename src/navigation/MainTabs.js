@@ -10,6 +10,7 @@ import { canPublish } from "../utils/canPublish";
 import { useNotificationCenter } from "../hooks/useNotificationCenter";
 import { LanguageSwitch } from "../components/LanguageSwitch";
 import { FloatingTabBar } from "./FloatingTabBar";
+import { renderHeaderBackButton } from "./headerBackButton";
 import { SellStack } from "./SellStack";
 import { ForYouScreen } from "../screens/ForYouScreen";
 import { LocalScreen } from "../screens/LocalScreen";
@@ -29,6 +30,17 @@ export function MainTabs() {
   return (
     <Tab.Navigator
       initialRouteName="ForYou"
+      // "Back" has to mean the screen they came from.
+      //
+      // A bottom tab navigator defaults to backBehavior="firstRoute", so
+      // goBack() from Messages went to the first tab rather than to
+      // wherever the reader actually was — and the dashboard alone sends
+      // people to Messages from five places. The header chevron below and
+      // the Android system button both go through goBack(), so this is
+      // what makes them agree with each other and with the request; a back
+      // control that lands somewhere other than the system one is worse
+      // than none at all.
+      backBehavior="history"
       tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={({ navigation }) => ({
         headerRight: () => (
@@ -84,13 +96,24 @@ export function MainTabs() {
           tabBarBadge: badgeCount > 0 ? badgeCount : undefined,
         }}
       />
+      {/* The one tab with a back control.
+          
+          Messages is arrived at rather than browsed to: five entry points
+          on the Vendre dashboard, a push notification, a badge. Somebody
+          who lands there mid-task wants the screen they left, and had only
+          the system button to find it with — nothing on screen said the
+          way back existed. It is hidden when there is nothing behind it,
+          so opening the app straight into Messages shows no dead chevron. */}
       <Tab.Screen
         name="Messages"
         component={ChatListScreen}
-        options={{
+        options={({ navigation }) => ({
           title: t("tabChat"),
           tabBarBadge: unreadMessageCount > 0 ? unreadMessageCount : undefined,
-        }}
+          headerLeft: renderHeaderBackButton(navigation, colors.primary, {
+            hideWhenRoot: true,
+          }),
+        })}
       />
     </Tab.Navigator>
   );

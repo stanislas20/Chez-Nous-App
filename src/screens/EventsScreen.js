@@ -4,6 +4,7 @@ import {
   Animated,
   FlatList,
   Keyboard,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -23,6 +24,11 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
+import {
+  festivalRecurrence,
+  festivalWhat,
+  festivalsFromNow,
+} from "../data/beninFestivals";
 import { cities } from "../data/cities";
 import { RailChip } from "../components/RailChip";
 import { usePressScale } from "../components/Tappable";
@@ -111,6 +117,9 @@ export function EventsScreen({ navigation }) {
   const [kind, setKind] = useState(null);
   const [freeOnly, setFreeOnly] = useState(false);
   const [selectedCity, setSelectedCity] = useState(null);
+  // Ordered from this month, so the next one to come is at the top.
+  const festivals = useMemo(() => festivalsFromNow(), []);
+
   const [citySheetOpen, setCitySheetOpen] = useState(false);
   const [citySearch, setCitySearch] = useState("");
   // The city sheet is anchored to the bottom of the screen, which is
@@ -696,6 +705,53 @@ export function EventsScreen({ navigation }) {
         }
         ListFooterComponent={
           <Footer>
+            {/* The country's own calendar, under whatever people have
+                posted and visibly not part of it.
+
+                This screen ships no sample events on purpose — see the
+                note at the top of data/events.js — and that rule is right
+                for a concert at a maquis and wrong for the Vodun Days. Nobody is going to "post" a national
+                holiday, and somebody asking what is on in January should
+                not be told nothing is.
+
+                Dates are not given, because they move: Vodun Days grew
+                from the 10 January holiday into three days, Nonvitcha
+                follows Pentecost, and the Gaani follows the Muslim
+                calendar and slides through the seasons. Each says when it
+                usually falls and which edition was last announced. */}
+            <FestivalHead>{t("festivalsTitle")}</FestivalHead>
+            <FestivalIntro>{t("festivalsIntro")}</FestivalIntro>
+            {festivals.map((festival) => (
+              <FestivalCard
+                key={festival.key}
+                onPress={() =>
+                  festival.website && Linking.openURL(festival.website)
+                }
+              >
+                <FestivalTop>
+                  <FestivalDot tint={getEventKindTint(festival.kind) ?? EVENT_ACCENT} />
+                  <FestivalName numberOfLines={1}>{festival.name}</FestivalName>
+                  <FestivalCity numberOfLines={1}>
+                    {festival.venue
+                      ? `${festival.venue} · ${festival.city}`
+                      : festival.city}
+                  </FestivalCity>
+                </FestivalTop>
+                <FestivalWhat numberOfLines={3}>
+                  {festivalWhat(festival, language)}
+                </FestivalWhat>
+                <FestivalWhen numberOfLines={2}>
+                  {t("festivalsUsually")} · {festivalRecurrence(festival, language)}
+                </FestivalWhen>
+                {festival.lastConfirmedEdition ? (
+                  <FestivalEdition numberOfLines={1}>
+                    {t("festivalsLastEdition", {
+                      edition: festival.lastConfirmedEdition,
+                    })}
+                  </FestivalEdition>
+                ) : null}
+              </FestivalCard>
+            ))}
             <SafetyNote>
               <Ionicons name="shield-checkmark-outline" size={16} color="#8a6415" />
               <SafetyText>{t("eventsSafetyNote")}</SafetyText>
@@ -1470,4 +1526,72 @@ const PostLabel = styled.Text`
   font-size: 15.5px;
   letter-spacing: 0.2px;
   color: #ffffff;
+`;
+
+const FestivalHead = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 16px;
+  color: ${(props) => props.theme.text};
+  margin-top: ${spacing.lg}px;
+`;
+
+const FestivalIntro = styled.Text`
+  ${type.caption}
+  color: ${(props) => props.theme.textMuted};
+  margin-top: 4px;
+  margin-bottom: ${spacing.md}px;
+`;
+
+const FestivalCard = styled(Pressable)`
+  background-color: ${(props) => props.theme.surface};
+  border-radius: ${radius.md}px;
+  padding: ${spacing.md}px;
+  margin-bottom: ${spacing.sm}px;
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+`;
+
+const FestivalTop = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.sm}px;
+`;
+
+const FestivalDot = styled.View`
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background-color: ${(props) => props.tint};
+`;
+
+const FestivalName = styled.Text`
+  ${type.bodyMedium}
+  color: ${(props) => props.theme.text};
+  flex-shrink: 1;
+`;
+
+const FestivalCity = styled.Text`
+  ${type.caption}
+  color: ${(props) => props.theme.textMuted};
+  flex: 1;
+  text-align: right;
+`;
+
+const FestivalWhat = styled.Text`
+  ${type.caption}
+  color: ${(props) => props.theme.text};
+  margin-top: 6px;
+  line-height: 18px;
+`;
+
+const FestivalWhen = styled.Text`
+  ${type.captionMedium}
+  color: ${(props) => props.theme.primary};
+  margin-top: 6px;
+`;
+
+const FestivalEdition = styled.Text`
+  ${type.caption}
+  color: ${(props) => props.theme.textMuted};
+  margin-top: 2px;
 `;

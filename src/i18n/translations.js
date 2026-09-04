@@ -666,6 +666,12 @@ export const translations = {
     banksFindBranch: "Find a branch",
 
     tourismSearchPlaceholder: "Sites, hotels, activities…",
+    festivalsTitle: "Every year in Bénin",
+    festivalsIntro:
+      "Fixtures nobody needs to post: they come round every year. Dates move, so what is given is when it usually falls and the last edition that was announced — check with the organiser before you travel.",
+    festivalsUsually: "Usually",
+    festivalsLastEdition: "Last announced: {edition}",
+    festivalsReadOn: "Read on {date}",
     tourismKicker: "WHAT TO DO IN BÉNIN",
     tourismHeroTitle: "How long have you got?",
     tourismHeroCopy:
@@ -3741,6 +3747,12 @@ export const translations = {
     banksFindBranch: "Trouver une agence",
 
     tourismSearchPlaceholder: "Sites, hôtels, activités…",
+    festivalsTitle: "Chaque année au Bénin",
+    festivalsIntro:
+      "Des rendez-vous que personne n'a besoin de publier : ils reviennent tous les ans. Les dates bougent, alors on donne la période habituelle et la dernière édition annoncée — vérifiez auprès de l'organisateur avant de vous déplacer.",
+    festivalsUsually: "En général",
+    festivalsLastEdition: "Dernière annoncée : {edition}",
+    festivalsReadOn: "Relevé le {date}",
     tourismKicker: "QUE FAIRE AU BÉNIN",
     tourismHeroTitle: "Combien de temps avez-vous ?",
     tourismHeroCopy:

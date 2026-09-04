@@ -128,6 +128,38 @@ check(
   /t\("hotelsNoneListed"\)/.test(screen),
 );
 
+// ── Publier offers the tab the owner is reading ────────────────────────
+//
+// The button sent realEstateDeal: "shortStay" whatever tab was open, so an
+// owner reading Salle et événement landed on a form asking a room's
+// nightly rate. Nothing failed: they either worked out unaided that a hall
+// is filed under Commerce, or they published a hall as a room.
+//
+// Two halves, and the second is the one that breaks silently. A screen may
+// send any route param it likes; if the form does not read it back, it is
+// dropped without a word — the same write-side/read-side asymmetry
+// check-real-estate-fields exists for, in the opposite direction.
+const create = readCode("src/screens/CreateListingScreen.js");
+check(
+  "the publish button branches on the tab instead of always sending a room",
+  /isStay[\s\S]{0,120}realEstateDeal: "shortStay"[\s\S]{0,160}commercialType: HALL_TYPE/.test(
+    screen,
+  ),
+);
+check(
+  "the hall type is read out of realEstate.js, not written as a literal",
+  /commercialTypes\.find\(\(type\) => type\.hasCapacity\)/.test(screen) &&
+    !/"eventHall"/.test(screen),
+);
+check(
+  "the form reads commercialType back off the route, so the param is not dropped",
+  /seed\("commercialType", route\.params\?\.commercialType/.test(create),
+);
+check(
+  "and reads realEstateDeal back too, which is the half that already worked",
+  /seed\("realEstateDeal", route\.params\?\.realEstateDeal/.test(create),
+);
+
 if (failures.length) {
   failures.forEach((line) => console.error(`FAIL ${line}`));
   console.error(`\n${failures.length} failing`);

@@ -786,8 +786,13 @@ export function CreateListingScreen({ route, navigation }) {
   const [realEstateDeal, setRealEstateDeal] = useState(
     seed("realEstateDeal", route.params?.realEstateDeal ?? null),
   );
+  // Preset alongside realEstateDeal above, and for the same reason: the
+  // Hôtels screen's Salle et événement tab carries "a hall" through, which
+  // is the commercial deal AND its type. Seeding only the deal would drop
+  // the seller on Commerce with the type still unpicked — the second half
+  // of the sentence they already said.
   const [commercialType, setCommercialType] = useState(
-    seed("commercialType", null),
+    seed("commercialType", route.params?.commercialType ?? null),
   );
   const [vehicleDeal, setVehicleDeal] = useState(seed("vehicleDeal", null));
   // Preset when the seller arrived from a route that already knows — the

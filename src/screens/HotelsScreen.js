@@ -22,6 +22,7 @@ import { canPublish, publishBlockReason } from "../utils/canPublish";
 import { isVerifiedCompanyProfile } from "../utils/listingLifecycle";
 import { cities } from "../data/cities";
 import { cityCoordinates } from "../data/cityCoordinates";
+import { commercialTypes } from "../data/realEstate";
 import { nearestKnownCity } from "../utils/nearestCity";
 import osmLodging from "../data/osmLodging.json";
 import { distanceInKm } from "../utils/geo";
@@ -75,6 +76,11 @@ const GOLD = "#D9A441";
 // somebody phones from a taxi at nine at night. The sample cards here
 // follow the rule sampleGarages set — no number, no rating, no hours — and
 // vanish the moment one real short-stay listing is approved.
+// A salle de fête, asked of the file that defines one. Capacity is what
+// separates a hall from a shop or a warehouse, and it is the same test
+// realEstateHasCapacity applies — so this cannot drift from the form.
+const HALL_TYPE = commercialTypes.find((type) => type.hasCapacity)?.key;
+
 export function HotelsScreen({ navigation }) {
   const { t, language } = useI18n();
   const { colors } = useTheme();
@@ -138,10 +144,26 @@ export function HotelsScreen({ navigation }) {
   // brings them back here. What is hidden is the dead promise: a signed-in
   // seller who cannot publish, or one whose company is not verified, is
   // told which of the two it is rather than shown a button that fails.
+  // The form opens on whichever tab was being read.
+  //
+  // This always sent "shortStay", so an owner reading Salle et événement
+  // and pressing Publier arrived at a form asking a room's nightly rate.
+  // They had to work out on their own that a hall is filed under Commerce
+  // and choose it again — and the ones who did not simply published the
+  // wrong thing. The two tabs are the two things this screen lists, so the
+  // button offers the one in front of them.
+  //
+  // The hall type is read out of realEstate.js rather than written here as
+  // a string. That file is the one place that knows a salle de fête is the
+  // commercial deal with a capacity, useHotels reads the same fact back
+  // through realEstateHasCapacity, and a literal in between is exactly how
+  // the Salle tab came to filter on a key no listing has.
   const openHotelPostForm = () =>
     navigation.navigate("CreateListing", {
       categoryKey: "realEstate",
-      realEstateDeal: "shortStay",
+      ...(isStay
+        ? { realEstateDeal: "shortStay" }
+        : { realEstateDeal: "commercial", commercialType: HALL_TYPE }),
     });
   const { remember } = useAccountGateIntent(user, openHotelPostForm);
   const verifiedCompany = isVerifiedCompanyProfile(sellerProfile);

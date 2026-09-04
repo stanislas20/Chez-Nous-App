@@ -97,6 +97,11 @@ const NOT_A_LEAD = {
   "src/screens/ForYouScreen.js":
     "a pharmacy row in the duty rail, drawn from the directory rather than " +
     "from a listing somebody is selling",
+  "src/screens/TourismDetailScreen.js":
+    "a museum's own switchboard, published by the museum on Wikidata. " +
+    "Nobody is selling anything and there is no listing to credit the tap " +
+    "to — a contactCount here would be a number about a place that never " +
+    "joined the marketplace",
 };
 
 // The scan the first version of this check was missing.

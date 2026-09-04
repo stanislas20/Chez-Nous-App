@@ -28,7 +28,7 @@ const ENDPOINT = "https://query.wikidata.org/sparql";
 const UA = "ChezNous/1.0 (Bénin marketplace; tourism directory)";
 
 const QUERY = `
-SELECT ?item ?itemLabel ?itemLabelEn ?coord ?typeLabel ?image ?heritageLabel ?admin ?adminLabel ?article ?website
+SELECT ?item ?itemLabel ?itemLabelEn ?coord ?typeLabel ?image ?heritageLabel ?admin ?adminLabel ?article ?website ?phone ?mail
 WHERE {
   ?item wdt:P17 wd:Q962 .
   ?item wdt:P625 ?coord .
@@ -37,6 +37,9 @@ WHERE {
   OPTIONAL { ?item wdt:P1435 ?heritage . }
   # The place's own site, which is what a visitor should be sent to.
   OPTIONAL { ?item wdt:P856 ?website . }
+  # Contact, where the place has published one.
+  OPTIONAL { ?item wdt:P1329 ?phone . }
+  OPTIONAL { ?item wdt:P968 ?mail . }
   OPTIONAL { ?item wdt:P131 ?admin . }
   OPTIONAL {
     ?article schema:about ?item ;
@@ -144,6 +147,24 @@ function tier(entry) {
   return null;
 }
 
+// Bénin renumbered to ten digits in 2020 by prefixing 01, and most of
+// what is published anywhere is still the dead eight-digit form —
+// "+229 20 21 35 66" for the musée Honmè, for instance. The same rule
+// scripts/fetchOsmHotels.js applies: strip to digits, drop the country
+// code, prefix 01 to an eight-digit number, and keep only what ends up
+// looking like a Bénin number. Anything else is dropped rather than
+// shown, because a number that rings nowhere is worse than none.
+function normalizePhone(raw) {
+  if (!raw) return null;
+  const parts = String(raw)
+    .split(/[;,/]/)
+    .map((part) => part.replace(/[^\d]/g, ""))
+    .map((digits) => digits.replace(/^229/, ""))
+    .map((digits) => (digits.length === 8 ? `01${digits}` : digits))
+    .filter((digits) => /^01\d{8}$/.test(digits));
+  return parts.length ? [...new Set(parts)].join("/") : null;
+}
+
 async function run() {
   const response = await fetch(
     `${ENDPOINT}?format=json&query=${encodeURIComponent(QUERY)}`,
@@ -170,6 +191,8 @@ async function run() {
       image: null,
       article: row.article?.value ?? null,
       website: row.website?.value ?? null,
+      phone: normalizePhone(row.phone?.value) ?? null,
+      mail: (row.mail?.value ?? "").replace(/^mailto:/, "") || null,
       latitude: null,
       longitude: null,
     };
@@ -178,6 +201,10 @@ async function run() {
     if (row.image?.value && !entry.image) entry.image = row.image.value;
     if (!entry.article && row.article?.value) entry.article = row.article.value;
     if (!entry.website && row.website?.value) entry.website = row.website.value;
+    if (!entry.phone && row.phone?.value) entry.phone = normalizePhone(row.phone.value);
+    if (!entry.mail && row.mail?.value) {
+      entry.mail = row.mail.value.replace(/^mailto:/, "");
+    }
     if (!entry.admin && row.adminLabel?.value) entry.admin = row.adminLabel.value;
     // Point(lon lat)
     const point = /Point\(([-\d.]+) ([-\d.]+)\)/.exec(row.coord.value);

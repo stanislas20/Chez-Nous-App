@@ -703,6 +703,16 @@ export const translations = {
     tourismAlongRestaurants: "Restaurants and bars along the way",
     tourismPhotoCredit: "Photo {author} · {licence}",
     tourismWebsite: "Official site",
+    tourismCall: "Call",
+    tourismEmail: "Email",
+    tourismContactTitle: "Contact",
+    tourismContactNone:
+      "No telephone number is published for this place. Ask at your hotel, or at the nearest tourist office.",
+    tourismPhoneUnverified:
+      "Number as published by the site itself, brought up to the ten-digit form. Not verified by Chez-Nous.",
+    tourismShowMore: "Show {count} more",
+    tourismDetailHeritage: "Listing",
+    tourismDetailWhere: "Where",
     tourismDirections: "Directions",
     tourismHeritageWorld: "World Heritage",
     tourismHeritageTentative: "Tentative list",
@@ -3766,6 +3776,16 @@ export const translations = {
     tourismAlongRestaurants: "Restaurants et bars le long de la route",
     tourismPhotoCredit: "Photo {author} · {licence}",
     tourismWebsite: "Site officiel",
+    tourismCall: "Appeler",
+    tourismEmail: "Écrire",
+    tourismContactTitle: "Contact",
+    tourismContactNone:
+      "Aucun numéro n'est publié pour ce site. Renseignez-vous à votre hôtel ou auprès de l'office de tourisme le plus proche.",
+    tourismPhoneUnverified:
+      "Numéro tel que publié par le site lui-même, remis au format à dix chiffres. Non vérifié par Chez-Nous.",
+    tourismShowMore: "Voir {count} de plus",
+    tourismDetailHeritage: "Classement",
+    tourismDetailWhere: "Où",
     tourismDirections: "Itinéraire",
     tourismHeritageWorld: "Patrimoine mondial",
     tourismHeritageTentative: "Liste indicative",

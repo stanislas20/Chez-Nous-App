@@ -49,6 +49,8 @@ const CATEGORY_TINT = {
   town: "#A8701C",
 };
 
+const PAGE = 12;
+
 const CATEGORY_ORDER = [
   "all",
   "heritage",
@@ -92,6 +94,14 @@ export function TourismScreen({ navigation }) {
   const [originSheetOpen, setOriginSheetOpen] = useState(false);
   const [failedPhotos, setFailedPhotos] = useState({});
   const [citySearch, setCitySearch] = useState("");
+  // How many cards are mounted.
+  //
+  // "Tourisme is slow on Android" — and it was, because a band can match
+  // 59 places and every card mounts a photograph and a dozen views. The
+  // Hôtels screen already learned this and caps its directory at 20. Same
+  // rule: a screenful, then a button that says exactly how many are behind
+  // it, so nothing is hidden and nothing is mounted before it is wanted.
+  const [shown, setShown] = useState(PAGE);
 
   const originDef =
     tourismOrigins.find((item) => item.key === origin) ?? tourismOrigins[0];
@@ -139,7 +149,9 @@ export function TourismScreen({ navigation }) {
     );
   }, [decorated, category, band, trimmed]);
 
-  const [pick, ...rest] = matched;
+  const [pick, ...all] = matched;
+  const rest = all.slice(0, shown);
+  const hidden = all.length - rest.length;
 
   const openMaps = (site) => {
     const target = `${site.latitude},${site.longitude}`;
@@ -315,6 +327,7 @@ export function TourismScreen({ navigation }) {
                 active={active}
                 onPress={() => {
                   setQuery("");
+                  setShown(PAGE);
                   setBand(option.key);
                 }}
               >
@@ -337,7 +350,14 @@ export function TourismScreen({ navigation }) {
           {CATEGORY_ORDER.map((key) => {
             const active = category === key;
             return (
-              <Chip key={key} active={active} onPress={() => setCategory(key)}>
+              <Chip
+                key={key}
+                active={active}
+                onPress={() => {
+                  setShown(PAGE);
+                  setCategory(key);
+                }}
+              >
                 <ChipLabel active={active}>{t(CATEGORY_KEY[key])}</ChipLabel>
               </Chip>
             );
@@ -356,7 +376,9 @@ export function TourismScreen({ navigation }) {
           </Empty>
         ) : (
           <>
-            <PickCard>
+            <PickCard
+              onPress={() => navigation.navigate("TourismDetail", { site: pick })}
+            >
               {renderMedia(pick, true)}
               <PickOverlay pointerEvents="none">
                 <PickKicker>{t("tourismPickKicker")}</PickKicker>
@@ -371,7 +393,10 @@ export function TourismScreen({ navigation }) {
             </PickCard>
 
             {rest.map((site) => (
-              <Card key={site.id}>
+              <Card
+                key={site.id}
+                onPress={() => navigation.navigate("TourismDetail", { site })}
+              >
                 {renderMedia(site, false)}
                 <CardBody>
                   <CardTitle numberOfLines={2}>{nameOf(site)}</CardTitle>
@@ -384,6 +409,13 @@ export function TourismScreen({ navigation }) {
                 </CardBody>
               </Card>
             ))}
+            {hidden > 0 ? (
+              <ShowMore onPress={() => setShown((current) => current + PAGE)}>
+                <ShowMoreLabel>
+                  {t("tourismShowMore", { count: hidden })}
+                </ShowMoreLabel>
+              </ShowMore>
+            ) : null}
           </>
         )}
 
@@ -646,7 +678,7 @@ const EmptyHint = styled.Text`
   margin-top: 6px;
 `;
 
-const PickCard = styled.View`
+const PickCard = styled(Pressable)`
   background-color: ${(props) => props.theme.surface};
   border-radius: ${radius.lg}px;
   overflow: hidden;
@@ -654,7 +686,7 @@ const PickCard = styled.View`
   ${shadow.card}
 `;
 
-const Card = styled.View`
+const Card = styled(Pressable)`
   background-color: ${(props) => props.theme.surface};
   border-radius: ${radius.lg}px;
   overflow: hidden;
@@ -827,6 +859,20 @@ const Credit = styled.Text`
   font-size: 10.5px;
   color: ${(props) => props.theme.textMuted};
   margin-top: ${spacing.sm}px;
+`;
+
+const ShowMore = styled(Pressable)`
+  align-items: center;
+  padding: ${spacing.md}px;
+  border-radius: ${radius.md}px;
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+  margin-bottom: ${spacing.sm}px;
+`;
+
+const ShowMoreLabel = styled.Text`
+  ${type.captionMedium}
+  color: ${(props) => props.theme.primary};
 `;
 
 const CrossRow = styled(Pressable)`

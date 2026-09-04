@@ -586,8 +586,17 @@ const SearchInput = styled.TextInput`
   padding: 0;
 `;
 
+// Painted, not transparent.
+//
+// An overscroll bounce shows the scroller's own background, and a
+// transparent one shows whatever is behind — which on iOS ends up being
+// the window, i.e. white, under a dark screen. Reported as "when pulling
+// down there is a white space underneath". The root already paints itself
+// for the same family of bug (see ThemedRoot in App.js); this is the same
+// fix one layer in.
 const Body = styled.ScrollView`
   flex: 1;
+  background-color: ${(props) => props.theme.background};
 `;
 
 const OriginRow = styled(Pressable)`

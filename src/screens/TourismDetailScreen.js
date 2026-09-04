@@ -57,13 +57,6 @@ export function TourismDetailScreen({ route, navigation }) {
             locations={[0, 0.4, 1]}
             pointerEvents="none"
           />
-          <BackButton
-            style={{ top: insets.top + spacing.sm }}
-            onPress={() => navigation.goBack()}
-            hitSlop={10}
-          >
-            <Ionicons name="chevron-back" size={20} color="#ffffff" />
-          </BackButton>
           <HeroFoot>
             <HeroTitle numberOfLines={3}>{name}</HeroTitle>
             <HeroMeta numberOfLines={1}>{site.admin}</HeroMeta>
@@ -220,6 +213,21 @@ export function TourismDetailScreen({ route, navigation }) {
         <Footer>{t("tourismSourceNote")}</Footer>
         </Sheet>
       </Body>
+
+      {/* Above the scroller, not inside the hero.
+
+          Pinning the hero put the ScrollView on top of it, and a
+          ScrollView takes the touches over its whole area whether or not
+          anything is drawn there — so the chevron was visible, sat where
+          it always had, and did nothing. It is a sibling of the scroller
+          now, rendered last, which is what puts it in front. */}
+          <BackButton
+            style={{ top: insets.top + spacing.sm }}
+            onPress={() => navigation.goBack()}
+            hitSlop={10}
+          >
+            <Ionicons name="chevron-back" size={20} color="#ffffff" />
+          </BackButton>
     </Container>
   );
 }

@@ -1,0 +1,51 @@
+{
+  "hand-route-des-peches": {
+    "url": "https://firebasestorage.googleapis.com/v0/b/benin-marketplace-3eb04.firebasestorage.app/o/hand%2Fhand-route-des-peches.jpg?alt=media&token=85d9cc60-d4ad-457f-a932-12c4f5070421",
+    "licence": "CC BY-SA 4.0",
+    "author": "Adoscam",
+    "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Route_des_p%C3%AAches_au_B%C3%A9nin_au_matin.jpg",
+    "shows": "the Route des Pêches at dawn"
+  },
+  "hand-beach-fidjrosse": {
+    "url": "https://firebasestorage.googleapis.com/v0/b/benin-marketplace-3eb04.firebasestorage.app/o/hand%2Fhand-beach-fidjrosse.jpg?alt=media&token=1c84d03f-dcec-47fc-abec-2e123a91cd06",
+    "licence": "CC BY-SA 4.0",
+    "author": "Rofik Adam",
+    "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Fidjross%C3%A8_Plage_(Cotonou).jpg",
+    "shows": "the beach at Fidjrossè, Cotonou"
+  },
+  "hand-beach-grandpopo": {
+    "url": "https://firebasestorage.googleapis.com/v0/b/benin-marketplace-3eb04.firebasestorage.app/o/hand%2Fhand-beach-grandpopo.jpg?alt=media&token=bfac7542-4997-438b-bb06-a2248d5086ab",
+    "licence": "CC BY-SA 4.0",
+    "author": "Ji-Elle",
+    "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Plage_de_Grand-Popo_(1).jpg",
+    "shows": "the beach at Grand-Popo"
+  },
+  "hand-beach-ouidah": {
+    "url": "https://firebasestorage.googleapis.com/v0/b/benin-marketplace-3eb04.firebasestorage.app/o/hand%2Fhand-beach-ouidah.jpg?alt=media&token=c9835fe8-9fc9-4732-872b-a9cd26ac7ee7",
+    "licence": "CC BY 2.0",
+    "author": "jbdodane",
+    "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Plage_de_Ouidah_Benin.jpg",
+    "shows": "the beach at Ouidah"
+  },
+  "hand-beach-obama": {
+    "url": "https://firebasestorage.googleapis.com/v0/b/benin-marketplace-3eb04.firebasestorage.app/o/hand%2Fhand-beach-obama.jpg?alt=media&token=a0d9e26a-787f-467c-b4dd-cf0e6dfae042",
+    "licence": "CC BY-SA 4.0",
+    "author": "Oriblast",
+    "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Passage_a_obama_beach.jpg",
+    "shows": "Obama Beach, Cotonou"
+  },
+  "hand-beach-avlekete": {
+    "url": "https://firebasestorage.googleapis.com/v0/b/benin-marketplace-3eb04.firebasestorage.app/o/hand%2Fhand-beach-avlekete.jpg?alt=media&token=65239728-ebad-4426-b87c-1e1c4d24c725",
+    "licence": "CC BY-SA 4.0",
+    "author": "Tozonoel",
+    "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Cr%C3%A9puscule_avl%C3%A9k%C3%A9t%C3%A9.jpg",
+    "shows": "dusk at Avlékété"
+  },
+  "hand-beach-seme": {
+    "url": "https://firebasestorage.googleapis.com/v0/b/benin-marketplace-3eb04.firebasestorage.app/o/hand%2Fhand-beach-seme.jpg?alt=media&token=dc1bdada-9046-463b-b1ac-2e8e2edc2e48",
+    "licence": "CC0",
+    "author": "Mroladipo04",
+    "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Couch%C3%A9_de_soleil_%C3%A0_la_plage_de_S%C3%A8m%C3%A8_(B%C3%A9nin).jpg",
+    "shows": "sunset on the beach at Sèmè"
+  }
+}

@@ -104,6 +104,25 @@ check(
     /okhttp/.test(read("scripts/uploadTourismPhotos.js")),
 );
 
+// ── The hand-entered places' photographs obey the same rules ──────────
+//
+// The coast is written by hand — Wikidata types almost nothing in Bénin
+// as a beach and OSM has one named beach in the country — so those
+// photographs come from their own generated file rather than from
+// tourismSites.json. Same licence, same credit, same bucket: a rule that
+// only covers the fetched half is a rule with a hole in it.
+const handPhotos = JSON.parse(read("src/data/handPhotos.json"));
+Object.entries(handPhotos).forEach(([id, photo]) => {
+  check(`${id}'s photo names its licence`, Boolean(photo.licence));
+  check(`${id}'s photo names its author`, Boolean(photo.author));
+  check(`${id}'s photo says what it shows`, Boolean(photo.shows));
+  check(
+    `${id}'s photo is served from our own bucket`,
+    String(photo.url).includes("firebasestorage"),
+  );
+});
+check("some hand-entered places have a photograph", Object.keys(handPhotos).length > 3);
+
 // ── No price, no opening time ─────────────────────────────────────────
 //
 // The design document supplies both for every site and nothing sources

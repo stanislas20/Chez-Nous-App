@@ -1,4 +1,5 @@
 import sourced from "./tourismSites.json";
+import handPhotos from "./handPhotos.json";
 
 // What there is to see in Bénin, and where each fact came from.
 //
@@ -78,7 +79,11 @@ const BEACHES = [
   types: ["plage"],
   heritage: [],
   article: null,
-  photo: null,
+  // Fetched by scripts/fetchHandPhotos.js and kept in its own file, so a
+  // re-run cannot disturb what is written here by hand. Seven of the
+  // fifteen have one; the rest keep their gradient rather than borrowing
+  // a picture of a different beach.
+  photo: handPhotos[id] ?? null,
   tier: "hand",
   alongKey: "restaurants",
 }));
@@ -98,7 +103,7 @@ const HAND_ENTERED = [
     types: ["route côtière", "plage"],
     heritage: [],
     article: null,
-    photo: null,
+    photo: handPhotos["hand-route-des-peches"] ?? null,
     tier: "hand",
     // What is actually along it, said plainly. The bars and restaurants on
     // this road are real and they are also the app's own business: rather

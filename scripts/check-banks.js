@@ -196,24 +196,34 @@ check(
 withUrl.forEach((bank) => {
   check(`${bank.key}'s site is https`, /^https:\/\//.test(bank.url), true);
 });
-// Every url in the file was confirmed to be that bank's own, and one of
-// them could not be opened from here — BGFI's host does not resolve on
-// this machine, and the confirmation came from the indexed titles of its
-// own pages. That is a weaker instrument than the others and the file has
-// to keep saying so, because "no comment" would read as "opened and
-// checked like the rest".
+// A bank whose url was removed says why it has none. Two do, for
+// different reasons — Ecobank's answered with a redirect loop, BGFI's
+// host answers nowhere reachable — and without the note the next person
+// to look sees a gap and fills it back in with the same dead link.
+// Joined first: a sentence that wraps across two comment lines carries a
+// "//" and two spaces in the middle of itself, so matching the raw file
+// finds nothing and the rule passes or fails for the wrong reason.
+const prose = data.replace(/\n\s*\/\/\s?/g, " ");
 check(
-  "the one url confirmed indirectly still says how",
-  /does not resolve from this machine/.test(data) &&
-    /indexed with titles ending/.test(data.replace(/\n\s*\/\/\s*/g, " ")),
+  "a removed url leaves its reason behind",
+  /redirect loop/.test(prose) && /resolves nowhere this was tried/.test(prose),
   true,
 );
-// The ones with no url are not the ones with no website. Several of these
-// sites answer a script with 403, so the screen must say the site was not
-// verified rather than that there is none.
+// And the way to re-test is named, so "is it back up?" is a command
+// rather than an argument.
 check(
-  "a missing site is called unverified, not absent",
-  /banksSiteUnverified/.test(screen),
+  "the file points at the probe that settles it",
+  /verifyBankSites\.js/.test(data),
+  true,
+);
+// And a bank with no url gets nothing at all — no button and no label.
+// It briefly carried "Site non vérifié", which was accurate and still
+// explained our filing to somebody who came to find their bank, on half
+// the rows. The source note at the foot already says what this list
+// claims.
+check(
+  "a bank with no url shows nothing, not a dead button",
+  /\{bank\.url \? \([\s\S]{0,600}\) : null\}/.test(screen),
   true,
 );
 

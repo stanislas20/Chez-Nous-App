@@ -37,28 +37,30 @@ export const beninBanks = [
     name: "Banque Sahélo-Saharienne pour l'Investissement et le Commerce",
     shortName: "BSIC",
   },
-  // Confirmed from the search index rather than by opening it here, which
-  // is worth saying because it is a weaker instrument than the rest of
-  // this file used.
+  // No url, because nothing here could open one.
   //
-  // benin.groupebgfibank.com does not resolve from this machine — not on
-  // the local resolver and not via 8.8.8.8, 1.1.1.1 or 9.9.9.9 — and
-  // neither do the Côte d'Ivoire or Gabon equivalents, so a dev machine
-  // reading this file will find the host dead and should not conclude the
-  // site is. What confirms it: six distinct pages on that host are indexed
-  // with titles ending "- BGFIBank Bénin" (mentions légales, réseau
-  // d'agences, réseau de GAB among them), it is a subdomain of
-  // groupebgfibank.com which was opened and read directly here, and it
-  // loads for the person who asked for it.
-  {
-    key: "bgfi",
-    url: "https://benin.groupebgfibank.com/",
-    name: "BGFIBank Bénin",
-    shortName: "BGFI",
-  },
+  // The site exists: six pages on benin.groupebgfibank.com are indexed
+  // with titles ending "- BGFIBank Bénin", and it is a subdomain of
+  // groupebgfibank.com, which does answer. But the host resolves nowhere
+  // this was tried — local resolver, 8.8.8.8, 1.1.1.1, 9.9.9.9 — and
+  // bgfibankbenin.bgfi.com resolves and then refuses 443 and 80. A button
+  // that opens a browser on an error is worse than no button, and this one
+  // was reported failing from a phone as well.
+  //
+  // It goes back the moment it answers: run scripts/verifyBankSites.js
+  // from a connection that can reach it, and if the title names the bank,
+  // add the url back here.
+  { key: "bgfi", name: "BGFIBank Bénin", shortName: "BGFI" },
   { key: "ccei", name: "CCEI Bank Bénin", shortName: "CCEI" },
   { key: "coris", name: "Coris Bank International Bénin", shortName: "Coris" },
-  { key: "ecobank", url: "https://ecobank.com/bj/personal-banking", name: "Ecobank Bénin", shortName: "Ecobank" },
+  // No url: the one we carried is dead.
+  //
+  // https://ecobank.com/bj/personal-banking answers with a redirect loop —
+  // more than ten hops, twice, from a host that responds — so the button
+  // opened a browser on an error. ecobank.com/bj does load, but its title
+  // is "Ecobank - The Pan African Bank": the group, not the Bénin bank,
+  // and this file does not file a parent's page as a subsidiary's own.
+  { key: "ecobank", name: "Ecobank Bénin", shortName: "Ecobank" },
   // Formerly Diamond Bank SA. Kept as an alias below rather than as a second
   // entry, so somebody searching the old name still finds the bank that holds
   // their account.
@@ -68,12 +70,11 @@ export const beninBanks = [
   { key: "uba", url: "https://ubabenin.com/", name: "United Bank for Africa Bénin", shortName: "UBA" },
 ];
 
-// `url` is present only where the site was confirmed to be that bank's own,
-// by reading a <title> that says so. All but one were opened directly from
-// here; BGFI's is noted above, where the host does not resolve from this
-// machine and the confirmation came from the indexed titles of its own
-// pages instead. The instrument is recorded with the entry rather than
-// left for somebody to assume. The rest have none rather than a guess: several are
+// `url` is present only where the site was opened, answered, and its
+// <title> said it was that bank's own. Every one of the five was fetched
+// and read; scripts/verifyBankSites.js repeats that on demand and prints
+// what it saw. A site nobody could open does not get a button — see
+// Ecobank and BGFI above, each with the reason it has none. The rest have none rather than a guess: several are
 // behind Cloudflare (Orabank, NSIA Banque answer a script with 403) and a
 // plausible-looking domain that turns out to be a parked page or somebody
 // else's is the one mistake a banking directory cannot make.

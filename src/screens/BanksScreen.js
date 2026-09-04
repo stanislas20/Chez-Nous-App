@@ -158,11 +158,14 @@ export function BanksScreen({ navigation }) {
                   </PrimaryAction>
                   {/* The url was in the data and on no screen: six of these
                       banks had a site somebody opened and confirmed, and the
-                      app offered none of them. Where there is none, the
-                      reason is said rather than the gap left blank — several
-                      of these sites answer a script with 403, so "not
-                      verified" is the honest word and "no site" would be a
-                      claim we cannot make. */}
+                      app offered none of them.
+
+                      Where there is none, nothing is drawn. It briefly said
+                      "Site non vérifié", which is accurate and still not
+                      worth a line on the card: it explains our filing to
+                      somebody who came to find their bank, and six of the
+                      twelve rows carried it. The source note at the foot
+                      already says what this list does and does not claim. */}
                   {bank.url ? (
                     <SecondaryAction onPress={() => Linking.openURL(bank.url)}>
                       <Ionicons name="globe-outline" size={15} color={colors.primary} />
@@ -170,11 +173,7 @@ export function BanksScreen({ navigation }) {
                         {t("banksWebsite")}
                       </SecondaryActionLabel>
                     </SecondaryAction>
-                  ) : (
-                    <UnverifiedLabel numberOfLines={1}>
-                      {t("banksSiteUnverified")}
-                    </UnverifiedLabel>
-                  )}
+                  ) : null}
                 </Actions>
               </Row>
             );
@@ -398,11 +397,6 @@ const SecondaryActionLabel = styled.Text`
   color: ${(props) => props.theme.primary};
 `;
 
-const UnverifiedLabel = styled.Text`
-  ${type.caption}
-  color: ${(props) => props.theme.textMuted};
-  flex-shrink: 1;
-`;
 
 const SourceNote = styled(Pressable)`
   margin-top: ${spacing.md}px;

@@ -23,6 +23,11 @@ const UA = "ChezNous/1.0 (Bénin marketplace; tourism directory)";
 const FILE = path.join(__dirname, "..", "src/data/tourismSites.json");
 const BATCH = 20;
 const MAX_CHARS = 220;
+// The detail screen has room for a paragraph; a card has room for a line.
+// Storing one string and truncating it in the UI would mean the detail
+// page never had more to show than the card did, which is what "clicking
+// on lac Nokoué gives no useful information" actually was.
+const MAX_DETAIL_CHARS = 700;
 
 // The first sentence, cut at a full stop that is not inside an
 // abbreviation or a decimal. Wikipedia leads are long and a card is not a
@@ -57,6 +62,17 @@ async function extractsFor(titles, host = "fr.wikipedia.org") {
     if (!sentence) continue;
     out.set(page.title, sentence);
     if (alias.has(page.title)) out.set(alias.get(page.title), sentence);
+    // The lead, trimmed at a sentence end rather than mid-word, for the
+    // detail screen.
+    const lead = String(page.extract ?? "").replace(/\s+/g, " ").trim();
+    const long =
+      lead.length <= MAX_DETAIL_CHARS
+        ? lead
+        : lead.slice(0, MAX_DETAIL_CHARS).replace(/[^.!?]*$/, "").trim();
+    if (long) {
+      out.set(`long:${page.title}`, long);
+      if (alias.has(page.title)) out.set(`long:${alias.get(page.title)}`, long);
+    }
   }
   return out;
 }
@@ -88,6 +104,8 @@ async function main() {
     const sentence = found.get(titleFromArticle(site.article));
     if (!sentence) continue;
     site.summary = sentence;
+    const full = found.get(`long:${titleFromArticle(site.article)}`);
+    if (full && full.length > sentence.length) site.detail = full;
     kept += 1;
   }
 

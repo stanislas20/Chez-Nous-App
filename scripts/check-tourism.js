@@ -169,6 +169,7 @@ const destinations = {
   "src/screens/HotelsScreen.js": true,
   "src/screens/RestaurantsScreen.js": true,
   "src/screens/TourismScreen.js": true,
+  "src/screens/EventsScreen.js": true,
 };
 Object.keys(destinations).forEach((file) => {
   const source = read(file);
@@ -196,6 +197,33 @@ Object.keys(destinations).forEach((file) => {
     /navigate\("Hotels", \{ city:/.test(source),
   );
 });
+// The list screen sends its chosen town to both places it offers.
+const list = read("src/screens/TourismScreen.js");
+["Hotels", "Events"].forEach((screen) => {
+  check(
+    `the Tourisme screen sends its town to ${screen}`,
+    new RegExp(`navigate\\("${screen}", \\{ city:`).test(list),
+  );
+});
+
+// The detail page must have more to say than the card that opened it.
+//
+// Both read the same field for a while, so tapping a card showed the
+// sentence you had just read. siteDetail returns the article's lead where
+// there is one; siteBlurb returns a sentence, which is what fits on a
+// card.
+check(
+  "the detail page shows the long form",
+  /siteDetail\(site, language\)/.test(detail),
+);
+check(
+  "and the card shows the short one",
+  /siteBlurb\(site, language\)/.test(screen),
+);
+const longer = sites.filter(
+  (site) => site.detail && site.summary && site.detail.length > site.summary.length,
+);
+check("some sites actually carry a longer form", longer.length > 30);
 
 if (failures.length) {
   failures.slice(0, 20).forEach((line) => console.error(`FAIL ${line}`));

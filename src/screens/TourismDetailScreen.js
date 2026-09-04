@@ -7,7 +7,12 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
-import { siteBlurb, siteTypeLine } from "../data/tourismSites";
+import {
+  siteBlurb,
+  siteDetail,
+  siteTypeLine,
+  sitesNear,
+} from "../data/tourismSites";
 
 const LATERITE = "#9C4221";
 
@@ -61,8 +66,8 @@ export function TourismDetailScreen({ route, navigation }) {
         </Hero>
 
         <Section>
-          {siteBlurb(site, language) ? (
-            <Body1>{siteBlurb(site, language)}</Body1>
+          {siteDetail(site, language) ? (
+            <Body1>{siteDetail(site, language)}</Body1>
           ) : siteTypeLine(site) ? (
             <TypeLine>{siteTypeLine(site)}</TypeLine>
           ) : null}
@@ -171,6 +176,33 @@ export function TourismDetailScreen({ route, navigation }) {
             <CrossLabel>{t("tourismAlongRestaurants")}</CrossLabel>
             <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
           </CrossRow>
+        </Section>
+
+        {/* The question somebody standing at a place actually has. Built
+            from the directory itself, so it cannot name somewhere that is
+            not in it, and every row opens the same screen you are on. */}
+        <Section>
+          <SectionTitle>{t("tourismNearbyTitle")}</SectionTitle>
+          {sitesNear(site).map((other) => (
+            <ActionRow
+              key={other.id}
+              onPress={() =>
+                navigation.push("TourismDetail", { site: other })
+              }
+            >
+              <Ionicons
+                name="location-outline"
+                size={17}
+                color={colors.primary}
+              />
+              <ActionLabel numberOfLines={1}>
+                {(language === "en" ? other.nameEn : other.name) ?? other.name}
+              </ActionLabel>
+              <ActionHint>
+                {t("tourismAwayKm", { km: Math.round(other.awayKm) })}
+              </ActionHint>
+            </ActionRow>
+          ))}
         </Section>
 
         <Footer>{t("tourismSourceNote")}</Footer>

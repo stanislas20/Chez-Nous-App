@@ -91,7 +91,7 @@ function priceLines(event, t) {
   };
 }
 
-export function EventsScreen({ navigation }) {
+export function EventsScreen({ navigation, route }) {
   const { colors, scheme } = useTheme();
   const { t, language } = useI18n();
   const { user } = useAuth();
@@ -118,7 +118,15 @@ export function EventsScreen({ navigation }) {
   const [chosenWindow, setChosenWindow] = useState(null);
   const [kind, setKind] = useState(null);
   const [freeOnly, setFreeOnly] = useState(false);
-  const [selectedCity, setSelectedCity] = useState(null);
+  // Reached from a place — "Concerts et sorties" on the Tourisme screen,
+  // where the reader has already said which town they mean — this opens
+  // on that town instead of on the whole country. Same rule as Hôtels and
+  // Restaurants; an unknown name falls back to everywhere rather than
+  // filtering to nothing.
+  const requestedCity = route?.params?.city ?? null;
+  const [selectedCity, setSelectedCity] = useState(
+    requestedCity && cities.includes(requestedCity) ? requestedCity : null,
+  );
   // Ordered from this month, so the next one to come is at the top.
   const festivals = useMemo(() => festivalsFromNow(), []);
 

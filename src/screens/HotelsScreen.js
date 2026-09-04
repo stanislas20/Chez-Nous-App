@@ -689,6 +689,27 @@ export function HotelsScreen({ navigation, route }) {
               : t("hotelsPublishVerifiedOnly")}
           </SampleNote>
         ) : null}
+        {/* A rule with no door in it.
+        
+            The note above told an hotelier that listing is for verified
+            company accounts and stopped there — true, and no use to
+            somebody who wants to be one. Verification is a real form on
+            the seller dashboard; this is the way to it.
+        
+            Only for the seller who could actually pass: somebody outside
+            Bénin cannot publish whatever they verify, so pointing them at
+            the form would waste their time. */}
+        {user && !mayPublish && publishBlockReason(user) !== "country" ? (
+          <PublishHow onPress={() => navigation.navigate("CompanyProfileEdit")}>
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={15}
+              color={colors.primary}
+            />
+            <PublishHowLabel>{t("hotelsPublishHow")}</PublishHowLabel>
+            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+          </PublishHow>
+        ) : null}
 
         {/* Named for what it is, and separated from what is above it. A
             priced listing and a directory entry answer different questions,
@@ -1452,4 +1473,22 @@ const SafetyLabel = styled.Text`
   font-size: 11.5px;
   line-height: 18px;
   color: #6b5a2e;
+`;
+
+const PublishHow = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.sm}px;
+  margin-top: ${spacing.sm}px;
+  padding: ${spacing.sm}px ${spacing.md}px;
+  border-radius: ${radius.md}px;
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+`;
+
+const PublishHowLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 12px;
+  color: ${(props) => props.theme.primary};
+  flex: 1;
 `;

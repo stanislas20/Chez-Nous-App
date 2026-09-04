@@ -169,6 +169,32 @@ export function siteTypeLine(site) {
   return site.city ? `${label} · ${site.city}` : label;
 }
 
+// The paragraph, for the screen that has room for one.
+//
+// siteBlurb returns a sentence because that is what fits on a card. The
+// detail page showed the same sentence, so opening a card told you
+// nothing you had not already read — which is what "clicking on lac
+// Nokoué gives no useful information" was. This returns the article's
+// lead where there is one: for the lac Nokoué, its size, the rivers that
+// feed it, and the fact that Ganvié sits on its north shore.
+export function siteDetail(site, language) {
+  if (language === "en") {
+    return site.summaryEn ?? site.detail ?? site.summary ?? site.descriptionFr ?? null;
+  }
+  return site.detail ?? site.summary ?? site.descriptionFr ?? site.summaryEn ?? null;
+}
+
+// What else is within reach of a place, which is the question somebody
+// standing at one actually has. Straight-line, and sorted, so the answer
+// is stable and cheap; the drive is what the list screen bands on.
+export function sitesNear(site, count = 4) {
+  return tourismSites
+    .filter((other) => other.id !== site.id && other.latitude != null)
+    .map((other) => ({ ...other, awayKm: distanceInKm(site, other) }))
+    .sort((a, b) => a.awayKm - b.awayKm)
+    .slice(0, count);
+}
+
 export function heritageRank(site) {
   const all = (site.heritage ?? []).join(" ").toLowerCase();
   if (all.includes("patrimoine mondial") && !all.includes("indicative")) return 3;

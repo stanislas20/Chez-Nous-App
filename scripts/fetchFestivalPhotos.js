@@ -15,10 +15,15 @@
 // The Fête de l'igname has no free photograph on Commons. It keeps its
 // gradient rather than borrowing a picture of some other harvest.
 //
-// WeLove EYA has none either; what Commons has is the Place de l'Amazone,
-// which is where it happens. The card names the venue, so a picture of the
-// venue is what it says it is — not a crowd shot implying this is the
-// festival.
+// WeLove EYA has none either. It briefly carried a photograph of the
+// Place de l'Amazone, on the reasoning that the card names the venue so a
+// picture of the venue is honest. It is not: what a reader sees on an
+// afrobeat festival card is the festival, and what that picture shows is
+// an empty monument square. Reported as exactly that — "the WeLove EYA
+// card is showing a banner of the Amazones" — which is the same rule
+// companyLogos.js already states about a wrong mark on a bank card. It
+// keeps its coloured ground until somebody licenses a photograph of the
+// festival itself.
 //
 //   GOOGLE_APPLICATION_CREDENTIALS=... node scripts/fetchFestivalPhotos.js
 //   GOOGLE_APPLICATION_CREDENTIALS=... node scripts/fetchFestivalPhotos.js --apply
@@ -46,10 +51,6 @@ const FILES = {
   nonvitcha: {
     file: "File:Nonvitcha Grand Popo Benin 2017.jpg",
     shows: "the Nonvitcha gathering at Grand-Popo",
-  },
-  "welove-eya": {
-    file: "File:Inbound2311589315818131493.jpg",
-    shows: "the Place de l'Amazone, where the festival is held",
   },
 };
 

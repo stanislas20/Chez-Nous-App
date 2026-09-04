@@ -127,6 +127,22 @@ photographed.forEach((festival) => {
   );
 });
 check("the card shows the credit", /tourismPhotoCredit/.test(screen));
+
+// A photograph must be OF the festival, not of the place it happens in.
+//
+// WeLove EYA carried a picture of the Place de l'Amazone on the reasoning
+// that the card names the venue. What a reader sees on an afrobeat
+// festival card is the festival, and that picture is an empty monument
+// square — reported as "the WeLove EYA card is showing a banner of the
+// Amazones". Every photo says what it shows, and none of them may say it
+// is somewhere the festival merely happens.
+photographed.forEach((festival) => {
+  const shows = String(festivalPhoto(festival).shows ?? "").toLowerCase();
+  check(
+    `${festival.name}'s photo is of the festival, not of its venue`,
+    !/where the festival|venue|square|place where/.test(shows),
+  );
+});
 // The files are named in the fetcher rather than searched at run time.
 check(
   "photographs are named, not searched",

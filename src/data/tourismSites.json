@@ -29,7 +29,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "commune du sud du Bénin, capitale de l'ancien royaume du Dahomey de 1625 à 1894",
-    "enTitle": "Abomey"
+    "enTitle": "Abomey",
+    "detail": "Abomey est une ville et une commune du sud de la république du Bénin, située à 145 km de Cotonou, qui est la préfecture du département du Zou, dont elle est le chef-lieu. Fondée au XVIIe siècle par le roi Houégbadja c'est la capitale historique de l'ancien royaume du Dahomey de 1625 à 1894. Cette ville a gardé de cette époque un ensemble de palais royaux inscrits au patrimoine mondial de l'humanité par l’UNESCO. Elle est située à environ une centaine de kilomètres à l'intérieur des terres. Au cœur de la cité, les Palais Royaux sont un témoin matériel majeur de cette civilisation."
   },
   {
     "id": "Q130240731",
@@ -92,7 +93,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "basilique béninoise située à Ouidah",
-    "enTitle": "Basilique de l'Immaculée Conception"
+    "enTitle": "Basilique de l'Immaculée Conception",
+    "detail": "La Basilique de l'Immaculée-Conception est le principal lieu de culte catholique de la ville de Ouidah, au sud de la République du Bénin. Construite à partir de 1903 à l'initiative de Mgr Louis Dartois, premier vicaire apostolique du Dahomey, elle est achevée en 1909. Longtemps siège du vicariat apostolique du Dahomey, elle garde le titre de cathédrale jusqu'au transfert du vicariat apostolique de Ouidah à Cotonou (1954), prélude à l'érection de l'archidiocèse de Cotonou (1955) auquel elle appartient désormais. Pur produit de l'architecture ogivale européenne, elle a été élevée au rang de basilique mineure par le pape Jean-Paul II le 9 novembre 1989."
   },
   {
     "id": "Q2887361",
@@ -125,7 +127,8 @@
     "website": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "La basse vallée de l'Ouémé, la lagune de Porto-Novo et le lac Nokoué forment ensemble une vaste zone humide, la plus grande du Bénin avec 91 600 ha. Elle est protégée par la convention de Ramsar."
   },
   {
     "id": "Q137795348",
@@ -156,7 +159,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "Réplique grandeur nature du navire négrier L’Aurore, installée à Ouidah",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le Bateau du Départ est une réplique de l'Aurore, l'un des tout derniers navires négriers à avoir quitté le port de Ouidah vers Cuba autour de 1863. Il s’agit d’un navire-musée qui sert à raconter l’histoire du commerce triangulaire en insistant notamment sur les conditions de transport des esclaves."
   },
   {
     "id": "Q68627837",
@@ -229,7 +233,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "aire communautaire de conservation de la biodiversité de la Bouche du Roy",
-    "enTitle": "Bouche du Roy"
+    "enTitle": "Bouche du Roy",
+    "detail": "À l'origine, la Bouche du Roy désigne l'embouchure du fleuve Mono dans le Sud du Bénin. Il s'agirait de la traduction française erronée de l'expression portugaise « a boca do rio » signifiant l'embouchure du fleuve. En 2016, elle est constituée en Aire communautaire de conservation de la biodiversité de la Bouche du Roy (ACCB-Bouche du Roy), partie intégrante de la réserve de biosphère transfrontière du Mono. Située entre 6°15’ et 6°23’ de latitude nord et 1°52’ et 1°59’ de longitude est, elle couvre une superficie de 9 678 hectares et s'étend sur les communes de Grand-Popo (arrondissements d'Avloh et Gbéhoué) et de Comè (arrondissement d'Agatogbo), dans le département du Mono."
   },
   {
     "id": "Q2269235",
@@ -259,7 +264,8 @@
     "website": null,
     "phone": null,
     "mail": null,
-    "enTitle": "Boukoumbé"
+    "enTitle": "Boukoumbé",
+    "detail": "Boukoumbé (ou Boukombé) est l'une des neuf communes du département de l'Atacora, au nord-ouest du Bénin. Elle est située à proximité de la frontière avec le Togo."
   },
   {
     "id": "Q69002523",
@@ -481,7 +487,8 @@
     "website": "https://archidiocesedecotonou.org/cathedrale-ndm/",
     "phone": null,
     "mail": null,
-    "enTitle": "Cotonou Cathedral"
+    "enTitle": "Cotonou Cathedral",
+    "detail": "La cathédrale Notre-Dame-de-Miséricorde est le principal sanctuaire catholique de la ville de Cotonou, la capitale économique de la république du Bénin. Elle est l'église-mère de l'archidiocèse métropolitain de Cotonou, créé en 1955."
   },
   {
     "id": "Q106730239",
@@ -511,7 +518,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "La cathédrale Notre-Dame-du-Mont-Carmel de Kandi est le principal sanctuaire catholique de la ville Kandi, chef-lieu du département de l'Alibori en République du Bénin. La cathédrale Notre-Dame-du-Mont-Carmel est le siège du diocèse de Kandi crée le 19 décembre 1994. Elle fait partie de l'archidiocèse de Parakou et est dédiée à Notre-Dame du Mont-Carmel, titre de dévotion à la vierge Marie."
   },
   {
     "id": "Q3663644",
@@ -540,7 +548,8 @@
     "website": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "La cathédrale Saints-Pierre-et-Paul est la cathédrale d'Abomey, siège du diocèse d'Abomey au Bénin. Elle est dédiée aux apôtres Pierre et Paul."
   },
   {
     "id": "Q24046155",
@@ -569,7 +578,8 @@
     "website": null,
     "phone": null,
     "mail": null,
-    "enTitle": "Sts. Peter and Paul Cathedral, Parakou"
+    "enTitle": "Sts. Peter and Paul Cathedral, Parakou",
+    "detail": "La cathédrale Saints-Pierre-et-Paul est la cathédrale de l'archidiocèse de Parakou au Bénin. Située à Parakou, elle est dédiée aux apôtres Pierre et Paul."
   },
   {
     "id": "Q87550297",
@@ -599,7 +609,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "centre de conférence construit à Cotonou pour accueillir le 6ème sommet de la francophonie",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le Centre international de Conférences de Cotonou (CIC), est un palais des congrès à Cotonou, bâti pour accueillir le 6e sommet de la francophonie, à Cotonou en décembre 1995 sous le Président Nicéphore Soglo. En plein travaux de rénovation et de réhabilitations en 2008, le hall principal s'effondre causant un mort et un blessé grave. Le 31 juillet 2019 le conseil des Ministres a pris une décision pour la rénovation du centre qui intègre la construction de salles de congrès, de réunions, de presse ainsi que de quartes (04) salons présidentiels."
   },
   {
     "id": "Q581452",
@@ -621,7 +632,8 @@
     "latitude": 10.75,
     "longitude": 1.5,
     "tier": "weak",
-    "summary": "La chaîne de l'Atacora, aussi orthographié Atakora, est le nom donné au Bénin, au massif montagneux qui s'étend sur un axe nord-est/sud-ouest dans le Nord-Ouest du Bénin, dans le Nord du Togo — où il est appelé…"
+    "summary": "La chaîne de l'Atacora, aussi orthographié Atakora, est le nom donné au Bénin, au massif montagneux qui s'étend sur un axe nord-est/sud-ouest dans le Nord-Ouest du Bénin, dans le Nord du Togo — où il est appelé…",
+    "detail": "La chaîne de l'Atacora, aussi orthographié Atakora, est le nom donné au Bénin, au massif montagneux qui s'étend sur un axe nord-est/sud-ouest dans le Nord-Ouest du Bénin, dans le Nord du Togo — où il est appelé localement monts Togo —, et dans le centre-est du Ghana où il est appelé collines d'Akwapim. Le point culminant du massif, qui est aussi celui du Togo, est le mont Agou, avec 986 mètres d'altitude. Au Bénin, le massif est constitué de trois sommets principaux : le mont Sokbaro, qui est le point culminant du pays avec 658 mètres d'altitude, le mont Tanéka, 654 mètres et le mont Birni. La chaîne figure sur la liste des aires protégées du Bénin."
   },
   {
     "id": "Q29098237",
@@ -650,7 +662,8 @@
     "website": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Les chutes de Kota (ou chutes de la Kota) forment un chapelet de cascades à l'est de la chaîne de l'Atacora au Bénin. Elles font partie des aires protégées du Bénin et sont situées dans l'arrondissement de Kotopounga, à une vingtaine de kilomètres de Natitingou."
   },
   {
     "id": "Q21773064",
@@ -680,7 +693,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Les chutes de Koudou sont des chutes d'eau au Bénin situées dans le Parc W qui traverse trois pays : Le Bénin, le Burkina et le Niger. Les chutes sont essentiellement constituées de falaises, creusées par la rivière du Mékrou. La ville la plus proche des chutes est Banikoara, commune béninoise située dans le département de l'Alibori."
   },
   {
     "id": "Q30596112",
@@ -710,7 +724,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": null,
-    "enTitle": "Tanougou Falls"
+    "enTitle": "Tanougou Falls",
+    "detail": "Les chutes ou cascades de Tanougou sont des chutes d'eau situées à Tanougou, un village du département de l'Atacora au Nord-Ouest du Bénin dans la commune de Tanguiéta. Juchées en pleine forêt, les chutes s’écoulent depuis l’Atakora, un massif montagneux qui culmine à 800 m. L'eau des chutes tombent d’une hauteur de 20 mètres (environ) et sont recueillies dans une cuvette dont la profondeur atteint les 30 mètres. Ces chutes sont les plus connues du pays et des plus visitées parce que situées dans un village qui se trouve en bordure du parc animalier de la Pendjari que visitent les touristes."
   },
   {
     "id": "Q2609335",
@@ -768,7 +783,8 @@
     "website": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "L'Esplanade des Amazones est une place publique située à Cotonou au Bénin. Elle abrite l'Amazone, une statue de 30 m de hauteur érigée en hommage aux Amazones du Dahomey."
   },
   {
     "id": "Q68630247",
@@ -858,7 +874,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "aire protegée de la Sota à Kandi au Bénin",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "La forêt classée de la Sota est une zone protégée au Bénin. Elle a été officiellement protégée le 16 mai 1947. Elle se trouve dans le nord-est du pays, dans la commune de Kandi, qui fait partie du département de l'Alibori. Cette forêt est traversée par la rivière Sota, qui est un affluent du fleuve Niger sur sa rive droite. C’est cette rivière qui a donné son nom à la forêt."
   },
   {
     "id": "Q110304546",
@@ -879,7 +896,8 @@
     "photo": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "La Forêt classée de N'Dali est une des aires protégées du Bénin. Elle est située dans la commune de N'Dali, département de Borgou au Bénin."
   },
   {
     "id": "Q106234793",
@@ -900,7 +918,8 @@
     "photo": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "La forêt classée des Trois Rivières est une aire protégée du Bénin relevant de la catégorie II. Elle est classée en 1949 par l’administration coloniale française dans le but de préserver le bassin supérieur de trois cours d’eau (la Sota, la Tassiné et la Bouli) et de freiner l’avancée de la désertification dans le nord du pays. Également désignée comme réserve de faune, elle contribue à la protection de plusieurs espèces sauvages."
   },
   {
     "id": "Q131445907",
@@ -1011,7 +1030,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "ilôt forestier situé à Ouidah, haut lieu du vaudou au sud du Bénin",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "La forêt sacrée de Kpassè constitue un îlot forestier à Ouidah, un centre important du vaudou dans le sud du Bénin. Elle héberge plusieurs divinités et sert de cadre à de grandes cérémonies rituelles périodiques. La forêt fonctionne également comme un musée à ciel ouvert, attirant de nombreux visiteurs."
   },
   {
     "id": "Q115599612",
@@ -1120,7 +1140,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "cité lacustre du sud du Bénin",
-    "enTitle": "Ganvie"
+    "enTitle": "Ganvie",
+    "detail": "Ganvié est une cité lacustre du sud du Bénin, située sur le lac Nokoué au nord de la métropole de Cotonou. Elle fait partie de la commune de Sô-Ava dans le département de l'Atlantique. Elle est surnommée la Venise de l'Afrique."
   },
   {
     "id": "Q1542478",
@@ -1209,7 +1230,8 @@
     "website": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "La grotte Notre-Dame d'Arigbo est un lieu de pèlerinage catholique situé à Dassa-Zoumè, dans les Collines, au Bénin. Elle devient un lieu de pèlerinage en 1954, année mariale, sous la protection de Mgr Louis Parisot. Elle figure parmi la liste des aires protégées du Bénin."
   },
   {
     "id": "Q136148430",
@@ -1240,7 +1262,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "Jardin d'Essai de la fondation Zinsou à Ouidah",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le Jardin d’Essai de la Fondation Zinsou est un espace hybride d’environ 6 ha situé à Ouidah, au Bénin, qui combine une exposition artistique et un patrimoine végétal unique . Il est ouvert au public depuis 2016 et comprend notamment une collection de plantes rares et autochtones, ainsi qu’une partie de l’exposition احبائي my loved ones d’Aïcha Snoussi. Ce jardin conserve également une trace rare du Dahomey Gap, une savane littorale résultant d’un changement climatique majeur survenu il y a environ 4500 ans. On y trouve diverses plantes typiques de la savane guinéenne ainsi que des plantes introduites par les navigateurs européens aux XVIe et XVIIe siècles ."
   },
   {
     "id": "Q64859482",
@@ -1272,7 +1295,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le Jardin des Plantes et de la Nature (JPN) de Porto-Novo, autrefois connu comme la forêt sacrée du royaume de Porto-Novo, a vu le jour avant 1895, probablement au XVIIe siècle. Considéré aujourd’hui encore comme une forêt sacrée, il reste placé sous l’autorité traditionnelle du royaume de Hogbonu. La forêt servait de lieu pour régler les différends entre citoyens et pour exécuter les sentences de condamnation à mort, sous la supervision du ministre du roi chargé des affaires judiciaires. Elle abritait aussi les temples des divinités locales, où les populations se rendaient pour accomplir des prières et des libations."
   },
   {
     "id": "Q126740648",
@@ -1367,7 +1391,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "région du Togo et du Bénin qui abrite les Batammariba",
-    "enTitle": "Koutammakou"
+    "enTitle": "Koutammakou",
+    "detail": "Koutammakou est une région du Togo et du Bénin, en Afrique de l'Ouest, qui abrite les Batammariba, Tamberma, Somba et Tamba. Elle est inscrite en 2004 au patrimoine mondial de l'UNESCO."
   },
   {
     "id": "Q69000955",
@@ -1419,7 +1444,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "lac alimenté par les eaux paresseuses de la rivière Couffo, qui rejoignent au sud celles du fleuve Mono, pour former un vaste delta aux environs de la Bouche du Roy",
-    "enTitle": "Lake Ahémé"
+    "enTitle": "Lake Ahémé",
+    "detail": "Le lac Ahémé est alimenté par les eaux paresseuses de la rivière Couffo, qui rejoignent au sud celles du fleuve Mono, pour former un vaste delta aux environs de la Bouche du Roy. Le lac couvre une superficie d'environ 78km². Les villages riverains abritent une population vivant principalement de la pêche et de l'agriculture. La pêche à l'acadja (pratiquée sur le lac Nokoué) s'est aussi développée sur ce lac, mais de manière plus limitée en raison de la présence de hauts-fonds."
   },
   {
     "id": "Q65491635",
@@ -1478,7 +1504,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "retenue d'eau dans la ville de Djougou au nord-ouest du Bénin",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le lac de Djougou, connu officiellement sous le nom de barrage de Téro ou retenue de Djougou, est une importante réserve d'eau douce du Bénin, implantée en région nord-occidentale du pays. Situé aux abords de la ville de Djougou, cet ouvrage hydraulique favorise l'alimentation en eau potable des populations urbaines et répond aux besoins agropastoraux de la région."
   },
   {
     "id": "Q140890238",
@@ -1500,7 +1527,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "Lac situé dans la commune de Kétou au Bénin",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le lac Djètoè, aussi orthographié Djétoé ou Djèto, est un plan d'eau situé dans le sud-ouest du Bénin, au sein de la commune de Lokossa, département du Mono. Il fait partie d'un ensemble de lacs et de marécages associés au fleuve Mono, qui structure l'hydrographie de la région. Le lac est, depuis 2026, l'objet d'une intervention environnementale soutenue par la Banque africaine de développement, destinée à limiter la prolifération de plantes aquatiques envahissantes."
   },
   {
     "id": "Q140865429",
@@ -1521,7 +1549,8 @@
     "photo": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le lac Doukon est un plan d'eau continental du Bénin, situé dans la commune de Lokossa, au cœur du département du Mono. Les populations locales en tirent des ressources halieutiques."
   },
   {
     "id": "Q268631",
@@ -1554,7 +1583,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "lac situé dans le Sud du Bénin",
-    "enTitle": "Lake Nokoué"
+    "enTitle": "Lake Nokoué",
+    "detail": "Le lac Nokoué est un lac situé dans le sud du Bénin, à proximité de Cotonou et de Ganvié. Il mesure environ 20 km de long et 11 km de large, pour une superficie d'environ 4 900 ha. Il est partiellement alimenté par les fleuves Ouémé et Sô, qui y acheminent des sédiments depuis la région environnante. La ville de Cotonou est située sur la rive sud du lac. Des populations de Cotonou ont été déplacées en raison des inondations côtières et lacustres. Sur la rive nord se trouve la cité lacustre de Ganvié."
   },
   {
     "id": "Q140913094",
@@ -1575,7 +1605,8 @@
     "photo": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le lac Sèlè est une étendue d'eau douce située dans le sud du Bénin. Ce plan d'eau douce sert de refuge à de nombreuses ressources halieutiques."
   },
   {
     "id": "Q85775674",
@@ -1597,7 +1628,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "vaste étendue d’eau stagnante",
-    "enTitle": "Lake Togbadji"
+    "enTitle": "Lake Togbadji",
+    "detail": "Le lac Togbadji encore appelé lac Tobadji ou lagune Togbadji, situé au sud-ouest du Bénin dans le delta du Mono, au Bénin, est une vaste étendue d’eau stagnante d’une superficie d’environ 9,150 9 km2 et d’une profondeur variant de 4 mètres à 14 mètres."
   },
   {
     "id": "Q21786512",
@@ -1627,7 +1659,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "lac situé au sud-ouest de Bénin",
-    "enTitle": "Lake Toho (Benin)"
+    "enTitle": "Lake Toho (Benin)",
+    "detail": "Le lac Toho est un lac du sud-ouest du Bénin, situé à proximité des localités de Houin, Kpinnou et Kpénou. Il a la forme d'un croissant orienté sud-nord. Il s'étend sur 9,6 km2 à l'étiage et de 15 km2 en période de crue. Le lac Toho représente la principale ressource en eau de surface de l’arrondissement de Houin. Le pouvoir traditionnel instaure autrefois une réglementation stricte de la pêche, soutenue par l’autorité de sept fétiches. La disparition du dernier hippopotame du lac, combinée à des facteurs tels que les conflits entre groupes et l’augmentation de la population, entraîne une exploitation désordonnée des ressources du lac."
   },
   {
     "id": "Q140841393",
@@ -1659,7 +1692,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "Écosystème lagunaire situé dans la commune de Grand-Popo au Bénin",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "La lagune de Grand-Popo est un système fluvio-lagunaire majeur situé au sud-ouest du Bénin, à l'embouchure du fleuve Mono. Cet écosystème côtier de 15 kilomètres de longueur abrite une biodiversité variée et favorise les activités de pêche traditionnelle et le tourisme durable en Afrique de l'Ouest."
   },
   {
     "id": "Q140834238",
@@ -1689,7 +1723,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "Lagune côtière située dans la commune de Ouidah au Sud du Bénin",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "La lagune de Ouidah, située dans le département de l'Atlantique est l'un des écosystèmes côtiers les plus importants de la République du Bénin. Cet espace naturel s'étend sur une vaste superficie et participe à la vie socio-économique des populations riveraines."
   },
   {
     "id": "Q111824766",
@@ -1712,7 +1747,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "bâtiment administratif de la famille afro-brésilienne de Souza au Bénin",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "La Maison du Brésil ou Maison de Mémoire est un bâtiment administratif de la famille afro-brésilienne de Souza. Il est situé dans la commune de Ouidah, département de l'Atlantique dans le Sud du Bénin."
   },
   {
     "id": "Q109044194",
@@ -1852,7 +1888,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "monument symbolisant la repentance et la réconciliation à Ouidah au Bénin",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le Mémorial ZOMACHI était un site de mémoire et de recueillement situé au sud du Bénin à Ouidah, consacré à l’histoire de la mise en esclavage des Africains et de la traite transatlantique, mais également à la réconciliation et au dialogue entre l’Afrique et sa diaspora. Le nom Zomachi, issu de la langue FON, peut être interprété comme « le lieu où le feu ne s’éteint pas », en référence à la persistance de la mémoire et à la transmission de l’histoire. Le site invitait les visiteurs à une réflexion sur les conséquences historiques de l’esclavage et sur l’importance du travail de mémoire."
   },
   {
     "id": "Q68999815",
@@ -1924,7 +1961,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "montagne d'Afrique de l'Ouest",
-    "enTitle": "Mont Sokbaro"
+    "enTitle": "Mont Sokbaro",
+    "detail": "Le mont Sokbaro est une montagne située sur la frontière entre le Bénin et le Togo, point culminant du Bénin avec 658 mètres d'altitude. Il figure dans la liste des aires protégées du pays."
   },
   {
     "id": "Q65156159",
@@ -1945,7 +1983,8 @@
     "photo": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le mont Tanéka est une montagne du Bénin. Situé à 654 mètres d'altitude, il s'agit du deuxième plus haut sommet du pays, après le mont Sokbaro. Il figure dans la liste des aires protégées du Bénin. L'Ouémé y prend sa source."
   },
   {
     "id": "Q112032217",
@@ -1974,7 +2013,8 @@
     "website": "https://www.gouv.bj/monument/monument-amazone/",
     "phone": null,
     "mail": null,
-    "enTitle": "Amazon Monument (Benin)"
+    "enTitle": "Amazon Monument (Benin)",
+    "detail": "Le Monument Amazone ou l'Amazone est une statue érigée en hommage aux Amazones du Dahomey, inaugurée le 30 juillet 2022 par le Président de la République du Bénin, Patrice Talon. Réalisée en structure métallique recouverte de bronze, elle mesure 30 m de hauteur pour un poids d'environ 150 tonnes et est installée sur un tertre de l'esplanade des Amazones, dans le 12e arrondissement de la ville de Cotonou, au sud du Bénin. Elle représente une jeune femme guerrière armée d'un fusil et d'une épée avec sa tête pointée vers le haut en signe de victoire. C'est la seconde statue la plus grande en Afrique[réf. nécessaire] et un point attrayant au cœur de l'ancien Dahomey."
   },
   {
     "id": "Q68624933",
@@ -2158,7 +2198,8 @@
     "phone": "0121341154",
     "mail": "claudeakotome@fondationzinsou.org",
     "descriptionFr": "musée d'art contemporain situé à Ouidah, dans le département de l'Atlantique, au Bénin",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le musée d'art contemporain de Ouidah, inauguré le 11 novembre 2013, est une institution culturelle située à Ouidah, dans le département de l'Atlantique, au Bénin. Ce projet est une initiative de la Fondation Zinsou, fondée en 2005 par Marie-Cécile Zinsou, historienne de l'art franco-béninoise, avec pour mission de promouvoir l'art contemporain africain et de le rendre accessible au plus grand nombre. Le musée est situé derrière la basilique de Ouidah, à côté du Musée du Soleil, dans la villa Ajavon, construite en 1922."
   },
   {
     "id": "Q7110333",
@@ -2189,7 +2230,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "musée d'histoire du Dahomey sité à Ouidah, au Bénin",
-    "enTitle": "Ouidah Museum of History"
+    "enTitle": "Ouidah Museum of History",
+    "detail": "Le musée d'histoire de Ouidah est un musée du Bénin localisé dans la ville de Ouidah, dans le département d'Atlantique. Il est situé dans l'ancien fort portugais São-Jão-Batista-de-Ajuda construit en 1721. Il héberge 700 pièces de collection traitant de l'archéologie, de l'histoire et des arts à Ouidah."
   },
   {
     "id": "Q106834446",
@@ -2218,7 +2260,8 @@
     "website": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le musée Da-Silva, situé à Porto-Novo, au Bénin, est une institution culturelle privée inaugurée en 1998 par Karim da Silva. Le musée est destiné à la préservation et à la valorisation du patrimoine afro-brésilien et de la mémoire de la traite négrière. Il est situé dans une maison de style d'architecture afro-brésilienne appartenant auparavant à une famille Agouda. Il est situé entre la lagune et la cathédrale de Porto-Novo. À l'accueil du musée, le long de la clôture, on remarque plusieurs représentations qui retracent le parcours du commerce triangulaire et de la marche des esclaves. Cette fresque s'intitule « devoir de mémoire de l'esclavagisme européen »."
   },
   {
     "id": "Q110269997",
@@ -2247,7 +2290,8 @@
     "website": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le musée Danri de Nikki est un des sites historiques du Bénin, situé dans le quartier de Danri au Bénin. Il se consacre à l'histoire du peuple Baatombu."
   },
   {
     "id": "Q106720704",
@@ -2277,7 +2321,8 @@
     "phone": "0197600795",
     "mail": "noagossou@yahoo.fr",
     "descriptionFr": "musée dans la commune d'Adjarra, Bénin",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le musée des masques d'Adjarra est un musée situé dans le département de l'Ouémé, dans la commune d'Adjarra, au Bénin. Il a été inauguré le 18 mai 2011. Il valorise le patrimoine culturel de la commune comme l'artisanat local et propose à ses visiteurs, un circuit touristique de découverte de la commune et de ses environs. Grâce à l'exposition des masques et de la tradition africaine, il permet aux visiteurs de voir la différence entre les masques de zangbéto et de Guèlèdè avec ceux d'autres pays africains."
   },
   {
     "id": "Q110264566",
@@ -2298,7 +2343,8 @@
     "photo": null,
     "phone": "0161315252",
     "mail": "info@naturetropicale.org",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le musée des sciences naturelles aussi connu sous le nom Nature tropicale est un musée béninois situé à Yagbé Akpakpa, près de l'autoroute Cotonou - Porto-Novo. Il accueille 15 000 visiteurs par an et propose des artefacts autour de la nature et des animaux."
   },
   {
     "id": "Q110272681",
@@ -2319,7 +2365,8 @@
     "photo": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le musée Don-Francisco-Felix-de-Souza-Chacha aussi connu sous le nom de musée de Souza est un des sites historiques du Bénin, situé dans le quartier Docomè à Ouidah. Il se consacre à l'histoire de l'esclavage."
   },
   {
     "id": "Q111951033",
@@ -2369,7 +2416,8 @@
     "website": null,
     "phone": "0120212554",
     "mail": null,
-    "enTitle": "Alexandre Sènou Adandé Ethnographic Museum"
+    "enTitle": "Alexandre Sènou Adandé Ethnographic Museum",
+    "detail": "Le Musée ethnographique Alexandre Sènou Adandé est un musée béninois installé dans un bâtiment colonial construit en 1922, à Porto-Novo, la capitale du pays. Alexandre Sènou Adandé était un ethnographe, archiviste et bibliothécaire."
   },
   {
     "id": "Q2784689",
@@ -2454,7 +2502,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le musée historique d’Abomey est un ensemble de palais royaux dont une partie contient l’un des plus prestigieux musées du Bénin. Le site de 47 hectares dont il fait partie est inscrit sur la liste du patrimoine mondial de l’UNESCO depuis décembre 1985."
   },
   {
     "id": "Q2784858",
@@ -2487,7 +2536,8 @@
     "website": null,
     "phone": "0120213566",
     "mail": null,
-    "enTitle": "Royal Palace, Porto-Novo"
+    "enTitle": "Royal Palace, Porto-Novo",
+    "detail": "Le musée Honmè ou Honmey est un musée béninois installé dans le palais des anciens rois de Hogbonou, situé dans le quartier Avassa de Porto-Novo, la capitale du pays. Honmè ou Honmey signifie « à l'intérieur de la porte », et, par extension, le terme désigne un palais."
   },
   {
     "id": "Q111730279",
@@ -2509,7 +2559,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "musée béninois, situé dans la commune de Ouidah",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le Musée International Avimadjessi d'Ahozon est un musée béninois, situé dans la commune de Ouidah. Il ouvre ses portes en septembre 2012."
   },
   {
     "id": "Q16335735",
@@ -2590,7 +2641,8 @@
     "website": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le Musée régional de Natitingou est un musée béninois localisé dans la ville de Natitingou, dans le département d'Atacora. Il héberge 360 pièces de collection traitant de l'archéologie, de l'histoire et des arts à Natitingou."
   },
   {
     "id": "Q994125",
@@ -2649,7 +2701,8 @@
     "website": null,
     "phone": null,
     "mail": null,
-    "enTitle": "Presidential Palace, Cotonou"
+    "enTitle": "Presidential Palace, Cotonou",
+    "detail": "Le palais de la Marina est la résidence officielle du président de la république du Bénin. En 2016, avec l'arrivée du président Patrice Talon, le palais de la Marina est modernisé, pour un montant de 14 milliards de francs CFA. Il se situe à Cotonou, la capitale économique et la plus grande ville du Bénin."
   },
   {
     "id": "Q62117208",
@@ -2679,7 +2732,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "centre de conférence au Bénin",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le palais des congrès de Cotonou, est un centre de congrès et de spectacles situé dans la ville de Cotonou. Le palais des congrès est le fruit de la coopération entre la Chine et le Bénin. Il est inauguré en août 2003."
   },
   {
     "id": "Q66480622",
@@ -2835,7 +2889,8 @@
     "website": "http://www.pendjari.net/en/",
     "phone": null,
     "mail": null,
-    "enTitle": "Pendjari National Park"
+    "enTitle": "Pendjari National Park",
+    "detail": "Le parc national de la Pendjari (PNP) est une aire protégée du Bénin, située à l'extrême nord-ouest du pays, dans le département de l’Atacora, sur les communes de Tanguiéta, Matéri et Kérou, à la frontière du Burkina Faso. Il fait partie de la réserve de biosphère de l'Unesco du complexe W-Arly-Pendjari (WAP). Il figure sur la liste des aires protégées du Bénin. Il ressort le plus beau et le plus important parc faunique d’Afrique de l’Ouest et s’étend sur une surface de 4 700 km2."
   },
   {
     "id": "Q726863",
@@ -2869,7 +2924,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "parc national transfrontalier de l'Afrique",
-    "enTitle": "W National Park"
+    "enTitle": "W National Park",
+    "detail": "Le parc national du W du Niger est au cœur d'un complexe naturel transfrontalier de près d'un million d'hectares géré conjointement par le Bénin, le Niger et le Burkina Faso et protégé depuis 2007 par la convention de Ramsar.Il est Situé dans la partie sud-ouest du Niger à 151 km de la ville de Niamey. Il doit son nom à la forme en W dessinée par le fleuve Niger qui le traverse.Il a également été désigné réserve de biosphère transfrontalière en 2002"
   },
   {
     "id": "Q64188731",
@@ -2901,7 +2957,8 @@
     "website": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le parc national du W est une aire protégée du Bénin, constituée par la réserve de biosphère transfrontalière, partagée entre le Bénin, le Niger et le Burkina Faso. Il fait partie d'un complexe naturel transfrontalier de près d'un million d'hectares géré conjointement par les trois pays et protégé depuis 2007 par la convention de Ramsar. La partie nigérienne du parc (le parc national du W du Niger), est inscrite sur la liste du patrimoine mondial de l'UNESCO depuis 1996 et le complexe est reconnu en tant que réserve de biosphère transfrontière depuis 2002 par l'UNESCO."
   },
   {
     "id": "Q56310947",
@@ -2922,7 +2979,8 @@
     "photo": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le Musée de la Récade, inauguré le 1er décembre 2015, est un musée béninois situé à Abomey-Calavi, au sud du pays. C'est le seul musée consacré à la récade, symbole du pouvoir du royaume du Danxomè. Il est intégré au Centre, un espace artistique pluridisciplinaire, à Godomey."
   },
   {
     "id": "Q16510194",
@@ -2951,7 +3009,8 @@
     "website": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "La place du Souvenir, anciennement appelée place des Martyrs, est une place de la ville de Cotonou, au Bénin, située dans le quartier Haie Vive. Elle occupe l'angle entre la rue 390 et la route de l'aéroport."
   },
   {
     "id": "Q18467833",
@@ -2981,7 +3040,8 @@
     "website": null,
     "phone": null,
     "mail": null,
-    "enTitle": "Door of No Return, Ouidah"
+    "enTitle": "Door of No Return, Ouidah",
+    "detail": "La Porte du non-retour est un arc mémorial en béton et bronze située sur une plage de la ville de Ouidah, au Bénin. Érigée en 1995 à l'initiative de l'UNESCO, elle commémore la déportation des millions de captifs, réduits en esclavage dans les colonies d'outre-Atlantique."
   },
   {
     "id": "Q68628890",
@@ -3033,7 +3093,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "réserve de biosphère transfrontière",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "La réserve de biosphère transfrontalière du Mono s’étend autour de l’embouchure du fleuve Mono, à la frontière entre le Bénin et le Togo. Elle a été inscrite au réseau mondial des réserves de biosphère de l’UNESCO en 2017. La réserve s'étend sur 346 285 hectares."
   },
   {
     "id": "Q71274502",
@@ -3062,7 +3123,8 @@
     "website": null,
     "phone": null,
     "mail": null,
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le site des hommes à queue est un site archéologique et historique du Bénin situé dans la commune de Dogbo (département du Couffo), à 136 km au nord-ouest de Cotonou. Des galeries d'un ancien site d'extraction minière y constituent le support d'une légende très répandue (Homo caudatus (no)), particulièrement sur le continent africain, et nourrissent la réflexion des autorités qui souhaitent valoriser ce patrimoine."
   },
   {
     "id": "Q66481246",
@@ -3123,7 +3185,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "édifice érigé à l’entrée de la ville de Natitingou",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "La stèle de Kaba ou musée Kaba de la résistance ou encore musée Kaba est un monument érigé en mémoire de Kaba, à la sortie de la ville de Natitingou au nord-ouest du Bénin. Il est situé sur l'axe principal de la route inter-États Djougou-Natitingou-Porga, à l'entrée de la ville de Natitingou."
   },
   {
     "id": "Q68998463",
@@ -3203,7 +3266,8 @@
     "website": null,
     "phone": null,
     "mail": null,
-    "enTitle": "Tanguiéta"
+    "enTitle": "Tanguiéta",
+    "detail": "Tanguiéta est une commune du nord-ouest du Bénin, située dans le département de l'Atacora. Outre son cadre naturel, Tanguiéta bénéficie de sa proximité avec le parc national de la Pendjari et constitue aussi une ville-étape pour les voyageurs en provenance ou à destination du Burkina Faso par la route nationale inter-états 3 (RNIE 3)."
   },
   {
     "id": "Q36698317",
@@ -3235,7 +3299,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "sanctuaire vaudou situé à Ouidah (Bénin), dans un lieu où l'existence d'un culte du Serpent (Dangbé)",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "Le temple des Pythons est un sanctuaire vaudou situé à Ouidah (Bénin), dans un lieu où l'existence d'un culte du serpent (Dangbé) une forme particulière du vaudou est attestée depuis la fin du XVIIe siècle. Ses pythons sacrés vivants constituent l'une des attractions touristiques majeures de la ville."
   },
   {
     "id": "Q68628764",
@@ -3286,7 +3351,8 @@
     "phone": null,
     "mail": null,
     "descriptionFr": "réserve naturelle communautaire au Bénin",
-    "enTitle": null
+    "enTitle": null,
+    "detail": "La vallée du Sitatunga est une réserve naturelle communautaire située dans une zone humide au sud du Bénin. Elle dispose d'un écosystème floristique muni d'un refuge animalier et de cours d'eau qui accueille aussi bien des touristes béninois que des étrangers."
   },
   {
     "id": "Q20380202",
@@ -3319,7 +3385,8 @@
     "phone": null,
     "mail": "info@villakaro.org",
     "descriptionFr": "centre culturel finno-africain installé au Bénin",
-    "enTitle": "Villa Karo"
+    "enTitle": "Villa Karo",
+    "detail": "La Villa Karo est un centre culturel et une résidence d'artistes finno-africain. Elle est située dans la petite ville côtier de Grand-Popo, au Bénin. Son principal objectif est de créer un pont entre les artistes et les acteurs culturels finlandais et africains. Son but est d'offrir aux artistes finlandais, chercheurs, enseignants et autres professionnels des domaines culturel et social, la possibilité de résider en Afrique. Il encourage et invite aussi les professionnels de la culture africains à se rendre en Finlande . Les demandes de résidence sont réparties sur deux périodes par an."
   },
   {
     "id": "Q4693350",

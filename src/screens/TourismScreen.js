@@ -452,7 +452,9 @@ export function TourismScreen({ navigation, route }) {
           <CrossLabel>{t("tourismSleepHere")}</CrossLabel>
           <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
         </CrossRow>
-        <CrossRow onPress={() => navigation.navigate("Events")}>
+        <CrossRow
+          onPress={() => navigation.navigate("Events", { city: originDef.label })}
+        >
           <Ionicons name="musical-notes-outline" size={18} color={colors.primary} />
           <CrossLabel>{t("tourismNightOut")}</CrossLabel>
           <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />

@@ -657,6 +657,7 @@ export const translations = {
     banksSearchPlaceholder: "Search for a bank",
     banksSectionTitle: "Banks",
     banksEmptyResults: "No bank matches your search.",
+    hotelsPublishHow: "How do I get verified?",
     banksKicker: "LICENSED BY THE BCEAO",
     banksHeroTitle: "Every bank in Bénin",
     banksHeroCopy:
@@ -731,6 +732,8 @@ export const translations = {
     tourismShowMore: "Show {count} more",
     tourismDetailHeritage: "Listing",
     tourismDetailWhere: "Where",
+    tourismNearbyTitle: "Nearby",
+    tourismAwayKm: "{km} km away",
     tourismDirections: "Directions",
     tourismHeritageWorld: "World Heritage",
     tourismHeritageTentative: "Tentative list",
@@ -3748,6 +3751,7 @@ export const translations = {
     banksSearchPlaceholder: "Rechercher une banque",
     banksSectionTitle: "Banques",
     banksEmptyResults: "Aucune banque ne correspond à votre recherche.",
+    hotelsPublishHow: "Comment être vérifié ?",
     banksKicker: "AGRÉÉES PAR LA BCEAO",
     banksHeroTitle: "Toutes les banques du Bénin",
     banksHeroCopy:
@@ -3822,6 +3826,8 @@ export const translations = {
     tourismShowMore: "Voir {count} de plus",
     tourismDetailHeritage: "Classement",
     tourismDetailWhere: "Où",
+    tourismNearbyTitle: "À proximité",
+    tourismAwayKm: "à {km} km",
     tourismDirections: "Itinéraire",
     tourismHeritageWorld: "Patrimoine mondial",
     tourismHeritageTentative: "Liste indicative",

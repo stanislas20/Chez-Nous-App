@@ -15,15 +15,17 @@
 // The Fête de l'igname has no free photograph on Commons. It keeps its
 // gradient rather than borrowing a picture of some other harvest.
 //
-// WeLove EYA has none either. It briefly carried a photograph of the
-// Place de l'Amazone, on the reasoning that the card names the venue so a
-// picture of the venue is honest. It is not: what a reader sees on an
-// afrobeat festival card is the festival, and what that picture shows is
-// an empty monument square. Reported as exactly that — "the WeLove EYA
-// card is showing a banner of the Amazones" — which is the same rule
-// companyLogos.js already states about a wrong mark on a bank card. It
-// keeps its coloured ground until somebody licenses a photograph of the
-// festival itself.
+// WeLove EYA went through both mistakes. It first carried a photograph of
+// the Place de l'Amazone, on the reasoning that the card names the venue
+// so a picture of the venue is honest — it is not, and an empty monument
+// square on an afrobeat card was reported as exactly that. Then it
+// carried nothing, because I had searched Commons for "WeLove EYA" and
+// concluded there was none.
+//
+// The files are filed under WeLoveEya, one word. There are several, from
+// the 2025 edition, including artists on stage. A search that finds
+// nothing is not the same as nothing existing, and the difference here
+// was a space.
 //
 //   GOOGLE_APPLICATION_CREDENTIALS=... node scripts/fetchFestivalPhotos.js
 //   GOOGLE_APPLICATION_CREDENTIALS=... node scripts/fetchFestivalPhotos.js --apply
@@ -47,6 +49,10 @@ const FILES = {
   gaani: {
     file: "File:Bariba Ganni performers, Nikki, Bemin.jpg",
     shows: "Bariba performers at the Gaani in Nikki",
+  },
+  "welove-eya": {
+    file: "File:Joé Dwet sur scène à WeLoveEya 2025 à Cotonou.jpg",
+    shows: "Joé Dwet on stage at WeLoveEya 2025 in Cotonou",
   },
   nonvitcha: {
     file: "File:Nonvitcha Grand Popo Benin 2017.jpg",

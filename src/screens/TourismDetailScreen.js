@@ -36,8 +36,13 @@ export function TourismDetailScreen({ route, navigation }) {
 
   return (
     <Container edges={["left", "right", "bottom"]}>
-      <Body showsVerticalScrollIndicator={false} contentContainerStyle={bodyStyle}>
-        <Hero>
+      {/* Fixed, with the page sliding over it.
+
+          The hero used to scroll away with everything else, which on a
+          screen whose whole point is the photograph meant the photograph
+          was the first thing to leave. Now it is pinned behind the sheet
+          and stays there while the reader moves down the page. */}
+      <Hero>
           {site.photo ? (
             <HeroPhoto source={{ uri: site.photo.url }} resizeMode="cover" />
           ) : (
@@ -63,7 +68,14 @@ export function TourismDetailScreen({ route, navigation }) {
             <HeroTitle numberOfLines={3}>{name}</HeroTitle>
             <HeroMeta numberOfLines={1}>{site.admin}</HeroMeta>
           </HeroFoot>
-        </Hero>
+      </Hero>
+
+      <Body
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={bodyStyle}
+      >
+        <Spacer pointerEvents="none" />
+        <Sheet>
 
         <Section>
           {siteDetail(site, language) ? (
@@ -206,10 +218,19 @@ export function TourismDetailScreen({ route, navigation }) {
         </Section>
 
         <Footer>{t("tourismSourceNote")}</Footer>
+        </Sheet>
       </Body>
     </Container>
   );
 }
+
+// The banner is fixed and the page slides over it, so its height is a
+// number two styles share: the hero itself, and the spacer that lets it
+// show through before the sheet arrives. Declared here because a styled
+// component evaluates its interpolations the moment it is created — put
+// this below them and the module throws on import, before anything can
+// render.
+const HERO_HEIGHT = 420;
 
 const bodyStyle = { paddingBottom: spacing.xl };
 
@@ -222,9 +243,28 @@ const Body = styled.ScrollView`
   flex: 1;
 `;
 
+// Nothing but height: it is the window onto the fixed hero.
+const Spacer = styled.View`
+  height: ${HERO_HEIGHT - 28}px;
+`;
+
+// Opaque, so the hero does not show between the cards, and rounded so it
+// reads as a sheet lifted over the picture rather than a gap.
+const Sheet = styled.View`
+  background-color: ${(props) => props.theme.background};
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding-top: ${spacing.xs}px;
+  min-height: 520px;
+`;
+
+// Behind the page, not part of it.
 const Hero = styled.View`
-  width: 100%;
-  height: 280px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: ${HERO_HEIGHT}px;
   background-color: #1b1b1d;
 `;
 
@@ -263,11 +303,17 @@ const BackButton = styled(Pressable)`
   background-color: rgba(0, 0, 0, 0.35);
 `;
 
+// Clear of the sheet.
+//
+// The sheet slides up over the last 28px of the hero and rounds its own
+// corners on top of that, so a caption sitting at the hero's foot lost its
+// second line to it — "Place de l'Amazone · Cotonou" was half a line of
+// letters behind a corner. This sits above the overlap.
 const HeroFoot = styled.View`
   position: absolute;
   left: ${spacing.md}px;
   right: ${spacing.md}px;
-  bottom: ${spacing.md}px;
+  bottom: 52px;
 `;
 
 const HeroTitle = styled.Text`

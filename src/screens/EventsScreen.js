@@ -1630,7 +1630,7 @@ const FestivalEdition = styled.Text`
 `;
 
 const FestivalBanner = styled.View`
-  height: 132px;
+  height: 210px;
   margin: -${spacing.md}px -${spacing.md}px ${spacing.sm}px;
   background-color: #1b1b1d;
 `;

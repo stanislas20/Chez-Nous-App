@@ -17,6 +17,7 @@ import {
   tourismBands,
   tourismOrigins,
   siteBlurb,
+  siteTypeLine,
   tourismSites,
 } from "../data/tourismSites";
 
@@ -222,6 +223,8 @@ export function TourismScreen({ navigation }) {
     <>
       {siteBlurb(site, language) ? (
         <Why numberOfLines={4}>{siteBlurb(site, language)}</Why>
+      ) : siteTypeLine(site) ? (
+        <TypeLine numberOfLines={1}>{siteTypeLine(site)}</TypeLine>
       ) : null}
       {/* The figure the design asked for, and the reason there is none.
           Nothing publishes Bénin's entry fees in a form worth repeating,
@@ -814,6 +817,14 @@ const Why = styled.Text`
   ${type.caption}
   color: ${(props) => props.theme.text};
   line-height: 19px;
+`;
+
+// Not prose, and not styled as prose: this is the type of the thing,
+// shown where there is no sentence to show.
+const TypeLine = styled.Text`
+  ${type.caption}
+  color: ${(props) => props.theme.textMuted};
+  font-style: italic;
 `;
 
 const NoTariff = styled.View`

@@ -151,6 +151,24 @@ export function siteBlurb(site, language) {
   return site.summary ?? site.descriptionFr ?? site.summaryEn ?? null;
 }
 
+// When there is no sentence anywhere, say what the thing is.
+//
+// Seventeen of these have no article in either language and no usable
+// one-liner — a waterfall at Sosso, the royal palace at Allada, a handful
+// of cathedrals and mosques. Their cards showed a name and a drive time
+// and nothing else, which reads as a broken card rather than a thin one.
+//
+// This is not prose and is not dressed as prose: it is the type Wikidata
+// records, joined and capitalised, beside the town. "Palais royal ·
+// Allada" is a small true thing, and a small true thing beats a gap.
+export function siteTypeLine(site) {
+  const types = (site.types ?? []).filter(Boolean);
+  if (!types.length) return null;
+  const first = types[0];
+  const label = first.charAt(0).toUpperCase() + first.slice(1);
+  return site.city ? `${label} · ${site.city}` : label;
+}
+
 export function heritageRank(site) {
   const all = (site.heritage ?? []).join(" ").toLowerCase();
   if (all.includes("patrimoine mondial") && !all.includes("indicative")) return 3;

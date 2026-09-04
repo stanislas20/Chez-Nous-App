@@ -727,7 +727,7 @@ export function EventsScreen({ navigation }) {
               <FestivalCard
                 key={festival.key}
                 onPress={() =>
-                  festival.website && Linking.openURL(festival.website)
+                  navigation.navigate("FestivalDetail", { festival })
                 }
               >
                 {/* A picture of the thing, so the calendar reads as five

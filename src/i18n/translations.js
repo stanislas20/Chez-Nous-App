@@ -670,6 +670,16 @@ export const translations = {
     festivalsIntro:
       "Fixtures nobody needs to post: they come round every year. Dates move, so what is given is when it usually falls and the last edition that was announced — check with the organiser before you travel.",
     festivalsUsually: "Usually",
+    festivalsWhenTitle: "When",
+    festivalsWhereTitle: "Where",
+    festivalsAboutTitle: "What it is",
+    festivalsSourceTitle: "Where this comes from",
+    festivalsSourceLine: "Read on {date} from {host}",
+    festivalsOpenSource: "Open the source",
+    festivalsNoDateYet:
+      "No date has been announced for the coming edition. Check with the organiser before booking anything.",
+    festivalsSleep: "Where to sleep in {city}",
+    festivalsSeeCity: "What else is in {city}",
     festivalsLastEdition: "Last announced: {edition}",
     festivalsReadOn: "Read on {date}",
     tourismKicker: "WHAT TO DO IN BÉNIN",
@@ -3751,6 +3761,16 @@ export const translations = {
     festivalsIntro:
       "Des rendez-vous que personne n'a besoin de publier : ils reviennent tous les ans. Les dates bougent, alors on donne la période habituelle et la dernière édition annoncée — vérifiez auprès de l'organisateur avant de vous déplacer.",
     festivalsUsually: "En général",
+    festivalsWhenTitle: "Quand",
+    festivalsWhereTitle: "Où",
+    festivalsAboutTitle: "Ce que c'est",
+    festivalsSourceTitle: "D'où vient cette fiche",
+    festivalsSourceLine: "Relevé le {date} sur {host}",
+    festivalsOpenSource: "Ouvrir la source",
+    festivalsNoDateYet:
+      "Aucune date n'est annoncée pour la prochaine édition. Vérifiez auprès de l'organisateur avant de réserver quoi que ce soit.",
+    festivalsSleep: "Où dormir à {city}",
+    festivalsSeeCity: "Que voir à {city}",
     festivalsLastEdition: "Dernière annoncée : {edition}",
     festivalsReadOn: "Relevé le {date}",
     tourismKicker: "QUE FAIRE AU BÉNIN",

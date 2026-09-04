@@ -7,7 +7,7 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
-import { siteBlurb } from "../data/tourismSites";
+import { siteBlurb, siteTypeLine } from "../data/tourismSites";
 
 const LATERITE = "#9C4221";
 
@@ -63,6 +63,8 @@ export function TourismDetailScreen({ route, navigation }) {
         <Section>
           {siteBlurb(site, language) ? (
             <Body1>{siteBlurb(site, language)}</Body1>
+          ) : siteTypeLine(site) ? (
+            <TypeLine>{siteTypeLine(site)}</TypeLine>
           ) : null}
           {/* Credited under the picture it belongs to, not in a licence
               page nobody opens. CC BY-SA asks for the photographer by
@@ -261,6 +263,12 @@ const Body1 = styled.Text`
   ${type.body}
   color: ${(props) => props.theme.text};
   line-height: 21px;
+`;
+
+const TypeLine = styled.Text`
+  ${type.body}
+  color: ${(props) => props.theme.textMuted};
+  font-style: italic;
 `;
 
 const Credit = styled(Pressable)`

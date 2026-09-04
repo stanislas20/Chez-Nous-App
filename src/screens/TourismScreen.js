@@ -84,13 +84,19 @@ function driveLabel(hours) {
   return minutes ? `${whole} h ${minutes}` : `${whole} h`;
 }
 
-export function TourismScreen({ navigation }) {
+export function TourismScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { language, t } = useI18n();
   const insets = useSafeAreaInsets();
 
   const [query, setQuery] = useState("");
-  const [origin, setOrigin] = useState("Cotonou");
+  // Same rule as Hôtels: "Que voir à Nikki" opens on Nikki.
+  const requestedCity = route?.params?.city ?? null;
+  const [origin, setOrigin] = useState(
+    requestedCity && tourismOrigins.some((item) => item.key === requestedCity)
+      ? requestedCity
+      : "Cotonou",
+  );
   const [band, setBand] = useState("ville");
   const [category, setCategory] = useState("all");
   const [originSheetOpen, setOriginSheetOpen] = useState(false);
@@ -240,7 +246,11 @@ export function TourismScreen({ navigation }) {
           <PrimaryActionLabel>{t("tourismDirections")}</PrimaryActionLabel>
         </PrimaryAction>
         {site.alongKey === "restaurants" ? (
-          <SecondaryAction onPress={() => navigation.navigate("Restaurants")}>
+          <SecondaryAction
+            onPress={() =>
+              navigation.navigate("Restaurants", { city: site.city })
+            }
+          >
             <Ionicons name="restaurant-outline" size={15} color={colors.primary} />
             <SecondaryActionLabel numberOfLines={1}>
               {t("tourismAlongRestaurants")}
@@ -435,7 +445,9 @@ export function TourismScreen({ navigation }) {
         {/* The two questions a day out raises next, answered by screens
             this app already has rather than by a list of names nobody
             verified. */}
-        <CrossRow onPress={() => navigation.navigate("Hotels")}>
+        <CrossRow
+          onPress={() => navigation.navigate("Hotels", { city: originDef.label })}
+        >
           <Ionicons name="bed-outline" size={18} color={colors.primary} />
           <CrossLabel>{t("tourismSleepHere")}</CrossLabel>
           <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />

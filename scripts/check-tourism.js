@@ -25,6 +25,11 @@ const sites = JSON.parse(read("src/data/tourismSites.json"));
 const screen = read("src/screens/TourismScreen.js");
 const detail = read("src/screens/TourismDetailScreen.js");
 
+const cityList = (() => {
+  const raw = read("src/data/cities.js");
+  return [...raw.matchAll(/"([^"]+)"/g)].map((match) => match[1]);
+})();
+
 const failures = [];
 const check = (label, ok) => {
   if (!ok) failures.push(label);
@@ -55,6 +60,18 @@ sites.forEach((site) => {
   check(`${site.name} has coordinates`, typeof site.latitude === "number");
   check(`${site.name} has an id`, Boolean(site.id));
 });
+// Every town a site is filed under is one the other screens know, because
+// the detail screen hands it to Hôtels and Restaurants so they open on
+// it. An unknown name filters those to nothing and looks like an empty
+// town rather than a bad hand-off.
+sites.forEach((site) => {
+  if (!site.city) return;
+  check(
+    `${site.name} is filed under a town the other screens know (${site.city})`,
+    cityList.includes(site.city),
+  );
+});
+
 check(
   "no two sites share an id",
   new Set(sites.map((site) => site.id)).size === sites.length,
@@ -137,6 +154,48 @@ check(
   "the source of the descriptions is credited",
   /tourismSourceNote/.test(screen),
 );
+
+// ── A screen reached from a place opens on that place ─────────────────
+//
+// "Où dormir à Nikki" landed on the whole country and left the reader to
+// find Nikki in a picker of sixty-one, having just tapped a row with the
+// word Nikki in it. So the town travels with the tap.
+//
+// Both halves are checked, because the sending half is the one that looks
+// finished on its own: a screen can pass { city } forever and, if the
+// destination never reads it, nothing fails — the list simply opens
+// unfiltered and looks like it was meant to.
+const destinations = {
+  "src/screens/HotelsScreen.js": true,
+  "src/screens/RestaurantsScreen.js": true,
+  "src/screens/TourismScreen.js": true,
+};
+Object.keys(destinations).forEach((file) => {
+  const source = read(file);
+  check(
+    `${file} reads the town it was sent`,
+    /route\?\.params\?\.city/.test(source),
+  );
+  // And refuses one it does not know, rather than filtering to nothing —
+  // an empty screen reads as "nowhere to sleep in Nikki" when it means
+  // "no such town in this list".
+  check(
+    `${file} falls back when the town is unknown`,
+    /requestedCity &&[\s\S]{0,90}(includes\(requestedCity\)|item\.key === requestedCity)/.test(
+      source,
+    ),
+  );
+});
+[
+  "src/screens/FestivalDetailScreen.js",
+  "src/screens/TourismDetailScreen.js",
+].forEach((file) => {
+  const source = read(file);
+  check(
+    `${file} sends the town with the tap`,
+    /navigate\("Hotels", \{ city:/.test(source),
+  );
+});
 
 if (failures.length) {
   failures.slice(0, 20).forEach((line) => console.error(`FAIL ${line}`));

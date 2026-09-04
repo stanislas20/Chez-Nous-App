@@ -46,6 +46,7 @@ function loadEsm(relative) {
 }
 
 const { beninFestivals, festivalPhoto } = loadEsm("src/data/beninFestivals.js");
+const { cities } = loadEsm("src/data/cities.js");
 const screen = read("src/screens/EventsScreen.js");
 const failures = [];
 const check = (label, ok) => {
@@ -60,6 +61,14 @@ check(
 
 beninFestivals.forEach((festival) => {
   check(`${festival.name} names a town`, Boolean(festival.city));
+  // The town is handed to Hôtels, Tourisme and Restaurants so they open
+  // on it. A name none of them knows does not error — it filters to
+  // nothing, and an empty screen reads as "no hotels in Nikki" when it
+  // means "no such town in our list".
+  check(
+    `${festival.name}'s town is one the other screens know (${festival.city})`,
+    cities.includes(festival.city),
+  );
   // Where it was read, and when. A calendar without a date on the reading
   // is a calendar nobody can age.
   check(`${festival.name} names its source`, /^https:\/\//.test(festival.source ?? ""));

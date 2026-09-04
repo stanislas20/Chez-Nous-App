@@ -70,7 +70,7 @@ const SORTS = [
 
 const PRICE_ORDER = { budget: 0, mid: 1, high: 2 };
 
-export function RestaurantsScreen({ navigation }) {
+export function RestaurantsScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { user } = useAuth();
   // Nested twice on purpose: the Sell tab opens SellerDashboard, so params
@@ -104,7 +104,12 @@ export function RestaurantsScreen({ navigation }) {
   const [deliveryOnly, setDeliveryOnly] = useState(false);
   const [openOnly, setOpenOnly] = useState(false);
   const [sortBy, setSortBy] = useState("distance");
-  const [cityFilter, setCityFilter] = useState(null);
+  // Reached from a place — a beach on the Route des Pêches, a festival in
+  // Nikki — this opens on that place rather than on the whole country.
+  const requestedCity = route?.params?.city ?? null;
+  const [cityFilter, setCityFilter] = useState(
+    requestedCity && cities.includes(requestedCity) ? requestedCity : null,
+  );
   const [citySheetOpen, setCitySheetOpen] = useState(false);
   const [citySearch, setCitySearch] = useState("");
   // Shown by default. Behind a toggle it was invisible in practice — a map

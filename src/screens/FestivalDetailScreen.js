@@ -146,14 +146,22 @@ export function FestivalDetailScreen({ route, navigation }) {
             </ActionLabel>
             <ActionHint>{t("tourismDirections")}</ActionHint>
           </ActionRow>
-          <ActionRow onPress={() => navigation.navigate("Hotels")}>
+          <ActionRow
+            onPress={() =>
+              navigation.navigate("Hotels", { city: festival.city })
+            }
+          >
             <Ionicons name="bed-outline" size={17} color={colors.primary} />
             <ActionLabel numberOfLines={1}>
               {t("festivalsSleep", { city: festival.city })}
             </ActionLabel>
             <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
           </ActionRow>
-          <ActionRow onPress={() => navigation.navigate("Tourism")}>
+          <ActionRow
+            onPress={() =>
+              navigation.navigate("Tourism", { city: festival.city })
+            }
+          >
             <Ionicons name="compass-outline" size={17} color={colors.primary} />
             <ActionLabel numberOfLines={1}>
               {t("festivalsSeeCity", { city: festival.city })}

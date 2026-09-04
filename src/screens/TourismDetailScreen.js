@@ -155,12 +155,18 @@ export function TourismDetailScreen({ route, navigation }) {
             <Ionicons name="navigate-outline" size={16} color="#ffffff" />
             <PrimaryLabel>{t("tourismDirections")}</PrimaryLabel>
           </Primary>
-          <CrossRow onPress={() => navigation.navigate("Hotels")}>
+          <CrossRow
+            onPress={() => navigation.navigate("Hotels", { city: site.city })}
+          >
             <Ionicons name="bed-outline" size={17} color={colors.primary} />
             <CrossLabel>{t("tourismSleepHere")}</CrossLabel>
             <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
           </CrossRow>
-          <CrossRow onPress={() => navigation.navigate("Restaurants")}>
+          <CrossRow
+            onPress={() =>
+              navigation.navigate("Restaurants", { city: site.city })
+            }
+          >
             <Ionicons name="restaurant-outline" size={17} color={colors.primary} />
             <CrossLabel>{t("tourismAlongRestaurants")}</CrossLabel>
             <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />

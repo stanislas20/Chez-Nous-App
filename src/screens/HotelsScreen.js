@@ -81,7 +81,7 @@ const GOLD = "#D9A441";
 // realEstateHasCapacity applies — so this cannot drift from the form.
 const HALL_TYPE = commercialTypes.find((type) => type.hasCapacity)?.key;
 
-export function HotelsScreen({ navigation }) {
+export function HotelsScreen({ navigation, route }) {
   const { t, language } = useI18n();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -94,7 +94,20 @@ export function HotelsScreen({ navigation }) {
   // Null means "wherever I am". A chosen city replaces the phone's own
   // position, because somebody booking a room in Parakou on Tuesday is
   // standing in Cotonou on Monday — the whole point of choosing.
-  const [city, setCity] = useState(null);
+  // Arrive on the town you were sent for.
+  //
+  // "Où dormir à Nikki" landed on the whole country and left the reader to
+  // find Nikki in a picker of sixty-one — having just tapped a row with
+  // the word Nikki in it. A screen reached from a place should open on
+  // that place.
+  //
+  // Guarded against a town this screen does not know: an unrecognised name
+  // falls back to the whole country rather than filtering to nothing,
+  // which would look like "no hotels here" and mean "no such town".
+  const requestedCity = route?.params?.city ?? null;
+  const [city, setCity] = useState(
+    requestedCity && cities.includes(requestedCity) ? requestedCity : null,
+  );
   const [citySheetOpen, setCitySheetOpen] = useState(false);
   const [citySearch, setCitySearch] = useState("");
   // null means "follow the position": nearest-first when the phone is

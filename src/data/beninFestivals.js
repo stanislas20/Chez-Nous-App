@@ -29,6 +29,10 @@ export const festivalSources = {
   vodunDays: "https://vodundays.bj/",
   weloveEya: "https://weloveyafestival.com/",
   visitBenin: "https://visitbeninrepublic.com/festivals-events/",
+  quintessence:
+    "https://fr.wikipedia.org/wiki/Festival_international_du_film_de_Ouidah",
+  fitheb:
+    "https://fr.wikipedia.org/wiki/Festival_international_de_th%C3%A9%C3%A2tre_du_B%C3%A9nin",
 };
 
 export const beninFestivals = [
@@ -101,6 +105,44 @@ export const beninFestivals = [
     confirmedOn: "2026-09-04",
   },
   {
+    key: "quintessence",
+    name: "Quintessence",
+    city: "Ouidah",
+    kind: "cinema",
+    recurrenceFr: "Début janvier, dans les jours du 10",
+    recurrenceEn: "Early January, around the 10th",
+    lastConfirmedEdition: null,
+    whatFr:
+      "Le festival international du film de Ouidah, fondé en 2003 par Jean Odoutan. Il se tient dans les jours de la fête du Vodun.",
+    whatEn:
+      "Ouidah's international film festival, founded in 2003 by Jean Odoutan, held in the days around the Vodun holiday.",
+    website: null,
+    source:
+      "https://fr.wikipedia.org/wiki/Festival_international_du_film_de_Ouidah",
+    confirmedOn: "2026-09-04",
+  },
+  {
+    key: "fitheb",
+    name: "FITHEB",
+    city: "Cotonou",
+    kind: "culture",
+    // Every OTHER year, which is a recurrence and has to be said as one:
+    // "annual" would send somebody looking in the wrong twelve months.
+    recurrenceFr:
+      "Tous les deux ans, une semaine — Cotonou, Porto-Novo, Ouidah, Abomey et Parakou",
+    recurrenceEn:
+      "Every second year, over a week — Cotonou, Porto-Novo, Ouidah, Abomey and Parakou",
+    lastConfirmedEdition: null,
+    whatFr:
+      "Le Festival international de théâtre du Bénin, né en 1991 : une centaine de troupes africaines et étrangères, dans plusieurs villes à la fois.",
+    whatEn:
+      "Bénin's international theatre festival, begun in 1991: around a hundred companies, in several cities at once.",
+    website: null,
+    source:
+      "https://fr.wikipedia.org/wiki/Festival_international_de_th%C3%A9%C3%A2tre_du_B%C3%A9nin",
+    confirmedOn: "2026-09-04",
+  },
+  {
     key: "igname",
     name: "Fête de l'igname",
     city: "Savalou",
@@ -122,6 +164,10 @@ export const beninFestivals = [
 // shown as one — the words in recurrenceFr are what the reader sees.
 const USUAL_MONTH = {
   "vodun-days": 1,
+  quintessence: 1,
+  // FITHEB is biennial and its month has moved between editions, so it
+  // sorts last rather than pretending to a season.
+  fitheb: 12,
   "welove-eya": 12,
   gaani: 12,
   nonvitcha: 6,

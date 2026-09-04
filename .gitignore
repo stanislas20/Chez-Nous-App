@@ -44,8 +44,14 @@ yarn-error.*
 .idea/
 
 # local env files
+#
+# Every variant, not just the two that existed when this was written:
+# ".env" and ".env*.local" left .env.production and .env.staging tracked,
+# which is a trap for whoever creates one first. The negation keeps the
+# template, which carries names and no values.
 .env
-.env*.local
+.env.*
+!.env.example
 
 # typescript
 *.tsbuildinfo

@@ -318,8 +318,13 @@ service cloud.firestore {
       // or not: a buyer who has never made an account still rings the
       // number, and refusing to count them would make the figure a measure
       // of registration.
-      allow update: if
-        request.resource.data.diff(resource.data).affectedKeys()
+      // Approved only, like viewCount and shareCount above. This rule was
+      // written without that guard while the two beside it had it, so a
+      // pending or rejected listing — one nobody can see — could still
+      // have its contact figures moved by anyone. Nothing read those
+      // numbers, which is exactly why the omission survived.
+      allow update: if resource.data.status == 'approved'
+        && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['contactCount', 'contactCountToday', 'contactCountDate'])
         && request.resource.data.contactCount == resource.data.get('contactCount', 0) + 1
         && request.resource.data.contactCountDate is string

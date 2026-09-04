@@ -245,6 +245,14 @@ const KEEP_WARM = false;
 exports.listingPage = onRequest(
   { maxInstances: 10, minInstances: KEEP_WARM ? 1 : 0 },
   async (req, res) => {
+  // A page, and only a page. It answered POST and DELETE exactly as it
+  // answered GET — harmless, since it changes nothing, and still an
+  // invocation billed for a request that was never a reader.
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    res.status(405).set("Allow", "GET, HEAD").end();
+    return;
+  }
+
   const id = decodeURIComponent(req.path.split("/").filter(Boolean).pop() ?? "");
   const canonical = `${SITE_ORIGIN}/l/${encodeURIComponent(id)}`;
 

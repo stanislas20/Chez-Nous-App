@@ -397,6 +397,43 @@ async function main() {
       updateDoc(doc(asOutsider, "listings/live"), { viewCount: 7, price: 1 }),
     ),
   );
+  // The contact counter is the one a seller acts on — eleven people rang
+  // about the Corolla and nobody rang about the fridge — so it gets the
+  // same three questions the view counter gets, plus the one its rule was
+  // missing.
+  await check(
+    "a reader may add one contact",
+    assertSucceeds(
+      updateDoc(doc(asOutsider, "listings/live"), {
+        contactCount: 1,
+        contactCountToday: 1,
+        contactCountDate: "2026-09-04",
+      }),
+    ),
+  );
+  await check(
+    "a reader cannot inflate the contact count",
+    assertFails(
+      updateDoc(doc(asOutsider, "listings/live"), {
+        contactCount: 400,
+        contactCountToday: 400,
+        contactCountDate: "2026-09-04",
+      }),
+    ),
+  );
+  // The hole this rule had: every counter beside it refused a listing that
+  // is not approved, and this one did not — so figures could be moved on a
+  // listing nobody can see. Nothing read them, which is why it survived.
+  await check(
+    "a contact cannot be counted on a listing that is not approved",
+    assertFails(
+      updateDoc(doc(asOutsider, "listings/pendingA"), {
+        contactCount: 1,
+        contactCountToday: 1,
+        contactCountDate: "2026-09-04",
+      }),
+    ),
+  );
 
   // ── Ratings ─────────────────────────────────────────────────────────────
   await check(

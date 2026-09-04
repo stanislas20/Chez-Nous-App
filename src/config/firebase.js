@@ -24,6 +24,27 @@ const firebaseConfig = {
 
 export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
 
+// Loud in a release build, quiet on a laptop with no backend.
+//
+// Running unconfigured is a real state and a useful one: a developer who
+// has not filled in .env still gets a bootable app, and the screens know
+// to say so. It is not a state a shipped build can be in — every listing,
+// message and login would fail one by one, and the first person to notice
+// would be a user.
+//
+// __DEV__ is false in a release bundle, which is the only signal available
+// this early. Same shape as the APS_ENVIRONMENT check in app.config.js: a
+// misconfiguration that cannot be seen in the build output gets a throw
+// rather than a shrug.
+if (!isFirebaseConfigured && !__DEV__) {
+  throw new Error(
+    "Firebase is not configured: EXPO_PUBLIC_FIREBASE_API_KEY and " +
+      "EXPO_PUBLIC_FIREBASE_PROJECT_ID are missing from this build. A " +
+      "release built without them cannot sign anybody in, load a listing " +
+      "or deliver a message.",
+  );
+}
+
 // Empty in every ordinary build, including every build that ships.
 const emulatorHost = process.env.EXPO_PUBLIC_FIREBASE_EMULATOR_HOST;
 export const isUsingEmulators = Boolean(emulatorHost);

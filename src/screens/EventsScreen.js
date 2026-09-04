@@ -210,11 +210,19 @@ export function EventsScreen({ navigation, route }) {
   const glyphsAreLight = useRef(true);
   // How far the banner reaches, measured rather than guessed: it grows with
   // the city name and the hero copy, both of which are translated.
+  const heroHeight = useRef(0);
+  const [tabsAreFloating, setTabsAreFloating] = useState(false);
   const onScroll = useCallback(
     (event) => {
       // Half the banner is enough: by then what is under the status bar is
       // the list, not the gradient.
       const y = event.nativeEvent.contentOffset.y;
+
+      // The tabs stay reachable after the banner has gone: they are how
+      // this screen is navigated, and scrolling back up to reach "Ce soir"
+      // is a worse answer than a bar that follows.
+      const floating = heroHeight.current > 0 && y > heroHeight.current - 8;
+      setTabsAreFloating((was) => (was === floating ? was : floating));
 
       const light = y < 90;
       if (light === glyphsAreLight.current) return;
@@ -545,65 +553,12 @@ export function EventsScreen({ navigation, route }) {
 
   const header = (
     <>
-      {/* The app's one chip, in this screen's colour. These were three
-          hand-rolled pills with three different paddings before. */}
-      <ChipScroll horizontal showsHorizontalScrollIndicator={false}>
-        <RailChip
-          icon="pricetag-outline"
-          label={t("eventFilterFree")}
-          selected={freeOnly}
-          accent={EVENT_ACCENT}
-          onPress={() => setFreeOnly(!freeOnly)}
-        />
-        <RailChip
-          icon="apps-outline"
-          label={t("eventFilterAll")}
-          selected={!kind}
-          accent={EVENT_ACCENT}
-          onPress={() => setKind(null)}
-        />
-        {eventKinds.map((item) => (
-          <RailChip
-            key={item.key}
-            icon={item.icon}
-            label={language === "en" ? item.labelEn : item.labelFr}
-            selected={kind === item.key}
-            accent={EVENT_ACCENT}
-            onPress={() => setKind(kind === item.key ? null : item.key)}
-          />
-        ))}
-      </ChipScroll>
-
-      {visible.length > 0 ? (
-        <CountRow>
-          <CountText>
-            {t("eventsCount", { count: String(visible.length) })}
-          </CountText>
-          <SortNote>{t("eventsSortByDate")}</SortNote>
-        </CountRow>
-      ) : null}
-
-      {featured ? renderCard(featured, true) : null}
-    </>
-  );
-
-  return (
-    <Container edges={["left", "right"]}>
-      {/* The banner does not move.
-      
-          It used to live in the list's header, which meant it scrolled
-          away — and, worse, stretched when the list was pulled, so the
-          screen looked like it was about to refresh every time somebody
-          dragged down. Reported as exactly that.
-      
-          It is a sibling of the list now, so the list scrolls under it and
-          the banner stays. The tabs come with it: they are how this screen
-          is navigated, and they were only ever made to float because the
-          banner used to take them away. That mechanism is gone with the
-          problem it solved. */}
       <Hero
         colors={["#8A3A6B", "#6D2C55", "#3E1830"]}
         style={{ paddingTop: insets.top + spacing.sm }}
+        onLayout={(event) => {
+          heroHeight.current = event.nativeEvent.layout.height;
+        }}
       >
         <BackButton onPress={() => navigation.goBack()} hitSlop={8}>
           <Ionicons name="chevron-back" size={20} color="#ffffff" />
@@ -652,6 +607,69 @@ export function EventsScreen({ navigation, route }) {
       </Hero>
 
       {windowTabs}
+
+      {/* The app's one chip, in this screen's colour. These were three
+          hand-rolled pills with three different paddings before. */}
+      <ChipScroll horizontal showsHorizontalScrollIndicator={false}>
+        <RailChip
+          icon="pricetag-outline"
+          label={t("eventFilterFree")}
+          selected={freeOnly}
+          accent={EVENT_ACCENT}
+          onPress={() => setFreeOnly(!freeOnly)}
+        />
+        <RailChip
+          icon="apps-outline"
+          label={t("eventFilterAll")}
+          selected={!kind}
+          accent={EVENT_ACCENT}
+          onPress={() => setKind(null)}
+        />
+        {eventKinds.map((item) => (
+          <RailChip
+            key={item.key}
+            icon={item.icon}
+            label={language === "en" ? item.labelEn : item.labelFr}
+            selected={kind === item.key}
+            accent={EVENT_ACCENT}
+            onPress={() => setKind(kind === item.key ? null : item.key)}
+          />
+        ))}
+      </ChipScroll>
+
+      {visible.length > 0 ? (
+        <CountRow>
+          <CountText>
+            {t("eventsCount", { count: String(visible.length) })}
+          </CountText>
+          <SortNote>{t("eventsSortByDate")}</SortNote>
+        </CountRow>
+      ) : null}
+
+      {featured ? renderCard(featured, true) : null}
+    </>
+  );
+
+  return (
+    <Container edges={["left", "right"]}>
+      {/* No fixed bar above the list.
+      
+          There was one, in the banner's colour, and it was worse than the
+          pale band it replaced: it never moved, so the moment anything was
+          scrolled its bottom edge cut across whatever was passing under
+          it — a plum block, then a card with its top sliced off mid-word.
+          A shadow made the cut deliberate without making it pleasant.
+      
+          So the banner scrolls, all of it, and the back button rides on it
+          the way the buttons on a listing ride on its photograph. The list
+          then owns the top of the screen, which is what it looked like it
+          wanted to do all along. */}
+
+      {tabsAreFloating ? (
+        <FloatingTabs style={{ paddingTop: insets.top + spacing.xs }}>
+          {windowTabs}
+        </FloatingTabs>
+      ) : null}
 
       <FlatList
         data={rest}

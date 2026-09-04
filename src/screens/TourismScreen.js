@@ -89,7 +89,7 @@ export function TourismScreen({ navigation }) {
 
   const [query, setQuery] = useState("");
   const [origin, setOrigin] = useState("Cotonou");
-  const [band, setBand] = useState("journee");
+  const [band, setBand] = useState("ville");
   const [category, setCategory] = useState("all");
   const [originSheetOpen, setOriginSheetOpen] = useState(false);
   const [failedPhotos, setFailedPhotos] = useState({});
@@ -133,7 +133,15 @@ export function TourismScreen({ navigation }) {
   const matched = useMemo(() => {
     const list = decorated
       .filter((site) => (category === "all" ? true : site.category === category))
-      .filter((site) => (trimmed ? true : site.band === band))
+      // The town first, travel time second. A site is filed under the
+      // town it is in, not under whichever band its distance from the
+      // chosen town happens to fall in — the Musée Honmè is in Porto-Novo
+      // whatever it is from Cotonou.
+      .filter((site) => {
+        if (trimmed) return true;
+        if (band === "ville") return site.city === origin;
+        return site.band === band;
+      })
       .filter((site) =>
         queryMatches(trimmed, site.name, site.nameEn, site.admin, site.summary),
       );
@@ -147,7 +155,7 @@ export function TourismScreen({ navigation }) {
         (a.hours ?? 99) - (b.hours ?? 99) ||
         compareNames(a.name, b.name),
     );
-  }, [decorated, category, band, trimmed]);
+  }, [decorated, category, band, trimmed, origin]);
 
   const [pick, ...all] = matched;
   const rest = all.slice(0, shown);
@@ -317,6 +325,7 @@ export function TourismScreen({ navigation }) {
           {tourismBands.map((option) => {
             const active = band === option.key && !trimmed;
             const label = {
+              ville: ["tourismBandVille", "tourismBandVilleSub"],
               proche: ["tourismBandProche", "tourismBandProcheSub"],
               journee: ["tourismBandJournee", "tourismBandJourneeSub"],
               weekend: ["tourismBandWeekend", "tourismBandWeekendSub"],
@@ -335,7 +344,7 @@ export function TourismScreen({ navigation }) {
                   {t(label[0])}
                 </BandLabel>
                 <BandSub active={active} numberOfLines={1}>
-                  {t(label[1])}
+                  {t(label[1], { city: originDef.label })}
                 </BandSub>
               </BandTab>
             );
@@ -468,6 +477,9 @@ export function TourismScreen({ navigation }) {
                   active={active}
                   onPress={() => {
                     setOrigin(option.key);
+                    setBand("ville");
+                    setShown(PAGE);
+                    setCitySearch("");
                     setOriginSheetOpen(false);
                   }}
                 >

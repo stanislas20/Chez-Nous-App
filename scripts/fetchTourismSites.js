@@ -130,7 +130,22 @@ const DROP_TYPES = ["carrefour giratoire", "pont", "statue", "sculpture", "fonta
 const DROP_NAME = /^(place |rond-point |marché |mosquée centrale)/i;
 const KEEP_ANYWAY = /dantokpa|grande mosquée|place du souvenir|esplanade des amazones/i;
 
+// Inside the country, checked rather than trusted.
+//
+// The query asks for country = Bénin and that is not the same as being in
+// Bénin: the Grande Muraille Verte carries the tag and sits at 17°N 10°E,
+// in the Sahara, because it is a continental project rather than a place.
+// One bad coordinate is one card sending somebody 1,200 km into Niger.
+//
+// The box is Bénin's extent with a little air: 6.1–12.5 N, 0.7–3.9 E.
+const IN_BENIN = (entry) =>
+  entry.latitude >= 6.1 &&
+  entry.latitude <= 12.5 &&
+  entry.longitude >= 0.7 &&
+  entry.longitude <= 3.9;
+
 function tier(entry) {
+  if (!IN_BENIN(entry)) return null;
   const types = entry.types.map((type) => type.toLowerCase());
   if (ALSO[entry.id]) return "named";
   const name = entry.name ?? "";

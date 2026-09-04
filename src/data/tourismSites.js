@@ -24,6 +24,7 @@ import { distanceInKm } from "../utils/geo";
 import { compareNames } from "../utils/collate";
 import { cities } from "./cities";
 import { cityCoordinates } from "./cityCoordinates";
+import { nearestKnownCity } from "../utils/nearestCity";
 
 // Places Wikidata cannot supply.
 //
@@ -142,8 +143,28 @@ export function heritageRank(site) {
   return all ? 1 : 0;
 }
 
+// Which town a site belongs to, decided the same way for all of them.
+//
+// Wikidata's P131 is not a town. Across these 124 records it returns a
+// commune for some, a department for others — Atacora, Zou, Mono, the
+// Collines — nothing at all for nineteen, and for the transboundary parks
+// it returns Ghana, Burkina Faso and the Région de la Kara, which is in
+// Togo. Filing by that field would put the Parc W in Burkina Faso and
+// leave a sixth of the list unfiled.
+//
+// So the town is computed from the coordinates with the app's own
+// nearestKnownCity, over the same 61 towns the picker offers, and P131 is
+// used only when it already names one of them. A site more than 120 km
+// from any of them keeps no town rather than being assigned a distant one
+// — nearestKnownCity's own rule, and the reason the Hôtels screen says
+// nothing rather than guessing.
+export function cityOf(site) {
+  if (site.admin && cityCoordinates[site.admin]) return site.admin;
+  return nearestKnownCity(site)?.city ?? null;
+}
+
 export const tourismSites = [...sourced, ...HAND_ENTERED]
-  .map((site) => ({ ...site, category: categoryOf(site) }))
+  .map((site) => ({ ...site, category: categoryOf(site), city: cityOf(site) }))
   .sort((a, b) => compareNames(a.name, b.name));
 
 export const tourismPhotoCount = tourismSites.filter((site) => site.photo).length;
@@ -214,6 +235,13 @@ export function driveHours(site, originKey) {
 // Under an hour is an afternoon, up to three is a day, beyond that is a
 // weekend. The thresholds are the design's.
 export const tourismBands = [
+  // Asked for in exactly these words: "it must show stuff classified by
+  // cities". The document's three bands answer "how long have you got",
+  // which is a good question and not the only one — somebody in Porto-Novo
+  // looking for Porto-Novo does not want the Musée Honmè filed under "1 to
+  // 3 hours" because it happens to be an hour from Cotonou. So the town
+  // comes first and the travel bands widen from there.
+  { key: "ville", maxHours: 0 },
   { key: "proche", maxHours: 1 },
   { key: "journee", maxHours: 3 },
   { key: "weekend", maxHours: Infinity },

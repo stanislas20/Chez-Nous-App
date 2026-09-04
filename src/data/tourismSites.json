@@ -125,8 +125,8 @@
     "name": "Bateau du départ",
     "nameEn": null,
     "types": [
-      "navire musée",
-      "navire négrier"
+      "navire négrier",
+      "navire musée"
     ],
     "heritage": [],
     "admin": "Ouidah",
@@ -965,8 +965,8 @@
     "name": "forêt Sacrée de Wêwêré",
     "nameEn": null,
     "types": [
-      "bois sacré",
-      "forêt"
+      "forêt",
+      "bois sacré"
     ],
     "heritage": [],
     "admin": "Bembéréké",
@@ -1114,35 +1114,6 @@
     "summary": "La mosquée de Porto-Novo est située dans la capitale du Bénin.",
     "image": "http://commons.wikimedia.org/wiki/Special:FilePath/Grande%20Mosquee%20de%20Porto-Novo.jpg",
     "website": null,
-    "phone": null,
-    "mail": null
-  },
-  {
-    "id": "Q387790",
-    "name": "Grande muraille verte",
-    "nameEn": "African Great Green Wall",
-    "types": [
-      "afforestation",
-      "climate project"
-    ],
-    "heritage": [],
-    "admin": null,
-    "article": "https://fr.wikipedia.org/wiki/Grande_muraille_verte_(Afrique)",
-    "latitude": 17,
-    "longitude": 10,
-    "tier": "weak",
-    "photo": {
-      "url": "https://firebasestorage.googleapis.com/v0/b/benin-marketplace-3eb04.firebasestorage.app/o/tourism%2FQ387790.png?alt=media&token=c851098f-1132-4c3a-b1ac-099fc3e04872",
-      "width": 800,
-      "height": 370,
-      "licence": "CC BY-SA 4.0",
-      "author": "Map_sahel.jpg: King BlankMap-Africa2.png: Sadalmelik",
-      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Sahel_Map-Africa_rough.png",
-      "commonsUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Sahel_Map-Africa_rough.png/960px-Sahel_Map-Africa_rough.png"
-    },
-    "summary": "La Grande muraille verte pour le Sahara et le Sahel, communément appelée Grande muraille verte (GMV), est l’initiative phare de l’Union africaine pour lutter contre les effets du changement climatique et de la…",
-    "image": "http://commons.wikimedia.org/wiki/Special:FilePath/Sahel%20Map-Africa%20rough.png",
-    "website": "http://www.grandemurailleverte.org/",
     "phone": null,
     "mail": null
   },
@@ -1896,8 +1867,8 @@
     "name": "monument aux morts de Xwlacodji",
     "nameEn": null,
     "types": [
-      "place",
-      "monument"
+      "monument",
+      "place"
     ],
     "heritage": [],
     "admin": "Cotonou",
@@ -3054,9 +3025,9 @@
     "name": "temple des Pythons",
     "nameEn": "Temple des Pythons",
     "types": [
-      "sanctuaire",
       "temple",
-      "vaudou"
+      "vaudou",
+      "sanctuaire"
     ],
     "heritage": [],
     "admin": "Ouidah",

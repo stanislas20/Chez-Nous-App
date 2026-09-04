@@ -52,6 +52,7 @@ import { useAuth } from "../auth/AuthContext";
 import { openAccountGate } from "../utils/openAccountGate";
 import { canPublish } from "../utils/canPublish";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
+import { compareNames } from "../utils/collate";
 
 const EMERALD = "#0B6E4F";
 const GOLD = "#D9A441";
@@ -201,7 +202,7 @@ export function RestaurantsScreen({ navigation }) {
     });
 
     return [...filtered].sort((a, b) => {
-      if (sortBy === "name") return (a.name ?? "").localeCompare(b.name ?? "");
+      if (sortBy === "name") return compareNames(a.name, b.name);
       if (sortBy === "price")
         return PRICE_ORDER[a.priceBand] - PRICE_ORDER[b.priceBand];
       // Distance: a restaurant we can't measure sorts last rather than

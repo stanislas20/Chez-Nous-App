@@ -24,6 +24,7 @@ import { ScreenFooter } from "../components/ScreenFooter";
 import { useDirectory } from "../hooks/useDirectory";
 import { useAuth } from "../auth/AuthContext";
 import { openAccountGate } from "../utils/openAccountGate";
+import { compareNames } from "../utils/collate";
 
 const EMERALD = "#0B6E4F";
 const GOLD = "#D9A441";
@@ -57,7 +58,7 @@ export function CarDealershipsScreen({ navigation }) {
   const brandChips = useMemo(
     () =>
       [...new Set(dealerships.flatMap((item) => item.brands ?? []))].sort(
-        (a, b) => a.localeCompare(b, "fr"),
+        compareNames,
       ),
     [dealerships],
   );

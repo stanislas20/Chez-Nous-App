@@ -28,6 +28,7 @@ import {
   customCategoriesFrom,
 } from "../data/customCategories";
 import { useApprovedListings } from "../hooks/useApprovedListings";
+import { compareNames } from "../utils/collate";
 
 const EMERALD = "#0B6E4F";
 const TERRACOTTA = "#C1512D";
@@ -116,7 +117,7 @@ function extraFields(item) {
     .filter(([key]) => !SHOWN_ABOVE.has(key) && !PLUMBING.has(key))
     .map(([key, value]) => [key, printable(value)])
     .filter(([, value]) => value !== null)
-    .sort((a, b) => a[0].localeCompare(b[0]));
+    .sort((a, b) => compareNames(a[0], b[0]));
 }
 
 export function ModerationScreen({ navigation }) {

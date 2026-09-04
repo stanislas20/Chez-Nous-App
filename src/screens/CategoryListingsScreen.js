@@ -50,6 +50,7 @@ import { RailChip } from "../components/RailChip";
 import { distanceInKm } from "../utils/geo";
 import { getDutyLabel } from "../utils/pharmacyDuty";
 import { queryMatches } from "../utils/search";
+import { compareNames } from "../utils/collate";
 
 const pharmacyMark = require("../../assets/pharmacy-mark.png");
 
@@ -158,7 +159,7 @@ function groupByCity(listings, distanceById) {
     if (!byCity.has(city)) byCity.set(city, []);
     byCity.get(city).push(listing);
   }
-  const cityNames = [...byCity.keys()].sort((a, b) => a.localeCompare(b));
+  const cityNames = [...byCity.keys()].sort(compareNames);
 
   const rows = [];
   for (const city of cityNames) {

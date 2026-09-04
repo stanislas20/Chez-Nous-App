@@ -235,11 +235,25 @@ export function HotelsScreen({ navigation }) {
         ...place,
         distanceKm: coords ? distanceInKm(coords, place) : null,
       }));
-    list.sort((a, b) =>
-      a.distanceKm != null && b.distanceKm != null
-        ? a.distanceKm - b.distanceKm
-        : a.name.localeCompare(b.name, "fr"),
-    );
+    // Sorted only when there is something to sort by.
+    //
+    // This line read `a.name.localeCompare(b.name, "fr")` whenever the
+    // distances were unknown — which is every single open, because the
+    // position has not arrived yet on the first render. Measured on a
+    // Galaxy device from the tap: 6.66 SECONDS inside this one sort, with
+    // the screen blank behind it, against 2ms for the numeric branch on
+    // the very next render. localeCompare with a locale goes through
+    // Android's ICU on Hermes and costs milliseconds per comparison; 737
+    // places is ~740 comparisons.
+    //
+    // Nothing is lost by dropping it. fetchOsmHotels.js already writes
+    // osmLodging.json in French name order, filter() preserves order, and
+    // every place in the file has coordinates — so the mixed case this
+    // comparator existed for cannot occur. No position: the file's own
+    // order, which is the name order, for free. A position: a plain
+    // numeric sort. check-osm-directory.js holds the file to that order so
+    // a regenerated file cannot quietly bring the six seconds back.
+    if (coords) list.sort((a, b) => a.distanceKm - b.distanceKm);
     return list;
   }, [isStay, city, trimmed, coords]);
 

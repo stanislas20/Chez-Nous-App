@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useI18n } from "../i18n/I18nContext";
 import { countries as ALL, POSTING_COUNTRY } from "../data/countries";
+import { collate } from "../utils/collate";
 
 // The dial codes the app accepts, in one place.
 //
@@ -27,7 +28,7 @@ export function useCountries() {
     const rest = named
       .filter((item) => item.code !== POSTING_COUNTRY)
       .sort((a, b) =>
-        a.name.localeCompare(b.name, language === "en" ? "en" : "fr"),
+        collate(language)(a.name, b.name),
       );
     return [...home, ...rest];
   }, [language]);

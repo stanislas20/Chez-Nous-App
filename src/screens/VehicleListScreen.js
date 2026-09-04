@@ -42,6 +42,7 @@ import { brandLogo, isWideLogo } from "../data/vehicleBrandLogos";
 import { isLastRowOrphan } from "../utils/gridWidth";
 import { useAuth } from "../auth/AuthContext";
 import { canPublish } from "../utils/canPublish";
+import { compareNames } from "../utils/collate";
 
 const EMERALD = "#0B6E4F";
 const GOLD = "#D9A441";
@@ -151,7 +152,7 @@ export function VehicleListScreen({ navigation, route }) {
     if (catalogue.length) return catalogue;
     const set = new Set();
     for (const item of ofBrand) if (item.model) set.add(String(item.model));
-    return [...set].sort((a, b) => a.localeCompare(b));
+    return [...set].sort(compareNames);
   }, [ofBrand, fixedBrand, make]);
 
   const years = useMemo(() => {

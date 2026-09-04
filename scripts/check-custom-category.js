@@ -209,7 +209,31 @@ const failures = [];
   const code = babel.transformSync(raw("src/data/customCategories.js"), {
     presets: [["@babel/preset-env", { targets: { node: "current" } }]],
   }).code;
-  const sandbox = { module: { exports: {} }, exports: {} };
+  // customCategories.js sorts names through utils/collate, so the sandbox
+  // needs a require. It loads the real file the same way rather than
+  // standing in a lookalike: this block exists to run the shipped folding
+  // code, and a substitute collator would make it run something else.
+  const loadReal = (specifier) => {
+    const file = path.join(
+      root,
+      "src/data",
+      `${specifier.replace(/^\.\//, "")}.js`,
+    );
+    const inner = babel.transformSync(fs.readFileSync(file, "utf8"), {
+      presets: [["@babel/preset-env", { targets: { node: "current" } }]],
+    }).code;
+    const box = { module: { exports: {} }, exports: {}, Intl, require: loadReal };
+    box.module.exports = box.exports;
+    vm.createContext(box);
+    vm.runInContext(inner, box);
+    return box.module.exports;
+  };
+  const sandbox = {
+    module: { exports: {} },
+    exports: {},
+    Intl,
+    require: loadReal,
+  };
   sandbox.module.exports = sandbox.exports;
   vm.createContext(sandbox);
   vm.runInContext(code, sandbox);

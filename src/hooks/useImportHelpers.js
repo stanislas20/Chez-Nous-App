@@ -3,6 +3,7 @@ import { useApprovedListings } from "./useApprovedListings";
 import { useI18n } from "../i18n/I18nContext";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { distanceInKm } from "../utils/geo";
+import { collate, compareNames } from "../utils/collate";
 import {
   getSourcingCountryLabel,
   isOverseasBuyerListing,
@@ -71,7 +72,7 @@ export function useImportHelpers(userCoords) {
         }
         if (a.distanceKm != null) return -1;
         if (b.distanceKm != null) return 1;
-        return (a.titleFr ?? "").localeCompare(b.titleFr ?? "", "fr");
+        return compareNames(a.titleFr, b.titleFr);
       });
 
     // No distance sort for these, deliberately: the whole point of a sourcer
@@ -111,11 +112,11 @@ export function useImportHelpers(userCoords) {
           // a French list is expected to arrive in.
           const aName = getSourcingCountryLabel(a.buysFrom, language) ?? a.buysFrom;
           const bName = getSourcingCountryLabel(b.buysFrom, language) ?? b.buysFrom;
-          return aName.localeCompare(bName, language === "en" ? "en" : "fr");
+          return collate(language)(aName, bName);
         }
         if (a.buysFrom) return -1;
         if (b.buysFrom) return 1;
-        return (a.titleFr ?? "").localeCompare(b.titleFr ?? "", "fr");
+        return compareNames(a.titleFr, b.titleFr);
       });
 
     return { brokers, sourcers };

@@ -1,3 +1,4 @@
+import { compareNames } from "../utils/collate";
 // The categories sellers write for themselves.
 //
 // The fourteen in categories.js are the app's own structure: each one has an
@@ -82,7 +83,7 @@ export function customCategoriesFrom(listings, { field = "customCategory" } = {}
     else seen.set(key, { key, label, count: 1 });
   }
   return [...seen.values()].sort(
-    (a, b) => b.count - a.count || a.label.localeCompare(b.label, "fr"),
+    (a, b) => b.count - a.count || compareNames(a.label, b.label),
   );
 }
 

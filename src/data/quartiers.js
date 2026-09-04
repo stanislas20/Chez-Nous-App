@@ -1,3 +1,4 @@
+import { compareNames } from "../utils/collate";
 // Neighbourhoods, because a commune is too coarse to search property with.
 //
 // "Abomey-Calavi" covers Godomey, Womey and Calavi centre — places that
@@ -51,9 +52,7 @@ export function quartiersFor(city, listings) {
     .map((listing) => (listing.quartier ?? "").trim())
     .filter(Boolean);
   const curated = city ? getQuartiers(city) : getAllQuartiers();
-  return [...new Set([...curated, ...typed])].sort((a, b) =>
-    a.localeCompare(b, "fr"),
-  );
+  return [...new Set([...curated, ...typed])].sort(compareNames);
 }
 
 // Every quartier we know about, deduped — used when no city is selected, so

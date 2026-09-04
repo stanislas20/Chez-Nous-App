@@ -100,6 +100,54 @@ check(
   /t\("hotelsDirectoryMore",/.test(screen),
 );
 
+// ── and it is not sorted by name at run time ───────────────────────────
+//
+// The screen used to order this list with localeCompare(name, "fr")
+// whenever no position was known — which is every open, since the fix has
+// not landed on the first render. Measured on a Galaxy from the tap: 6.66
+// seconds inside that one sort, screen blank behind it, against 2ms for
+// the numeric branch a render later. localeCompare with a locale runs
+// through Android's ICU under Hermes, and 737 places is ~740 crossings.
+//
+// It was pure waste: the generator already writes the file in French name
+// order, and filter() preserves order, so the runtime sort was recomputing
+// an order the file already had. These two rules keep that true — the file
+// stays sorted, and the screen must not sort by name again.
+const names = entries.map((entry) => entry.name);
+const inOrder = [...names].sort((a, b) => a.localeCompare(b, "fr"));
+check(
+  "the file is written in French name order, so the screen need not sort it",
+  names.every((name, index) => name === inOrder[index]),
+);
+check(
+  "every place has coordinates, so a known position sorts all of them",
+  entries.every(
+    (entry) =>
+      typeof entry.latitude === "number" && typeof entry.longitude === "number",
+  ),
+);
+check(
+  "the generator is what sorts by name",
+  /localeCompare\(b\.name, "fr"\)/.test(read("scripts/fetchOsmHotels.js")),
+);
+// Comments stripped: the note above the fixed line names localeCompare on
+// purpose, to record what the six seconds were. Same lesson as
+// check-import-paths and check-hotel-pricing — a rule that reads prose
+// fails on the explanation of the very bug it guards.
+const screenCode = screen
+  .replace(/\/\*[\s\S]*?\*\//g, "")
+  .replace(/(^|\s)\/\/[^\n]*/g, "$1");
+check(
+  "the screen never sorts the directory by name",
+  !/localeCompare/.test(screenCode),
+);
+check(
+  "the screen sorts by distance only when it has a position",
+  /if \(coords\) list\.sort\(\(a, b\) => a\.distanceKm - b\.distanceKm\);/.test(
+    screen,
+  ),
+);
+
 if (failures.length) {
   failures.forEach((line) => console.error(`FAIL ${line}`));
   console.error(`\n${failures.length} failing`);

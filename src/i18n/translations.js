@@ -657,6 +657,17 @@ export const translations = {
     banksSearchPlaceholder: "Search for a bank",
     banksSectionTitle: "Banks",
     banksEmptyResults: "No bank matches your search.",
+    banksKicker: "LICENSED BY THE BCEAO",
+    banksHeroTitle: "Every bank in Bénin",
+    banksHeroCopy:
+      "The full register, in alphabetical order — not a selection and not a ranking.",
+    banksCount: "{count} licensed bank(s)",
+    banksWebsite: "Website",
+    banksGroupSite: "Group site",
+    // Not "no website": the bank may well have one. It means nobody here
+    // opened it and confirmed whose it is, which is a different claim.
+    banksSiteUnverified: "Site not verified",
+    banksFindBranch: "Find a branch",
 
     tourismSearchPlaceholder: "Sites, hotels, activities…",
     tourismAttractionsSectionTitle: "Places to visit in Bénin",
@@ -3670,6 +3681,15 @@ export const translations = {
     banksSearchPlaceholder: "Rechercher une banque",
     banksSectionTitle: "Banques",
     banksEmptyResults: "Aucune banque ne correspond à votre recherche.",
+    banksKicker: "AGRÉÉES PAR LA BCEAO",
+    banksHeroTitle: "Toutes les banques du Bénin",
+    banksHeroCopy:
+      "Le registre complet, par ordre alphabétique — ni une sélection, ni un classement.",
+    banksCount: "{count} banque(s) agréée(s)",
+    banksWebsite: "Site web",
+    banksGroupSite: "Site du groupe",
+    banksSiteUnverified: "Site non vérifié",
+    banksFindBranch: "Trouver une agence",
 
     tourismSearchPlaceholder: "Sites, hôtels, activités…",
     tourismAttractionsSectionTitle: "À visiter au Bénin",

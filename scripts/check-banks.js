@@ -178,6 +178,93 @@ check(
   beninBanks.length,
 );
 
+// ── The screen offers everything the data holds ────────────────────────
+//
+// `url` sat in beninBanks for six of the twelve banks and no screen read
+// it: somebody had opened each of those sites and confirmed from its
+// <title> whose it was, and the app showed a list of names. Data written
+// and never read is the quiet half of the same asymmetry
+// check-real-estate-fields exists for — nothing fails, the reader simply
+// never gets what was gathered for them.
+const withUrl = beninBanks.filter((bank) => bank.url);
+check("some banks carry a verified site", withUrl.length > 0, true);
+check(
+  "and the screen offers it",
+  /bank\.url \?/.test(screen) && /Linking\.openURL\(bank\.url\)/.test(screen),
+  true,
+);
+withUrl.forEach((bank) => {
+  check(`${bank.key}'s site is https`, /^https:\/\//.test(bank.url), true);
+});
+// The ones with no url are not the ones with no website. Several of these
+// sites answer a script with 403, so the screen must say the site was not
+// verified rather than that there is none.
+check(
+  "a missing site is called unverified, not absent",
+  /banksSiteUnverified/.test(screen),
+  true,
+);
+
+// A group's site must never be presented as the bank's own. BGFIBank
+// Bénin's own address could not be reached — the country subdomains do not
+// resolve — so what the app links to is the parent group, and the label on
+// screen has to say so. Silently promoting it to "Site web" is a one-word
+// change that turns a true statement into a false one.
+const grouped = beninBanks.filter((bank) => bank.urlScope === "group");
+grouped.forEach((bank) => {
+  check(`${bank.key} with a group url has a url at all`, Boolean(bank.url), true);
+});
+check(
+  "a group site is labelled as the group's",
+  grouped.length === 0 ||
+    /bank\.urlScope === "group"[\s\S]{0,80}banksGroupSite/.test(screen),
+  true,
+);
+beninBanks.forEach((bank) => {
+  check(
+    `${bank.key} uses a known url scope`,
+    bank.urlScope === undefined || bank.urlScope === "group",
+    true,
+  );
+});
+
+// ── A mark is the bank's own, or there is none ─────────────────────────
+//
+// The screen drew one Ionicons building for all twelve, which is wallpaper
+// — nothing on the row told them apart. It now draws the mark the company
+// itself publishes, and companyLogos.js is the only place one can come
+// from: that file records why several banks have none (Cloudflare, an
+// empty frame, and in one case another company's logo entirely), and a
+// wrong mark on a bank card is worse than no mark.
+check(
+  "logos come from companyLogos, never from a path built here",
+  /companyLogo\(bank\.key\)/.test(screen) &&
+    !/require\(/.test(screen),
+  true,
+);
+// Every logo the screen can draw belongs to a bank that is on the register.
+const logos = loadEsm("src/data/companyLogos.js");
+beninBanks.forEach((bank) => {
+  if (!logos.hasLogo(bank.key)) return;
+  check(`${bank.key} is on the register and may show its mark`, true, true);
+});
+// And a bank without one falls back to its short name, which the data
+// always has — never to a blank plate.
+check(
+  "a bank with no mark shows its short name",
+  /bank\.shortName/.test(screen),
+  true,
+);
+
+// ── The count is counted ───────────────────────────────────────────────
+//
+// A written "12 banques" is right until the register changes.
+check(
+  "the count comes from the rows drawn, not a literal",
+  /banksCount", \{ count: banks\.length \}/.test(screen),
+  true,
+);
+
 if (failures.length) {
   failures.forEach((line) => console.error(`FAIL ${line}`));
   console.error(`\n${failures.length} failing`);

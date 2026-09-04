@@ -37,7 +37,28 @@ export const beninBanks = [
     name: "Banque Sahélo-Saharienne pour l'Investissement et le Commerce",
     shortName: "BSIC",
   },
-  { key: "bgfi", name: "BGFIBank Bénin", shortName: "BGFI" },
+  // The group's site, and labelled as the group's site on screen.
+  //
+  // BGFIBank Bénin's own address could not be confirmed from here.
+  // benin.groupebgfibank.com does not resolve at all — nor do the Côte
+  // d'Ivoire or Gabon equivalents, so those country sites look retired
+  // rather than merely unreachable — and bgfibankbenin.bgfi.com resolves
+  // but refuses connections on 443 and 80. What is verified is
+  // groupebgfibank.com, opened and read: "Groupe BGFIBank – Votre
+  // partenaire pour l'avenir", with BGFIBank Bénin on its contacts page.
+  //
+  // So urlScope says what it is. A customer sent to the group's home page
+  // has been sent somewhere real and told so; a group page dressed as the
+  // Bénin bank's own would be the small lie this file exists to avoid.
+  // If the subsidiary's site is reachable from Bénin, this becomes a plain
+  // url and the scope goes away.
+  {
+    key: "bgfi",
+    url: "https://groupebgfibank.com/",
+    urlScope: "group",
+    name: "BGFIBank Bénin",
+    shortName: "BGFI",
+  },
   { key: "ccei", name: "CCEI Bank Bénin", shortName: "CCEI" },
   { key: "coris", name: "Coris Bank International Bénin", shortName: "Coris" },
   { key: "ecobank", url: "https://ecobank.com/bj/personal-banking", name: "Ecobank Bénin", shortName: "Ecobank" },
@@ -50,8 +71,11 @@ export const beninBanks = [
   { key: "uba", url: "https://ubabenin.com/", name: "United Bank for Africa Bénin", shortName: "UBA" },
 ];
 
-// `url` is present only where the bank's own site was opened and its <title>
-// confirmed whose it is. The rest have none rather than a guess: several are
+// `url` is present only where a site was opened and its <title> confirmed
+// whose it is. `urlScope: "group"` marks the one case where what could be
+// confirmed was the parent group's site rather than the Bénin bank's own,
+// and the screen labels that link differently — the same rule companyLogos
+// follows when a local site is unreachable and the group publishes the mark. The rest have none rather than a guess: several are
 // behind Cloudflare (Orabank, NSIA Banque answer a script with 403) and a
 // plausible-looking domain that turns out to be a parked page or somebody
 // else's is the one mistake a banking directory cannot make.

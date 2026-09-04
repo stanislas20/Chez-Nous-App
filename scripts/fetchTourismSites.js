@@ -28,13 +28,15 @@ const ENDPOINT = "https://query.wikidata.org/sparql";
 const UA = "ChezNous/1.0 (Bénin marketplace; tourism directory)";
 
 const QUERY = `
-SELECT ?item ?itemLabel ?itemLabelEn ?coord ?typeLabel ?image ?heritageLabel ?admin ?adminLabel ?article
+SELECT ?item ?itemLabel ?itemLabelEn ?coord ?typeLabel ?image ?heritageLabel ?admin ?adminLabel ?article ?website
 WHERE {
   ?item wdt:P17 wd:Q962 .
   ?item wdt:P625 ?coord .
   OPTIONAL { ?item wdt:P18 ?image . }
   OPTIONAL { ?item wdt:P31 ?type . }
   OPTIONAL { ?item wdt:P1435 ?heritage . }
+  # The place's own site, which is what a visitor should be sent to.
+  OPTIONAL { ?item wdt:P856 ?website . }
   OPTIONAL { ?item wdt:P131 ?admin . }
   OPTIONAL {
     ?article schema:about ?item ;
@@ -167,6 +169,7 @@ async function run() {
       admin: row.adminLabel?.value ?? null,
       image: null,
       article: row.article?.value ?? null,
+      website: row.website?.value ?? null,
       latitude: null,
       longitude: null,
     };
@@ -174,6 +177,7 @@ async function run() {
     if (row.heritageLabel?.value) entry.heritage.add(row.heritageLabel.value);
     if (row.image?.value && !entry.image) entry.image = row.image.value;
     if (!entry.article && row.article?.value) entry.article = row.article.value;
+    if (!entry.website && row.website?.value) entry.website = row.website.value;
     if (!entry.admin && row.adminLabel?.value) entry.admin = row.adminLabel.value;
     // Point(lon lat)
     const point = /Point\(([-\d.]+) ([-\d.]+)\)/.exec(row.coord.value);
@@ -214,8 +218,29 @@ async function run() {
 
   if (WRITE) {
     const out = path.join(__dirname, "..", "src/data/tourismSites.json");
-    fs.writeFileSync(out, `${JSON.stringify(kept, null, 2)}\n`);
-    console.log(`\nWrote ${kept.length} site(s) to ${path.relative(process.cwd(), out)}`);
+    // Merged, never replaced.
+    //
+    // Two later stages write into this file — the Commons licence and
+    // author, and the photograph's new home in the app's own Storage after
+    // scripts/uploadTourismPhotos.js copies it there. A plain overwrite
+    // here would throw all of that away and the only symptom would be
+    // cards quietly losing their pictures, which is the failure this
+    // codebase keeps finding. So the fetched fields are updated and
+    // everything else on a record is left exactly as it was.
+    const previous = fs.existsSync(out)
+      ? JSON.parse(fs.readFileSync(out, "utf8"))
+      : [];
+    const byId = new Map(previous.map((site) => [site.id, site]));
+    const merged = kept.map((site) => {
+      const before = byId.get(site.id);
+      return before ? { ...before, ...site, photo: before.photo ?? null } : site;
+    });
+    fs.writeFileSync(out, `${JSON.stringify(merged, null, 2)}\n`);
+    const carried = merged.filter((site) => site.photo || site.summary).length;
+    console.log(
+      `\nWrote ${merged.length} site(s) to ${path.relative(process.cwd(), out)} ` +
+        `(${carried} kept a photograph or a summary from a previous run)`,
+    );
   } else {
     console.log("\nNothing written. Re-run with --write.");
   }

@@ -22,6 +22,8 @@ import sourced from "./tourismSites.json";
 // tier follows on the hotels screen.
 import { distanceInKm } from "../utils/geo";
 import { compareNames } from "../utils/collate";
+import { cities } from "./cities";
+import { cityCoordinates } from "./cityCoordinates";
 
 // Places Wikidata cannot supply.
 //
@@ -31,7 +33,57 @@ import { compareNames } from "../utils/collate";
 // cannot reach it and neither can a photo fetch. So it is written out
 // here, with a coordinate that is the road itself rather than a building,
 // and no photograph at all rather than a picture of some other beach.
+// The coast, which no source here could supply.
+//
+// Wikidata types almost nothing in Bénin as a beach, and OpenStreetMap has
+// exactly ONE named beach in the whole country — Obama Beach, in Cotonou.
+// Queried, not assumed. So the Plages chip had a single card on it, and
+// that card was the Route des Pêches with no photograph and no
+// description: a category that looked broken rather than empty.
+//
+// Bénin's coast is about 125 km, from the Togo border at Hillacondji to
+// the Nigeria border at Kraké, and the stretches below are the ones people
+// actually go to. They are written from knowledge rather than fetched, and
+// that is worth being plain about: the coordinate is a point on the shore
+// rather than an address, good enough to open a map at the right beach and
+// not a claim about any particular paillote.
+//
+// What is NOT written: the names of bars, restaurants and lodges. They
+// exist, they change, and this app already has a Restaurants screen listing
+// establishments that put themselves there — so every one of these cards
+// sends the reader to it rather than to a list nobody here has verified.
+const BEACHES = [
+  ["hand-beach-fidjrosse", "Plage de Fidjrossè", "Cotonou", 6.3533, 2.3761],
+  ["hand-beach-obama", "Obama Beach", "Cotonou", 6.3441, 2.4031],
+  ["hand-beach-plm", "Plage PLM Alédjo", "Cotonou", 6.3583, 2.4489],
+  ["hand-beach-togbin", "Plage de Togbin", "Abomey-Calavi", 6.3450, 2.3106],
+  ["hand-beach-adounko", "Plage d'Adounko", "Abomey-Calavi", 6.3402, 2.2794],
+  ["hand-beach-avlekete", "Plage d'Avlékété", "Ouidah", 6.3350, 2.1892],
+  ["hand-beach-ouidah", "Plage de Ouidah", "Ouidah", 6.3344, 2.0906],
+  ["hand-beach-djegbadji", "Plage de Djègbadji", "Ouidah", 6.3253, 2.0603],
+  ["hand-beach-grandpopo", "Plage de Grand-Popo", "Grand-Popo", 6.2783, 1.8283],
+  ["hand-beach-agoue", "Plage d'Agoué", "Grand-Popo", 6.2472, 1.7208],
+  ["hand-beach-hillacondji", "Plage d'Hillacondji", "Grand-Popo", 6.2422, 1.6231],
+  ["hand-beach-djeffa", "Plage de Djeffa", "Sèmè-Podji", 6.3689, 2.5311],
+  ["hand-beach-ekpe", "Plage d'Ekpè", "Sèmè-Podji", 6.3808, 2.5539],
+  ["hand-beach-seme", "Plage de Sèmè-Kraké", "Sèmè-Podji", 6.3722, 2.6781],
+].map(([id, name, admin, latitude, longitude]) => ({
+  id,
+  name,
+  nameEn: name,
+  latitude,
+  longitude,
+  admin,
+  types: ["plage"],
+  heritage: [],
+  article: null,
+  photo: null,
+  tier: "hand",
+  alongKey: "restaurants",
+}));
+
 const HAND_ENTERED = [
+  ...BEACHES,
   {
     id: "hand-route-des-peches",
     name: "Route des Pêches",
@@ -120,55 +172,43 @@ export function withDistance(sites, coords) {
 // the same distance costs. What is NOT done is dressing a straight-line
 // distance up as a drive time, which would be precise and wrong: 130 km of
 // coast road and 130 km of Atacora track are not the same afternoon.
-export const tourismOrigins = [
-  { key: "cotonou", label: "Cotonou", sub: "Littoral", latitude: 6.3703, longitude: 2.3912 },
-  { key: "calavi", label: "Abomey-Calavi", sub: "Atlantique", latitude: 6.4489, longitude: 2.3556 },
-  { key: "portonovo", label: "Porto-Novo", sub: "Ouémé", latitude: 6.4969, longitude: 2.6289 },
-  { key: "bohicon", label: "Bohicon / Abomey", sub: "Zou", latitude: 7.1782, longitude: 2.0667 },
-  { key: "parakou", label: "Parakou", sub: "Borgou", latitude: 9.3372, longitude: 2.6303 },
-  { key: "natitingou", label: "Natitingou", sub: "Atacora", latitude: 10.3042, longitude: 1.3796 },
-];
+// Every town the app knows, not six.
+//
+// The document ships a matrix of driving hours from six departure towns to
+// eight regions, and a picker offering six towns is a picker that does not
+// offer yours. The matrix is still what this is calibrated against — it is
+// somebody's real knowledge of these roads — but it is fitted rather than
+// copied:
+//
+//   hours = 0.6 + km / 59
+//
+// Least squares over all 48 of the document's cells, RMS 0.49 h. Against
+// its own figures from Cotonou: Abomey 2.5 → 2.3, the Atacora 8 → 8.3, the
+// Alibori 10 → 9.6. Half an hour out on an eight-hour drive, and the
+// screen only uses it to choose between a half day, a day and a weekend —
+// a band that survives that error.
+//
+// What it buys is that any point works: all 61 towns the app holds
+// coordinates for, and the phone's own position if that is ever wired in.
+// The 0.6 h is the part that is not distance — getting out of a town, the
+// ferry, the diversion.
+const ROAD_BASE_HOURS = 0.6;
+const ROAD_KM_PER_HOUR = 59;
 
-// The eight zones the matrix is written in, each with a point to measure
-// against. A site is assigned to the nearest one, so the mapping is
-// computed from its coordinates rather than typed out 125 times — and a
-// site added tomorrow gets a zone without anybody remembering to give it
-// one.
-const ZONES = [
-  { key: "cotonou", latitude: 6.3703, longitude: 2.3912 },
-  { key: "ouidah", latitude: 6.3667, longitude: 2.0833 },
-  { key: "portonovo", latitude: 6.4969, longitude: 2.6289 },
-  { key: "abomey", latitude: 7.1856, longitude: 1.9911 },
-  { key: "mono", latitude: 6.2833, longitude: 1.8167 },
-  { key: "couffo", latitude: 6.9333, longitude: 1.7833 },
-  { key: "atacora", latitude: 10.3042, longitude: 1.3796 },
-  { key: "alibori", latitude: 11.1342, longitude: 2.9386 },
-];
-
-const HOURS = {
-  cotonou: { cotonou: 0.4, ouidah: 1.5, portonovo: 0.8, abomey: 2.5, mono: 2, couffo: 2.5, atacora: 8, alibori: 10 },
-  calavi: { cotonou: 0.5, ouidah: 1, portonovo: 1.3, abomey: 2.3, mono: 1.8, couffo: 2.3, atacora: 7.8, alibori: 9.8 },
-  portonovo: { cotonou: 0.8, ouidah: 2, portonovo: 0.3, abomey: 2.5, mono: 2.8, couffo: 2.8, atacora: 8, alibori: 10 },
-  bohicon: { cotonou: 2.3, ouidah: 2.5, portonovo: 2.5, abomey: 0.4, mono: 2.5, couffo: 1.5, atacora: 5.5, alibori: 7.5 },
-  parakou: { cotonou: 6, ouidah: 7, portonovo: 6.5, abomey: 4, mono: 7, couffo: 5.5, atacora: 2.5, alibori: 3 },
-  natitingou: { cotonou: 8, ouidah: 9, portonovo: 8.5, abomey: 5.5, mono: 8.5, couffo: 7, atacora: 0.4, alibori: 3 },
-};
-
-export function zoneOf(site) {
-  let best = ZONES[0];
-  let bestKm = Infinity;
-  ZONES.forEach((zone) => {
-    const km = distanceInKm(site, zone);
-    if (km < bestKm) {
-      bestKm = km;
-      best = zone;
-    }
-  });
-  return best.key;
-}
+export const tourismOrigins = cities
+  .filter((name) => cityCoordinates[name])
+  .map((name) => ({
+    key: name,
+    label: name,
+    latitude: cityCoordinates[name].latitude,
+    longitude: cityCoordinates[name].longitude,
+  }))
+  .sort((a, b) => compareNames(a.label, b.label));
 
 export function driveHours(site, originKey) {
-  return HOURS[originKey]?.[zoneOf(site)] ?? null;
+  const origin = tourismOrigins.find((item) => item.key === originKey);
+  if (!origin || site.latitude == null) return null;
+  return ROAD_BASE_HOURS + distanceInKm(origin, site) / ROAD_KM_PER_HOUR;
 }
 
 // Under an hour is an afternoon, up to three is a day, beyond that is a

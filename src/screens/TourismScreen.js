@@ -19,24 +19,17 @@ import {
   tourismSites,
 } from "../data/tourismSites";
 
-// Wikimedia refuses React Native's HTTP client by name.
+// The photographs are served from this app's own Storage, not from
+// Commons, and that is not a preference.
 //
-// Android's Image goes out through okhttp, and upload.wikimedia.org
-// answers "okhttp/4.9.2" with 403 while giving any browser 200 — their
-// user-agent policy, which asks clients to identify themselves and
-// contact. Measured, because there is nothing to see otherwise: the URL is
-// right, the phone can reach the host, the card draws, the credit under it
-// draws, and the photograph is simply absent. It would have shipped.
-//
-// So every Commons image is requested with a UA that says what this is and
-// where to complain. Sending it is also the polite half of the bargain
-// that lets an app use their bandwidth for free.
-const WIKIMEDIA_UA =
-  "ChezNous/1.0 (https://benin-marketplace-3eb04.web.app; marketplace app for Bénin) react-native";
-
-function commonsSource(photo) {
-  return { uri: photo.url, headers: { "User-Agent": WIKIMEDIA_UA } };
-}
+// Linking straight to upload.wikimedia.org drew nothing on Android:
+// measured, that host answers "okhttp/4.9.2" — React Native's HTTP client
+// — with 403, while the same URL with a browser user-agent returns 200.
+// Setting a user-agent on the Image source did not settle it. So
+// scripts/uploadTourismPhotos.js copies each file into the bucket every
+// listing photograph already comes from, carrying the licence, the author
+// and the Commons page in its metadata. The credit under each card is the
+// other half of that bargain.
 
 // Laterite, which is the colour of the roads this screen sends people
 // down. The design's own accent.
@@ -93,14 +86,22 @@ export function TourismScreen({ navigation }) {
   const insets = useSafeAreaInsets();
 
   const [query, setQuery] = useState("");
-  const [origin, setOrigin] = useState("cotonou");
+  const [origin, setOrigin] = useState("Cotonou");
   const [band, setBand] = useState("journee");
   const [category, setCategory] = useState("all");
   const [originSheetOpen, setOriginSheetOpen] = useState(false);
   const [failedPhotos, setFailedPhotos] = useState({});
+  const [citySearch, setCitySearch] = useState("");
 
   const originDef =
     tourismOrigins.find((item) => item.key === origin) ?? tourismOrigins[0];
+  const sheetCities = useMemo(() => {
+    const needle = citySearch.trim().toLowerCase();
+    if (!needle) return tourismOrigins;
+    return tourismOrigins.filter((item) =>
+      item.label.toLowerCase().includes(needle),
+    );
+  }, [citySearch]);
   const trimmed = query.trim();
 
   // Everything decorated with what this origin makes of it, once.
@@ -172,7 +173,7 @@ export function TourismScreen({ navigation }) {
         />
         {site.photo && !failedPhotos[site.id] ? (
           <MediaPhoto
-            source={commonsSource(site.photo)}
+            source={{ uri: site.photo.url }}
             resizeMode="cover"
             onError={() =>
               setFailedPhotos((current) => ({ ...current, [site.id]: true }))
@@ -221,10 +222,17 @@ export function TourismScreen({ navigation }) {
               {t("tourismAlongRestaurants")}
             </SecondaryActionLabel>
           </SecondaryAction>
-        ) : site.article ? (
-          <SecondaryAction onPress={() => Linking.openURL(site.article)}>
-            <Ionicons name="book-outline" size={15} color={colors.primary} />
-            <SecondaryActionLabel>{t("tourismReadMore")}</SecondaryActionLabel>
+        ) : site.website ? (
+          /* The place's own site, never the encyclopedia article. A
+             visitor deciding whether to drive two hours wants opening
+             times and a telephone number from whoever runs the place;
+             Wikipedia is where the description above came from, credited
+             at the foot, and not somewhere to send anybody. Thirteen of
+             these have a site — the rest get no link rather than a
+             second-best one. */
+          <SecondaryAction onPress={() => Linking.openURL(site.website)}>
+            <Ionicons name="globe-outline" size={15} color={colors.primary} />
+            <SecondaryActionLabel>{t("tourismWebsite")}</SecondaryActionLabel>
           </SecondaryAction>
         ) : null}
       </Actions>
@@ -407,7 +415,20 @@ export function TourismScreen({ navigation }) {
         <SheetBackdrop onPress={() => setOriginSheetOpen(false)}>
           <Sheet onStartShouldSetResponder={() => true}>
             <SheetTitle>{t("tourismOriginTitle")}</SheetTitle>
-            {tourismOrigins.map((option) => {
+            {/* Sixty-one towns need a search field. Six did not, which is
+                why the picker shipped without one. */}
+            <SheetSearch>
+              <Ionicons name="search" size={16} color={colors.textMuted} />
+              <SheetSearchInput
+                value={citySearch}
+                onChangeText={setCitySearch}
+                placeholder={t("searchCityPlaceholder")}
+                placeholderTextColor={colors.textMuted}
+                autoCorrect={false}
+              />
+            </SheetSearch>
+            <SheetList keyboardShouldPersistTaps="handled">
+            {sheetCities.map((option) => {
               const active = option.key === origin;
               return (
                 <SheetRow
@@ -423,11 +444,11 @@ export function TourismScreen({ navigation }) {
                   </SheetRadio>
                   <SheetCol>
                     <SheetLabel>{option.label}</SheetLabel>
-                    <SheetSub>{option.sub}</SheetSub>
                   </SheetCol>
                 </SheetRow>
               );
             })}
+            </SheetList>
           </Sheet>
         </SheetBackdrop>
       </Modal>
@@ -889,8 +910,26 @@ const SheetLabel = styled.Text`
   color: ${(props) => props.theme.text};
 `;
 
-const SheetSub = styled.Text`
-  ${type.caption}
-  color: ${(props) => props.theme.textMuted};
-  margin-top: 2px;
+const SheetSearch = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.sm}px;
+  background-color: ${(props) => props.theme.surface};
+  border-radius: 999px;
+  padding: 10px ${spacing.md}px;
+  margin-bottom: ${spacing.md}px;
+  border-width: 1px;
+  border-color: ${(props) => props.theme.border};
+`;
+
+const SheetSearchInput = styled.TextInput`
+  flex: 1;
+  ${type.body}
+  color: ${(props) => props.theme.text};
+  padding: 0;
+`;
+
+// Capped, because sixty-one rows is taller than a phone.
+const SheetList = styled.ScrollView`
+  max-height: 380px;
 `;

@@ -28,7 +28,7 @@ const ENDPOINT = "https://query.wikidata.org/sparql";
 const UA = "ChezNous/1.0 (Bénin marketplace; tourism directory)";
 
 const QUERY = `
-SELECT ?item ?itemLabel ?itemLabelEn ?coord ?typeLabel ?image ?heritageLabel ?admin ?adminLabel ?article ?website ?phone ?mail
+SELECT ?item ?itemLabel ?itemLabelEn ?coord ?typeLabel ?image ?heritageLabel ?admin ?adminLabel ?article ?website ?phone ?mail ?descFr ?enArticle
 WHERE {
   ?item wdt:P17 wd:Q962 .
   ?item wdt:P625 ?coord .
@@ -45,6 +45,10 @@ WHERE {
     ?article schema:about ?item ;
              schema:isPartOf <https://fr.wikipedia.org/> .
   }
+  OPTIONAL {
+    ?enArticle schema:about ?item ;
+               schema:isPartOf <https://en.wikipedia.org/> .
+  }
   SERVICE wikibase:label {
     bd:serviceParam wikibase:language "fr,en" .
     ?item rdfs:label ?itemLabel .
@@ -55,6 +59,17 @@ WHERE {
   OPTIONAL {
     ?item rdfs:label ?itemLabelEn .
     FILTER(LANG(?itemLabelEn) = "en")
+  }
+  # Wikidata's own one-line description, in French.
+  #
+  # A third of these places have no French Wikipedia article — the Palais
+  # royaux d'Abomey among them, which has 39 sitelinks and not one of them
+  # is fr. Their cards said nothing at all. This is a sentence rather than
+  # a paragraph, and it is in the language the app is written in, which an
+  # English extract would not be.
+  OPTIONAL {
+    ?item schema:description ?descFr .
+    FILTER(LANG(?descFr) = "fr")
   }
 }
 `;
@@ -206,6 +221,10 @@ async function run() {
       image: null,
       article: row.article?.value ?? null,
       website: row.website?.value ?? null,
+      descriptionFr: row.descFr?.value ?? null,
+      enTitle: row.enArticle
+        ? decodeURIComponent(row.enArticle.value.split("/wiki/")[1] ?? "").replace(/_/g, " ")
+        : null,
       phone: normalizePhone(row.phone?.value) ?? null,
       mail: (row.mail?.value ?? "").replace(/^mailto:/, "") || null,
       latitude: null,
@@ -216,6 +235,14 @@ async function run() {
     if (row.image?.value && !entry.image) entry.image = row.image.value;
     if (!entry.article && row.article?.value) entry.article = row.article.value;
     if (!entry.website && row.website?.value) entry.website = row.website.value;
+    if (!entry.descriptionFr && row.descFr?.value) {
+      entry.descriptionFr = row.descFr.value;
+    }
+    if (!entry.enTitle && row.enArticle?.value) {
+      entry.enTitle = decodeURIComponent(
+        row.enArticle.value.split("/wiki/")[1] ?? "",
+      ).replace(/_/g, " ");
+    }
     if (!entry.phone && row.phone?.value) entry.phone = normalizePhone(row.phone.value);
     if (!entry.mail && row.mail?.value) {
       entry.mail = row.mail.value.replace(/^mailto:/, "");

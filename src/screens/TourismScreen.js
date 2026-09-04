@@ -16,6 +16,7 @@ import {
   heritageRank,
   tourismBands,
   tourismOrigins,
+  siteBlurb,
   tourismSites,
 } from "../data/tourismSites";
 
@@ -143,7 +144,7 @@ export function TourismScreen({ navigation }) {
         return site.band === band;
       })
       .filter((site) =>
-        queryMatches(trimmed, site.name, site.nameEn, site.admin, site.summary),
+        queryMatches(trimmed, site.name, site.nameEn, site.city, site.admin),
       );
     // Listed heritage first, then the ones with a photograph, then the
     // nearest. Said on screen, because a sort that is not stated is a
@@ -219,8 +220,8 @@ export function TourismScreen({ navigation }) {
 
   const renderFacts = (site) => (
     <>
-      {site.summary ? (
-        <Why numberOfLines={4}>{site.summary}</Why>
+      {siteBlurb(site, language) ? (
+        <Why numberOfLines={4}>{siteBlurb(site, language)}</Why>
       ) : null}
       {/* The figure the design asked for, and the reason there is none.
           Nothing publishes Bénin's entry fees in a form worth repeating,

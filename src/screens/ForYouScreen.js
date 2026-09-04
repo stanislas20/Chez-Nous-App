@@ -1816,7 +1816,11 @@ export function ForYouScreen({ navigation, route }) {
                 <QuickAccessIcon>
                   <QuickAccessEmoji>{item.icon}</QuickAccessEmoji>
                 </QuickAccessIcon>
-                <QuickAccessLabel numberOfLines={2}>
+                <QuickAccessLabel
+                  numberOfLines={2}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                >
                   {t(item.labelKey)}
                 </QuickAccessLabel>
               </QuickAccessItem>
@@ -2921,7 +2925,7 @@ const QuickAccessItem = styled(Tappable)`
   align-items: center;
   gap: 6px;
   margin-right: 14px;
-  width: 58px;
+  width: 68px;
 `;
 
 const QuickAccessIcon = styled.View`
@@ -2938,6 +2942,10 @@ const QuickAccessEmoji = styled.Text`
   font-size: 24px;
 `;
 
+// "Événements" is ten characters and the tile was 58px, so the final "s"
+// dropped onto a line of its own. Widening fixes that word; shrinking to
+// fit fixes the next one, in whichever language it turns up — a label that
+// orphans a letter looks broken in a way no character count could predict.
 const QuickAccessLabel = styled.Text`
   ${type.caption}
   font-size: 10px;

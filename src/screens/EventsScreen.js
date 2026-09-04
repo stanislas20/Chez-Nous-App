@@ -3,6 +3,7 @@ import {
   Alert,
   Animated,
   FlatList,
+  Image,
   Keyboard,
   Linking,
   Modal,
@@ -25,6 +26,7 @@ import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import {
+  festivalPhoto,
   festivalRecurrence,
   festivalWhat,
   festivalsFromNow,
@@ -728,6 +730,28 @@ export function EventsScreen({ navigation }) {
                   festival.website && Linking.openURL(festival.website)
                 }
               >
+                {/* A picture of the thing, so the calendar reads as five
+                    happenings rather than five paragraphs. Where Commons
+                    has none, the card keeps its coloured ground rather
+                    than borrowing a photograph of something else. */}
+                {festivalPhoto(festival) ? (
+                  <FestivalBanner>
+                    <FestivalImage
+                      source={{ uri: festivalPhoto(festival).url }}
+                      resizeMode="cover"
+                    />
+                    <FestivalScrim
+                      colors={["transparent", "rgba(0,0,0,0.55)"]}
+                      pointerEvents="none"
+                    />
+                    <FestivalCredit numberOfLines={1}>
+                      {t("tourismPhotoCredit", {
+                        author: festivalPhoto(festival).author,
+                        licence: festivalPhoto(festival).licence,
+                      })}
+                    </FestivalCredit>
+                  </FestivalBanner>
+                ) : null}
                 <FestivalTop>
                   <FestivalDot tint={getEventKindTint(festival.kind) ?? EVENT_ACCENT} />
                   <FestivalName numberOfLines={1}>{festival.name}</FestivalName>
@@ -1545,6 +1569,7 @@ const FestivalIntro = styled.Text`
 const FestivalCard = styled(Pressable)`
   background-color: ${(props) => props.theme.surface};
   border-radius: ${radius.md}px;
+  overflow: hidden;
   padding: ${spacing.md}px;
   margin-bottom: ${spacing.sm}px;
   border-width: 1px;
@@ -1594,4 +1619,36 @@ const FestivalEdition = styled.Text`
   ${type.caption}
   color: ${(props) => props.theme.textMuted};
   margin-top: 2px;
+`;
+
+const FestivalBanner = styled.View`
+  height: 132px;
+  margin: -${spacing.md}px -${spacing.md}px ${spacing.sm}px;
+  background-color: #1b1b1d;
+`;
+
+const FestivalImage = styled(Image)`
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+`;
+
+const FestivalScrim = styled(LinearGradient)`
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 56px;
+`;
+
+const FestivalCredit = styled.Text`
+  position: absolute;
+  left: ${spacing.sm}px;
+  right: ${spacing.sm}px;
+  bottom: 6px;
+  ${type.caption}
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.85);
 `;

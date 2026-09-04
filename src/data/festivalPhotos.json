@@ -1,0 +1,30 @@
+{
+  "vodun-days": {
+    "url": "https://firebasestorage.googleapis.com/v0/b/benin-marketplace-3eb04.firebasestorage.app/o/festivals%2Fvodun-days.jpg?alt=media&token=d229c7c8-edae-45ae-a18e-fd6990def2e0",
+    "licence": "CC BY-SA 4.0",
+    "author": "Dieu229",
+    "descriptionUrl": "https://commons.wikimedia.org/wiki/File:10_Janvier_2023,_F%C3%AAte_de_vodoun_%C3%A0_Ouidah_11.jpg",
+    "shows": "the 10 January festival at Ouidah"
+  },
+  "gaani": {
+    "url": "https://firebasestorage.googleapis.com/v0/b/benin-marketplace-3eb04.firebasestorage.app/o/festivals%2Fgaani.jpg?alt=media&token=1b36cdd0-50ca-4316-acec-72f649fbadd4",
+    "licence": "CC BY-SA 4.0",
+    "author": "Oramfe",
+    "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Bariba_Ganni_performers,_Nikki,_Bemin.jpg",
+    "shows": "Bariba performers at the Gaani in Nikki"
+  },
+  "nonvitcha": {
+    "url": "https://firebasestorage.googleapis.com/v0/b/benin-marketplace-3eb04.firebasestorage.app/o/festivals%2Fnonvitcha.jpg?alt=media&token=73f00262-a249-4708-b6d9-cbf82b54e269",
+    "licence": "CC BY-SA 4.0",
+    "author": "Kulttuurinavigaattori",
+    "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Nonvitcha_Grand_Popo_Benin_2017.jpg",
+    "shows": "the Nonvitcha gathering at Grand-Popo"
+  },
+  "welove-eya": {
+    "url": "https://firebasestorage.googleapis.com/v0/b/benin-marketplace-3eb04.firebasestorage.app/o/festivals%2Fwelove-eya.jpg?alt=media&token=891b7c5b-4085-4cc5-8889-4cd90d332a6b",
+    "licence": "CC BY-SA 4.0",
+    "author": "Heliodore77",
+    "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Inbound2311589315818131493.jpg",
+    "shows": "the Place de l'Amazone, where the festival is held"
+  }
+}

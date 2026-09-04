@@ -7,6 +7,7 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
+import { siteBlurb } from "../data/tourismSites";
 
 const LATERITE = "#9C4221";
 
@@ -60,7 +61,9 @@ export function TourismDetailScreen({ route, navigation }) {
         </Hero>
 
         <Section>
-          {site.summary ? <Body1>{site.summary}</Body1> : null}
+          {siteBlurb(site, language) ? (
+            <Body1>{siteBlurb(site, language)}</Body1>
+          ) : null}
           {/* Credited under the picture it belongs to, not in a licence
               page nobody opens. CC BY-SA asks for the photographer by
               name; this is that. */}

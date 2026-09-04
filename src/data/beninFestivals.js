@@ -1,4 +1,5 @@
 import { compareNames } from "../utils/collate";
+import festivalPhotos from "./festivalPhotos.json";
 
 // The country's own calendar: the festivals that come round every year.
 //
@@ -137,6 +138,18 @@ export function festivalsFromNow(monthNow) {
   return [...beninFestivals].sort(
     (a, b) => distance(a.key) - distance(b.key) || compareNames(a.name, b.name),
   );
+}
+
+// A photograph OF the festival, never its poster.
+//
+// The obvious banner is the official artwork and it is somebody's
+// copyright; re-hosting it would be republishing work this app has no
+// licence to. These are Commons photographs under CC BY-SA — free to
+// show, photographer credited on the card. Four of the five have one; the
+// yam festival keeps its gradient rather than borrowing a picture of some
+// other harvest.
+export function festivalPhoto(festival) {
+  return festivalPhotos[festival.key] ?? null;
 }
 
 export function festivalRecurrence(festival, language) {

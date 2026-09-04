@@ -135,6 +135,22 @@ export function categoryOf(site) {
 
 // A world heritage site is a different proposition from a listed façade,
 // and the badge should not flatten them together.
+// What a card says about a place, and in which order it will settle for
+// less.
+//
+// A third of these have no French Wikipedia article — the Palais royaux
+// d'Abomey has thirty-nine sitelinks and not one of them is fr — so a
+// single source left their cards blank. The order is: the French article,
+// then Wikidata's French one-liner, then the English article. English in
+// a French app is not ideal; silence about a world heritage site is
+// worse, and this only ever shows where the alternative is nothing.
+export function siteBlurb(site, language) {
+  if (language === "en") {
+    return site.summaryEn ?? site.summary ?? site.descriptionFr ?? null;
+  }
+  return site.summary ?? site.descriptionFr ?? site.summaryEn ?? null;
+}
+
 export function heritageRank(site) {
   const all = (site.heritage ?? []).join(" ").toLowerCase();
   if (all.includes("patrimoine mondial") && !all.includes("indicative")) return 3;

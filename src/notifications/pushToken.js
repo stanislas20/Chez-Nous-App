@@ -10,7 +10,13 @@ import {
   requestPermission,
 } from "@react-native-firebase/messaging";
 import { Alert, PermissionsAndroid, Platform } from "react-native";
-import { doc, setDoc } from "firebase/firestore";
+import {
+  deleteField,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
 import { firestore } from "../config/firebase";
 import { openNotification } from "./openNotification";
 import { currentRoute } from "../navigation/navigationRef";
@@ -35,6 +41,47 @@ function savePushToken(uid, token) {
 // advice. A reader who has already granted permission and is still told to
 // go and grant it in Settings concludes the app is broken — and on that
 // occasion they are right, just not about the part they were shown.
+// Take this device's token off an account that is signing out.
+//
+// The token is a property of the HANDSET, not of the person: FCM keeps
+// delivering to it whoever is signed in. Leaving it on the departing account
+// meant the next person to sign in on the same phone received the previous
+// user's private notifications — a message body, on a lock screen, from a
+// conversation they are not in. The audit filed this as P2-5; it is a privacy
+// failure with a one-line cause.
+//
+// Only the row that still names THIS device is cleared, which is what keeps
+// multi-device working: a user signed in on a phone and a tablet loses the
+// phone's token and keeps the tablet's. Signing in again re-registers through
+// the ordinary path, so nothing has to be restored.
+//
+// arrayRemove is not used because the field is a single string today. If it
+// ever becomes a list of devices, this is the function that changes.
+export async function detachPushToken(uid) {
+  if (!uid || !firestore) return { detached: false, reason: "no-account" };
+  let token = null;
+  try {
+    token = await getToken(getMessaging(getApp()));
+  } catch {
+    // No native module, no permission, or no APNs token. Nothing to detach.
+    return { detached: false, reason: "no-token" };
+  }
+  if (!token) return { detached: false, reason: "no-token" };
+
+  try {
+    const ref = doc(firestore, "sellers", uid);
+    const snapshot = await getDoc(ref);
+    // Someone else's device may have registered since; only clear our own.
+    if (!snapshot.exists() || snapshot.data()?.pushToken !== token) {
+      return { detached: false, reason: "not-this-device" };
+    }
+    await updateDoc(ref, { pushToken: deleteField() });
+    return { detached: true, reason: null };
+  } catch (error) {
+    return { detached: false, reason: "write-failed", error };
+  }
+}
+
 export const PUSH_OK = "ok";
 export const PUSH_DENIED = "denied";
 export const PUSH_UNAVAILABLE = "unavailable";

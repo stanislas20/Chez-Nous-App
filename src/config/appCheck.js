@@ -1,4 +1,55 @@
 import { initializeAppCheck, CustomProvider } from "firebase/app-check";
+import { reportNonFatal } from "../utils/reportError";
+
+// ── The token's own expiry, not one we invented ─────────────────────────
+//
+// This used to hand the JS SDK `Date.now() + 3600000` because RNFirebase does
+// not report an expiry. Checked rather than assumed, in v25.1.0: the Android
+// bridge's getToken puts only `token` into the result map
+// (ReactNativeFirebaseAppCheckModule.java:196) and publishes
+// expireTimeMillis solely on the token-changed EVENT (line 252). So there is
+// genuinely nothing to read from the call — the audit was right about that.
+//
+// But there is a source of truth, and it is the token itself. An App Check
+// token is a JWT and its `exp` claim is the very value the Firebase backend
+// checks. getToken(instance, false) returns a CACHED token that may be most
+// of the way through its life; telling the SDK it has a fresh hour meant the
+// SDK would keep presenting a token the backend had already rejected. Reading
+// exp makes the two agree.
+//
+// No signature verification: this is not a trust decision. We minted the
+// token, we are only asking when it expires, and a forged answer here would
+// merely make our own requests fail.
+const FALLBACK_TTL_MS = 5 * 60 * 1000;
+
+function decodeExpiry(token) {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+    const json =
+      typeof atob === "function"
+        ? atob(padded)
+        : Buffer.from(padded, "base64").toString("binary");
+    const exp = JSON.parse(json)?.exp;
+    return typeof exp === "number" && Number.isFinite(exp) ? exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+// A token that cannot be parsed gets five minutes rather than an hour. Short
+// is the safe direction: the cost of being wrong is one extra native call,
+// where the cost of being wrong the other way is every request refused once
+// enforcement is on.
+export function tokenExpiryMillis(token, now = Date.now()) {
+  const exp = decodeExpiry(token);
+  if (exp === null) return now + FALLBACK_TTL_MS;
+  // Already expired, or so close it will be by the time it is used.
+  if (exp <= now) return now + FALLBACK_TTL_MS;
+  return exp;
+}
 
 // Attestation, across two SDKs that do not know about each other.
 //
@@ -38,6 +89,7 @@ import { initializeAppCheck, CustomProvider } from "firebase/app-check";
 // yet being applied.
 
 let started = false;
+let attestationFailureReported = false;
 
 // The debug provider is for a simulator and a dev client, where neither Play
 // Integrity nor App Attest can produce a real token. It prints a debug token
@@ -84,6 +136,18 @@ export async function initializeAppCheckBridge(app) {
     // No native module in this binary (an older build, or Expo Go). The app
     // must keep working: enforcement is off, so unattested requests are
     // accepted, and the alternative is bricking the app to protect nothing.
+    //
+    // Reported, though. Once enforcement is on, a device that reaches this
+    // line has an app that cannot read anything — and the failure it shows
+    // the user is a Firestore permission error, which looks exactly like an
+    // empty marketplace. Play Integrity fails on rooted handsets, on devices
+    // without Play services and on some older Android builds, all of which
+    // exist in Bénin in numbers. Knowing HOW MANY before turning enforcement
+    // on is the difference between a staged rollout and an outage.
+    reportNonFatal("appCheckNativeUnavailable", error, {
+      where: "initializeAppCheckBridge",
+      stage: "native",
+    });
     return { active: false, reason: "native-unavailable" };
   }
 
@@ -91,20 +155,36 @@ export async function initializeAppCheckBridge(app) {
     initializeAppCheck(app, {
       provider: new CustomProvider({
         getToken: async () => {
-          const result = await rnAppCheck.getToken(nativeInstance, false);
+          let result;
+          try {
+            result = await rnAppCheck.getToken(nativeInstance, false);
+          } catch (error) {
+            // Attestation was refused — a rooted device, a failed Play
+            // Integrity verdict, a clock far enough out that the token is
+            // rejected. Reported once per session rather than per request,
+            // because the SDK retries and this would otherwise be a flood.
+            if (!attestationFailureReported) {
+              attestationFailureReported = true;
+              reportNonFatal("appCheckAttestationRefused", error, {
+                where: "CustomProvider.getToken",
+                stage: "attestation",
+              });
+            }
+            throw error;
+          }
           return {
             token: result.token,
-            // RNFirebase does not report the expiry, and the JS SDK requires
-            // one. An hour is App Check's own default token lifetime; the
-            // SDK refreshes ahead of it, and asking again early costs a
-            // cached native token rather than a new attestation.
-            expireTimeMillis: Date.now() + 60 * 60 * 1000,
+            expireTimeMillis: tokenExpiryMillis(result.token),
           };
         },
       }),
       isTokenAutoRefreshEnabled: true,
     });
   } catch (error) {
+    reportNonFatal("appCheckBridgeFailed", error, {
+      where: "initializeAppCheckBridge",
+      stage: "bridge",
+    });
     return { active: false, reason: "bridge-failed" };
   }
 

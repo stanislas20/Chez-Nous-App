@@ -4,11 +4,6 @@ import { distanceInKm } from "../utils/geo";
 import { extractPlacePhoto } from "../utils/placePhoto";
 
 const SEARCH_RADIUS_METERS = 5000;
-const FIELD_MASK =
-  "places.id,places.displayName,places.location,places.formattedAddress," +
-  "places.internationalPhoneNumber,places.currentOpeningHours.openNow,places.rating," +
-  "places.photos";
-
 // Real, live nearby pharmacies from Google Places (New) — distinct from the
 // ONPB on-duty roster, this covers ordinary pharmacies that keep normal
 // hours (not part of any "de garde" rotation), so a user can find any
@@ -31,7 +26,6 @@ export function useNearbyPharmacies(coords) {
       coords,
       radius: SEARCH_RADIUS_METERS,
       type: "pharmacy",
-      fieldMask: FIELD_MASK,
     })
       .then((data) => {
         if (cancelled) return;

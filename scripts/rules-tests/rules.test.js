@@ -395,10 +395,25 @@ async function main() {
     ),
   );
 
-  // ── The counters a reader is allowed to touch ───────────────────────────
+  // ── The counters, which a reader may no longer touch at all ────────────
+  //
+  // These two assertions changed in Phase E, and the change is a tightening.
+  //
+  // They used to require that a reader COULD add exactly one view and one
+  // contact, because the rules had an allow-update branch for each. That
+  // branch checked with real care that the increment was exactly +1 and that
+  // nothing else on the document moved — and never asked how many times it
+  // could happen. Any signed-in account could loop it: a rival's advert
+  // buried under fabricated views, our bill one write per iteration.
+  //
+  // The counters are now server-authored. A reader creates a counterMarkers
+  // document whose ID is listingId_uid_kind_day, Firestore refuses the second
+  // create of that id by itself, and onCounterMarkerCreated applies the
+  // increment with the Admin SDK. So the correct assertion is the opposite of
+  // the old one.
   await check(
-    "a reader may add one view",
-    assertSucceeds(
+    "a reader may no longer write a view count directly",
+    assertFails(
       updateDoc(doc(asOutsider, "listings/live"), { viewCount: 6 }),
     ),
   );
@@ -419,13 +434,81 @@ async function main() {
   // same three questions the view counter gets, plus the one its rule was
   // missing.
   await check(
-    "a reader may add one contact",
-    assertSucceeds(
+    "a reader may no longer write a contact count directly",
+    assertFails(
       updateDoc(doc(asOutsider, "listings/live"), {
         contactCount: 1,
         contactCountToday: 1,
         contactCountDate: "2026-09-04",
       }),
+    ),
+  );
+
+  // ── The marker that replaced them ──────────────────────────────────────
+  await check(
+    "a reader may record one counted view",
+    assertSucceeds(
+      setDoc(doc(asOutsider, "counterMarkers/live_outsider-uid_view_2026-09-04"), {
+        listingId: "live",
+        uid: "outsider-uid",
+        kind: "view",
+        day: "2026-09-04",
+        createdAt: serverTimestamp(),
+      }),
+    ),
+  );
+  await check(
+    "the same reader cannot record the same view twice",
+    assertFails(
+      setDoc(doc(asOutsider, "counterMarkers/live_outsider-uid_view_2026-09-04"), {
+        listingId: "live",
+        uid: "outsider-uid",
+        kind: "view",
+        day: "2026-09-04",
+        createdAt: serverTimestamp(),
+      }),
+    ),
+  );
+  await check(
+    "a reader cannot record a view under somebody else's name",
+    assertFails(
+      setDoc(doc(asOutsider, "counterMarkers/live_someone-else_view_2026-09-04"), {
+        listingId: "live",
+        uid: "someone-else",
+        kind: "view",
+        day: "2026-09-04",
+        createdAt: serverTimestamp(),
+      }),
+    ),
+  );
+  await check(
+    "a signed-out visitor cannot record a counted event",
+    assertFails(
+      setDoc(doc(asGuest, "counterMarkers/live_anon_view_2026-09-04"), {
+        listingId: "live",
+        uid: "anon",
+        kind: "view",
+        day: "2026-09-04",
+        createdAt: serverTimestamp(),
+      }),
+    ),
+  );
+  await check(
+    "a marker cannot be back-dated",
+    assertFails(
+      setDoc(doc(asOutsider, "counterMarkers/live_outsider-uid_share_2026-09-04"), {
+        listingId: "live",
+        uid: "outsider-uid",
+        kind: "share",
+        day: "2026-09-04",
+        createdAt: new Date(2020, 0, 1),
+      }),
+    ),
+  );
+  await check(
+    "nobody can read the markers back",
+    assertFails(
+      getDoc(doc(asOutsider, "counterMarkers/live_outsider-uid_view_2026-09-04")),
     ),
   );
   await check(

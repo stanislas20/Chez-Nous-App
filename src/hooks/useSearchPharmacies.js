@@ -3,11 +3,6 @@ import { searchPlacesByText } from "../utils/places";
 import { distanceInKm } from "../utils/geo";
 import { extractPlacePhoto } from "../utils/placePhoto";
 
-const FIELD_MASK =
-  "places.id,places.displayName,places.location,places.formattedAddress," +
-  "places.internationalPhoneNumber,places.currentOpeningHours.openNow,places.rating," +
-  "places.photos";
-
 // useNearbyPharmacies only ever sees whatever's within a fixed radius of the
 // user (capped at 20 results) — a specific pharmacy the user names by
 // search, like "Pharmacie Les Archanges", can easily be further away than
@@ -40,7 +35,6 @@ export function useSearchPharmacies(query, coords) {
     searchPlacesByText({
       textQuery: `${trimmed} pharmacy Benin`,
       type: "pharmacy",
-      fieldMask: FIELD_MASK,
     })
       .then((data) => {
         if (cancelled) return;

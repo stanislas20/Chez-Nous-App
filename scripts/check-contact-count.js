@@ -172,20 +172,50 @@ const walk = (dir) =>
           : [],
     );
 
-const writers = walk("src").filter((file) =>
-  /contactCount: increment\(/.test(read(file)),
+// ── Phase E changed WHERE the counter is written, not whether ──────────
+//
+// The client no longer increments contactCount at all. It creates a
+// counterMarkers document whose id is listingId_uid_kind_day — Firestore
+// refuses the second create of the same id, which is the rate limit — and
+// onCounterMarkerCreated applies the increment with the Admin SDK. Any client
+// that still writes the field directly would now be denied by the rules, so
+// finding one is a harder failure than it used to be, not a softer one.
+const directWriters = walk("src").filter((file) =>
+  /contactCount:\s*increment\(/.test(read(file)),
 );
-if (writers.length !== 1 || writers[0] !== path.join("src", "utils", "contactCount.js")) {
+if (directWriters.length) {
   failures.push(
-    `contactCount is incremented in ${writers.join(", ") || "nowhere"} — it ` +
-      `belongs only in src/utils/contactCount.js`,
+    `${directWriters.join(", ")} still increments contactCount directly. The ` +
+      `rules refuse that now, so every tap would be silently denied. Use ` +
+      `countEvent(listing, COUNTER_CONTACT).`,
+  );
+}
+
+// One helper, still, for the same reason as before: twenty-two screens reach
+// a seller's phone and the moment the second one records its own event they
+// drift.
+const markerWriters = walk("src").filter((file) =>
+  /counterMarkers/.test(read(file)),
+);
+if (
+  markerWriters.length !== 1 ||
+  markerWriters[0] !== path.join("src", "utils", "countEvent.js")
+) {
+  failures.push(
+    `counted events are written from ${markerWriters.join(", ") || "nowhere"} — ` +
+      `they belong only in src/utils/countEvent.js`,
   );
 }
 
 // The two rules that keep the number honest, both learned the hard way on
 // the view counter: a seller's own tap is not a lead, and a listing the app
 // invented for a demonstration has nobody to call.
-const helper = read("src/utils/contactCount.js");
+// contactCount.js now delegates, so the two honesty rules live one level
+// down in the shared helper.
+const helper = read("src/utils/countEvent.js");
+if (!/COUNTER_CONTACT/.test(read("src/utils/contactCount.js"))) {
+  failures.push("countContact no longer routes through countEvent");
+}
 if (!/currentUser\?\.uid/.test(helper)) {
   failures.push(
     "countContact does not skip the owner — a seller opening their own card " +
@@ -205,17 +235,31 @@ if (!/contactCount/.test(read("src/screens/SellerDashboardScreen.js"))) {
 }
 
 // A count that the rules refuse is a count that silently never happens.
+// These two assertions were inverted by Phase E, and the inversion is the
+// point. They used to require that firestore.rules ALLOWED a client to write
+// contactCount, +1 at a time — which it did, with great care about the
+// increment and none at all about how many times it could happen. Any signed
+// -in account could loop it.
+//
+// The rules must now refuse it outright, and the marker collection must exist
+// to replace it.
 const rules = read("firestore.rules");
-if (!/hasOnly\(\['contactCount', 'contactCountToday', 'contactCountDate'\]\)/.test(rules)) {
+if (/hasOnly\(\['contactCount', 'contactCountToday', 'contactCountDate'\]\)/.test(rules)) {
   failures.push(
-    "firestore.rules does not allow the contact counter to be written — " +
-      "every tap would be denied, quietly, on the client",
+    "firestore.rules still lets a client write the contact counter directly, " +
+      "which is unlimited: +1 per write, with no limit on writes",
   );
 }
-if (!/contactCount == resource\.data\.get\('contactCount', 0\) \+ 1/.test(rules)) {
+if (!/match \/counterMarkers\//.test(rules)) {
   failures.push(
-    "the contact rule does not pin the increment to exactly +1, so any " +
-      "number could be written by anybody",
+    "firestore.rules has no counterMarkers collection, so nothing records a " +
+      "counted contact at all",
+  );
+}
+if (!/markerId == request\.resource\.data\.listingId/.test(rules)) {
+  failures.push(
+    "the counterMarkers id is not pinned to listingId_uid_kind_day, so the " +
+      "one-per-person-per-day limit is not enforced by the id",
   );
 }
 

@@ -92,6 +92,11 @@ import { getDutyLabel } from "../utils/pharmacyDuty";
 import { getTodayDateString } from "../utils/listingLifecycle";
 import { countContact } from "../utils/contactCount";
 import { openAccountGate } from "../utils/openAccountGate";
+import {
+  countEvent,
+  COUNTER_SHARE,
+  COUNTER_VIEW,
+} from "../utils/countEvent";
 
 const EMERALD = "#0B6E4F";
 const DEFAULT_COORDS = { latitude: 6.3703, longitude: 2.3912 };
@@ -421,15 +426,7 @@ export function ProductDetailScreen({ route, navigation }) {
     if (hasCountedView.current) return;
     if (isOwner || listing.status !== "approved" || !listing.id) return;
     hasCountedView.current = true;
-    const today = getTodayDateString();
-    const isSameDay = listing.viewCountDate === today;
-    updateDoc(doc(firestore, "listings", listing.id), {
-      viewCount: increment(1),
-      viewCountToday: isSameDay ? increment(1) : 1,
-      viewCountDate: today,
-    }).catch(() => {
-      // Non-critical — a missed view count shouldn't disrupt browsing.
-    });
+    countEvent(listing, COUNTER_VIEW);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listing.id]);
 
@@ -634,7 +631,7 @@ export function ProductDetailScreen({ route, navigation }) {
   // the composite index (sellerId + status), so this is a smaller read that
   // is also more correct: it counts the seller's listings in every category,
   // which the category-scoped read above no longer sees.
-  const sellerOwnListings = useSellerListings(listing.sellerId);
+  const { listings: sellerOwnListings } = useSellerListings(listing.sellerId);
   const sellerListingCount = (sellerOwnListings ?? []).length;
   const sellerMemberSinceDate = listing.sellerMemberSince?.toDate?.() ?? null;
   const sellerMemberSinceLabel = sellerMemberSinceDate
@@ -663,11 +660,7 @@ export function ProductDetailScreen({ route, navigation }) {
       // it is dismissed, and counting that would make the number a measure
       // of curiosity rather than of reach.
       if (result?.action !== Share.sharedAction || !listing.id) return;
-      updateDoc(doc(firestore, "listings", listing.id), {
-        shareCount: increment(1),
-      }).catch(() => {
-        // Non-critical — a missed count must never break sharing.
-      });
+        countEvent(listing, COUNTER_SHARE);
     } catch {
       // user dismissed the share sheet — nothing to do
     }

@@ -55,7 +55,46 @@ const OWNED_BY_FIELD = [
   // exist, and onFollowDeleted decrements both counters correctly.
   ["follows", "sellerId"],
   ["ads", "advertiserId"],
+  // ── Added in Phase E ────────────────────────────────────────────────
+  //
+  // The independent audit found four collections still holding the uid of a
+  // deleted account, and it found them by inventorying the collections the
+  // app writes rather than by reading this list — which is the right way
+  // round, because 24 passing tests all asserted what deletion DOES and none
+  // of them could notice what it omits.
+  //
+  // reports: the reporter's identity attached to somebody else's listing.
+  // The document id is `${listingId}_${uid}`, so the uid survives in the KEY
+  // even if the field is cleared — anonymising is not available here, only
+  // deletion. The listing keeps its reportCount, so the moderation signal
+  // survives the reporter.
+  ["reports", "reporterId"],
+  // dealershipSuggestions: a pending suggestion, unreviewed, tied to the
+  // person who made it and of no value once they are gone.
+  ["dealershipSuggestions", "submittedBy"],
+  // The view/share/contact markers. They are the only record that a
+  // particular person looked at a particular advert, which is exactly the
+  // kind of row that should leave with them. The counts they produced stay
+  // on the listing, aggregated and anonymous.
+  ["counterMarkers", "uid"],
 ];
+
+// Documents that must SURVIVE, with the departing person's identifier removed.
+//
+// carParks are community directory entries that other people rely on and
+// other people's screens render. Deleting them because the submitter left
+// would take public data away from everybody; keeping submittedBy would leave
+// a dead uid pointing at a real person's contribution. So the entry stays and
+// the name comes off, which is the same treatment conversations already get.
+const ANONYMISE_BY_FIELD = [["carParks", "submittedBy"]];
+
+// Shared two-party records keyed by an array of participants. `contacts`
+// records that two people spoke, and it is what firestore.rules consults
+// before letting somebody leave a rating. Once one side is deleted the pair
+// no longer describes two reachable accounts, and the rating it authorised
+// can no longer be left about anybody, so the row is removed rather than
+// half-emptied.
+const OWNED_BY_ARRAY = [["contacts", "participantIds"]];
 
 // Documents whose id IS the uid.
 const OWNED_BY_ID = ["sellers", "advertisers", "sellerStats", "verifiedCompanies"];
@@ -118,6 +157,48 @@ exports.deleteAccount = onCall(async (request) => {
       // One collection failing must not strand the rest half-deleted. The
       // caller is told the deletion is incomplete at the end.
       logger.error(`deleteAccount: ${collection}.${field} failed`, error);
+      summary.errors = (summary.errors ?? 0) + 1;
+    }
+  }
+
+  // 1b. Two-party rows where the uid sits inside an array.
+  for (const [collection, field] of OWNED_BY_ARRAY) {
+    try {
+      const removed = await deleteQueryInBatches(
+        db,
+        db.collection(collection).where(field, "array-contains", uid),
+      );
+      if (removed) summary[`${collection}.${field}`] = removed;
+    } catch (error) {
+      logger.error(`deleteAccount: ${collection}.${field} failed`, error);
+      summary.errors = (summary.errors ?? 0) + 1;
+    }
+  }
+
+  // 1c. Public contributions that outlive their author.
+  for (const [collection, field] of ANONYMISE_BY_FIELD) {
+    try {
+      let anonymised = 0;
+      for (;;) {
+        const snapshot = await db
+          .collection(collection)
+          .where(field, "==", uid)
+          .limit(FIRESTORE_BATCH_LIMIT)
+          .get();
+        if (snapshot.empty) break;
+        const batch = db.batch();
+        snapshot.docs.forEach((doc) =>
+          batch.update(doc.ref, {
+            [field]: admin.firestore.FieldValue.delete(),
+          }),
+        );
+        await batch.commit();
+        anonymised += snapshot.size;
+        if (snapshot.size < FIRESTORE_BATCH_LIMIT) break;
+      }
+      if (anonymised) summary[`${collection}.${field}.anonymised`] = anonymised;
+    } catch (error) {
+      logger.error(`deleteAccount: anonymising ${collection}.${field} failed`, error);
       summary.errors = (summary.errors ?? 0) + 1;
     }
   }

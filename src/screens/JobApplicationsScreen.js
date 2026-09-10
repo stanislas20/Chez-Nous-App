@@ -39,7 +39,8 @@ export function JobApplicationsScreen({ navigation }) {
   const { colors } = useTheme();
   const { language, t } = useI18n();
   const { user } = useAuth();
-  const applications = useJobApplications(user?.uid);
+  const { applications, failed: applicationsFailed } =
+    useJobApplications(user?.uid);
 
   // Only `status` is writable here, and only by the employer — see
   // firestore.rules, which pins every other field. Failures are swallowed

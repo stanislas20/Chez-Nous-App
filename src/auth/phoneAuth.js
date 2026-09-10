@@ -275,6 +275,33 @@ export async function loginSeller({ phone, password }) {
 }
 
 export async function logoutSeller() {
+  // Before the sign-out, not after: clearing the token is a write to
+  // sellers/{uid}, and the rules only allow it while that uid is still the
+  // signed-in caller.
+  //
+  // Required lazily. pushToken.js pulls in @react-native-firebase/messaging,
+  // which is a native module — importing it at the top of an auth module
+  // would make signing out impossible in any binary built before messaging
+  // was added, which is the failure mode appCheck.js and crashReporter.js
+  // both carry a comment about.
+  const uid = firebaseAuth?.currentUser?.uid;
+  if (uid) {
+    try {
+      // eslint-disable-next-line global-require
+      const result = await require("../notifications/pushToken").detachPushToken(uid);
+      if (!result.detached && result.reason === "write-failed") {
+        // Reported rather than swallowed: a token left behind is the next
+        // person on this handset receiving somebody else's messages, and it
+        // is invisible from the app.
+        // eslint-disable-next-line global-require
+        require("../utils/reportError").reportNonFatal("logoutDetachToken", result.error, {
+          where: "logoutSeller",
+        });
+      }
+    } catch {
+      // No messaging module in this binary. Signing out must still work.
+    }
+  }
   await signOut(firebaseAuth);
 }
 

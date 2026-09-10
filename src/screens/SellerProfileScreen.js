@@ -83,7 +83,7 @@ export function SellerProfileScreen({ route, navigation }) {
   const { colors } = useTheme();
   const { user } = useAuth();
   const { language, t } = useI18n();
-  const listings = useSellerListings(sellerId);
+  const { listings, failed: listingsFailed } = useSellerListings(sellerId);
 
   // Every listing a seller posts carries the same sellerMemberSince value
   // (denormalized at creation from their real profile), so the current

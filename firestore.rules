@@ -206,6 +206,16 @@ service cloud.firestore {
         || (data.searchTokens is list && data.searchTokens.size() <= 40);
     }
 
+    // The pair index, held to the same three rules as searchTokens above:
+    // refused at create, frozen on an owner update, and bounded here as the
+    // third line. C(14,2) is 91, so 100 is the writers' ceiling with headroom
+    // and nothing legitimate approaches it. Matches SEARCH_PAIR_MAX in
+    // src/utils/searchTokens.js, checked by scripts/check-search-tokens.js.
+    function searchPairsOk(data) {
+      return !('searchPairs' in data)
+        || (data.searchPairs is list && data.searchPairs.size() <= 100);
+    }
+
     function listingTextOk(data) {
       return textOk(data, 'titleFr', 120)
         && textOk(data, 'titleEn', 120)
@@ -226,6 +236,59 @@ service cloud.firestore {
       return data.get('price', 0) is number
         && data.get('price', 0) >= 0
         && data.get('price', 0) <= 10000000000;
+    }
+
+    // ── E13: a counter that one account cannot ratchet ───────────────────
+    //
+    // viewCount, shareCount and contactCount were authenticated and otherwise
+    // unlimited: any signed-in account could +1 any approved listing as fast
+    // as it could write, inflating a rival's numbers or its own and billing
+    // us a write each time.
+    //
+    // Rules cannot count events over time, and gating the increment on a
+    // marker that merely EXISTS would be worse than nothing — create it once,
+    // increment forever. So the marker does not gate the write; it REPLACES
+    // it. The client no longer writes counters at all.
+    //
+    // It creates counterMarkers/{listingId}_{uid}_{kind}_{yyyy-mm-dd}, whose
+    // id is the whole rate limit: Firestore refuses the second create of the
+    // same id on its own, with no rule needed and nothing to trust. A
+    // Cloud Function then does the increment with the Admin SDK, so the
+    // number itself is server-authored — the same shape as searchTokens and
+    // sellerVerified.
+    //
+    // One person can therefore move a listing's view count by one per day,
+    // and each attempt after the first costs them a refused write and costs
+    // us nothing.
+    //
+    // Deliberately not a security boundary. Displayed counts are a signal for
+    // readers, not an audit trail, and somebody determined enough to make
+    // accounts can still move them. What this stops is the cheap version: one
+    // account, one loop, unlimited.
+    match /counterMarkers/{markerId} {
+      // Readable by nobody: it exists to be created, and its existence is
+      // checked by the rules rather than by the app.
+      allow read: if false;
+      // One create, ever, per id. Firestore refuses the second, and that
+      // refusal is the rate limit.
+      // The id is COMPOSED rather than parsed. Splitting on '_' and taking
+      // a field by position looked equivalent and is not: a listing id
+      // containing an underscore silently shifts every position after it,
+      // and conversation ids in this same database are built that way. The
+      // same composition shape as favorites, follows and ratings above.
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['listingId', 'uid', 'kind', 'day', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.kind in ['view', 'share', 'contact']
+        && request.resource.data.day is string
+        && request.resource.data.day.size() == 10
+        && request.resource.data.listingId is string
+        && markerId == request.resource.data.listingId + '_'
+             + request.auth.uid + '_'
+             + request.resource.data.kind + '_'
+             + request.resource.data.day
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
     }
 
     match /listings/{listingId} {
@@ -284,7 +347,7 @@ service cloud.firestore {
         // So it is refused here entirely and written by
         // syncListingSearchTokens from the document a moderator actually
         // read. Same shape, and the same reasoning, as sellerVerified.
-        && !request.resource.data.keys().hasAny(['searchTokens'])
+        && !request.resource.data.keys().hasAny(['searchTokens', 'searchPairs'])
         && countersUnseeded(request.resource.data)
         && expiresAtOk(request.resource.data)
         && listingTextOk(request.resource.data)
@@ -393,13 +456,14 @@ service cloud.firestore {
                        'viewCount', 'viewCountToday', 'viewCountDate',
                        'shareCount', 'contactCount', 'contactCountToday',
                        'contactCountDate', 'saveCount', 'reportCount',
-                       'lastReportedAt', 'searchTokens'])
+                       'lastReportedAt', 'searchTokens', 'searchPairs'])
         // Renewal writes expiresAt from the dashboard, so this stays open —
         // bounded rather than frozen. See expiresAtOk.
         && expiresAtOk(request.resource.data)
         && listingTextOk(request.resource.data)
         && listingPriceOk(request.resource.data)
-        && searchTokensOk(request.resource.data);
+        && searchTokensOk(request.resource.data)
+        && searchPairsOk(request.resource.data);
 
       // Moderation, from inside the app rather than from a laptop.
       //
@@ -484,78 +548,19 @@ service cloud.firestore {
       // unauthenticated caller, and the Firebase config is in the app
       // bundle — so with no App Check, a script could drive billed writes
       // against any listing id it could read, forever, at the project
-      // owner's expense. A hot listing would also start losing writes to
-      // Firestore's per-document contention ceiling while that ran.
-      //
-      // The cost is real and accepted: a browser who has never made an
-      // account no longer counts. The seller's figures become a measure of
-      // signed-in interest rather than of all interest, which is a smaller
-      // loss than an unbounded bill, and the write is fire-and-forget at
-      // every call site so nothing on screen changes for anyone.
-      allow update: if request.auth != null
-        && resource.data.status == 'approved'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
-        && request.resource.data.viewCount == resource.data.get('viewCount', 0) + 1;
 
-      // Sharing is the one other thing a reader can do that the seller
-      // wants counted. Same shape as the view rule: this single field, +1
-      // exactly, and only on a listing that is already public — so it can
-      // neither touch the price nor be pumped in one write.
-      allow update: if request.auth != null
-        && resource.data.status == 'approved'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['shareCount'])
-        && request.resource.data.shareCount == resource.data.get('shareCount', 0) + 1;
-
-      // Same idea, for a viewer that's also reporting today's daily view
-      // bucket (viewCountToday/viewCountDate) alongside the lifetime
-      // counter — still exactly +1 on viewCount, and viewCountToday can
-      // only ever go up by exactly 1 (same day) or reset to exactly 1
-      // (new day), never jump or combine with any other field.
-      allow update: if request.auth != null
-        && resource.data.status == 'approved'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'viewCountToday', 'viewCountDate'])
-        && request.resource.data.viewCount == resource.data.get('viewCount', 0) + 1
-        && request.resource.data.viewCountDate is string
-        && (
-          (request.resource.data.viewCountDate == resource.data.get('viewCountDate', '')
-            && request.resource.data.viewCountToday == resource.data.get('viewCountToday', 0) + 1)
-          || (request.resource.data.viewCountDate != resource.data.get('viewCountDate', '')
-            && request.resource.data.viewCountToday == 1)
-        );
-
-      // A contact — a tap on Appeler or WhatsApp — counted the same way a
-      // view is, and for the same reason: the seller has no other way to
-      // learn that eleven people called about the Corolla and nobody
-      // called about the fridge. Views measure curiosity; this measures
-      // intent, and it is the number that tells somebody whether the
-      // photograph or the price is what is wrong.
+      // Counters are no longer writable from a client at all. They are
+      // incremented by onCounterMarkerCreated, which fires when a reader
+      // creates the counterMarkers document described above — one per person,
+      // per listing, per kind, per day. See the block before this match.
       //
-      // Exactly +1, nothing else touched, same daily bucket as viewCount so
-      // "this week" can be answered without a second collection.
-      //
-      // This comment used to argue the opposite of the rule below it — that
-      // a buyer who never made an account still rings the number, so
-      // refusing to count them would make the figure a measure of
-      // registration. That is true, and it is now the price of closing the
-      // only unauthenticated write path in the database. See the view
-      // counter above for the reasoning.
-      // Approved only, like viewCount and shareCount above. This rule was
-      // written without that guard while the two beside it had it, so a
-      // pending or rejected listing — one nobody can see — could still
-      // have its contact figures moved by anyone. Nothing read those
-      // numbers, which is exactly why the omission survived.
-      allow update: if request.auth != null
-        && resource.data.status == 'approved'
-        && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['contactCount', 'contactCountToday', 'contactCountDate'])
-        && request.resource.data.contactCount == resource.data.get('contactCount', 0) + 1
-        && request.resource.data.contactCountDate is string
-        && (
-          (request.resource.data.contactCountDate == resource.data.get('contactCountDate', '')
-            && request.resource.data.contactCountToday == resource.data.get('contactCountToday', 0) + 1)
-          || (request.resource.data.contactCountDate != resource.data.get('contactCountDate', '')
-            && request.resource.data.contactCountToday == 1)
-        );
+      // What was here before: three separate allow-update branches, each
+      // permitting any signed-in account to add exactly one to viewCount,
+      // shareCount or contactCount on any approved listing. Exactly one per
+      // WRITE, with no limit on writes. The reasoning attached to them was
+      // sound about everything except repetition — it argued carefully that a
+      // counter bump could not touch the price and could not jump, and never
+      // asked how many times it could happen.
 
       allow delete: if request.auth != null
         && request.auth.uid == resource.data.sellerId;

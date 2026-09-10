@@ -88,6 +88,15 @@ async function main() {
     },
   });
 
+  // Every suite in this directory uses projectId "rules-probe", and none of
+  // them used to clear between runs — so each inherited whatever the previous
+  // one had seeded. That is not a tidiness point: it is why this file used to
+  // report "2,408 listings" while seeding 1,200, and why the scrolling
+  // counterfactual below passed for a reason that had nothing to do with the
+  // code. A measurement that depends on what ran before it is not a
+  // measurement.
+  await env.clearFirestore();
+
   // Seeded WITHOUT searchTokens, deliberately: this is the back catalogue as
   // it exists today, and the backfill below is what has to make it findable.
   process.stdout.write(`  seeding ${TOTAL} listings with no tokens`);

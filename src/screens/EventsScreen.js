@@ -57,6 +57,7 @@ import {
   getEventKindTint,
   getEventPayLabel,
 } from "../data/events";
+import { countEvent, COUNTER_SHARE } from "../utils/countEvent";
 
 const MONTHS = {
   fr: ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
@@ -321,11 +322,7 @@ export function EventsScreen({ navigation, route }) {
         message: withListingLink(message, event),
       });
       if (result?.action !== Share.sharedAction || !event.id) return;
-      updateDoc(doc(firestore, "listings", event.id), {
-        shareCount: increment(1),
-      }).catch(() => {
-        // Non-critical — a missed count must never break sharing.
-      });
+      countEvent(event, COUNTER_SHARE);
     } catch {
       // user dismissed the share sheet — nothing to do
     }

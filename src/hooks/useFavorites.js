@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  limit,
   onSnapshot,
   query,
   serverTimestamp,
@@ -10,6 +11,16 @@ import {
   where,
 } from "firebase/firestore";
 import { firestore, isFirebaseConfigured } from "../config/firebase";
+
+// The reader's own saved listings, as a set of ids the heart icons consult.
+//
+// Bounding this has a real edge: somebody past the cap would see an older
+// favourite drawn as unsaved. 500 is chosen so that edge is theoretical —
+// it is far more than anybody saves in a marketplace — while still refusing
+// to open an unbounded realtime listener on a collection a user controls the
+// size of. The boundary is written down rather than hidden: see docs/SEARCH.md
+// for the same treatment of search's limits.
+const FAVORITES_CAP = 500;
 
 // Persists the heart-toggle on listing cards server-side, per user, instead
 // of the previous local-only React state (which reset on every app restart
@@ -26,6 +37,7 @@ export function useFavorites(userId) {
     const favoritesQuery = query(
       collection(firestore, "favorites"),
       where("userId", "==", userId),
+      limit(FAVORITES_CAP),
     );
     const unsubscribe = onSnapshot(
       favoritesQuery,

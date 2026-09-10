@@ -1,5 +1,6 @@
 import { deleteObject, ref } from "firebase/storage";
 import { storage } from "../config/firebase";
+import { reportNonFatal } from "./reportError";
 
 // Take back the files an abandoned attempt left in the bucket.
 //
@@ -25,10 +26,24 @@ export async function cleanUpAbandonedUploads(paths) {
   const results = await Promise.allSettled(
     unique.map((path) => deleteObject(ref(storage, path))),
   );
-  return {
-    attempted: unique.length,
-    removed: results.filter((r) => r.status === "fulfilled").length,
-  };
+  const removed = results.filter((r) => r.status === "fulfilled").length;
+
+  // An object that could not be removed is paid for every month, forever, and
+  // nothing on any screen will ever mention it. The server side already logs
+  // its orphans (cleanupDeletedListingMedia); this is the client half of the
+  // same signal, and docs/MONITORING.md has an alert on the phrase.
+  if (removed < unique.length) {
+    reportNonFatal(
+      "abandonedUploadCleanup",
+      new Error(
+        `${unique.length - removed} of ${unique.length} abandoned upload(s) ` +
+          `could not be removed and are now orphaned`,
+      ),
+      { where: "cleanUpAbandonedUploads", attempted: unique.length, removed },
+    );
+  }
+
+  return { attempted: unique.length, removed };
 }
 
 // Every stored path a listing document owns.

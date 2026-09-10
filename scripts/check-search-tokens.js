@@ -137,10 +137,67 @@ for (const { name, listing } of FIXTURES) {
       failures.push(`${name}: token "${token}" is not folded`);
     }
   }
+
+  // The pair index has to be identical on both sides for the same reason the
+  // tokens do — the writer is functions/ and the reader is src/, and a pair
+  // that is joined in a different order on the two sides matches nothing.
+  const pa = client.searchPairsFor(listing);
+  const pb = server.searchPairsFor(listing);
+  if (JSON.stringify(pa) !== JSON.stringify(pb)) {
+    failures.push(
+      `${name}: the client and server PAIR builders disagree.\n` +
+        `      src/:       ${JSON.stringify(pa)}\n` +
+        `      functions/: ${JSON.stringify(pb)}`,
+    );
+  }
+  if (pa.length > client.SEARCH_PAIR_MAX) {
+    failures.push(`${name}: produced ${pa.length} pairs, over the cap`);
+  }
+  for (const pair of pa) {
+    const [left, right] = pair.split("|");
+    if (!right) {
+      failures.push(`${name}: pair "${pair}" is not two tokens joined by |`);
+      continue;
+    }
+    // Sorted, or the writer and the reader can build the same pair two ways.
+    if (left >= right) {
+      failures.push(`${name}: pair "${pair}" is not in sorted order`);
+    }
+    if (!a.includes(left) || !a.includes(right)) {
+      failures.push(`${name}: pair "${pair}" contains a word that is not a token`);
+    }
+  }
+
+  // The property the whole design rests on: for any two tokens the document
+  // has, the pair a QUERY for those two words would build is present. If this
+  // ever fails, a two-word search silently returns nothing.
+  const source = a.slice(0, client.PAIR_SOURCE_MAX);
+  for (let i = 0; i < source.length; i += 1) {
+    for (let j = i + 1; j < source.length; j += 1) {
+      if (source[i] === source[j]) continue;
+      const wanted = client.pairKey(source[i], source[j]);
+      const asked = client.queryPairCandidates(`${source[i]} ${source[j]}`);
+      if (asked.length && !pa.includes(asked[0])) {
+        failures.push(
+          `${name}: a search for "${source[i]} ${source[j]}" builds ` +
+            `"${asked[0]}" but the document carries no such pair`,
+        );
+      }
+      if (asked.length && asked[0] !== wanted) {
+        failures.push(`${name}: pairKey and queryPairCandidates disagree`);
+      }
+    }
+  }
 }
 
 // 2. The constants agree.
-for (const key of ["SEARCH_TOKEN_MAX", "SEARCH_TOKEN_MIN_LENGTH", "SEARCH_TOKEN_MAX_LENGTH"]) {
+for (const key of [
+  "SEARCH_TOKEN_MAX",
+  "SEARCH_TOKEN_MIN_LENGTH",
+  "SEARCH_TOKEN_MAX_LENGTH",
+  "SEARCH_PAIR_MAX",
+  "PAIR_SOURCE_MAX",
+]) {
   if (client[key] !== server[key]) {
     failures.push(`${key} differs: src ${client[key]} vs functions ${server[key]}`);
   }
@@ -161,6 +218,28 @@ for (const key of ["SEARCH_TOKEN_MAX", "SEARCH_TOKEN_MIN_LENGTH", "SEARCH_TOKEN_
       `firestore.rules caps searchTokens at ${match[1]} but the tokenisers ` +
         `produce up to ${client.SEARCH_TOKEN_MAX}`,
     );
+  }
+
+  const pairMatch = rules.match(/searchPairs\.size\(\)\s*<=\s*(\d+)/);
+  if (!pairMatch) {
+    failures.push(
+      "firestore.rules does not bound searchPairs.size(); the pair array is on " +
+        "every document every reader downloads",
+    );
+  } else if (Number(pairMatch[1]) !== client.SEARCH_PAIR_MAX) {
+    failures.push(
+      `firestore.rules caps searchPairs at ${pairMatch[1]} but the builders ` +
+        `produce up to ${client.SEARCH_PAIR_MAX}`,
+    );
+  }
+
+  // Both arrays must be refused at create and frozen on an owner update, or
+  // the server-authored guarantee is decorative.
+  if (!/hasAny\(\['searchTokens', 'searchPairs'\]\)/.test(rules)) {
+    failures.push("firestore.rules does not refuse a client-written searchPairs at create");
+  }
+  if (!/'searchTokens', 'searchPairs'\]\)/.test(rules)) {
+    failures.push("firestore.rules does not freeze searchPairs on an owner update");
   }
 }
 

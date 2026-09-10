@@ -10,7 +10,7 @@
 //
 // ── What it will not do ─────────────────────────────────────────────────
 //
-// This touches ONE field. It writes `searchTokens` and nothing else, which
+// This touches TWO fields. It writes `searchTokens` and `searchPairs` and
 // matters more than it sounds:
 //
 //   * `status` is never read as a filter and never written, so nothing is
@@ -60,6 +60,8 @@ const admin = require(path.join(__dirname, "..", "functions", "node_modules", "f
 const {
   searchTokensFor,
   searchTokensUnchanged,
+  searchPairsFor,
+  searchPairsUnchanged,
 } = require(path.join(__dirname, "..", "functions", "searchTokens.js"));
 
 // Firestore caps a batch at 500 writes. Pages are smaller than that so a
@@ -90,7 +92,7 @@ async function main() {
   if (!isEmulator) {
     console.log(
       `\n  ⚠  This will write to the LIVE project "${projectId ?? "(default)"}".\n` +
-        `     It only ever writes the searchTokens field.\n`,
+        `     It only ever writes the searchTokens and searchPairs fields.\n`,
     );
   }
 
@@ -130,13 +132,18 @@ async function main() {
     for (const doc of snapshot.docs) {
       scanned += 1;
       const listing = doc.data();
-      if (searchTokensUnchanged(listing, listing.searchTokens)) {
+      const tokensStale = !searchTokensUnchanged(listing, listing.searchTokens);
+      const pairsStale = !searchPairsUnchanged(listing, listing.searchPairs);
+      if (!tokensStale && !pairsStale) {
         skipped += 1;
         continue;
       }
       if (!dryRun) {
         // One field. See the note at the top for everything this does not do.
-        batch.update(doc.ref, { searchTokens: searchTokensFor(listing) });
+        const update = {};
+        if (tokensStale) update.searchTokens = searchTokensFor(listing);
+        if (pairsStale) update.searchPairs = searchPairsFor(listing);
+        batch.update(doc.ref, update);
         inBatch += 1;
       }
       written += 1;

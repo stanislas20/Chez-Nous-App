@@ -633,6 +633,13 @@ export const translations = {
       "Sample postings, shown while employers are still joining. You can open them to see how a job looks, but there is no employer behind them yet — an application won't be sent anywhere.",
     jobsExperienceLegend:
       "Badge on the card = experience the employer asks for",
+    // Phase E: actions that used to fail silently now say so.
+    errorTitle: "Something went wrong",
+    blockUpdateFailed:
+      "We couldn't update the block. Check your connection and try again — " +
+      "until it goes through, nothing has changed.",
+    messageDeleteFailed:
+      "We couldn't delete that message. It is still visible to both of you.",
     listingsUnavailableTitle: "Listings didn't load",
     listingsUnavailable:
       "We couldn't load listings just now — this isn't an empty marketplace. Pull down to try again.",
@@ -3756,6 +3763,12 @@ export const translations = {
       "Offres d’exemple, affichées en attendant l’arrivée des employeurs. Vous pouvez les ouvrir pour voir à quoi ressemble une offre, mais aucun employeur n’est derrière : une candidature ne sera envoyée nulle part.",
     jobsExperienceLegend:
       "Badge sur la carte = expérience demandée par l’employeur",
+    errorTitle: "Une erreur est survenue",
+    blockUpdateFailed:
+      "Le blocage n’a pas pu être mis à jour. Vérifiez votre connexion et " +
+      "réessayez — tant que cela n’a pas abouti, rien n’a changé.",
+    messageDeleteFailed:
+      "Ce message n’a pas pu être supprimé. Il reste visible pour vous deux.",
     listingsUnavailableTitle: "Annonces non chargées",
     listingsUnavailable:
       "Impossible de charger les annonces pour le moment — la place de marché n’est pas vide. Tirez vers le bas pour réessayer.",

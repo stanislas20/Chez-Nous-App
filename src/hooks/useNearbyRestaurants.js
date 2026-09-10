@@ -4,11 +4,6 @@ import { distanceInKm } from "../utils/geo";
 import { extractPlacePhoto } from "../utils/placePhoto";
 
 const SEARCH_RADIUS_METERS = 5000;
-const FIELD_MASK =
-  "places.id,places.displayName,places.location,places.formattedAddress," +
-  "places.internationalPhoneNumber,places.currentOpeningHours.openNow," +
-  "places.rating,places.userRatingCount,places.priceLevel,places.photos";
-
 // Restaurants that exist near you but have not listed themselves here.
 //
 // The Restaurants screen only ever knew about published listings, of which
@@ -41,7 +36,6 @@ export function useNearbyRestaurants(coords) {
       coords,
       radius: SEARCH_RADIUS_METERS,
       type: "restaurant",
-      fieldMask: FIELD_MASK,
     })
       .then((data) => {
         if (cancelled) return;

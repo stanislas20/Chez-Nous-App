@@ -59,6 +59,7 @@ import { mockJobs } from "../data/mockJobs";
 import { getTodayDateString } from "../utils/listingLifecycle";
 import { openChat } from "../utils/openChat";
 import { openAccountGate } from "../utils/openAccountGate";
+import { countEvent, COUNTER_VIEW } from "../utils/countEvent";
 
 const EMERALD = "#0B6E4F";
 const GOLD = "#D9A441";
@@ -85,7 +86,9 @@ export function JobDetailScreen({ navigation, route }) {
   const [cvProcessing, setCvProcessing] = useState(false);
   const [applyPhone, setApplyPhone] = useState("");
   const [applyMessage, setApplyMessage] = useState("");
-  const sellerJobListings = useSellerListings(job.isReal ? job.sellerId : null);
+  const { listings: sellerJobListings } = useSellerListings(
+    job.isReal ? job.sellerId : null,
+  );
 
   const title = language === "en" ? job.titleEn : job.titleFr;
   const jobType = language === "en" ? job.typeEn : job.typeFr;
@@ -123,7 +126,9 @@ export function JobDetailScreen({ navigation, route }) {
   // Only subscribed when the poster is looking at their own posting — a
   // candidate has no reason to see (or be able to read, per firestore.rules)
   // another person's application list.
-  const ownApplications = useJobApplications(isOwner ? job.sellerId : null);
+  const { applications: ownApplications } = useJobApplications(
+    isOwner ? job.sellerId : null,
+  );
   const applicationsForThisJob = (ownApplications ?? []).filter(
     (a) => a.jobId === job.id,
   );
@@ -139,13 +144,7 @@ export function JobDetailScreen({ navigation, route }) {
     hasCountedView.current = true;
     const today = getTodayDateString();
     const isSameDay = job.viewCountDate === today;
-    updateDoc(doc(firestore, "listings", job.id), {
-      viewCount: increment(1),
-      viewCountToday: isSameDay ? increment(1) : 1,
-      viewCountDate: today,
-    }).catch(() => {
-      // Non-critical — a missed view count shouldn't disrupt browsing.
-    });
+      countEvent(job, COUNTER_VIEW);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job.id]);
 

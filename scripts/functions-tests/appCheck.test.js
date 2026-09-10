@@ -32,6 +32,7 @@ function loadBridge({ dev, nativeAvailable = true, nativeToken = "native-token",
     nativeInit: null,
     jsInit: null,
     tokenRequests: 0,
+    reports: [],
   };
 
   const rnAppCheck = {
@@ -68,6 +69,15 @@ function loadBridge({ dev, nativeAvailable = true, nativeToken = "native-token",
           throw new Error("Cannot find module '@react-native-firebase/app-check'");
         }),
     "@react-native-firebase/app": { getApp: () => ({ name: "[DEFAULT]" }) },
+    // Phase E: the bridge now reports attestation failures instead of
+    // returning quietly, so the reporting seam has to exist here too. Every
+    // call is recorded, which is what the failure-path cases assert on.
+    "../utils/reportError": {
+      reportNonFatal: (where, error, context) => {
+        recorded.reports.push({ where, message: error?.message, context });
+      },
+      reportFatal: () => {},
+    },
   };
 
   const module = { exports: {} };
@@ -132,15 +142,62 @@ async function main() {
   });
 
   await check("the token carries an expiry the JS SDK can use", async () => {
-    // RNFirebase does not report one and the JS SDK requires it. A missing or
-    // past expiry makes every request re-attest, which on Play Integrity is a
-    // round trip to Google per call.
+    // This assertion changed in Phase E, and the change is the fix rather
+    // than a relaxation.
+    //
+    // It used to require an expiry 30-60 minutes ahead, which passed because
+    // the bridge INVENTED `Date.now() + 3600000`. RNFirebase's getToken
+    // returns a cached token that may have minutes left, so the SDK was being
+    // told it held a fresh hour of something already close to dead — harmless
+    // while enforcement is off, and every request refused once it is on.
+    //
+    // The bridge now reads the token's own `exp` claim. A non-JWT stub token,
+    // which is what this harness mints, therefore takes the deliberately
+    // SHORT fallback. The real-JWT cases below assert the claim is honoured.
     const { bridge, recorded } = loadBridge({ dev: false });
     await bridge.initializeAppCheckBridge({ name: "[DEFAULT]" });
     const token = await recorded.jsInit.provider.options.getToken();
     assert.strictEqual(typeof token.expireTimeMillis, "number");
     const minutesAhead = (token.expireTimeMillis - Date.now()) / 60000;
-    assert.ok(minutesAhead > 30 && minutesAhead <= 60, `${minutesAhead} minutes ahead`);
+    assert.ok(minutesAhead > 0, `${minutesAhead} minutes ahead — expiry is in the past`);
+    assert.ok(
+      minutesAhead <= 5,
+      `${minutesAhead} minutes ahead — an unreadable token must not be ` +
+        `granted a long life`,
+    );
+  });
+
+  await check(
+    "a JWT token is given its own expiry rather than the fallback",
+    async () => {
+      const exp = Math.floor(Date.now() / 1000) + 45 * 60;
+      const payload = Buffer.from(JSON.stringify({ exp })).toString("base64url");
+      const { bridge, recorded } = loadBridge({
+        dev: false,
+        nativeToken: `h.${payload}.s`,
+      });
+      await bridge.initializeAppCheckBridge({ name: "[DEFAULT]" });
+      const token = await recorded.jsInit.provider.options.getToken();
+      assert.strictEqual(token.expireTimeMillis, exp * 1000);
+    },
+  );
+
+  await check("a binary with no native module is reported, not just skipped", async () => {
+    const { bridge, recorded } = loadBridge({ dev: false, nativeAvailable: false });
+    const result = await bridge.initializeAppCheckBridge({ name: "[DEFAULT]" });
+    assert.strictEqual(result.active, false);
+    assert.ok(
+      recorded.reports.some((r) => r.where === "appCheckNativeUnavailable"),
+      "attestation was unavailable and nothing was reported — once enforcement " +
+        "is on this is an app that cannot read anything, and it would be invisible",
+    );
+  });
+
+  await check("a JS bridge failure is reported too", async () => {
+    const { bridge, recorded } = loadBridge({ dev: false, jsThrows: true });
+    const result = await bridge.initializeAppCheckBridge({ name: "[DEFAULT]" });
+    assert.strictEqual(result.active, false);
+    assert.ok(recorded.reports.some((r) => r.where === "appCheckBridgeFailed"));
   });
 
   await check("auto-refresh is on for both SDKs", async () => {
@@ -232,6 +289,55 @@ async function main() {
         `${file} enables App Check enforcement — that is a console decision`,
       );
     }
+  });
+
+  // ── E11: the expiry the SDK is told is the token's own ───────────────
+  await check("a real JWT expiry is read from the token, not invented", async () => {
+    const { bridge } = loadBridge({ dev: false });
+    const exp = Math.floor(Date.now() / 1000) + 600; // ten minutes
+    const payload = Buffer.from(JSON.stringify({ exp })).toString("base64url");
+    const token = `header.${payload}.signature`;
+    const got = bridge.tokenExpiryMillis(token, Date.now());
+    assert.strictEqual(
+      got,
+      exp * 1000,
+      "the SDK was told something other than the token's own exp claim",
+    );
+  });
+
+  await check(
+    "a cached token near the end of its life is not reported as fresh",
+    async () => {
+      const { bridge } = loadBridge({ dev: false });
+      const now = Date.now();
+      const exp = Math.floor(now / 1000) + 30; // thirty seconds left
+      const payload = Buffer.from(JSON.stringify({ exp })).toString("base64url");
+      const got = bridge.tokenExpiryMillis(`h.${payload}.s`, now);
+      assert.ok(
+        got - now < 60 * 1000,
+        `told the SDK it had ${(got - now) / 1000}s on a 30s token`,
+      );
+    },
+  );
+
+  await check("an unparseable token gets a short window, not an hour", async () => {
+    const { bridge } = loadBridge({ dev: false });
+    const now = Date.now();
+    const got = bridge.tokenExpiryMillis("not-a-jwt", now);
+    assert.ok(got > now, "expiry is in the past");
+    assert.ok(
+      got - now <= 5 * 60 * 1000,
+      `fallback was ${(got - now) / 1000}s; short is the safe direction`,
+    );
+  });
+
+  await check("an already-expired token is not handed on as valid", async () => {
+    const { bridge } = loadBridge({ dev: false });
+    const now = Date.now();
+    const exp = Math.floor(now / 1000) - 600;
+    const payload = Buffer.from(JSON.stringify({ exp })).toString("base64url");
+    const got = bridge.tokenExpiryMillis(`h.${payload}.s`, now);
+    assert.ok(got > now, "an expired token was passed through with a past expiry");
   });
 
   report("App Check bridge cases");

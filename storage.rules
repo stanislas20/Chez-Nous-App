@@ -100,13 +100,6 @@ service firebase.storage {
       // participants — and never touches this rule. Nothing in the app
       // reads an attachment by path.
       //
-      // Cross-service firestore.get() would express "participants only"
-      // directly and is the better rule. It needs a one-time IAM grant
-      // that has to be made from the console, and a rule that depends on
-      // a grant nobody has made denies every attachment silently — so it
-      // is deliberately not taken here, and is the right change to make
-      // once that grant exists.
-      //
       // Same residual as jobApplicationCvs above: the download URL is a
       // capability, and this edit does not change that.
       //
@@ -120,10 +113,48 @@ service firebase.storage {
       // scripts/rules-tests/storage.test.js pin that it stays refused. Left
       // as the simplest expression that is correct rather than a more
       // elaborate one that is equally noisy.
+      // ── Participation, asked of the conversation itself ───────────────
+      //
+      // The filename rule below says "the uploader named this file after
+      // themselves". It never said "the uploader is in this conversation",
+      // and those are different sentences. Conversation ids are
+      // `listingId_buyerUid` and listing ids are printed on every public
+      // card, so any signed-in account could write a 15 MB object into any
+      // thread's prefix — not into the chat, because creating the message
+      // document is participant-gated in firestore.rules, but into our
+      // Storage bill, under a path cleanup keys on.
+      //
+      // Cross-service access is the rule that expresses this directly, and
+      // the reason the earlier comment gave for avoiding it — that it needs
+      // an IAM grant, and a rule depending on a grant nobody has made denies
+      // every attachment silently — is a real risk rather than an excuse.
+      // So it is handled rather than dodged: the grant is step 12 of
+      // docs/LAUNCH-CHECKLIST.md, it is made BEFORE these rules are
+      // deployed, and scripts/rules-tests/storage.test.js proves both the
+      // allow and the deny against the emulator.
+      //
+      // The grant is: Firebase Storage's service agent
+      // (service-PROJECT_NUMBER@gcp-sa-firebasestorage.iam.gserviceaccount.com)
+      // needs roles/datastore.viewer on the project.
+      function inConversation(conversationId) {
+        return request.auth != null
+          && firestore.exists(/databases/(default)/documents/conversations/$(conversationId))
+          && request.auth.uid in firestore.get(
+               /databases/(default)/documents/conversations/$(conversationId)
+             ).data.participantIds;
+      }
+
+      // Read stays the uploader's own file. The recipient renders the
+      // tokenised URL stored on the message document — which firestore.rules
+      // already restricts to participants — and never addresses this path.
       allow read: if request.auth != null
         && fileName.matches(request.auth.uid + '-.*');
+
+      // Write now requires both: the file is named after the uploader AND
+      // the uploader is one of the two people in the thread.
       allow write: if request.auth != null
         && fileName.matches(request.auth.uid + '-.*')
+        && inConversation(conversationId)
         && request.resource.size < 15 * 1024 * 1024
         && (request.resource.contentType.matches('image/.*') || request.resource.contentType.matches('audio/.*'));
     }

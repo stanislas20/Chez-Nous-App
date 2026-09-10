@@ -49,6 +49,24 @@ async function main() {
     .firestore();
   const uid = "seller-uid";
 
+  // The parent this suite used to inherit from whichever test ran before it.
+  //
+  // The messages read rule resolves participantIds by get()ing the parent
+  // conversation, and that get() throws — not returns empty — when the
+  // document is absent. So "ChatScreen — the message window" was only ever
+  // reaching the index because an earlier suite happened to leave a
+  // conversation behind. Once the suites started clearing between runs it
+  // failed, correctly, and this is the seed it should always have had.
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const { doc: rawDoc, setDoc: rawSet } = require("firebase/firestore");
+    await rawSet(rawDoc(ctx.firestore(), "conversations/thread"), {
+      participantIds: [uid, "buyer-uid"],
+      buyerId: "buyer-uid",
+      sellerId: uid,
+      listingId: "thread-listing",
+    });
+  });
+
   // Every query in the app that carries more than one constraint, named by
   // where it lives. Equality-only queries are omitted: Firestore serves those
   // from single-field indexes it maintains automatically.

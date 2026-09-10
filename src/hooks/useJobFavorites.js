@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  limit,
   onSnapshot,
   query,
   serverTimestamp,
@@ -10,6 +11,9 @@ import {
   where,
 } from "firebase/firestore";
 import { firestore, isFirebaseConfigured } from "../config/firebase";
+
+// Saved job posts, same shape and same reasoning as useFavorites.
+const JOB_FAVORITES_CAP = 500;
 
 // Same server-side persistence pattern as useFavorites.js (listings), but
 // for job postings — kept as its own collection rather than mixed into
@@ -27,6 +31,7 @@ export function useJobFavorites(userId) {
     const favoritesQuery = query(
       collection(firestore, "jobFavorites"),
       where("userId", "==", userId),
+      limit(JOB_FAVORITES_CAP),
     );
     const unsubscribe = onSnapshot(
       favoritesQuery,

@@ -65,6 +65,19 @@ const bytes = () => new Uint8Array([1, 2, 3, 4]);
 async function main() {
   const env = await initializeTestEnvironment({
     projectId: "rules-probe",
+    // The conversation upload rule asks Firestore who the participants are,
+    // so this suite now needs both emulators. Without the Firestore half the
+    // rule cannot resolve and every attachment upload would be denied — which
+    // is exactly the silent failure the IAM grant risks in production, and
+    // exactly why it is tested here rather than assumed.
+    firestore: {
+      rules: fs.readFileSync(
+        path.join(__dirname, "..", "..", "firestore.rules"),
+        "utf8",
+      ),
+      host: "127.0.0.1",
+      port: 8080,
+    },
     storage: {
       rules: fs.readFileSync(
         path.join(__dirname, "..", "..", "storage.rules"),
@@ -78,6 +91,15 @@ async function main() {
   // Seeded past the rules, so a failure below is a failure of the READ rule
   // rather than of the upload that put the file there.
   await env.withSecurityRulesDisabled(async (ctx) => {
+    // The thread the uploads belong to. inConversation() reads this.
+    const { doc, setDoc } = require("firebase/firestore");
+    await setDoc(doc(ctx.firestore(), "conversations", THREAD), {
+      participantIds: [BUYER, SELLER],
+      buyerId: BUYER,
+      sellerId: SELLER,
+      listingId: THREAD.split("_")[0],
+    });
+
     const st = ctx.storage();
     await Promise.all([
       uploadBytes(ref(st, `jobApplicationCvs/${APPLICANT}/cv.pdf`), bytes(), {
@@ -190,6 +212,59 @@ async function main() {
       getBytes(ref(asGuest, `conversations/${THREAD}/${BUYER}-1.jpg`)),
     ),
   );
+  // ── E6: participation, not just filename ────────────────────────────
+  await check(
+    "the buyer can upload into their own conversation",
+    assertSucceeds(
+      uploadBytes(
+        ref(asBuyer, `conversations/${THREAD}/${BUYER}-e6.jpg`),
+        bytes(),
+        { contentType: "image/jpeg" },
+      ),
+    ),
+  );
+  await check(
+    "a signed-in stranger cannot upload into somebody else's conversation " +
+      "even when the file is named after themselves",
+    assertFails(
+      uploadBytes(
+        ref(asSnoop, `conversations/${THREAD}/${SNOOP}-e6.jpg`),
+        bytes(),
+        { contentType: "image/jpeg" },
+      ),
+    ),
+  );
+  await check(
+    "a signed-out caller cannot upload into a conversation",
+    assertFails(
+      uploadBytes(
+        ref(asGuest, `conversations/${THREAD}/anon-e6.jpg`),
+        bytes(),
+        { contentType: "image/jpeg" },
+      ),
+    ),
+  );
+  await check(
+    "nobody can upload into a conversation that does not exist",
+    assertFails(
+      uploadBytes(
+        ref(asBuyer, `conversations/no-such-thread_${BUYER}/${BUYER}-e6.jpg`),
+        bytes(),
+        { contentType: "image/jpeg" },
+      ),
+    ),
+  );
+  await check(
+    "a participant still cannot upload an executable dressed as a chat photo",
+    assertFails(
+      uploadBytes(
+        ref(asBuyer, `conversations/${THREAD}/${BUYER}-e6.bin`),
+        bytes(),
+        { contentType: "application/octet-stream" },
+      ),
+    ),
+  );
+
   await check(
     "a participant can still send an attachment named after themselves",
     assertSucceeds(

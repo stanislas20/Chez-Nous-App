@@ -1,5 +1,7 @@
-import { doc, increment, updateDoc } from "firebase/firestore";
-import { firebaseAuth, firestore, isFirebaseConfigured } from "../config/firebase";
+import {
+  countEvent,
+  COUNTER_CONTACT,
+} from "./countEvent";
 
 // How often somebody actually reached for the phone.
 //
@@ -23,24 +25,8 @@ function todayKey() {
 }
 
 export function countContact(listing) {
-  if (!isFirebaseConfigured || !listing?.id) return;
-  if (listing.isSample) return;
-  // A seller ringing their own number is not a lead.
-  //
-  // Views have skipped the owner since they were added; contacts did not,
-  // so a seller opening their own card to check the phone number was
-  // showing on it added a call to their own total. Read from auth here
-  // rather than asked for at each of the seventeen call sites: a parameter
-  // that seventeen screens must remember to pass is a parameter sixteen
-  // screens will eventually forget.
-  if (listing.sellerId && listing.sellerId === firebaseAuth?.currentUser?.uid) {
-    return;
-  }
-  const today = todayKey();
-  const sameDay = listing.contactCountDate === today;
-  updateDoc(doc(firestore, "listings", listing.id), {
-    contactCount: increment(1),
-    contactCountToday: sameDay ? increment(1) : 1,
-    contactCountDate: today,
-  }).catch(() => {});
+  // The marker path, not a direct increment. See src/utils/countEvent.js for
+  // why the client no longer writes counters, and what it changes about what
+  // the number means.
+  countEvent(listing, COUNTER_CONTACT);
 }

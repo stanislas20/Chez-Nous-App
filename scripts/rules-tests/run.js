@@ -33,6 +33,7 @@ const SUITES = [
   // Phase D: the failure test repeated against the fix, plus the backfill
   // run for real and the read cost of finding a buried listing measured.
   "scripts/rules-tests/searchTokens.test.js",
+  "scripts/rules-tests/searchAdversarial.test.js",
   // Callables. These use CallableFunction.run() with the admin SDK pointed at
   // the emulators, so the transport is skipped and everything else is real.
   "scripts/functions-tests/deleteAccount.test.js",

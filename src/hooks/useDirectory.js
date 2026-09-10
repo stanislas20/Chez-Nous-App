@@ -1,12 +1,24 @@
 import { useEffect, useState } from "react";
 import {
   collection,
+  limit,
   onSnapshot,
   orderBy,
   query,
   where,
 } from "firebase/firestore";
 import { firestore, isFirebaseConfigured } from "../config/firebase";
+
+// Directories are seeded from bundled static tables and overlaid with
+// whatever Firestore holds. carParks in particular accepts client writes from
+// anybody with canPost, so this collection grows with user submissions and an
+// unbounded listener over it grows with them.
+//
+// 200 is far above the real directory and far below a bill. A directory that
+// genuinely outgrows it needs a screen with paging rather than a bigger
+// number here, and the check in scripts/check-bounded-reads.js will keep
+// pointing at this line until it gets one.
+const DIRECTORY_CAP = 200;
 
 // Directories that people who never sign up still belong in: the brand
 // distributors and the sales parks.
@@ -52,8 +64,13 @@ export function useDirectory(collectionName, fallback, { approvedOnly } = {}) {
             collection(firestore, collectionName),
             where("status", "==", "approved"),
             orderBy("order", "asc"),
+            limit(DIRECTORY_CAP),
           )
-        : query(collection(firestore, collectionName), orderBy("order", "asc")),
+        : query(
+            collection(firestore, collectionName),
+            orderBy("order", "asc"),
+            limit(DIRECTORY_CAP),
+          ),
       (snapshot) => {
         // An empty collection means nobody has added one yet, not that the
         // directory is empty — keep the seed rather than blanking a section

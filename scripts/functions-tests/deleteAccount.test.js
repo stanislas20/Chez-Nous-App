@@ -128,6 +128,38 @@ async function seed() {
     participantNames: { [BYSTANDER]: "Bystander Name" },
   });
 
+  // ── The four collections the independent audit found ──────────────────
+  //
+  // Seeded for BOTH accounts, so "gone" has to mean the leaver's and not
+  // everybody's. These are the rows 24 passing tests never looked at.
+  for (const uid of [LEAVER, BYSTANDER]) {
+    batch.set(db.doc(`reports/some-listing_${uid}`), {
+      reporterId: uid,
+      listingId: "some-listing",
+      reason: "spam",
+    });
+    batch.set(db.doc(`dealershipSuggestions/sugg-${uid}`), {
+      submittedBy: uid,
+      name: "Garage Test",
+      city: "Cotonou",
+      brands: "Toyota",
+      status: "pending",
+    });
+    batch.set(db.doc(`carParks/park-${uid}`), {
+      submittedBy: uid,
+      name: `Parc ${uid}`,
+      commune: "Cotonou",
+      status: "approved",
+    });
+  }
+  // A contact pair the leaver is inside, and one they are not.
+  batch.set(db.doc(`contacts/${LEAVER}_${BYSTANDER}`), {
+    participantIds: [LEAVER, BYSTANDER],
+  });
+  batch.set(db.doc(`contacts/${BYSTANDER}_third-uid`), {
+    participantIds: [BYSTANDER, "third-uid"],
+  });
+
   await batch.commit();
 
   // Storage. Both accounts own files under the same prefixes.
@@ -346,6 +378,59 @@ async function main() {
   });
 
   // ── 7. The auth account goes last ─────────────────────────────────────
+  // ── E7: the four collections the audit found still holding the uid ────
+  await check("their abuse reports are gone", async () => {
+    assert.strictEqual(await countWhere("reports", "reporterId", LEAVER), 0);
+    assert.strictEqual(await exists(`reports/some-listing_${LEAVER}`), false);
+  });
+  await check("their pending directory suggestions are gone", async () => {
+    assert.strictEqual(
+      await countWhere("dealershipSuggestions", "submittedBy", LEAVER),
+      0,
+    );
+  });
+  await check("the contact pairs naming them are gone", async () => {
+    const snap = await db
+      .collection("contacts")
+      .where("participantIds", "array-contains", LEAVER)
+      .get();
+    assert.strictEqual(snap.size, 0, "a contact pair still names the leaver");
+  });
+  await check(
+    "their public car park survives, with their name taken off it",
+    async () => {
+      const park = await db.doc(`carParks/park-${LEAVER}`).get();
+      assert.ok(park.exists, "the public directory entry was destroyed");
+      assert.strictEqual(
+        park.data().submittedBy,
+        undefined,
+        "the departing uid is still on a public document",
+      );
+      assert.strictEqual(park.data().name, `Parc ${LEAVER}`, "the entry lost its content");
+    },
+  );
+  await check("the bystander keeps all four kinds of record", async () => {
+    assert.strictEqual(await countWhere("reports", "reporterId", BYSTANDER), 1);
+    assert.strictEqual(
+      await countWhere("dealershipSuggestions", "submittedBy", BYSTANDER),
+      1,
+    );
+    assert.strictEqual(
+      await countWhere("carParks", "submittedBy", BYSTANDER),
+      1,
+      "the bystander's park lost its submitter",
+    );
+    const contacts = await db
+      .collection("contacts")
+      .where("participantIds", "array-contains", BYSTANDER)
+      .get();
+    assert.strictEqual(
+      contacts.size,
+      1,
+      "the bystander's unrelated contact pair was destroyed",
+    );
+  });
+
   await check("the Firebase Auth user is gone", async () => {
     let notFound = false;
     try {

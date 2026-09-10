@@ -105,6 +105,15 @@ async function main() {
     },
   });
 
+  // Every suite in this directory uses projectId "rules-probe", and none of
+  // them used to clear between runs — so each inherited whatever the previous
+  // one had seeded. That is not a tidiness point: it is why this file used to
+  // report "2,408 listings" while seeding 1,200, and why the scrolling
+  // counterfactual below passed for a reason that had nothing to do with the
+  // code. A measurement that depends on what ran before it is not a
+  // measurement.
+  await env.clearFirestore();
+
   process.stdout.write("  seeding 1200 listings for the search probe");
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
@@ -303,12 +312,24 @@ async function main() {
       if (snapshot.size < 30) break;
     }
     // The counterfactual, and the reason "just scroll to it" was never an
-    // answer: sixty pages and 1,800 document reads later, a reader has still
-    // not reached a listing that one search now finds in a handful.
+    // answer.
+    //
+    // This used to assert `!found` — that sixty pages never reach the target
+    // at all. That only held while this suite inherited another suite's
+    // listings and the collection was twice the size it seeds; with the
+    // emulator cleared it seeds 1,200, and 1,200 is reachable inside the
+    // sixty-page loop. The assertion was passing for a reason unrelated to
+    // the product.
+    //
+    // So it asserts the thing that is actually true and actually matters:
+    // reaching it by scrolling costs pages and reads that no human performs.
+    // Search finds the same listing in a handful of documents.
     check(
       "scrolling is not a substitute for search",
-      !found,
-      `${pagesRead} pages and ${docsRead} document reads, still not reached`,
+      pagesRead >= 20 && docsRead >= 600,
+      `${pagesRead} pages and ${docsRead} document reads to reach what search ` +
+        `finds in 2 — and that is with the target only ${TOTAL - TARGET_INDEX} ` +
+        `deep`,
     );
   }
 

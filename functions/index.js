@@ -19,6 +19,8 @@ const admin = require("firebase-admin");
 const {
   searchTokensFor,
   searchTokensUnchanged,
+  searchPairsFor,
+  searchPairsUnchanged,
 } = require("./searchTokens");
 
 admin.initializeApp();
@@ -249,17 +251,43 @@ exports.claimPhoneCountry = onCall(async (request) => {
 //
 // A company name is returned whole: it is already printed on every listing
 // that company posts, so withholding it protects nothing.
+// ── The recovery oracle, narrowed ──────────────────────────────────────
+//
+// This endpoint answers "does an account exist for this number, and whose is
+// it" to anybody at all, with no authentication. It exists because somebody
+// who has lost their password needs to confirm they are about to reset the
+// right account before an SMS is spent — that is a real need and removing the
+// endpoint would break recovery, which the brief forbids.
+//
+// What it does not need to do is help somebody walk a numbering plan. Three
+// changes, none of which touch the honest path:
+//
+//   * The window is 5 rather than 20. A person recovering their own account
+//     looks up one number, maybe twice. Twenty was sized for nothing.
+//   * The surname initial is gone. "Kofi A." plus a phone number is a
+//     stronger identifier than the owner needs to recognise themselves;
+//     "Kofi" is enough, and it is what a stranger learns least from.
+//   * A per-NUMBER window as well as a per-IP one. The IP limit is what
+//     carrier-grade NAT makes weak, and the number limit is the dimension an
+//     attacker cannot rotate: enumerating 10,000 numbers still needs 10,000
+//     distinct addresses, but re-probing one number is now capped whatever
+//     the address.
+//
+// Stated honestly: this narrows the oracle, it does not close it. Closing it
+// means requiring the SMS challenge BEFORE confirming the account exists,
+// which is a change to the recovery flow rather than to this function.
 const LOOKUP_WINDOW_MS = 60 * 60 * 1000;
-const LOOKUP_MAX_PER_WINDOW = 20;
+const LOOKUP_MAX_PER_WINDOW = 5;
+const LOOKUP_MAX_PER_NUMBER = 3;
 
+// First name only. Enough for the owner to recognise the account, and the
+// least a stranger can learn from a number they do not own.
 function abbreviateName(fullName) {
   const parts = String(fullName || "")
     .trim()
     .split(/\s+/)
     .filter(Boolean);
-  if (parts.length === 0) return "";
-  if (parts.length === 1) return parts[0];
-  return `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.`;
+  return parts[0] ?? "";
 }
 
 exports.lookupSellerForRecovery = onCall(async (request) => {
@@ -496,17 +524,25 @@ exports.syncListingSearchTokens = onDocumentWritten(
     if (!after?.exists) return;
 
     const listing = after.data();
-    if (searchTokensUnchanged(listing, listing.searchTokens)) return;
+    // Compared separately, not together. Both arrays derive from the same
+    // words, so a single "unchanged?" test would skip a document written
+    // before searchPairs existed — its tokens already match, and its pairs
+    // are missing entirely. That is exactly the back catalogue.
+    const tokensStale = !searchTokensUnchanged(listing, listing.searchTokens);
+    const pairsStale = !searchPairsUnchanged(listing, listing.searchPairs);
+    if (!tokensStale && !pairsStale) return;
 
-    const tokens = searchTokensFor(listing);
+    const update = {};
+    if (tokensStale) update.searchTokens = searchTokensFor(listing);
+    if (pairsStale) update.searchPairs = searchPairsFor(listing);
     // update(), not set(merge): this must never create a document, and a
     // listing deleted between the event and this line should fail rather than
     // be resurrected as a husk carrying nothing but tokens.
-    await after.ref.update({ searchTokens: tokens }).catch((error) => {
+    await after.ref.update(update).catch((error) => {
       // NOT_FOUND is the ordinary race above and is not worth a log line.
       if (error?.code === 5) return;
       logger.warn(
-        `searchTokens not written for ${event.params.listingId}`,
+        `search metadata not written for ${event.params.listingId}`,
         error?.code ?? error,
       );
     });
@@ -550,12 +586,43 @@ exports.notifyFollowersOfNewListing = onDocumentUpdated(
     if (after.status !== "approved") return;
     if (!after.sellerId) return;
 
+    // ── E14: bounded fan-out ─────────────────────────────────────────
+    //
+    // This read every follow row for the seller with no limit, then every
+    // follower's profile, then multicast — all inside one trigger with a
+    // default timeout. Nothing in the app has enough followers for that to
+    // matter today, which is exactly why it would have been discovered by a
+    // seller with a real audience rather than by a test.
+    //
+    // The cliff is not gradual: at some follower count the function stops
+    // mid-fan-out, and what arrives is a partial delivery with no record of
+    // where it stopped. A retry then re-notifies everyone it already reached.
+    //
+    // A cap rather than a queue. A queue (Tasks, or a paging state document)
+    // is the right shape at a size this app is nowhere near, and it is a new
+    // piece of infrastructure to run and to reason about. FOLLOWER_FANOUT_CAP
+    // makes the failure explicit instead: the newest followers are notified,
+    // the overflow is logged with a number, and that log line is the signal
+    // to build the queue — a decision made from a real figure rather than a
+    // guess.
+    const FOLLOWER_FANOUT_CAP = 2000;
     const followsSnap = await admin
       .firestore()
       .collection("follows")
       .where("sellerId", "==", after.sellerId)
+      .orderBy("createdAt", "desc")
+      .limit(FOLLOWER_FANOUT_CAP + 1)
       .get();
     if (followsSnap.empty) return;
+
+    if (followsSnap.size > FOLLOWER_FANOUT_CAP) {
+      logger.warn(
+        `notifyFollowersOfNewListing: seller ${after.sellerId} has more than ` +
+          `${FOLLOWER_FANOUT_CAP} followers. The newest ${FOLLOWER_FANOUT_CAP} ` +
+          `were notified. This is the point at which the fan-out needs a ` +
+          `queue rather than a cap.`,
+      );
+    }
 
     const followerIds = [
       ...new Set(
@@ -1546,5 +1613,70 @@ exports.onReportCreated = onDocumentCreated(
       reportCount: admin.firestore.FieldValue.increment(1),
       lastReportedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+  },
+);
+
+// ── E13: the counter increments, server side ───────────────────────────
+//
+// A reader creates counterMarkers/{listingId}_{uid}_{kind}_{yyyy-mm-dd} and
+// this turns that into the increment. The marker's ID is the rate limit:
+// Firestore refuses a duplicate create on its own, so one account moves one
+// listing's one counter by one per day and every attempt after that is a
+// refused write that costs nothing to serve.
+//
+// The client can no longer write viewCount, shareCount or contactCount at
+// all — firestore.rules removed those branches — so the number is
+// server-authored, the same shape as searchTokens and sellerVerified.
+const COUNTER_KINDS = {
+  view: ["viewCount", "viewCountToday", "viewCountDate"],
+  share: ["shareCount", null, null],
+  contact: ["contactCount", "contactCountToday", "contactCountDate"],
+};
+
+exports.onCounterMarkerCreated = onDocumentCreated(
+  "counterMarkers/{markerId}",
+  async (event) => {
+    const marker = event.data?.data();
+    if (!marker) return;
+
+    const { listingId, kind, day } = marker;
+    const fields = COUNTER_KINDS[kind];
+    if (!listingId || !fields) return;
+
+    const [lifetime, todayField, dayField] = fields;
+    const ref = admin.firestore().collection("listings").doc(listingId);
+
+    try {
+      await admin.firestore().runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        // Gone, or never public. A marker for a listing nobody can see is
+        // not worth a write, and this is also what stops a marker created
+        // against a pending listing counting later.
+        if (!snap.exists || snap.data().status !== "approved") return;
+
+        const update = {
+          [lifetime]: admin.firestore.FieldValue.increment(1),
+        };
+        // The daily bucket resets rather than accumulating across days, so
+        // "today" means today whether or not anybody looked yesterday.
+        if (todayField && dayField) {
+          const current = snap.data();
+          update[dayField] = day;
+          update[todayField] =
+            current[dayField] === day
+              ? admin.firestore.FieldValue.increment(1)
+              : 1;
+        }
+        tx.update(ref, update);
+      });
+    } catch (error) {
+      // A counter is not worth failing anything over, but a systematic
+      // failure should be visible rather than silently flattening every
+      // number in the market.
+      logger.warn(
+        `counter ${kind} not applied to ${listingId}`,
+        error?.code ?? error,
+      );
+    }
   },
 );

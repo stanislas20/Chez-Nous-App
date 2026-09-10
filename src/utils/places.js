@@ -29,19 +29,18 @@ function callProxy(payload) {
   );
 }
 
-export function searchPlacesNearby({ coords, radius, type, fieldMask }) {
+export function searchPlacesNearby({ coords, radius, type }) {
   return callProxy({
     kind: "searchNearby",
     latitude: coords.latitude,
     longitude: coords.longitude,
     radius,
     type,
-    fieldMask,
   });
 }
 
-export function searchPlacesByText({ textQuery, type, fieldMask }) {
-  return callProxy({ kind: "searchText", textQuery, type, fieldMask });
+export function searchPlacesByText({ textQuery, type }) {
+  return callProxy({ kind: "searchText", textQuery, type });
 }
 
 // One call per photograph, answered with a short-lived Google URL the phone

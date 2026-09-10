@@ -32,12 +32,14 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   increment,
   limit,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  startAfter,
   updateDoc,
 } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
@@ -52,6 +54,7 @@ import { PRIVATE_UPLOAD_CACHE } from "../utils/uploadContentType";
 import { useAuth } from "../auth/AuthContext";
 import { firestore, storage } from "../config/firebase";
 import { useSellerStats } from "../hooks/useSellerStats";
+import { reportNonFatal } from "../utils/reportError";
 
 function PulsingRecordingDot() {
   const { colors } = useTheme();
@@ -224,11 +227,14 @@ export function ChatScreen({ route, navigation }) {
   const { user } = useAuth();
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState(null);
-  // How many of the newest messages the live query holds. Grows by a page
-  // each time the reader reaches the top of the thread and asks for more.
-  const [messageWindow, setMessageWindow] = useState(MESSAGE_PAGE);
+  // The newest page, held live. Never grows.
+  const [liveMessages, setLiveMessages] = useState(null);
+  // Pages fetched behind it, once each, never re-read.
+  const [olderMessages, setOlderMessages] = useState([]);
+  const oldestLoadedRef = useRef(null);
   const [hasEarlier, setHasEarlier] = useState(true);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -292,9 +298,17 @@ export function ChatScreen({ route, navigation }) {
   const handleBlockToggle = () => {
     if (!user) return;
     if (iBlocked) {
+      // Reported and surfaced, not swallowed. A block that silently failed
+      // left the UI saying "unblocked" while the write never landed — and
+      // for the blocking pair specifically, the screen and the server
+      // disagreeing about who may message whom is a safety question rather
+      // than a cosmetic one.
       updateDoc(doc(firestore, "conversations", conversationId), {
         [`blockedBy.${user.uid}`]: false,
-      }).catch(() => {});
+      }).catch((error) => {
+        reportNonFatal("chatUnblock", error, { where: "ChatScreen" });
+        Alert.alert(t("errorTitle"), t("blockUpdateFailed"));
+      });
       return;
     }
     Alert.alert(t("chatBlockConfirmTitle"), t("chatBlockConfirmMessage"), [
@@ -305,7 +319,10 @@ export function ChatScreen({ route, navigation }) {
         onPress: () => {
           updateDoc(doc(firestore, "conversations", conversationId), {
             [`blockedBy.${user.uid}`]: true,
-          }).catch(() => {});
+          }).catch((error) => {
+            reportNonFatal("chatBlock", error, { where: "ChatScreen" });
+            Alert.alert(t("errorTitle"), t("blockUpdateFailed"));
+          });
         },
       },
     ]);
@@ -349,76 +366,151 @@ export function ChatScreen({ route, navigation }) {
     return unsubscribe;
   }, [conversationId]);
 
-  // The newest messages, live, in a window that grows when the reader asks
-  // for older ones.
+  // The newest page, live. Older pages, fetched once each.
   //
-  // This used to be `orderBy("createdAt","desc")` with no limit: opening a
-  // conversation downloaded and rendered its entire history, and because the
-  // read rule performs a get() on the parent conversation — and rules access
-  // calls are billed as reads — the real cost was roughly double the message
-  // count. A two-thousand-message thread cost about four thousand reads and
-  // held two thousand rendered rows in memory, every time it was opened. The
-  // busiest conversation, which is the one that matters most, was the
-  // slowest and most expensive screen in the app.
+  // ── What this replaces, and why the old reasoning was wrong ───────────
   //
-  // A growing window rather than a live page plus separately-fetched older
-  // pages, and the difference is worth stating because the other shape is
-  // the obvious one: with two sources you have to merge them, dedupe ids
-  // across the seam, keep the seam stable as new messages push the window,
-  // and notice deletions that happen in the part you fetched once and never
-  // watched again. One query with a growing limit has none of those
-  // problems — Firestore owns the ordering, the identity and the removals,
-  // and "load earlier" is a number going up.
-  //
-  // What it costs: expanding the window re-reads it. Firestore serves the
+  // This used to be one listener with a growing limit: "load earlier" added
+  // fifty to the window and the query re-subscribed. The comment here argued
+  // that this was the better shape because Firestore owns ordering, identity
+  // and removals, and claimed the re-read was free — "Firestore serves the
   // documents it already holds from cache, so the billed part is the fifty
-  // newly revealed ones — the same fifty a separate page would have cost.
+  // newly revealed ones".
+  //
+  // That last sentence is false, and the independent audit measured it. A
+  // changed limit is a DIFFERENT query, so it is a new listener and a new
+  // server-side read of the whole window. Reaching two thousand messages
+  // through forty taps cost 50 + 100 + … + 2000 = 41,000 document reads to
+  // display 2,000 messages, and ten thousand cost slightly over a million.
+  // The final listener then watched all of them, live, for the rest of the
+  // session.
+  //
+  // So: two sources, and the merge problems the old comment listed are real
+  // and are handled below rather than avoided.
+  //
+  //   live    onSnapshot over the newest MESSAGE_PAGE. Fixed size, forever.
+  //           New messages, edits and deletions in the recent part of the
+  //           thread all arrive here, which is the part where they happen.
+  //
+  //   older   getDocs, one page at a time, startAfter the oldest document
+  //           already held. Read once and kept. Never watched again.
+  //
+  // Reaching two thousand messages now costs 2,000 reads instead of 41,000,
+  // and the live listener stays at fifty documents however far back somebody
+  // scrolls.
+  //
+  // The boundary, stated rather than hidden: a message deleted after it has
+  // scrolled into the historical part stays on screen until the thread is
+  // reopened. Deleting your own message minutes after sending it — which is
+  // when people actually do it — happens inside the live window and
+  // disappears immediately.
   useEffect(() => {
     const messagesQuery = query(
       collection(firestore, "conversations", conversationId, "messages"),
       orderBy("createdAt", "desc"),
-      limit(messageWindow),
+      limit(MESSAGE_PAGE),
     );
     const unsubscribe = onSnapshot(
       messagesQuery,
       (snapshot) => {
-        setMessages(
-          snapshot.docs.map((docSnap) => ({
-            id: docSnap.id,
-            ...docSnap.data(),
-          })),
+        setLiveMessages(
+          snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })),
         );
-        // Fewer documents than the window means the window now reaches the
-        // first message ever sent, so there is nothing earlier to offer.
-        setHasEarlier(snapshot.docs.length >= messageWindow);
+        // The cursor for the first "load earlier", and the answer to whether
+        // there is one: fewer documents than a page means this thread is
+        // shorter than a page.
+        if (oldestLoadedRef.current === null) {
+          oldestLoadedRef.current = snapshot.docs[snapshot.docs.length - 1] ?? null;
+          setHasEarlier(snapshot.docs.length >= MESSAGE_PAGE);
+        }
         setLoadingEarlier(false);
       },
       () => {
-        setMessages([]);
+        // Distinguished from an empty thread. An error that renders as "no
+        // messages" is the same lie as a search that renders as "no results".
+        setLiveMessages([]);
+        setLoadFailed(true);
         setLoadingEarlier(false);
       },
     );
     return unsubscribe;
-  }, [conversationId, messageWindow]);
+  }, [conversationId]);
 
   // Reset when the thread changes, or a long scroll back through one
   // conversation would be inherited by the next one opened.
   useEffect(() => {
-    setMessageWindow(MESSAGE_PAGE);
+    setLiveMessages(null);
+    setOlderMessages([]);
+    oldestLoadedRef.current = null;
     setHasEarlier(true);
+    setLoadFailed(false);
   }, [conversationId]);
 
-  const loadEarlierMessages = useCallback(() => {
+  // One page back, read once, kept. The cursor is the oldest document held,
+  // so pages never overlap and nothing is read twice.
+  const loadEarlierMessages = useCallback(async () => {
     if (loadingEarlier || !hasEarlier) return;
+    const cursor = oldestLoadedRef.current;
+    if (!cursor) return;
     setLoadingEarlier(true);
-    setMessageWindow((current) => current + MESSAGE_PAGE);
-  }, [loadingEarlier, hasEarlier]);
+    try {
+      const snapshot = await getDocs(
+        query(
+          collection(firestore, "conversations", conversationId, "messages"),
+          orderBy("createdAt", "desc"),
+          startAfter(cursor),
+          limit(MESSAGE_PAGE),
+        ),
+      );
+      const page = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      if (snapshot.docs.length) {
+        oldestLoadedRef.current = snapshot.docs[snapshot.docs.length - 1];
+      }
+      setOlderMessages((current) => {
+        // Dedupe across the seam: a message written between the live
+        // snapshot and this fetch can appear in both.
+        const seen = new Set(current.map((m) => m.id));
+        return [...current, ...page.filter((m) => !seen.has(m.id))];
+      });
+      setHasEarlier(snapshot.docs.length >= MESSAGE_PAGE);
+    } catch (error) {
+      setHasEarlier(false);
+      reportNonFatal("chatLoadEarlier", error, { where: "ChatScreen" });
+    } finally {
+      setLoadingEarlier(false);
+    }
+  }, [conversationId, loadingEarlier, hasEarlier]);
+
+  // What the list renders: the live page in front, history behind, ids
+  // deduped, order owned by createdAt so the seam cannot show a gap or a
+  // repeat.
+  useEffect(() => {
+    if (liveMessages === null) {
+      setMessages(null);
+      return;
+    }
+    const byId = new Map();
+    for (const m of [...liveMessages, ...olderMessages]) {
+      if (!byId.has(m.id)) byId.set(m.id, m);
+    }
+    const merged = [...byId.values()].sort((a, b) => {
+      const at = a.createdAt?.toMillis?.() ?? 0;
+      const bt = b.createdAt?.toMillis?.() ?? 0;
+      return bt - at;
+    });
+    setMessages(merged);
+  }, [liveMessages, olderMessages]);
 
   useEffect(() => {
     if (!user) return;
+    // No alert: a failed reset shows a stale badge, which is confusing
+    // rather than unsafe. It is reported so a systematic failure is visible
+    // in Crashlytics instead of only in everybody's badge count.
     updateDoc(doc(firestore, "conversations", conversationId), {
       [`unreadCount.${user.uid}`]: 0,
-    }).catch(() => {});
+    }).catch((error) => {
+      reportNonFatal("chatUnreadReset", error, { where: "ChatScreen" });
+    });
   }, [conversationId, user]);
 
   const updateLastMessage = async ({ messageType, preview }) => {
@@ -450,7 +542,13 @@ export function ChatScreen({ route, navigation }) {
               "messages",
               message.id,
             ),
-          ).catch(() => {});
+          ).catch((error) => {
+            // The message stays on everybody's screen. Saying so is the
+            // difference between "it did not delete" and "it deleted and
+            // came back".
+            reportNonFatal("chatDeleteMessage", error, { where: "ChatScreen" });
+            Alert.alert(t("errorTitle"), t("messageDeleteFailed"));
+          });
         },
       },
     ]);

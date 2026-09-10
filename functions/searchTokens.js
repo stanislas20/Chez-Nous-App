@@ -187,6 +187,84 @@ function querySearchTokens(query) {
   return tokenize(query);
 }
 
+// ── Pairs: the conjunction, moved to the server ─────────────────────────
+//
+// `array-contains` takes one value, so Phase D sent the single "most
+// selective" token and filtered the rest of the words in JavaScript over
+// whatever came back. The independent audit showed what that costs. Querying
+// "iphone 15" sent "iphone", Firestore returned the newest 120 listings
+// carrying that word, none of them were the iPhone 15, and the search said
+// "no results" while two exact matches sat in the database. The window was
+// full of documents that did not match.
+//
+// A pair fixes the shape of the problem rather than the choice of token. Each
+// listing carries every unordered 2-token combination of its most meaningful
+// words, so "15|iphone" is a single value that means "contains both". Sending
+// that as the array-contains means every document Firestore returns already
+// matches both words — the cap can bound how many matches are shown, which is
+// ordinary pagination, but it can no longer fill itself with non-matches and
+// report nothing.
+//
+// Sorted before joining so the writer and the reader always agree: a listing
+// titled "iPhone 15" and a search for "15 iphone" have to produce the same
+// string.
+//
+// Only the first PAIR_SOURCE_MAX tokens contribute. searchTokensFor already
+// orders them title, then brand/model/trade/category, then city/quartier —
+// so the cheap prefix is exactly the part of a listing people search by, and
+// C(14,2) = 91 pairs is a bounded number of index entries per document.
+const SEARCH_PAIR_MAX = 100;
+const PAIR_SOURCE_MAX = 14;
+
+function pairKey(a, b) {
+  return a < b ? `${a}|${b}` : `${b}|${a}`;
+}
+
+function pairsFrom(tokens) {
+  const source = tokens.slice(0, PAIR_SOURCE_MAX);
+  const seen = new Set();
+  const pairs = [];
+  for (let i = 0; i < source.length; i += 1) {
+    for (let j = i + 1; j < source.length; j += 1) {
+      if (source[i] === source[j]) continue;
+      const key = pairKey(source[i], source[j]);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      pairs.push(key);
+      if (pairs.length >= SEARCH_PAIR_MAX) return pairs;
+    }
+  }
+  return pairs;
+}
+
+function searchPairsFor(listing) {
+  return pairsFrom(searchTokensFor(listing));
+}
+
+function searchPairsUnchanged(listing, existing) {
+  const next = searchPairsFor(listing);
+  if (!Array.isArray(existing) || existing.length !== next.length) return false;
+  return next.every((pair, index) => existing[index] === pair);
+}
+
+// Every pair a query could be sent as, so the caller can ask Firestore which
+// one is rarest instead of guessing from word length.
+function queryPairCandidates(query) {
+  const tokens = tokenize(query).slice(0, PAIR_SOURCE_MAX);
+  const seen = new Set();
+  const pairs = [];
+  for (let i = 0; i < tokens.length; i += 1) {
+    for (let j = i + 1; j < tokens.length; j += 1) {
+      if (tokens[i] === tokens[j]) continue;
+      const key = pairKey(tokens[i], tokens[j]);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      pairs.push(key);
+    }
+  }
+  return pairs;
+}
+
 module.exports = {
   SEARCH_TOKEN_MAX,
   SEARCH_TOKEN_MIN_LENGTH,
@@ -196,4 +274,10 @@ module.exports = {
   searchTokensUnchanged,
   primarySearchToken,
   querySearchTokens,
+  SEARCH_PAIR_MAX,
+  PAIR_SOURCE_MAX,
+  pairKey,
+  searchPairsFor,
+  searchPairsUnchanged,
+  queryPairCandidates,
 };

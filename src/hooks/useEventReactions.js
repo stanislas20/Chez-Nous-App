@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  limit,
   onSnapshot,
   query,
   serverTimestamp,
@@ -10,6 +11,23 @@ import {
   where,
 } from "firebase/firestore";
 import { firestore, isFirebaseConfigured } from "../config/firebase";
+
+// Two listeners, and the second was the larger of the two problems the audit
+// found here: `collection(firestore, "eventReactions")` with no filter and no
+// limit is every reaction anybody has ever left on any event, held live, for
+// every reader.
+//
+// MY_LIKES_CAP bounds the reader's own likes, which they control the size of.
+//
+// REACTIONS_CAP is the honest one. Reaction COUNTS are derived by tallying
+// this stream, so a cap makes a count approximate once a single event passes
+// it — the glyphs stay right, the number stops climbing. The alternative is a
+// server-maintained counter per event, which is a new trigger and a new field
+// rather than a bound on an existing read, and this phase is remediation. The
+// boundary is written down here so nobody later mistakes a plateaued count
+// for a bug in the tally.
+const MY_LIKES_CAP = 500;
+const REACTIONS_CAP = 1000;
 
 // Liking, and reacting, for events.
 //
@@ -44,6 +62,7 @@ export function useEventReactions(userId) {
     const likesQuery = query(
       collection(firestore, "eventLikes"),
       where("userId", "==", userId),
+      limit(MY_LIKES_CAP),
     );
     return onSnapshot(
       likesQuery,
@@ -60,7 +79,7 @@ export function useEventReactions(userId) {
     }
 
     return onSnapshot(
-      collection(firestore, "eventReactions"),
+      query(collection(firestore, "eventReactions"), limit(REACTIONS_CAP)),
       (snapshot) => setReactionDocs(snapshot.docs.map((d) => d.data())),
       () => setReactionDocs([]),
     );

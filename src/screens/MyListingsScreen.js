@@ -39,6 +39,7 @@ import { getDutyLabel } from "../utils/pharmacyDuty";
 import { listingPriceText } from "../utils/listingPrice";
 import { openListing } from "../utils/openListing";
 import { TabSafeAreaView } from "../components/TabSafeAreaView";
+import { reportNonFatal } from "../utils/reportError";
 
 // No horizontal padding: the cards carry their own margin, which is what
 // lets them cast a shadow on both sides. The vertical padding stays — a
@@ -220,7 +221,11 @@ export function MyListingsScreen() {
   const handleDelete = async (item) => {
     try {
       await deleteDoc(doc(firestore, "listings", item.id));
-    } catch {
+    } catch (error) {
+      // The alert was already honest. What was missing is anybody knowing:
+      // a listing that will not delete is a seller stuck with something they
+      // have asked twice to remove, and it is invisible from here.
+      reportNonFatal("deleteListing", error, { where: "MyListingsScreen" });
       Alert.alert(t("myListingsTitle"), t("errorDeleteFailed"));
     }
   };

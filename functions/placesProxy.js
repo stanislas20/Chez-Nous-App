@@ -20,6 +20,7 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const { logger } = require("firebase-functions");
+const admin = require("firebase-admin");
 
 // Set with `firebase functions:secrets:set GOOGLE_PLACES_API_KEY`. The same
 // mechanism pharmacyRosterSync already uses for its Anthropic key, so there
@@ -55,6 +56,81 @@ const BENIN_BOUNDS = {
 // `includedTypes` the caller sends: this endpoint exists to answer three
 // questions the app asks, and anything else is somebody using our billing.
 const ALLOWED_TYPES = new Set(["pharmacy", "restaurant"]);
+
+// ── The billing tier is the server's decision, not the caller's ────────
+//
+// This used to take `fieldMask` from request.data and forward it verbatim as
+// X-Goog-FieldMask. Google prices Places by field-mask tier — Essentials, Pro,
+// Enterprise, Enterprise+Atmosphere — so a caller choosing the mask was a
+// caller choosing what we pay per request, and `places.reviews` costs
+// multiples of `places.id`. Every signed-in account had that switch.
+//
+// The masks below are exactly what the three hooks were already sending, so
+// the response shape does not change. What changed is who picks: the client
+// names an operation and a place type, and the server maps that to the fields
+// it is willing to buy.
+const FIELD_MASKS = {
+  pharmacy:
+    "places.id,places.displayName,places.location,places.formattedAddress," +
+    "places.internationalPhoneNumber,places.currentOpeningHours.openNow,places.rating," +
+    "places.photos",
+  restaurant:
+    "places.id,places.displayName,places.location,places.formattedAddress," +
+    "places.internationalPhoneNumber,places.currentOpeningHours.openNow," +
+    "places.rating,places.userRatingCount,places.priceLevel,places.photos",
+};
+
+function fieldMaskFor(type) {
+  const mask = FIELD_MASKS[type];
+  if (!mask) {
+    // Unreachable while ALLOWED_TYPES and FIELD_MASKS agree; a loud failure
+    // is better than silently asking Google for everything.
+    throw new HttpsError("invalid-argument", "Unsupported place type.");
+  }
+  return mask;
+}
+
+// ── Abuse control, per account first ───────────────────────────────────
+//
+// The recovery endpoint next door limits by IP, and in Bénin that is the
+// weaker of the two dimensions: carrier-grade NAT puts a great many honest
+// subscribers behind one address, so an IP limit tight enough to matter
+// throttles real users, and one loose enough not to does not stop anybody.
+//
+// So the account is the primary key. Every call here is authenticated, which
+// means there is always a uid, and an abuser has to create and verify a phone
+// number per bucket rather than change networks. The IP window stays as a
+// second, much looser dimension: it is what catches one device cycling
+// through many accounts, and it is deliberately high enough that a shared
+// carrier NAT never reaches it in ordinary use.
+//
+// A screen costs one search plus up to twenty photo calls, so an hour of
+// normal use is well under the per-user ceiling and a loop is not.
+const QUOTA_WINDOW_MS = 60 * 60 * 1000;
+const QUOTA_MAX_PER_USER = 240;
+const QUOTA_MAX_PER_IP = 1500;
+
+async function consumeQuota(db, key, max) {
+  const ref = db.doc(`placesQuota/${key}`);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const now = Date.now();
+    const windowStart = snap.exists ? (snap.data().windowStart ?? 0) : 0;
+    const count = snap.exists ? (snap.data().count ?? 0) : 0;
+
+    if (now - windowStart > QUOTA_WINDOW_MS) {
+      tx.set(ref, { windowStart: now, count: 1 });
+      return;
+    }
+    if (count >= max) {
+      throw new HttpsError(
+        "resource-exhausted",
+        "Too many place lookups. Try again later.",
+      );
+    }
+    tx.set(ref, { windowStart, count: count + 1 }, { merge: true });
+  });
+}
 
 const MAX_RESULTS = 20;
 // Bounded so a caller cannot ask for a 4000px photograph on our account.
@@ -109,20 +185,31 @@ exports.placesProxy = onCall(
       throw new HttpsError("unauthenticated", "Sign in to search places.");
     }
 
+    // Before the key is read and long before Google is called, so a throttled
+    // caller costs a Firestore transaction rather than a billable request.
+    const db = admin.firestore();
+    await consumeQuota(db, `u_${request.auth.uid}`, QUOTA_MAX_PER_USER);
+    const rawIp = request.rawRequest?.ip || "unknown";
+    await consumeQuota(
+      db,
+      `i_${rawIp.replace(/[^a-zA-Z0-9]/g, "_").slice(0, 100)}`,
+      QUOTA_MAX_PER_IP,
+    );
+
     const key = placesApiKey.value();
     if (!key) throw new HttpsError("failed-precondition", "Places not configured.");
 
     const { kind } = request.data ?? {};
 
     if (kind === "searchNearby") {
-      const { latitude, longitude, radius, type, fieldMask } = request.data;
+      const { latitude, longitude, radius, type } = request.data;
       assertInBenin(latitude, longitude);
       if (!ALLOWED_TYPES.has(type)) {
         throw new HttpsError("invalid-argument", "Unsupported place type.");
       }
       return callPlaces("https://places.googleapis.com/v1/places:searchNearby", {
         key,
-        fieldMask,
+        fieldMask: fieldMaskFor(type),
         body: {
           includedTypes: [type],
           maxResultCount: MAX_RESULTS,
@@ -139,7 +226,7 @@ exports.placesProxy = onCall(
     }
 
     if (kind === "searchText") {
-      const { textQuery, type, fieldMask } = request.data;
+      const { textQuery, type } = request.data;
       if (typeof textQuery !== "string" || textQuery.trim().length === 0) {
         throw new HttpsError("invalid-argument", "Empty query.");
       }
@@ -151,7 +238,7 @@ exports.placesProxy = onCall(
       }
       return callPlaces("https://places.googleapis.com/v1/places:searchText", {
         key,
-        fieldMask,
+        fieldMask: fieldMaskFor(type),
         body: {
           textQuery: textQuery.slice(0, 200),
           includedType: type,

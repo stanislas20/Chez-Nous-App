@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react";
 import {
   collection,
+  limit,
   onSnapshot,
   orderBy,
   query,
   where,
 } from "firebase/firestore";
 import { firestore, isFirebaseConfigured } from "../config/firebase";
+
+// Follower and following lists, newest first. A seller with ten thousand
+// followers must not cost ten thousand reads to render a screen that shows
+// the first page of them.
+const FOLLOW_LIST_CAP = 100;
 
 // The people following someone, or the people they follow.
 //
@@ -36,6 +42,7 @@ export function useFollowList(uid, kind) {
       collection(firestore, "follows"),
       where(field, "==", uid),
       orderBy("createdAt", "desc"),
+      limit(FOLLOW_LIST_CAP),
     );
 
     const unsubscribe = onSnapshot(

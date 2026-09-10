@@ -26,6 +26,40 @@ const FAKE_KEY = "AIza-TEST-KEY-must-never-reach-a-client";
 process.env.GOOGLE_PLACES_API_KEY = FAKE_KEY;
 
 const FUNCTIONS = path.join(__dirname, "..", "..", "functions");
+
+// The quota counters live in Firestore, and this suite has no emulator — it
+// runs the function in process. So admin.firestore is replaced by an
+// in-memory store that implements only what consumeQuota uses.
+//
+// defineProperty rather than assignment, and that is not fussiness: Phase C
+// found admin.storage is an INHERITED accessor, so `admin.storage = stub`
+// silently did nothing and a partial-failure test passed while asserting
+// against the real thing. admin.firestore is the same shape.
+const admin = require(path.join(FUNCTIONS, "node_modules", "firebase-admin"));
+const quotaStore = new Map();
+function resetQuota() {
+  quotaStore.clear();
+}
+const fakeFirestore = () => ({
+  doc: (docPath) => ({ path: docPath }),
+  runTransaction: async (fn) =>
+    fn({
+      get: async (ref) => {
+        const data = quotaStore.get(ref.path);
+        return { exists: data !== undefined, data: () => data };
+      },
+      set: (ref, data, options) => {
+        const previous = options?.merge ? (quotaStore.get(ref.path) ?? {}) : {};
+        quotaStore.set(ref.path, { ...previous, ...data });
+      },
+    }),
+});
+Object.defineProperty(admin, "firestore", {
+  configurable: true,
+  writable: true,
+  value: fakeFirestore,
+});
+
 const { placesProxy } = require(path.join(FUNCTIONS, "placesProxy.js"));
 
 // Every call fetch was asked to make, so the test can assert on the request
@@ -405,6 +439,141 @@ async function main() {
     } finally {
       process.env.GOOGLE_PLACES_API_KEY = saved;
     }
+  });
+
+  // ── E3: the caller cannot choose what we pay Google ──────────────────
+  await check(
+    "an expensive field mask sent by the caller is ignored entirely",
+    async () => {
+      resetQuota();
+      fetchCalls = [];
+      nextResponse = ok({ places: [] });
+      await placesProxy.run({
+        ...AUTHED,
+        data: {
+          kind: "searchNearby",
+          latitude: 6.37,
+          longitude: 2.42,
+          radius: 3000,
+          type: "pharmacy",
+          // Atmosphere-tier fields: the most expensive SKU Google sells.
+          fieldMask: "places.reviews,places.priceLevel,*",
+        },
+      });
+      const sent = fetchCalls[0].options.headers["X-Goog-FieldMask"];
+      assert(sent === PHARMACY_MASK, `mask sent to Google was "${sent}"`);
+      assert(!sent.includes("reviews"), "the caller's reviews field reached Google");
+      assert(!sent.includes("*"), "the caller's wildcard reached Google");
+    },
+  );
+
+  await check("the field mask is chosen by place type, server side", async () => {
+    resetQuota();
+    fetchCalls = [];
+    nextResponse = ok({ places: [] });
+    await placesProxy.run({
+      ...AUTHED,
+      data: {
+        kind: "searchNearby",
+        latitude: 6.37,
+        longitude: 2.42,
+        radius: 3000,
+        type: "restaurant",
+      },
+    });
+    const sent = fetchCalls[0].options.headers["X-Goog-FieldMask"];
+    assert(sent.includes("userRatingCount"), "restaurant mask missing its own fields");
+    assert(sent !== PHARMACY_MASK, "restaurant reused the pharmacy mask");
+  });
+
+  // ── E3: per-account rate limiting ────────────────────────────────────
+  await check("an ordinary session is never throttled", async () => {
+    resetQuota();
+    nextResponse = ok({ places: [] });
+    for (let i = 0; i < 25; i += 1) {
+      await placesProxy.run({
+        ...AUTHED,
+        data: { kind: "searchNearby", latitude: 6.37, longitude: 2.42, radius: 3000, type: "pharmacy" },
+      });
+    }
+    assert(true, "25 calls went through");
+  });
+
+  await check("a caller looping the endpoint is cut off", async () => {
+    resetQuota();
+    nextResponse = ok({ places: [] });
+    let refusedAt = null;
+    for (let i = 0; i < 400 && refusedAt === null; i += 1) {
+      try {
+        await placesProxy.run({
+          ...AUTHED,
+          data: { kind: "searchNearby", latitude: 6.37, longitude: 2.42, radius: 3000, type: "pharmacy" },
+        });
+      } catch (error) {
+        assert(error.code === "resource-exhausted", `refused with ${error.code}`);
+        refusedAt = i;
+      }
+    }
+    assert(refusedAt !== null, "the endpoint never refused a 400-call loop");
+    assert(refusedAt > 100, `cut off after only ${refusedAt} calls, too tight for real use`);
+  });
+
+  await check("one account's spending does not throttle another account", async () => {
+    resetQuota();
+    nextResponse = ok({ places: [] });
+    // Burn the first account's budget.
+    let exhausted = false;
+    for (let i = 0; i < 400 && !exhausted; i += 1) {
+      try {
+        await placesProxy.run({
+          ...AUTHED,
+          data: { kind: "searchNearby", latitude: 6.37, longitude: 2.42, radius: 3000, type: "pharmacy" },
+        });
+      } catch {
+        exhausted = true;
+      }
+    }
+    assert(exhausted, "the first account was never exhausted");
+    // A different uid, same (unknown) IP, must still be served.
+    const other = callerContext("other-buyer-uid");
+    const result = await placesProxy.run({
+      ...other,
+      data: { kind: "searchNearby", latitude: 6.37, longitude: 2.42, radius: 3000, type: "pharmacy" },
+    });
+    assert(result !== undefined, "a second account was refused by the first's quota");
+  });
+
+  await check("a throttled call never reaches Google", async () => {
+    resetQuota();
+    nextResponse = ok({ places: [] });
+    let exhausted = false;
+    for (let i = 0; i < 400 && !exhausted; i += 1) {
+      try {
+        await placesProxy.run({
+          ...AUTHED,
+          data: { kind: "searchNearby", latitude: 6.37, longitude: 2.42, radius: 3000, type: "pharmacy" },
+        });
+      } catch {
+        exhausted = true;
+      }
+    }
+    fetchCalls = [];
+    await expectHttpsError(
+      placesProxy.run({
+        ...AUTHED,
+        data: { kind: "searchNearby", latitude: 6.37, longitude: 2.42, radius: 3000, type: "pharmacy" },
+      }),
+      "resource-exhausted",
+    );
+    assert(fetchCalls.length === 0, "a throttled call still spent a Places request");
+  });
+
+  await check("a malformed request is refused before it costs a quota slot", async () => {
+    resetQuota();
+    await expectHttpsError(
+      placesProxy.run({ ...AUTHED, data: { kind: "searchNearby", type: "pharmacy" } }),
+      "invalid-argument",
+    );
   });
 
   report("placesProxy cases");

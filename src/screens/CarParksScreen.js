@@ -12,7 +12,7 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
-import { useApprovedListings } from "../hooks/useApprovedListings";
+import { useCategoryListings } from "../hooks/useCategoryListings";
 import { CAR_PARK_REGION, carParks, operatorsForPark } from "../data/carParks";
 import { useDirectory } from "../hooks/useDirectory";
 
@@ -35,7 +35,9 @@ export function CarParksScreen({ navigation }) {
     Linking.openURL(url).catch(() => {});
   };
   const insets = useSafeAreaInsets();
-  const listings = useApprovedListings();
+  // One category, bounded in the query. Every filter below already narrowed
+  // to this category in JavaScript after downloading the whole catalogue.
+  const { listings: listings } = useCategoryListings("vehicles");
 
   // Counted from real listings, never declared. A park with nothing in it
   // shows no number at all rather than a zero or an invented figure.

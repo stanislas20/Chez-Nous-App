@@ -8,7 +8,7 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
-import { useApprovedListings } from "../hooks/useApprovedListings";
+import { useCategoryListings } from "../hooks/useCategoryListings";
 import { useAuth } from "../auth/AuthContext";
 import { canPublish } from "../utils/canPublish";
 import { useSellerRatings } from "../hooks/useSellerRatings";
@@ -59,7 +59,9 @@ export function ServicesScreen({ navigation }) {
   const { colors } = useTheme();
   const { t, language } = useI18n();
   const insets = useSafeAreaInsets();
-  const listings = useApprovedListings();
+  // One category, bounded in the query. Every filter below already narrowed
+  // to this category in JavaScript after downloading the whole catalogue.
+  const { listings: listings } = useCategoryListings("services");
   const { user } = useAuth();
   useBannerStatusBar();
 

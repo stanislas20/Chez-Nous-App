@@ -30,7 +30,7 @@ import {
 import { SearchBar } from "../components/SearchBar";
 import { mockListings } from "../data/mockListings";
 import { cities } from "../data/cities";
-import { useApprovedListings } from "../hooks/useApprovedListings";
+import { useCategoryListings } from "../hooks/useCategoryListings";
 import {
   customCategoriesFrom,
   foldCategoryLabel,
@@ -485,8 +485,22 @@ export function CategoryListingsScreen({ route, navigation }) {
     navigation.setOptions({ title: categoryLabel });
   }, [navigation, categoryLabel]);
 
-  const liveListings = useApprovedListings();
-  const allListings = liveListings ?? mockListings;
+  // The category this screen is for, asked for by name.
+  //
+  // It used to read every approved listing in the database and keep the ones
+  // whose categoryKey matched — on a screen whose entire purpose is one
+  // category, and which is reached by tapping that category's own tile.
+  //
+  // Not paginated by scroll, because this screen has four different list
+  // shapes underneath it (a pharmacy roster grouped by city, a services list
+  // grouped by trade, the "Autre" aisle grouped by custom label, and a plain
+  // grid) and all four group the whole set before rendering. Bounding the
+  // read to the category is the change that matters here; a cursor through
+  // grouped sections would reshuffle the groups as pages landed.
+  const { listings: liveListings, status: listingsStatus } =
+    useCategoryListings(categoryKey);
+  const allListings =
+    liveListings ?? (listingsStatus === "unconfigured" ? mockListings : []);
   const categoryListings = allListings.filter(
     (listing) =>
       listing.categoryKey === categoryKey &&

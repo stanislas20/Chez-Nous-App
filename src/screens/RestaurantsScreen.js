@@ -41,7 +41,7 @@ import { countContact } from "../utils/contactCount";
 import { distanceInKm } from "../utils/geo";
 import { queryMatches } from "../utils/search";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
-import { useApprovedListings } from "../hooks/useApprovedListings";
+import { useCategoryListings } from "../hooks/useCategoryListings";
 import {
   useNearbyRestaurants,
   withoutListed,
@@ -125,7 +125,9 @@ export function RestaurantsScreen({ navigation, route }) {
 
   const insets = useSafeAreaInsets();
   const { coords: userCoords, requestLocation } = useCurrentLocation();
-  const liveListings = useApprovedListings();
+  // One category, bounded in the query. Every filter below already narrowed
+  // to this category in JavaScript after downloading the whole catalogue.
+  const { listings: liveListings } = useCategoryListings("restaurants");
   const [tab, setTab] = useState("listed");
   // Only asked for once the reader has a position. No location, no call —
   // this is a paid lookup and a radius around nothing is worth nothing.

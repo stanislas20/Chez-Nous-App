@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useApprovedListings } from "./useApprovedListings";
+import { useCategoryListings } from "./useCategoryListings";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { distanceInKm } from "../utils/geo";
 import { isOpenNow } from "../data/openingDays";
@@ -22,7 +22,10 @@ import { withoutTestSeed } from "../utils/testSeed";
 // so "plaquettes" finds a shop that typed "plaquette de frein avant" in its
 // description without ever ticking a box.
 export function usePartsSellers(userCoords) {
-  const listings = useApprovedListings();
+  // Bounded to this one category in the QUERY rather than filtered out of
+  // the whole catalogue in JavaScript. The array below has the same shape it
+  // always had, so nothing downstream changed.
+  const { listings } = useCategoryListings("services");
 
   return useMemo(() => {
     if (!listings) return [];

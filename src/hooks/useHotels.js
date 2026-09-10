@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useApprovedListings } from "./useApprovedListings";
+import { useCategoryListings } from "./useCategoryListings";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { distanceInKm } from "../utils/geo";
 import { allInNightly } from "../data/hotelTerms";
@@ -18,7 +18,10 @@ import { realEstateHasCapacity } from "../data/realEstate";
 // listing. That is what stops the Hôtels screen becoming a directory that
 // nobody can appear in without being told about a secret category.
 export function useHotels(userCoords) {
-  const listings = useApprovedListings();
+  // Bounded to this one category in the QUERY rather than filtered out of
+  // the whole catalogue in JavaScript. The array below has the same shape it
+  // always had, so nothing downstream changed.
+  const { listings } = useCategoryListings("realEstate");
 
   return useMemo(() => {
     if (!listings) return { rooms: null, halls: null };

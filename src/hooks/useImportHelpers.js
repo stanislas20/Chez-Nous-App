@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useApprovedListings } from "./useApprovedListings";
+import { useCategoryListings } from "./useCategoryListings";
 import { useI18n } from "../i18n/I18nContext";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { distanceInKm } from "../utils/geo";
@@ -29,7 +29,10 @@ import {
 // rot, and a directory that rots is worse than no directory, because it sends
 // somebody to a number that stopped working a year ago.
 export function useImportHelpers(userCoords) {
-  const listings = useApprovedListings();
+  // Bounded to this one category in the QUERY rather than filtered out of
+  // the whole catalogue in JavaScript. The array below has the same shape it
+  // always had, so nothing downstream changed.
+  const { listings } = useCategoryListings("services");
   // Read here rather than taken as an argument: the sourcer order depends on
   // the country NAMES, which are language-dependent, so the memo has to
   // recompute when the language switches. A caller passing it in would work

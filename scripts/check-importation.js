@@ -170,8 +170,12 @@ const importation = loadModule("src/data/importation.js");
         "a listing whose whole point is being abroad",
     );
   }
+  // Phase B moved this from an unbounded subscription to a bounded,
+  // category-scoped read. The assertion is unchanged in substance: the list
+  // has to come from live approved listings rather than from a hand-kept
+  // array in the bundle.
   const hook = read("src/hooks/useImportHelpers.js");
-  if (!/useApprovedListings\(\)/.test(hook)) {
+  if (!/useCategoryListings\("services"\)/.test(hook)) {
     failures.push(
       "the helper lists are no longer built from approved listings — a " +
         "hand-kept directory rots, and a rotted one sends somebody to a " +

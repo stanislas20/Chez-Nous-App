@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useApprovedListings } from "./useApprovedListings";
+import { useCategoryListings } from "./useCategoryListings";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { distanceInKm } from "../utils/geo";
 import {
@@ -21,7 +21,10 @@ import { withoutTestSeed } from "../utils/testSeed";
 //
 // So this returns [] until the first person posts, and the screen says so.
 export function useEvents(userCoords, now = Date.now()) {
-  const listings = useApprovedListings();
+  // Bounded to this one category in the QUERY rather than filtered out of
+  // the whole catalogue in JavaScript. The array below has the same shape it
+  // always had, so nothing downstream changed.
+  const { listings } = useCategoryListings("events");
 
   return useMemo(() => {
     if (!listings) return [];

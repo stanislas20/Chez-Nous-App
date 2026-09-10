@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useApprovedListings } from "./useApprovedListings";
+import { useCategoryListings } from "./useCategoryListings";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { distanceInKm } from "../utils/geo";
 import { declaredCategories, isDrivingSchoolListing } from "../data/drivingSchools";
@@ -14,7 +14,10 @@ import { withoutTestSeed } from "../utils/testSeed";
 // shows those under "Toutes" and never under a category chip, because
 // putting it under B would be answering a question it did not answer.
 export function useDrivingSchools(userCoords) {
-  const listings = useApprovedListings();
+  // Bounded to this one category in the QUERY rather than filtered out of
+  // the whole catalogue in JavaScript. The array below has the same shape it
+  // always had, so nothing downstream changed.
+  const { listings } = useCategoryListings("services");
 
   return useMemo(() => {
     if (!listings) return [];

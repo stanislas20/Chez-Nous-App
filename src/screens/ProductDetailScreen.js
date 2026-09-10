@@ -80,7 +80,8 @@ import {
 } from "../data/saleStatuses";
 import { useFavorites } from "../hooks/useFavorites";
 import { recordRecentlyViewed } from "../hooks/useRecentlyViewed";
-import { useApprovedListings } from "../hooks/useApprovedListings";
+import { useCategoryListings } from "../hooks/useCategoryListings";
+import { useSellerListings } from "../hooks/useSellerListings";
 import { CategoryPlaceholder } from "../components/CategoryPlaceholder";
 import { ListingMedia } from "../components/ListingMedia";
 import { PhoneCallButtons } from "../components/PhoneCallButtons";
@@ -599,8 +600,14 @@ export function ProductDetailScreen({ route, navigation }) {
   // there's often nothing else in that exact category yet, so fall back to
   // any other real listing rather than leaving the section permanently
   // empty — still genuine data either way, never invented.
-  const allListings = useApprovedListings();
-  const otherListings = (allListings ?? []).filter(
+  // Only this listing's own category is read, because that is the only
+  // category the row below is allowed to draw from — see the note under
+  // `similarListings`. The old code read every approved listing in the
+  // database to build a ten-item row out of one category of them.
+  const { listings: sameCategoryListings } = useCategoryListings(
+    listing.categoryKey,
+  );
+  const otherListings = (sameCategoryListings ?? []).filter(
     (item) =>
       item.id !== listing.id &&
       item.categoryKey !== "pharmacyOnDuty" &&
@@ -622,9 +629,13 @@ export function ProductDetailScreen({ route, navigation }) {
     .filter((item) => item.categoryKey === listing.categoryKey)
     .slice(0, 10);
 
-  const sellerListingCount = (allListings ?? []).filter(
-    (item) => item.sellerId === listing.sellerId,
-  ).length;
+  // Counted from a query keyed on this seller rather than by filtering the
+  // whole catalogue. useSellerListings already existed and already carries
+  // the composite index (sellerId + status), so this is a smaller read that
+  // is also more correct: it counts the seller's listings in every category,
+  // which the category-scoped read above no longer sees.
+  const sellerOwnListings = useSellerListings(listing.sellerId);
+  const sellerListingCount = (sellerOwnListings ?? []).length;
   const sellerMemberSinceDate = listing.sellerMemberSince?.toDate?.() ?? null;
   const sellerMemberSinceLabel = sellerMemberSinceDate
     ? t("dashboardMemberSince", {

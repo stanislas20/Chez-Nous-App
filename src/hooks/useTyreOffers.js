@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useApprovedListings } from "./useApprovedListings";
+import { useCategoryListings } from "./useCategoryListings";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { distanceInKm } from "../utils/geo";
 import { formatTyreSize, isAgedTyre, tyreAgeYears } from "../data/tyres";
@@ -16,7 +16,10 @@ import { withoutTestSeed } from "../utils/testSeed";
 // tyre whose size is unknown cannot be matched to a car and would only ever
 // waste a call.
 export function useTyreOffers(userCoords) {
-  const listings = useApprovedListings();
+  // Bounded to this one category in the QUERY rather than filtered out of
+  // the whole catalogue in JavaScript. The array below has the same shape it
+  // always had, so nothing downstream changed.
+  const { listings } = useCategoryListings("vehicles");
 
   return useMemo(() => {
     if (!listings) return [];

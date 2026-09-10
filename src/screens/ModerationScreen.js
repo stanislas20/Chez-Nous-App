@@ -27,7 +27,7 @@ import {
   categoryLabelFor,
   customCategoriesFrom,
 } from "../data/customCategories";
-import { useApprovedListings } from "../hooks/useApprovedListings";
+import { useCategoryListings } from "../hooks/useCategoryListings";
 import { compareNames } from "../utils/collate";
 
 const EMERALD = "#0B6E4F";
@@ -140,7 +140,11 @@ export function ModerationScreen({ navigation }) {
   // so it cannot happen automatically; what can happen is knowing which one
   // has earned it, which is otherwise invisible until somebody thinks to
   // count by hand.
-  const approvedListings = useApprovedListings();
+  // Only the "Autre" aisle carries a customCategory, so only the "Autre"
+  // aisle is read. This screen already subscribes to the pending queue; it
+  // was also pulling every approved listing in the database to count labels
+  // that exist on one category of them.
+  const { listings: approvedListings } = useCategoryListings("other");
   const customTally = useMemo(
     () => customCategoriesFrom(approvedListings).slice(0, 8),
     [approvedListings],

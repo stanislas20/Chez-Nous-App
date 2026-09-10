@@ -13,7 +13,7 @@ import { useTheme } from "../theme/ThemeContext";
 import { fontFamily } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { SearchBar } from "../components/SearchBar";
-import { useApprovedListings } from "../hooks/useApprovedListings";
+import { useCategoryListings } from "../hooks/useCategoryListings";
 import { getCarPark, operatorsForPark } from "../data/carParks";
 import { buildVehicleView } from "./CarsScreen";
 import {
@@ -85,7 +85,9 @@ export function VehicleListScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { t, language } = useI18n();
   const insets = useSafeAreaInsets();
-  const listings = useApprovedListings();
+  // One category, bounded in the query. Every filter below already narrowed
+  // to this category in JavaScript after downloading the whole catalogue.
+  const { listings: listings } = useCategoryListings("vehicles");
   const fixedBrand = route?.params?.brand ?? null;
   const fixedDeal = route?.params?.deal ?? null;
   const fixedPark = route?.params?.park ?? null;

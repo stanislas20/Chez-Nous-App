@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useApprovedListings } from "./useApprovedListings";
+import { useCategoryListingsMulti } from "./useCategoryListings";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { distanceInKm } from "../utils/geo";
 import { getVehicleDeal } from "../data/vehicles";
@@ -18,7 +18,11 @@ import { withoutTestSeed } from "../utils/testSeed";
 // a saloon under "camion" because its description mentions transport is the
 // text search this vertical exists to replace.
 export function useTrucks(userCoords, loadSize) {
-  const listings = useApprovedListings();
+  // Both categories, because a haulier is filed under either: the lorry
+  // itself is a vehicle, and the firm that drives it is a service. Filtering
+  // the whole catalogue in JavaScript hid that distinction; bounding to one
+  // category would have silently dropped half the screen.
+  const { listings } = useCategoryListingsMulti(["vehicles", "services"]);
 
   return useMemo(() => {
     const empty = { forSale: [], forHire: [], hauliers: [] };

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   collection,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -20,6 +21,11 @@ import { firestore, isFirebaseConfigured } from "../config/firebase";
 // outright with "the query requires an index". Sorting the other way and
 // reversing here costs nothing on a queue that is small by definition, and
 // removes a dependency on an index nobody would think to check.
+// How many pending listings the screen holds at once. Comfortably above any
+// backlog a single moderator would let build up, and a hard ceiling on what
+// the query can cost.
+export const MODERATION_QUEUE_CAP = 100;
+
 export function useModerationQueue(enabled) {
   const [pending, setPending] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +43,18 @@ export function useModerationQueue(enabled) {
       collection(firestore, "listings"),
       where("status", "==", "pending"),
       orderBy("createdAt", "desc"),
+      // Bounded, and still realtime — this is one of the two listeners worth
+      // paying for, because a moderator working the queue wants a listing to
+      // leave it the moment they decide, and wants a new arrival to appear
+      // without a pull.
+      //
+      // The cap is not pagination and does not need to be. A queue is worked
+      // to empty; if it is longer than this the number itself is the signal,
+      // and the moderator push already carries the true count from a count()
+      // aggregation rather than from this array. Oldest-first ordering means
+      // the cap drops the NEWEST arrivals, which is the right end to lose:
+      // the person waiting longest still gets seen first.
+      limit(MODERATION_QUEUE_CAP),
     );
 
     const unsubscribe = onSnapshot(

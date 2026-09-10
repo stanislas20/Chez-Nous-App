@@ -24,7 +24,7 @@ import { SearchBar } from "../components/SearchBar";
 import { AdBanner } from "../components/AdBanner";
 import { selectionTick } from "../utils/haptics";
 import { queryMatches } from "../utils/search";
-import { useApprovedListings } from "../hooks/useApprovedListings";
+import { useCategoryListings } from "../hooks/useCategoryListings";
 import { useApprovedAds } from "../hooks/useApprovedAds";
 import { useAuth } from "../auth/AuthContext";
 import { carParks } from "../data/carParks";
@@ -271,7 +271,9 @@ export function CarsScreen({ navigation, route }) {
   const parks = useDirectory("carParks", carParks, { approvedOnly: true });
 
   const insets = useSafeAreaInsets();
-  const listings = useApprovedListings();
+  // One category, bounded in the query. Every filter below already narrowed
+  // to this category in JavaScript after downloading the whole catalogue.
+  const { listings: listings } = useCategoryListings("vehicles");
   const ads = useApprovedAds();
   const { user } = useAuth();
 

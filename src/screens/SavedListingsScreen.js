@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,7 +8,7 @@ import { useTheme } from "../theme/ThemeContext";
 import { type } from "../theme/typography";
 import { ListingCard } from "../components/ListingCard";
 import { mockListings } from "../data/mockListings";
-import { useApprovedListingsState } from "../hooks/useApprovedListings";
+import { useListingsByIds } from "../hooks/useListingsByIds";
 import { useFavorites } from "../hooks/useFavorites";
 import { useAuth } from "../auth/AuthContext";
 import { useI18n } from "../i18n/I18nContext";
@@ -30,17 +31,22 @@ export function SavedListingsScreen() {
   const { t } = useI18n();
   const { user } = useAuth();
   const { favoriteIds } = useFavorites(user?.uid);
-  const { listings: liveListings, status: listingsStatus } =
-    useApprovedListingsState();
+  // The favourites are already a list of ids, so those are the documents to
+  // read. This screen used to download every approved listing in the database
+  // and keep the handful whose id was in that set — the cost of opening it
+  // was the size of the catalogue rather than the size of the reader's own
+  // saved list.
+  const savedIds = useMemo(() => [...favoriteIds], [favoriteIds]);
+  const { listings: fetched, status: listingsStatus } =
+    useListingsByIds(savedIds);
   // Sample listings only stand in for a missing backend on a developer's
   // machine. On a failed query this stays empty and the screen says why —
   // "you have nothing saved" is a different, and wrong, statement.
-  const listings =
-    liveListings ??
-    (listingsStatus === "unconfigured" ? mockListings : EMPTY_LISTINGS);
-  const savedListings = listings.filter((listing) =>
-    favoriteIds.has(listing.id),
-  );
+  const savedListings =
+    fetched ??
+    (listingsStatus === "unconfigured"
+      ? mockListings.filter((listing) => favoriteIds.has(listing.id))
+      : EMPTY_LISTINGS);
 
   if (!user) {
     return (

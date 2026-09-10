@@ -24,7 +24,7 @@ import { useAuth } from "../auth/AuthContext";
 import { openAccountGate } from "../utils/openAccountGate";
 import { canPublish } from "../utils/canPublish";
 import { useAccountGateIntent } from "../hooks/useAccountGateIntent";
-import { useApprovedListings } from "../hooks/useApprovedListings";
+import { useCategoryListings } from "../hooks/useCategoryListings";
 import { useSellerRatings } from "../hooks/useSellerRatings";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { cityCoordinates } from "../data/cityCoordinates";
@@ -78,7 +78,9 @@ export function GaragesScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { t, language } = useI18n();
   const insets = useSafeAreaInsets();
-  const listings = useApprovedListings();
+  // One category, bounded in the query. Every filter below already narrowed
+  // to this category in JavaScript after downloading the whole catalogue.
+  const { listings: listings } = useCategoryListings("services");
   const { user } = useAuth();
 
   const [search, setSearch] = useState("");

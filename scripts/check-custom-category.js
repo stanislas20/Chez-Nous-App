@@ -73,18 +73,28 @@ const failures = [];
 
 // 2. Suggestions come from approved listings only.
 {
+  // The hook named here changed in Phase B — the form now reads two bounded
+  // categories instead of subscribing to every approved listing in the
+  // database — but the property being asserted did not, and it is the one
+  // that matters: whatever feeds the chip row must be filtered to
+  // status == 'approved', or a pending listing's words reach every future
+  // seller before a moderator has read them.
   const form = read("src/screens/CreateListingScreen.js");
-  if (!/const approvedListings = useApprovedListings\(\)/.test(form)) {
+  if (
+    !/const \{ listings: approvedListings \} = useCategoryListingsMulti\(/.test(
+      form,
+    )
+  ) {
     failures.push(
-      "the suggestion list is not built from useApprovedListings — a " +
+      "the suggestion list is not built from the approved-listings read — a " +
         "pending or rejected listing's words would be offered to every " +
         "future seller before anyone had read them",
     );
   }
-  const hook = read("src/hooks/useApprovedListings.js");
-  if (!/["']approved["']/.test(hook)) {
+  const hook = read("src/hooks/useCategoryListings.js");
+  if (!/where\("status", "==", "approved"\)/.test(hook)) {
     failures.push(
-      "useApprovedListings no longer filters on the approved status, which " +
+      "useCategoryListings no longer filters on the approved status, which " +
         "is the only thing keeping unmoderated text out of the suggestions",
     );
   }

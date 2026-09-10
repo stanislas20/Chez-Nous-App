@@ -70,7 +70,7 @@ import {
   getExperienceMark,
   getExperienceTint,
 } from "../data/jobExperience";
-import { useApprovedListingsState } from "../hooks/useApprovedListings";
+import { useListingsQuery } from "../hooks/useListingsQuery";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useFavorites } from "../hooks/useFavorites";
 import { useJobFavorites } from "../hooks/useJobFavorites";
@@ -1091,8 +1091,23 @@ export function ForYouScreen({ navigation, route }) {
   const selectedChip = HOME_CATEGORIES.find((c) => c.key === selectedChipKey);
   const selectedCategoryKey = selectedChip?.categoryKey ?? null;
 
-  const { listings: liveListings, status: listingsStatus } =
-    useApprovedListingsState();
+  // A bounded page instead of the whole catalogue.
+  //
+  // This screen is rails, not an infinite feed: Recommandé, Près de chez
+  // vous, Tendances and the deals row are all slices of one recent set, and
+  // every one of them is a horizontal list somebody flicks through rather
+  // than scrolls to the end of. So the fix here is a bound and a refresh,
+  // not load-more — adding infinite scroll would change a screen that works.
+  //
+  // Sixty rather than the default thirty because five rails divide it: the
+  // near-you row filters by city and the deals row by a price drop, so a
+  // page that is only just big enough for the grid leaves those two empty on
+  // a quiet week.
+  const {
+    listings: liveListings,
+    status: listingsStatus,
+    refresh: refreshListings,
+  } = useListingsQuery({ pageSize: 60 });
 
   // Sample listings are for a machine with no Firebase env at all — a
   // developer building the app. They are NOT a fallback for a failed query:
@@ -1611,11 +1626,14 @@ export function ForYouScreen({ navigation, route }) {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await requestLocation();
+      // The pull now refetches the page as well as the fix. It used to ask
+      // only for the location, because the listings were a live subscription
+      // that needed no prompting — a bounded page does.
+      await Promise.all([requestLocation(), refreshListings()]);
     } finally {
       setRefreshing(false);
     }
-  }, [requestLocation]);
+  }, [requestLocation, refreshListings]);
 
   const refreshControl = (
     <RefreshControl

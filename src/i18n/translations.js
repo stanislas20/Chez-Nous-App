@@ -536,6 +536,7 @@ export const translations = {
       "No restaurant listed yet — browse the directory or add yours.",
     localNearbySectionTitle: "Nearby",
     localEmptyResults: "No listings match your filters right now.",
+    localEndOfResults: "That's everything for now.",
     pullToRefreshHint: "Pull down to refresh",
 
     jobsTitle: "Jobs",
@@ -3633,6 +3634,7 @@ export const translations = {
     localNearbySectionTitle: "À proximité",
     localEmptyResults:
       "Aucune annonce ne correspond à vos filtres pour le moment.",
+    localEndOfResults: "Vous avez tout vu pour l'instant.",
     pullToRefreshHint: "Tirez vers le bas pour actualiser",
 
     jobsTitle: "Emplois",

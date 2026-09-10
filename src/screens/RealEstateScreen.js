@@ -61,7 +61,7 @@ import {
 } from "../data/realEstate";
 import { buildLinkUrl } from "../data/restaurantLinks";
 import { countContact } from "../utils/contactCount";
-import { useApprovedListings } from "../hooks/useApprovedListings";
+import { useCategoryListings } from "../hooks/useCategoryListings";
 import { openChat } from "../utils/openChat";
 
 const EMERALD = "#0B6E4F";
@@ -146,7 +146,9 @@ export function RealEstateScreen({ navigation, route }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { language, t } = useI18n();
-  const listings = useApprovedListings();
+  // One category, bounded in the query. Every filter below already narrowed
+  // to this category in JavaScript after downloading the whole catalogue.
+  const { listings: listings } = useCategoryListings("realEstate");
   const { user } = useAuth();
 
   // Publishing a property meant leaving this screen for Vendre and finding

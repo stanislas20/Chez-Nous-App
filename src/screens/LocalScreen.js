@@ -30,7 +30,7 @@ import { nearestKnownCity } from "../utils/nearestCity";
 import { categories } from "../data/categories";
 import { listingSearchParts } from "../data/customCategories";
 import { LinearGradient } from "expo-linear-gradient";
-import { useApprovedListingsState } from "../hooks/useApprovedListings";
+import { useListingsQuery } from "../hooks/useListingsQuery";
 import { getDutyLabel } from "../utils/pharmacyDuty";
 import {
   getCuisineGradient,
@@ -167,18 +167,21 @@ export function LocalScreen({ navigation }) {
     toggleFavoriteRemote(id);
   };
 
-  // Listings are already live via Firestore's onSnapshot listener (see
-  // useApprovedListings) — the pull gesture just gives explicit,
-  // reassuring feedback that the feed is current, and refreshes the GPS fix
-  // backing the distance filter if one was already granted.
+  // The pull refetches the first page and, if a fix was already granted,
+  // the location backing the distance filter.
+  //
+  // This used to be a gesture with nothing behind it: the listings were a
+  // live subscription, so the pull only ever refreshed the GPS and waited
+  // half a second so the spinner did not flash. Now that the feed is a
+  // bounded page there is something real to ask for, and the artificial
+  // delay is gone with it.
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      if (locationStatus === "granted") {
-        await requestLocation();
-      } else {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
+      await Promise.all([
+        refreshListings(),
+        locationStatus === "granted" ? requestLocation() : Promise.resolve(),
+      ]);
     } finally {
       setRefreshing(false);
     }
@@ -197,8 +200,30 @@ export function LocalScreen({ navigation }) {
     setDistanceKm(next);
   };
 
-  const { listings: liveListings, status: listingsStatus } =
-    useApprovedListingsState();
+  // A bounded, city-scoped page instead of the whole catalogue.
+  //
+  // The city filter is the one this screen is built around, and it is an
+  // equality on an indexed field — so it belongs in the query rather than in
+  // the useMemo below, which used to run it over every approved listing in
+  // the database. When no city is chosen the query is unfiltered and simply
+  // paginated; the JavaScript filter stays for the case where a page arrives
+  // before the city selection has propagated, and costs nothing when the
+  // query already did the work.
+  //
+  // Distance, price sort and free text stay client-side: the first is an
+  // inequality Firestore would make dictate the sort order, and the other
+  // two have no index that could serve them.
+  const {
+    listings: liveListings,
+    status: listingsStatus,
+    hasMore: hasMoreListings,
+    isLoadingMore: loadingMoreListings,
+    loadMore: loadMoreListings,
+    refresh: refreshListings,
+  } = useListingsQuery({
+    filters: selectedCity ? [{ field: "city", value: selectedCity }] : [],
+    pageSize: 60,
+  });
 
   // Sample listings are for a machine with no Firebase env — a developer
   // building the app — never a stand-in for a query that failed. See the
@@ -556,6 +581,11 @@ export function LocalScreen({ navigation }) {
       <SectionList
         sections={listingSections}
         stickySectionHeadersEnabled
+        // Load-more. The threshold is half a screen rather than the default,
+        // because these rows are two cards wide and tall: by the time the
+        // last one is on screen the next page has usually landed.
+        onEndReached={loadMoreListings}
+        onEndReachedThreshold={0.5}
         ListHeaderComponent={
           <>
             {/* First thing in the list, because when the query is down every
@@ -790,7 +820,24 @@ export function LocalScreen({ navigation }) {
             ))}
           </GridRow>
         )}
-        ListFooterComponent={<ScreenFooter />}
+        ListFooterComponent={
+          <>
+            {/* Only while a page is actually in flight. A permanent spinner
+                at the bottom of a finite list reads as a list that never
+                ends, which is the opposite of what it means. */}
+            {loadingMoreListings ? (
+              <LoadingMoreRow>
+                <ActivityIndicator color={colors.primary} />
+              </LoadingMoreRow>
+            ) : null}
+            {/* Said once, at the real end. Without it the last page and a
+                failed page look identical from the reader's side. */}
+            {!hasMoreListings && listingSections.length > 0 ? (
+              <EndOfResults>{t("localEndOfResults")}</EndOfResults>
+            ) : null}
+            <ScreenFooter />
+          </>
+        }
       />
 
       <Modal
@@ -1374,4 +1421,16 @@ const CurrentLocationRow = styled(Pressable)`
 const CurrentLocationLabel = styled.Text`
   ${type.bodyMedium}
   color: ${EMERALD};
+`;
+
+const LoadingMoreRow = styled.View`
+  padding-vertical: ${spacing.lg}px;
+  align-items: center;
+`;
+
+const EndOfResults = styled.Text`
+  ${type.caption}
+  color: ${(props) => props.theme.textMuted};
+  text-align: center;
+  padding-vertical: ${spacing.lg}px;
 `;

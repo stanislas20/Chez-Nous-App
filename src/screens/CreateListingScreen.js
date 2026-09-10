@@ -188,7 +188,7 @@ import {
   sourcingCountries,
 } from "../data/importation";
 import { CountryPickerSheet } from "../components/CountryPickerSheet";
-import { useApprovedListings } from "../hooks/useApprovedListings";
+import { useCategoryListingsMulti } from "../hooks/useCategoryListings";
 import { getQuartiers } from "../data/quartiers";
 import {
   CUSTOM_CATEGORY_MAX,
@@ -1583,10 +1583,18 @@ export function CreateListingScreen({ route, navigation }) {
         : "FCFA";
   // What previous sellers called their "Autre" listings, commonest first.
   //
-  // Only approved listings feed this — useApprovedListings is already an
-  // onSnapshot on status == 'approved' — so nothing reaches the next
-  // seller's screen without a moderator having read it first.
-  const approvedListings = useApprovedListings();
+  // Only approved listings feed this, so nothing reaches the next seller's
+  // screen without a moderator having read it first.
+  //
+  // Two categories and not the whole catalogue: customCategory only exists on
+  // the "Autre" aisle and customTrade only on Services, so those are the two
+  // reads. This used to be an unbounded subscription to every approved
+  // listing in the database, on the posting form, purely to populate two chip
+  // rows.
+  const { listings: approvedListings } = useCategoryListingsMulti([
+    "other",
+    "services",
+  ]);
   const customCategorySuggestions = useMemo(
     () => customCategoriesFrom(approvedListings).slice(0, 12),
     [approvedListings],

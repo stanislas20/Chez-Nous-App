@@ -120,9 +120,101 @@ async function ensureUser(email, name, claims) {
     moderatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
+  // ── A catalogue deep enough to test search on a real phone ────────────
+  //
+  // The three listings above are moderation states. Search is a different
+  // question and needs a different shape: Phase C measured that a listing
+  // outside the loaded page could not be found at all, and Phase D fixed it,
+  // and neither of those is observable on a device with nine listings in the
+  // database. So this writes a catalogue with ONE deliberately buried target.
+  //
+  // 400 rather than the 2,408 the emulator tests use: the point on a phone is
+  // that the target sits far outside the 60-listing first page and outside
+  // the 200 a category caps at, and 400 clears both while still seeding in a
+  // few seconds over adb.
+  //
+  // searchTokens are NOT written here on purpose. syncListingSearchTokens is
+  // running in the emulator and will write them, which is itself worth
+  // watching: if the trigger is broken, search on the device finds nothing
+  // and that is the finding.
+  const BULK = 400;
+  const CATEGORIES = ["vehicles", "services", "realEstate", "other"];
+  const CITIES = ["Cotonou", "Porto-Novo", "Parakou"];
+  const bulkBase = Date.now() - BULK * 60000;
+
+  process.stdout.write(`  seeding ${BULK} listings for the search test`);
+  for (let start = 0; start < BULK; start += 100) {
+    const batch = db.batch();
+    for (let i = start; i < Math.min(start + 100, BULK); i += 1) {
+      batch.set(db.doc(`listings/device-${String(i).padStart(4, "0")}`), {
+        sellerId: seller.uid,
+        sellerName: "Vendeur Test",
+        sellerVerified: false,
+        status: "approved",
+        titleFr: `Article de test ${i}`,
+        titleEn: `Test item ${i}`,
+        descriptionFr: "Article ordinaire pour le test de recherche.",
+        descriptionEn: "Ordinary item for the search test.",
+        price: 5000 + i * 10,
+        categoryKey: CATEGORIES[i % CATEGORIES.length],
+        city: CITIES[i % CITIES.length],
+        condition: "used",
+        negotiable: true,
+        createdAt: admin.firestore.Timestamp.fromMillis(bulkBase + i * 60000),
+      });
+    }
+    await batch.commit();
+    process.stdout.write(".");
+  }
+
+  // The needle. Oldest of everything above, so it is behind all 400 — well
+  // outside the 60-listing first page and the 200-per-category cap.
+  await db.doc("listings/device-target").set({
+    sellerId: seller.uid,
+    sellerName: "Vendeur Test",
+    sellerVerified: false,
+    status: "approved",
+    titleFr: "Congélateur Hisense 300L très bon état",
+    titleEn: "Congélateur Hisense 300L très bon état",
+    descriptionFr: "Congélateur en très bon état, peu servi.",
+    descriptionEn: "Freezer in very good condition.",
+    price: 185000,
+    categoryKey: "other",
+    customCategory: "Électroménager",
+    city: "Parakou",
+    condition: "used",
+    negotiable: true,
+    createdAt: admin.firestore.Timestamp.fromMillis(bulkBase - 3600000),
+  });
+  // A second needle in Véhicules, so the category screens have their own.
+  await db.doc("listings/device-target-vehicle").set({
+    sellerId: seller.uid,
+    sellerName: "Vendeur Test",
+    sellerVerified: false,
+    status: "approved",
+    titleFr: "Peugeot Partner utilitaire diesel",
+    titleEn: "Peugeot Partner utilitaire diesel",
+    descriptionFr: "Utilitaire diesel, entretien à jour.",
+    descriptionEn: "Diesel van, serviced.",
+    price: 4200000,
+    brand: "Peugeot",
+    model: "Partner",
+    categoryKey: "vehicles",
+    city: "Cotonou",
+    condition: "used",
+    negotiable: true,
+    createdAt: admin.firestore.Timestamp.fromMillis(bulkBase - 7200000),
+  });
+  process.stdout.write("\n");
+
   console.log("seller uid:", seller.uid);
   console.log("moderator uid:", mod.uid);
   console.log("sign in with:", SELLER_PHONE, "/", PASSWORD);
+  console.log("");
+  console.log(`catalogue: ${BULK + 2} approved listings`);
+  console.log("search for : \"congelateur hisense\"  -> device-target (Autre, Parakou)");
+  console.log("search for : \"peugeot partner\"      -> device-target-vehicle (Vehicules, Cotonou)");
+  console.log("both sit behind all 400, so neither is on the first page or in the 200-cap.");
   process.exit(0);
 })().catch((e) => {
   console.error(e);

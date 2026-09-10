@@ -15,6 +15,7 @@
 // Run: node scripts/check-hook-contracts.js
 const fs = require("fs");
 const path = require("path");
+const { stripComments } = require("./lib/stripComments");
 
 const root = path.join(__dirname, "..");
 const hooksDir = path.join(root, "src", "hooks");
@@ -28,7 +29,15 @@ const failures = [];
 // Rest and spread are read as "we cannot see the whole shape", and the hook is
 // skipped rather than guessed at: a false failure here would be worse than a
 // missed one, because it would train somebody to ignore the script.
-function returnedKeys(source, hookName) {
+function returnedKeys(rawSource, hookName) {
+  // Comments stripped FIRST, and this was not a tidiness choice: the parser
+  // below splits the returned object on commas and reads what is before the
+  // first colon, so a comment line in front of a key made the key read as the
+  // comment and be discarded. Any hook whose return object was commented was
+  // silently reported with a shape smaller than it has — which then failed
+  // its callers for destructuring keys it really does return. Found when
+  // useListingsSearch came back as four keys of its six.
+  const source = stripComments(rawSource);
   const marker = new RegExp(`export function ${hookName}\\b`);
   const start = source.search(marker);
   if (start === -1) return null;

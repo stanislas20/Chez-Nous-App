@@ -71,6 +71,10 @@ import {
   getExperienceTint,
 } from "../data/jobExperience";
 import { useListingsQuery } from "../hooks/useListingsQuery";
+import {
+  useDebouncedValue,
+  useListingsSearch,
+} from "../hooks/useListingsSearch";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { useFavorites } from "../hooks/useFavorites";
 import { useJobFavorites } from "../hooks/useJobFavorites";
@@ -1109,6 +1113,19 @@ export function ForYouScreen({ navigation, route }) {
     refresh: refreshListings,
   } = useListingsQuery({ pageSize: 60 });
 
+  // The remote half of search. Debounced, so a two-word query is one read
+  // rather than fourteen. No category filter: the chips on this screen filter
+  // the results locally, and pushing the chip into the query would mean a new
+  // read every time somebody taps one.
+  const debouncedQuery = useDebouncedValue(query);
+  const {
+    results: searchResults,
+    status: searchStatus,
+    isSearching,
+    failed: searchFailed,
+  } = useListingsSearch(debouncedQuery);
+  const isSearchMode = searchStatus !== "idle";
+
   // Sample listings are for a machine with no Firebase env at all — a
   // developer building the app. They are NOT a fallback for a failed query:
   // during an outage or while a composite index rebuilds, invented listings
@@ -1386,8 +1403,19 @@ export function ForYouScreen({ navigation, route }) {
   // but still needs jobs stripped out here — same reasoning as the
   // `listings` filter above, this is a different variable so it isn't
   // covered by that filter automatically.
+  // While the reader is searching, the rows come from Firestore rather than
+  // from the sixty this screen loaded. Phase C measured what the alternative
+  // costs: a listing at position 2,321 of 2,408, approved and matching
+  // exactly, that this screen could not find.
+  //
+  // `allListingsForPharmacy` stays the source when the search has not
+  // resolved yet, so the rail does not blink empty between keystrokes.
   const searchableListings = (
-    query.trim() ? allListingsForPharmacy : listings
+    isSearchMode
+      ? (searchResults ?? allListingsForPharmacy)
+      : query.trim()
+        ? allListingsForPharmacy
+        : listings
   ).filter(
     (listing) =>
       listing.categoryKey !== "jobs" && listing.categoryKey !== "restaurants",

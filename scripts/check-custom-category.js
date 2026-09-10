@@ -148,15 +148,27 @@ const failures = [];
     "src/screens/ForYouScreen.js",
     "src/screens/LocalScreen.js",
   ];
+  // Phase D moved search from filtering a loaded array to querying Firestore,
+  // so a screen may now satisfy this in either of two ways — and the property
+  // being checked is the same one either way: a buyer typing the exact words
+  // a seller chose must find that listing.
+  //
+  // Remotely, the label reaches the query through searchTokens, which is
+  // asserted separately just below. Locally, it reaches queryMatches through
+  // listingSearchParts. A screen that does neither has broken the promise the
+  // posting form makes.
   for (const rel of SEARCHERS) {
     const source = read(rel);
+    const searchesRemotely = /useListingsSearch\(/.test(source);
     // Only the calls that search listings — the pharmacy one searches Places
     // results, which have no seller-written category.
     const calls = [...source.matchAll(/queryMatches\(([\s\S]{0,220}?)\)/g)]
       .map((match) => match[1])
       .filter((args) => /\blisting\.city\b/.test(args));
-    if (calls.length === 0) {
-      failures.push(`${rel} no longer searches listings at all`);
+    if (calls.length === 0 && !searchesRemotely) {
+      failures.push(
+        `${rel} neither searches listings locally nor calls useListingsSearch`,
+      );
       continue;
     }
     for (const args of calls) {
@@ -169,6 +181,23 @@ const failures = [];
             `so "name it the way a buyer would search for it" is a lie`,
         );
         break;
+      }
+    }
+  }
+
+  // And the remote half. A label that never becomes a token is a label no
+  // remote search can match, however carefully the screens are wired.
+  for (const rel of [
+    "src/utils/searchTokens.js",
+    "functions/searchTokens.js",
+  ]) {
+    const tokeniser = read(rel);
+    for (const field of ["customCategory", "customTrade"]) {
+      if (!new RegExp(`listing\\.${field}`).test(tokeniser)) {
+        failures.push(
+          `${rel} does not tokenise ${field}, so a buyer typing the exact ` +
+            `words a seller chose cannot find that listing by search`,
+        );
       }
     }
   }

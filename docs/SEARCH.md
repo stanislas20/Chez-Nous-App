@@ -1,5 +1,11 @@
 # Search: what it does today, and the smallest thing that would fix it
 
+> **Phase D update.** Option A is implemented. The measurement below is the
+> BEFORE. The AFTER is **10/10** — every surface finds a listing at position
+> 2,321 of 2,408, reading **2 documents** to do it. What follows is kept as
+> the record of the problem and the reasoning behind the choice; the sections
+> marked *(implemented)* say what was actually built.
+
 Measured, not estimated. `scripts/rules-tests/search.test.js` seeds 1,200
 listings, buries a target at position 2,321 of 2,408 by recency, and asks each
 search surface to find it. The target is approved, live, and matches the query
@@ -101,7 +107,7 @@ naming so they are not mistaken for one:
   does not index them — but it is why those two screens are the only ones that
   find things reliably today.
 
-## Recommendation
+## Recommendation *(implemented)*
 
 **Option A, before launch. Not Option B, not yet.**
 
@@ -121,20 +127,66 @@ time covers the common French case; a genuine misspelling will find nothing.
 That is a real regression against the pre-Phase-B behaviour only for
 misspellings, and against nothing else.
 
-**Not implemented.** The brief asked for a proposal, and the choice is yours.
-Until one is made, search is a launch blocker: a marketplace whose search
-cannot find its own listings will be read as an empty marketplace.
+### What was actually built *(differs from the plan in one important way)*
 
-### If you approve Option A, what it touches
+The plan said "write `searchTokens` at publish". It is **written by the
+server** instead, and that change is the most consequential decision in Phase
+D.
 
-1. `src/utils/search.js` — export the tokeniser the matcher already contains.
-2. `src/screens/CreateListingScreen.js` — write `searchTokens` at publish and
-   on edit. Rules cap its length (the `listingLimits` pattern).
-3. `firestore.rules` — validate `searchTokens` is an array of ≤40 short strings.
-4. `firestore.indexes.json` — `status + searchTokens + createdAt`, and one with
-   `categoryKey` for the aisle screens.
-5. A new `useListingsSearch` beside `useListingsQuery`, same shape.
-6. The search screens switch from filtering their array to calling it.
-7. `scripts/backfillSearchTokens.js` — Admin SDK, one pass over existing
-   listings.
-8. `scripts/rules-tests/search.test.js` — the same six probes, expected to pass.
+A rule can check that an array is short and full of strings. What no rule can
+check is that the words came from the title — and `array-contains` does not
+care where a word came from. A client writing its own tokens can put
+"toyota", "corolla" and "iphone" on a listing for a broken chair and appear in
+all three searches, invisibly, because a moderator reads the title and not the
+token array. That is keyword stuffing, and it is the oldest abuse a
+marketplace search invites.
+
+So the rules refuse a client-written `searchTokens` outright — the same shape
+as `sellerVerified` in Phase A — and `syncListingSearchTokens` writes it from
+the document a moderator actually read. The latency costs nothing: a listing
+is created `pending` and search only ever queries `status == "approved"`, so
+the tokens exist long before the listing is searchable.
+
+| File | What it does |
+|---|---|
+| `src/utils/searchTokens.js` | the tokeniser, and the query side |
+| `functions/searchTokens.js` | its twin, for the trigger and the backfill |
+| `scripts/check-search-tokens.js` | requires the two to agree, exactly |
+| `functions/index.js` | `syncListingSearchTokens` — server-authoritative |
+| `firestore.rules` | refuses client-written tokens; freezes them; caps at 40 |
+| `firestore.indexes.json` | three new composite indexes |
+| `src/hooks/useListingsSearch.js` | the query, debounced, with its states |
+| `scripts/backfillSearchTokens.js` | idempotent, resumable, one field only |
+| ForYou, Local, CategoryListings | search remotely instead of filtering |
+
+### Measured, after
+
+| | |
+|---|---|
+| Surfaces finding a buried listing | **10/10** (was 4/10) |
+| Buried target position | 2,321 of 2,408 |
+| Documents read to find it | **2** |
+| Search latency (emulator) | ~200 ms |
+| Zero-result search | 0 documents read |
+| Backfill | 6,990 listings, 28 pages, 2.9 s, idempotent |
+
+### The limitation, stated plainly
+
+**There is no typo tolerance.** Accent, case, punctuation and spacing all fold
+— "Congélateur", "congelateur" and "CONGELATEUR" are one word — but a genuine
+misspelling finds nothing. "congelateurr" returns zero results, and a test
+asserts that it does, so nobody mistakes it for a defect later.
+
+Two smaller limits worth knowing:
+
+- **Whole words only.** A partial word typed mid-search ("corol") does not
+  match remotely. Debouncing means this is rarely visible — by the time
+  somebody stops typing they have usually finished the word — but it is why
+  the local matcher is still applied to what comes back.
+- **Description coverage is bounded.** The first twelve meaningful description
+  words are tokenised, after the title, attributes and location. A word buried
+  deep in a long description is not searchable.
+
+If typo tolerance turns out to matter, that is the argument for Option B, and
+this is the point at which it should be reconsidered — with real search logs
+rather than a guess.

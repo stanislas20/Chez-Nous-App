@@ -32,6 +32,10 @@ import { mockListings } from "../data/mockListings";
 import { cities } from "../data/cities";
 import { useCategoryListings } from "../hooks/useCategoryListings";
 import {
+  useDebouncedValue,
+  useListingsSearch,
+} from "../hooks/useListingsSearch";
+import {
   customCategoriesFrom,
   foldCategoryLabel,
   listingSearchParts,
@@ -507,6 +511,21 @@ export function CategoryListingsScreen({ route, navigation }) {
     isLoadingMore: loadingMoreInCategory,
     loadMore: loadMoreInCategory,
   } = useCategoryListings(categoryKey);
+
+  // See the note on `listings` below. Debounced so typing does not become a
+  // query per character.
+  const debouncedQuery = useDebouncedValue(query);
+  const searchFilters = useMemo(
+    () => [{ field: "categoryKey", value: categoryKey }],
+    [categoryKey],
+  );
+  const {
+    results: searchResults,
+    status: searchStatus,
+    isSearching,
+    failed: searchFailed,
+  } = useListingsSearch(debouncedQuery, { filters: searchFilters });
+  const isSearchMode = searchStatus !== "idle";
   const allListings =
     liveListings ?? (listingsStatus === "unconfigured" ? mockListings : []);
   const categoryListings = allListings.filter(
@@ -558,18 +577,22 @@ export function CategoryListingsScreen({ route, navigation }) {
       ? aisleFilteredListings.filter((listing) => listing.city === selectedCity)
       : aisleFilteredListings;
 
-  const listings = query.trim()
-    ? cityFilteredListings.filter((listing) => {
-        const title =
-          (language === "en" ? listing.titleEn : listing.titleFr) ?? "";
-        return queryMatches(
-          query,
-          title,
-          listing.city,
-          ...listingSearchParts(listing),
-        );
-      })
-    : cityFilteredListings;
+  // Searching this aisle asks Firestore for the whole aisle, not the 200 that
+  // happen to be loaded. Phase C measured a listing in this very category
+  // that could not be found because it sat outside the cap.
+  //
+  // The category travels with the query, so a search here stays a search
+  // here. The city filter is applied locally afterwards for the same reason
+  // it is applied locally in browse: this screen's city selection is a
+  // display grouping rather than a query, and only the pharmacy roster uses
+  // it at all.
+  const listings = useMemo(() => {
+    if (!isSearchMode) return cityFilteredListings;
+    const rows = searchResults ?? [];
+    return selectedCity
+      ? rows.filter((listing) => listing.city === selectedCity)
+      : rows;
+  }, [isSearchMode, searchResults, cityFilteredListings, selectedCity]);
 
   // Ordered by serviceTrades — the same order and the same names the posting
   // form offers — so a trade is called one thing where it is published and

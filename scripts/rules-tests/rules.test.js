@@ -28,9 +28,11 @@ const {
   getDoc,
   getDocs,
   serverTimestamp,
+  query,
   setDoc,
   Timestamp,
   updateDoc,
+  where,
 } = require("firebase/firestore");
 
 const SELLER = "seller-uid";
@@ -1212,6 +1214,95 @@ async function main() {
       setDoc(
         doc(asOutsider, `conversations/realShape_${OUTSIDER}/messages/d`),
         { senderId: OUTSIDER, text: "merci", createdAt: serverTimestamp() },
+      ),
+    ),
+  );
+
+  // ── D7. Search metadata is the server's ─────────────────────────────────
+  // searchTokens is what makes a listing findable, so a client that could
+  // write it could put "toyota", "corolla" and "iphone" on a broken chair and
+  // appear in all three searches — invisibly, because a moderator reads the
+  // title and not the token array. Refused on the way in, frozen afterwards,
+  // and written only by syncListingSearchTokens under the Admin SDK.
+  await check(
+    "a seller cannot publish with search tokens of their own choosing",
+    assertFails(
+      setDoc(doc(asSeller, "listings/stuffed"), {
+        ...listing,
+        sellerId: SELLER,
+        searchTokens: ["toyota", "corolla", "iphone", "climatiseur"],
+      }),
+    ),
+  );
+  await check(
+    "a seller cannot add search tokens to a listing after approval",
+    assertFails(
+      updateDoc(doc(asSeller, "listings/live"), {
+        searchTokens: ["iphone", "toyota"],
+      }),
+    ),
+  );
+  await check(
+    "a stranger cannot rewrite somebody else's search tokens",
+    assertFails(
+      updateDoc(doc(asOutsider, "listings/live"), { searchTokens: ["spam"] }),
+    ),
+  );
+  await check(
+    "an ordinary publish, carrying no tokens, still works",
+    assertSucceeds(
+      setDoc(doc(asSeller, "listings/unstuffed"), {
+        ...listing,
+        sellerId: SELLER,
+      }),
+    ),
+  );
+  await check(
+    "the server can write search tokens",
+    assertSucceeds(
+      env.withSecurityRulesDisabled((ctx) =>
+        updateDoc(doc(ctx.firestore(), "listings/live"), {
+          searchTokens: ["congelateur", "hisense"],
+        }),
+      ),
+    ),
+  );
+  // The size bound, exercised against the Admin SDK's own write path being
+  // absent: a client write is refused for carrying the field at all, so this
+  // proves the belt-and-braces ceiling is real rather than decorative.
+  await check(
+    "an oversized token array is refused even where the field is permitted",
+    assertFails(
+      setDoc(doc(asSeller, "listings/hugeTokens"), {
+        ...listing,
+        sellerId: SELLER,
+        searchTokens: Array.from({ length: 500 }, (_, i) => `spam${i}`),
+      }),
+    ),
+  );
+  // And the read side: matching tokens must never make an unapproved listing
+  // visible. The status filter is what does that, and it is the rules that
+  // require it.
+  await check(
+    "a search that omits the approved filter is refused",
+    assertFails(
+      getDocs(
+        query(
+          collection(asOutsider, "listings"),
+          where("searchTokens", "array-contains", "congelateur"),
+        ),
+      ),
+    ),
+  );
+  await check(
+    "a search that keeps the approved filter is allowed",
+    assertSucceeds(
+      getDocs(
+        query(
+          collection(asOutsider, "listings"),
+          where("status", "==", "approved"),
+          where("searchTokens", "array-contains", "congelateur"),
+        ),
       ),
     ),
   );

@@ -31,6 +31,10 @@ import { categories } from "../data/categories";
 import { listingSearchParts } from "../data/customCategories";
 import { LinearGradient } from "expo-linear-gradient";
 import { useListingsQuery } from "../hooks/useListingsQuery";
+import {
+  useDebouncedValue,
+  useListingsSearch,
+} from "../hooks/useListingsSearch";
 import { getDutyLabel } from "../utils/pharmacyDuty";
 import {
   getCuisineGradient,
@@ -225,6 +229,29 @@ export function LocalScreen({ navigation }) {
     pageSize: 60,
   });
 
+  // Search asks Firestore rather than filtering the page.
+  //
+  // Phase C measured what the alternative costs: a listing at position 2,321
+  // of 2,408 — approved, live, matching exactly — could not be found here,
+  // because this screen filtered an array bounded at 60. To a buyer that is
+  // indistinguishable from "there isn't one".
+  //
+  // Debounced, so a two-word search costs one query rather than fourteen.
+  // The city filter travels with it, so searching inside a chosen city stays
+  // a search inside that city.
+  const debouncedQuery = useDebouncedValue(query);
+  const searchFilters = useMemo(
+    () => (selectedCity ? [{ field: "city", value: selectedCity }] : []),
+    [selectedCity],
+  );
+  const {
+    results: searchResults,
+    status: searchStatus,
+    isSearching,
+    failed: searchFailed,
+  } = useListingsSearch(debouncedQuery, { filters: searchFilters });
+  const isSearchMode = searchStatus !== "idle";
+
   // Sample listings are for a machine with no Firebase env — a developer
   // building the app — never a stand-in for a query that failed. See the
   // status doc in useApprovedListings.js: fiction shown during an outage
@@ -295,7 +322,10 @@ export function LocalScreen({ navigation }) {
   // reading zero — and there would be no way back to the others without
   // opening the filter sheet.
   const listingsBeforeCategory = useMemo(() => {
-    let result = listings;
+    // While searching, the rows come from Firestore rather than from the
+    // loaded page. The filters below still run: the query applied the city,
+    // and distance and price sort have no index that could serve them.
+    let result = isSearchMode ? (searchResults ?? []) : listings;
 
     if (selectedCity) {
       result = result.filter((listing) => listing.city === selectedCity);
@@ -307,7 +337,7 @@ export function LocalScreen({ navigation }) {
         return distanceInKm(userCoords, cityCoord) <= distanceKm;
       });
     }
-    if (query.trim().length > 0) {
+    if (!isSearchMode && query.trim().length > 0) {
       result = result.filter((listing) => {
         const title = language === "en" ? listing.titleEn : listing.titleFr;
         return queryMatches(
@@ -326,6 +356,8 @@ export function LocalScreen({ navigation }) {
     return result;
   }, [
     listings,
+    isSearchMode,
+    searchResults,
     selectedCity,
     distanceKm,
     userCoords,
@@ -787,7 +819,23 @@ export function LocalScreen({ navigation }) {
         }
         ListEmptyComponent={
           <EmptyState>
-            <EmptyText>{t("localEmptyResults")}</EmptyText>
+            {/* Three states, and they must not be confused with each other.
+                A search still running must never say "no results" — that is
+                the sentence that sends somebody away from a listing that was
+                about to appear. And a failed search must not say it either:
+                "we found nothing" and "we could not look" are different
+                facts, and only one of them is worth retrying. */}
+            {isSearching ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : searchFailed ? (
+              <EmptyText>{t("searchFailed")}</EmptyText>
+            ) : (
+              <EmptyText>
+                {isSearchMode
+                  ? t("searchNoResults", { query: query.trim() })
+                  : t("localEmptyResults")}
+              </EmptyText>
+            )}
           </EmptyState>
         }
         renderSectionHeader={({ section }) => (

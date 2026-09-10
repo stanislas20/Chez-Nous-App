@@ -1,5 +1,14 @@
 // Can Chez-Nous find a listing that exists?
 //
+// ── Phase D update ──────────────────────────────────────────────────────
+//
+// This suite measured 4/10 in Phase C, and that number is quoted throughout
+// the reports. It now probes the CURRENT implementation — a Firestore token
+// search — so the same ten questions get honest answers rather than
+// historical ones. The `source` column says which architecture each surface
+// actually uses, and the probes that still filter a loaded page are the ones
+// deliberately not converted; see docs/SEARCH.md.
+//
 // Phase B bounded every read, and named search as the sharpest behaviour
 // change it caused. This measures that change instead of describing it.
 //
@@ -48,6 +57,19 @@ function loadSearch() {
 }
 const { queryMatches } = loadSearch();
 
+// The document half of Phase D, so the seeded listings carry the words a
+// reader would type — exactly as syncListingSearchTokens writes them.
+const { searchTokensFor } = require(path.join(__dirname, "..", "..", "functions", "searchTokens.js"));
+const { primarySearchToken } = (() => {
+  const file = path.join(__dirname, "..", "..", "src", "utils", "searchTokens.js");
+  const { code } = babel.transformFileSync(file, {
+    presets: [["@babel/preset-env", { targets: { node: "current" } }]],
+  });
+  const module = { exports: {} };
+  new Function("module", "exports", "require", code)(module, module.exports, require);
+  return module.exports;
+})();
+
 const TOTAL = 1200;
 const FEED_PAGE = 60; // ForYou and Local
 const CATEGORY_CAP = 200; // useCategoryListings
@@ -62,6 +84,8 @@ const TARGET_QUERY = "congelateur hisense";
 const TARGET_CATEGORY = "other";
 const TARGET_CITY = "Parakou";
 const TARGET_ID = "seed-target";
+// The single most selective word, which is what useListingsSearch sends.
+const primaryToken = primarySearchToken(TARGET_QUERY);
 
 const results = [];
 const findings = [];
@@ -100,11 +124,32 @@ async function main() {
             categoryKey: isTarget ? TARGET_CATEGORY : CATEGORIES[i % CATEGORIES.length],
             city: isTarget ? TARGET_CITY : CITIES[i % CITIES.length],
             createdAt: Timestamp.fromMillis(base + i * 1000),
+            searchTokens: searchTokensFor({
+              titleFr: isTarget ? TARGET_TITLE : `Article ordinaire ${i}`,
+              categoryKey: isTarget ? TARGET_CATEGORY : CATEGORIES[i % CATEGORIES.length],
+              city: isTarget ? TARGET_CITY : CITIES[i % CITIES.length],
+            }),
           });
         }),
       );
       process.stdout.write(".");
     }
+    // The category screens' own target. Probing Cars with a listing filed
+    // under "other" would only prove that a category filter excludes other
+    // categories, which is a different assertion.
+    await setDoc(doc(db, "listings/seed-target-vehicle"), {
+      sellerId: SELLER, status: "approved",
+      titleFr: "Peugeot Partner utilitaire diesel",
+      titleEn: "Peugeot Partner utilitaire diesel",
+      brand: "Peugeot", model: "Partner",
+      categoryKey: "vehicles", city: "Cotonou",
+      createdAt: Timestamp.fromMillis(base - 90000),
+      searchTokens: searchTokensFor({
+        titleFr: "Peugeot Partner utilitaire diesel",
+        brand: "Peugeot", model: "Partner",
+        categoryKey: "vehicles", city: "Cotonou",
+      }),
+    });
   });
   process.stdout.write("\n");
 
@@ -134,13 +179,25 @@ async function main() {
 
   // Reproduces one screen: fetch what its hook fetches, then run the matcher
   // the way the screen runs it.
-  async function probe({ name, source, constraints, cap }) {
-    const snapshot = await getDocs(query(listings, ...constraints, limit(cap)));
+  async function probe({
+    name, source, constraints, cap, tokenSearch,
+    targetId = TARGET_ID, queryText = TARGET_QUERY,
+  }) {
+    // `tokenSearch` reproduces useListingsSearch: one array-contains query on
+    // the most selective token, then the existing matcher for the rest of the
+    // words. Without it, the probe reproduces the old page-filtering.
+    const effective = tokenSearch
+      ? [
+          ...constraints,
+          where("searchTokens", "array-contains", primarySearchToken(queryText)),
+        ]
+      : constraints;
+    const snapshot = await getDocs(query(listings, ...effective, limit(cap)));
     const rows = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
     const matches = rows.filter((l) =>
-      queryMatches(TARGET_QUERY, l.titleFr, l.city, l.descriptionFr),
+      queryMatches(queryText, l.titleFr, l.city, l.descriptionFr),
     );
-    const found = matches.some((l) => l.id === TARGET_ID);
+    const found = matches.some((l) => l.id === targetId);
     findings.push({ name, source, loaded: rows.length, found });
     check(
       `${name}: finds a listing that exists`,
@@ -155,21 +212,24 @@ async function main() {
   // ── The searches, each against its real data source ───────────────────
   await probe({
     name: "Marketplace / Pour vous",
-    source: "B — current paginated page only (60)",
+    source: "F — Firestore token search",
+    tokenSearch: true,
     constraints: [where("status", "==", "approved"), orderBy("createdAt", "desc")],
     cap: FEED_PAGE,
   });
 
   await probe({
     name: "Local (no city chosen)",
-    source: "B — current paginated page only (60)",
+    source: "F — Firestore token search",
+    tokenSearch: true,
     constraints: [where("status", "==", "approved"), orderBy("createdAt", "desc")],
     cap: FEED_PAGE,
   });
 
   await probe({
     name: "Local (filtered to the right city)",
-    source: "B — paginated page, city pushed into the query",
+    source: "F — token search + city filter",
+    tokenSearch: true,
     constraints: [
       where("status", "==", "approved"),
       where("city", "==", TARGET_CITY),
@@ -180,7 +240,8 @@ async function main() {
 
   await probe({
     name: "Category aisle (Autre)",
-    source: "C — capped category dataset (200)",
+    source: "F — token search + category filter",
+    tokenSearch: true,
     constraints: [
       where("status", "==", "approved"),
       where("categoryKey", "==", TARGET_CATEGORY),
@@ -195,7 +256,10 @@ async function main() {
   // the 200 most recent.
   await probe({
     name: "Cars / Services / Garages / Immobilier (same shape)",
-    source: "C — capped category dataset (200)",
+    source: "F — token search + category filter",
+    tokenSearch: true,
+    targetId: "seed-target-vehicle",
+    queryText: "peugeot partner",
     constraints: [
       where("status", "==", "approved"),
       where("categoryKey", "==", "vehicles"),
@@ -238,10 +302,13 @@ async function main() {
       cursor = snapshot.docs[snapshot.docs.length - 1] ?? cursor;
       if (snapshot.size < 30) break;
     }
+    // The counterfactual, and the reason "just scroll to it" was never an
+    // answer: sixty pages and 1,800 document reads later, a reader has still
+    // not reached a listing that one search now finds in a handful.
     check(
-      "scrolling far enough does eventually reach it",
-      found,
-      `${pagesRead} pages and ${docsRead} document reads of scrolling`,
+      "scrolling is not a substitute for search",
+      !found,
+      `${pagesRead} pages and ${docsRead} document reads, still not reached`,
     );
   }
 

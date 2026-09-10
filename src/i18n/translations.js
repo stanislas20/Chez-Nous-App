@@ -537,6 +537,8 @@ export const translations = {
     localNearbySectionTitle: "Nearby",
     localEmptyResults: "No listings match your filters right now.",
     localEndOfResults: "That's everything for now.",
+    searchNoResults: "No listings match \u201c{query}\u201d.",
+    searchFailed: "Search could not run. Check your connection and try again.",
     pullToRefreshHint: "Pull down to refresh",
 
     jobsTitle: "Jobs",
@@ -3657,6 +3659,9 @@ export const translations = {
     localEmptyResults:
       "Aucune annonce ne correspond à vos filtres pour le moment.",
     localEndOfResults: "Vous avez tout vu pour l'instant.",
+    searchNoResults: "Aucune annonce ne correspond \u00e0 \u00ab\u202f{query}\u202f\u00bb.",
+    searchFailed:
+      "La recherche n'a pas pu aboutir. V\u00e9rifiez votre connexion et r\u00e9essayez.",
     pullToRefreshHint: "Tirez vers le bas pour actualiser",
 
     jobsTitle: "Emplois",

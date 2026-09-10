@@ -192,6 +192,20 @@ service cloud.firestore {
         || (data[field] is string && data[field].size() <= max);
     }
 
+    // Belt and braces on the array the server writes.
+    //
+    // Nothing that reaches this rule should carry searchTokens at all — the
+    // create rule refuses them and the owner-update rule freezes them, and
+    // the Admin SDK bypasses rules entirely. This is the third line anyway,
+    // because the field is on a document every reader downloads and an
+    // unbounded array there is a document-size problem for everybody. Matches
+    // SEARCH_TOKEN_MAX in src/utils/searchTokens.js, checked by
+    // scripts/check-search-tokens.js.
+    function searchTokensOk(data) {
+      return !('searchTokens' in data)
+        || (data.searchTokens is list && data.searchTokens.size() <= 40);
+    }
+
     function listingTextOk(data) {
       return textOk(data, 'titleFr', 120)
         && textOk(data, 'titleEn', 120)
@@ -257,6 +271,20 @@ service cloud.firestore {
         // See badgeUnclaimed: the Vérifié badge is granted by review, never
         // asserted by the account being reviewed.
         && badgeUnclaimed(request.resource.data)
+        // Search tokens are the server's, not the seller's.
+        //
+        // A rule can check that an array is short and full of strings. What
+        // it cannot check is that the words came from the title — and
+        // `array-contains` does not care where a word came from. A client
+        // that writes its own tokens can put "toyota", "corolla" and
+        // "iphone" on a listing for a broken chair and turn up in all three
+        // searches, invisibly, because the moderator reads the title and not
+        // the token array.
+        //
+        // So it is refused here entirely and written by
+        // syncListingSearchTokens from the document a moderator actually
+        // read. Same shape, and the same reasoning, as sellerVerified.
+        && !request.resource.data.keys().hasAny(['searchTokens'])
         && countersUnseeded(request.resource.data)
         && expiresAtOk(request.resource.data)
         && listingTextOk(request.resource.data)
@@ -365,12 +393,13 @@ service cloud.firestore {
                        'viewCount', 'viewCountToday', 'viewCountDate',
                        'shareCount', 'contactCount', 'contactCountToday',
                        'contactCountDate', 'saveCount', 'reportCount',
-                       'lastReportedAt'])
+                       'lastReportedAt', 'searchTokens'])
         // Renewal writes expiresAt from the dashboard, so this stays open —
         // bounded rather than frozen. See expiresAtOk.
         && expiresAtOk(request.resource.data)
         && listingTextOk(request.resource.data)
-        && listingPriceOk(request.resource.data);
+        && listingPriceOk(request.resource.data)
+        && searchTokensOk(request.resource.data);
 
       // Moderation, from inside the app rather than from a laptop.
       //

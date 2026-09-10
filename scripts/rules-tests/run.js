@@ -30,6 +30,9 @@ const SUITES = [
   // the real index file loaded, so a missing composite index fails here
   // rather than in production on a screen nobody opened.
   "scripts/rules-tests/indexes.test.js",
+  // Phase D: the failure test repeated against the fix, plus the backfill
+  // run for real and the read cost of finding a buried listing measured.
+  "scripts/rules-tests/searchTokens.test.js",
   // Callables. These use CallableFunction.run() with the admin SDK pointed at
   // the emulators, so the transport is skipped and everything else is real.
   "scripts/functions-tests/deleteAccount.test.js",

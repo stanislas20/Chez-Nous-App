@@ -14,6 +14,12 @@ const { setGlobalOptions } = require("firebase-functions/v2");
 // notified.
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
+// The document half of search. Twinned with src/utils/searchTokens.js and
+// held in step by scripts/check-search-tokens.js.
+const {
+  searchTokensFor,
+  searchTokensUnchanged,
+} = require("./searchTokens");
 
 admin.initializeApp();
 
@@ -447,6 +453,63 @@ exports.autoPublishVerifiedCompanyListing = onDocumentCreated(
     if (listing.categoryKey === "jobs") badge.verified = true;
 
     await event.data.ref.update({ status: "approved", ...badge });
+  },
+);
+
+// The words a listing can be found by, written by the server.
+//
+// ── Why this is a trigger and not a field the app writes ────────────────
+//
+// The app could produce these tokens itself and firestore.rules could check
+// their length and type. What no rule can check is that they came from the
+// title: `array-contains` does not care where a word came from, so a client
+// that writes its own tokens can put "toyota", "corolla" and "iphone" on a
+// listing for a broken chair and appear in all three searches. That is
+// keyword stuffing, it is the oldest abuse a marketplace search invites, and
+// it is invisible in moderation because the moderator reads the title.
+//
+// So the rules refuse a client-written searchTokens entirely — the same shape
+// as sellerVerified in Phase A — and this writes it from the document the
+// moderator actually read.
+//
+// ── The latency costs nothing, and that is not a coincidence ────────────
+//
+// A listing is created `pending`, and search only ever queries
+// `status == "approved"`. So a listing is not searchable until a moderator
+// (or autoPublishVerifiedCompanyListing) approves it, which is minutes or
+// hours after this trigger has run. The seconds this takes are invisible.
+//
+// ── Why it compares before writing ──────────────────────────────────────
+//
+// This fires on every write to a listing, including its own. Writing
+// unconditionally would re-trigger itself once and settle — harmless but
+// wasteful — and, worse, every unrelated edit would cost a second write.
+// searchTokensUnchanged is what makes it a no-op for the writes that do not
+// change any searchable field, which is most of them: a price drop, a
+// saleStatus, a view counter.
+exports.syncListingSearchTokens = onDocumentWritten(
+  "listings/{listingId}",
+  async (event) => {
+    const after = event.data?.after;
+    // Deleted. Nothing to tokenise, and cleanupDeletedListingMedia is already
+    // handling what deletion means.
+    if (!after?.exists) return;
+
+    const listing = after.data();
+    if (searchTokensUnchanged(listing, listing.searchTokens)) return;
+
+    const tokens = searchTokensFor(listing);
+    // update(), not set(merge): this must never create a document, and a
+    // listing deleted between the event and this line should fail rather than
+    // be resurrected as a husk carrying nothing but tokens.
+    await after.ref.update({ searchTokens: tokens }).catch((error) => {
+      // NOT_FOUND is the ordinary race above and is not worth a log line.
+      if (error?.code === 5) return;
+      logger.warn(
+        `searchTokens not written for ${event.params.listingId}`,
+        error?.code ?? error,
+      );
+    });
   },
 );
 

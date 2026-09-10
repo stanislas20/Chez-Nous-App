@@ -612,6 +612,8 @@ export const translations = {
     jobDetailApplyErrorTitle: "Application not sent",
     jobDetailApplyErrorMessage:
       "Something went wrong sending your application. Please try again.",
+    jobDetailApplyDuplicateMessage:
+      "You have already applied for this job. The employer has your application.",
     jobApplicationsTitle: "Applications",
     jobApplicationsEmptyTitle: "No applications yet",
     jobApplicationsEmptySubtitle:
@@ -3707,6 +3709,8 @@ export const translations = {
     jobDetailApplyErrorTitle: "Candidature non envoyée",
     jobDetailApplyErrorMessage:
       "Une erreur s'est produite lors de l'envoi. Veuillez réessayer.",
+    jobDetailApplyDuplicateMessage:
+      "Vous avez déjà postulé à cette offre. L'employeur a votre candidature.",
     jobApplicationsTitle: "Candidatures",
     jobApplicationsEmptyTitle: "Aucune candidature pour le moment",
     jobApplicationsEmptySubtitle:

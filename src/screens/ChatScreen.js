@@ -39,6 +39,7 @@ import { useTheme } from "../theme/ThemeContext";
 import { type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { downscalePickedAssets } from "../utils/downscalePhoto";
+import { CHAT_MESSAGE_MAX } from "../data/listingLimits";
 import { PRIVATE_UPLOAD_CACHE } from "../utils/uploadContentType";
 import { useAuth } from "../auth/AuthContext";
 import { firestore, storage } from "../config/firebase";
@@ -753,6 +754,11 @@ export function ChatScreen({ route, navigation }) {
                   placeholder={t("chatInputPlaceholder")}
                   placeholderTextColor={colors.textMuted}
                   multiline
+                  // Mirrors the ceiling firestore.rules now enforces on a
+                  // message body. Nobody types this much on a phone; it is
+                  // a bound on what can be pasted into a thread that has no
+                  // pagination and is read back in full by both sides.
+                  maxLength={CHAT_MESSAGE_MAX}
                 />
                 {text.trim() ? (
                   <SendButton onPress={handleSend} disabled={isSending}>

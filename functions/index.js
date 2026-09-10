@@ -421,7 +421,26 @@ exports.autoPublishVerifiedCompanyListing = onDocumentCreated(
       seller.verificationStatus === "verified";
     if (!isVerifiedCompany) return;
 
-    await event.data.ref.update({ status: "approved" });
+    // The badge is stamped here now, not copied from the phone.
+    //
+    // CreateListingScreen still writes sellerVerified, and firestore.rules
+    // now refuses it as anything but false — because it was the one claim
+    // in the app that means "a human checked this against the national
+    // registry", and it was being asserted by the account being checked.
+    // Removing the client's ability to set it would have quietly broken
+    // the badge for the sellers who have actually earned it: a verified
+    // company's new listing would publish stamped false and stay that way,
+    // since backfillVerifiedBadge only runs on the verification
+    // transition, which for them already happened.
+    //
+    // So the same read of the seller document that decides auto-publishing
+    // decides the badge, in the same write. `verified` is the second copy
+    // of the same fact on a job post — the shape backfillVerifiedBadge
+    // already uses, kept identical so the two cannot disagree.
+    const badge = { sellerVerified: true };
+    if (listing.categoryKey === "jobs") badge.verified = true;
+
+    await event.data.ref.update({ status: "approved", ...badge });
   },
 );
 

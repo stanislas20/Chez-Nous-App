@@ -21,11 +21,10 @@ import * as ImagePicker from "expo-image-picker";
 import { ensureCameraAccess } from "../utils/mediaAccess";
 import * as Print from "expo-print";
 import {
-  addDoc,
-  collection,
   doc,
   increment,
   serverTimestamp,
+  setDoc,
   updateDoc,
 } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
@@ -42,6 +41,7 @@ import {
 } from "../utils/downscalePhoto";
 import { useAuth } from "../auth/AuthContext";
 import { firestore, storage } from "../config/firebase";
+import { APPLICATION_MESSAGE_MAX } from "../data/listingLimits";
 import { useJobFavorites } from "../hooks/useJobFavorites";
 import { useSellerListings } from "../hooks/useSellerListings";
 import { useJobApplications } from "../hooks/useJobApplications";
@@ -364,29 +364,49 @@ export function JobDetailScreen({ navigation, route }) {
         cvFileName = cvAsset.name || null;
       }
 
-      await addDoc(collection(firestore, "jobApplications"), {
-        jobId: job.id,
-        jobTitle: title,
-        company: job.company,
-        employerUid: job.sellerId,
-        applicantUid: user.uid,
-        applicantName: sellerProfile?.fullName ?? "",
-        applicantPhone: applyPhone.trim(),
-        applicantMessage: applyMessage.trim(),
-        hasCv: Boolean(cvUrl),
-        cvUrl,
-        cvFileName,
-        status: "new",
-        createdAt: serverTimestamp(),
-      });
+      // One document per candidate per job, at an id both sides can
+      // derive — the same shape favorites, follows, ratings and reports
+      // already use. An auto-id let the same person apply as many times as
+      // they tapped, and each attempt cost the employer a push and left
+      // another copy of the CV in Storage.
+      //
+      // A second attempt lands on the existing document, so Firestore
+      // treats it as an update, and the rules refuse it: updating an
+      // application belongs to the employer, and only for `status`. That
+      // refusal is read back below as "you have already applied" rather
+      // than as a generic failure.
+      await setDoc(
+        doc(firestore, "jobApplications", `${job.id}_${user.uid}`),
+        {
+          jobId: job.id,
+          jobTitle: title,
+          company: job.company,
+          employerUid: job.sellerId,
+          applicantUid: user.uid,
+          applicantName: sellerProfile?.fullName ?? "",
+          applicantPhone: applyPhone.trim(),
+          applicantMessage: applyMessage.trim(),
+          hasCv: Boolean(cvUrl),
+          cvUrl,
+          cvFileName,
+          status: "new",
+          createdAt: serverTimestamp(),
+        },
+      );
       setApplySubmitted(true);
       setCvAsset(null);
       setApplyPhone("");
       setApplyMessage("");
-    } catch {
+    } catch (error) {
+      // The one refusal that is not a failure. Telling somebody their
+      // application was "not sent" when it was sent last week invites them
+      // to try again, which cannot work — so it is named.
+      const alreadyApplied = error?.code === "permission-denied";
       Alert.alert(
         t("jobDetailApplyErrorTitle"),
-        t("jobDetailApplyErrorMessage"),
+        alreadyApplied
+          ? t("jobDetailApplyDuplicateMessage")
+          : t("jobDetailApplyErrorMessage"),
       );
     } finally {
       setApplySubmitting(false);
@@ -787,6 +807,9 @@ export function JobDetailScreen({ navigation, route }) {
                         placeholder={t("jobDetailMessagePlaceholder")}
                         placeholderTextColor={colors.textMuted}
                         multiline
+                        // Mirrors the ceiling firestore.rules enforces on
+                        // applicantMessage.
+                        maxLength={APPLICATION_MESSAGE_MAX}
                       />
                     </TextareaWrap>
                   </FieldGroup>

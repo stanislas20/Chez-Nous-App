@@ -104,6 +104,116 @@ service cloud.firestore {
         || (data[field] is string && data[field].size() <= 40);
     }
 
+    // ── What a seller is allowed to assert about their own listing ────────
+    //
+    // Everything below exists for one reason: the client writes the whole
+    // listing document, and until now the only fields this file checked were
+    // sellerId, status, isPromoted, promotedUntil and the two custom-category
+    // strings. Every other key on the document was whatever the phone sent.
+    // That is fine for a title and a price, which a moderator reads, and not
+    // fine for the fields that are claims about somebody else's decision.
+
+    // The Vérifié badge, and its second copy on a job post.
+    //
+    // A buyer cannot read sellers/{uid} — that rule is what keeps RCCM, IFU
+    // and the representative's ID off the wire — so the badge travels
+    // denormalised on the listing. The cost of that is this: the field was
+    // written from the phone, believed by every card that renders it, and
+    // filtered out of the moderation screen as plumbing. So the one claim in
+    // this app that means "a human checked this against the national
+    // registry" could be self-granted, and the human checking would never
+    // see it.
+    //
+    // It can now only start false. autoPublishVerifiedCompanyListing stamps
+    // it true a moment later for a seller who has actually been through
+    // review, and backfillVerifiedBadge stamps the back catalogue when
+    // review comes back — both under the Admin SDK, which bypasses these
+    // rules. `verified` is the same fact under a second name on job posts;
+    // freezing one and not the other would move the hole rather than close
+    // it.
+    function badgeUnclaimed(data) {
+      return data.get('sellerVerified', false) == false
+        && data.get('verified', false) == false;
+    }
+
+    // Counters and moderation stamps are nobody's to seed.
+    //
+    // A listing created carrying viewCount: 4000 arrives in the market
+    // already looking wanted, and approvedAt/moderatedBy written at create
+    // are an audit trail forged before anyone audited anything. All of them
+    // are written later by somebody else — the counter rules below, the
+    // Cloud Function triggers, a moderator — so at create they must simply
+    // be absent.
+    function countersUnseeded(data) {
+      return !data.keys().hasAny([
+        'viewCount', 'viewCountToday', 'viewCountDate',
+        'shareCount', 'contactCount', 'contactCountToday', 'contactCountDate',
+        'saveCount', 'reportCount', 'lastReportedAt',
+        'approvedAt', 'moderatedBy', 'moderatedAt', 'moderationNote',
+      ]);
+    }
+
+    // A listing's own lifetime, bounded rather than trusted.
+    //
+    // expiresAt is the only thing keeping the catalogue from growing
+    // forever, and it is written by the client — at publish, and again on
+    // every renewal from the dashboard. A seller who sets it to the year
+    // 3000 never renews anything again.
+    //
+    // 120 days rather than the 90 a verified company actually gets, and
+    // deliberately: the client computes this from the DEVICE clock
+    // (getListingExpiresAtTimestamp uses Date.now()), and a phone running
+    // fast would otherwise have every publish refused with nothing on
+    // screen explaining why. A month of headroom absorbs any clock skew
+    // worth tolerating and still refuses a decade.
+    //
+    // Only the upper bound is checked. A date in the past merely hides the
+    // seller's own listing, which is not an attack on anybody else, and
+    // enforcing a lower bound would break a phone whose clock runs slow.
+    function expiresAtOk(data) {
+      return data.get('expiresAt', null) == null
+        || (data.expiresAt is timestamp
+          && data.expiresAt < request.time + duration.value(120, 'd'));
+    }
+
+    // Length, on the server, where it binds.
+    //
+    // No input in the posting form carries maxLength today, and neither did
+    // this file, so a listing could hold a pasted document up to Firestore's
+    // 1 MiB ceiling — paid for on every read, by every reader, on a feed
+    // that currently downloads the whole collection.
+    //
+    // The ceilings are generous against real content: the longest
+    // description anywhere in the bundled data is 323 characters and the
+    // longest title 39. 5000 is roughly 800 words, which is a long job
+    // posting and not a pasted PDF.
+    function textOk(data, field, max) {
+      return data.get(field, null) == null
+        || (data[field] is string && data[field].size() <= max);
+    }
+
+    function listingTextOk(data) {
+      return textOk(data, 'titleFr', 120)
+        && textOk(data, 'titleEn', 120)
+        && textOk(data, 'title', 120)
+        && textOk(data, 'descriptionFr', 5000)
+        && textOk(data, 'descriptionEn', 5000)
+        && textOk(data, 'description', 5000);
+    }
+
+    // FCFA, and a ceiling high enough for the most expensive thing anybody
+    // could honestly sell here. Ten billion FCFA is around fifteen million
+    // euro — well above any Cotonou property — while still refusing the
+    // overflow-shaped numbers that make a card render nonsense.
+    //
+    // Zero is valid and common: listingPrice.js treats 0 as "no price
+    // given" for jobs, pharmacies, restaurants and anything sur devis.
+    function listingPriceOk(data) {
+      return data.get('price', 0) is number
+        && data.get('price', 0) >= 0
+        && data.get('price', 0) <= 10000000000;
+    }
+
     match /listings/{listingId} {
       allow read: if resource.data.status == 'approved'
         || (request.auth != null && request.auth.uid == resource.data.sellerId)
@@ -143,7 +253,28 @@ service cloud.firestore {
         // everyone's screen, for as long as the listing is approved.
         // Matches CUSTOM_CATEGORY_MAX in src/data/customCategories.js.
         && customCategoryOk(request.resource.data, 'customCategory')
-        && customCategoryOk(request.resource.data, 'customTrade');
+        && customCategoryOk(request.resource.data, 'customTrade')
+        // See badgeUnclaimed: the Vérifié badge is granted by review, never
+        // asserted by the account being reviewed.
+        && badgeUnclaimed(request.resource.data)
+        && countersUnseeded(request.resource.data)
+        && expiresAtOk(request.resource.data)
+        && listingTextOk(request.resource.data)
+        && listingPriceOk(request.resource.data)
+        // The server's clock, not the phone's.
+        //
+        // Every browse query in the app orders by createdAt descending, so a
+        // client-chosen date is a permanent place at the top of every feed —
+        // set it to 2099 once and no honest listing ever appears above it
+        // again. serverTimestamp() resolves to request.time here, so the
+        // ordinary write passes and a literal date does not.
+        //
+        // Read through get() rather than as a bare property: a create that
+        // omits the field entirely would otherwise make the whole rule
+        // throw an evaluation error rather than simply return false, and a
+        // rule that errors is a rule that is hard to read in the emulator
+        // log next to the ones that merely denied.
+        && request.resource.data.get('createdAt', null) == request.time;
 
       // A rejection has to be survivable.
       //
@@ -196,9 +327,50 @@ service cloud.firestore {
         // isPromoted and promotedUntil sit in the same list for the same
         // reason: they are somebody else's decision about this listing, and
         // the seller is the one person with a motive to rewrite them.
+        //
+        // sellerId is the one that turned this from an audit finding into an
+        // impersonation chain. The rule authorises on resource.data.sellerId
+        // — the document as it stands — and never asked whether the incoming
+        // one matched. So a seller could publish, get approved, and then
+        // rewrite sellerId to a verified company's uid: useSellerListings
+        // queries by that field, so the listing moves onto that company's
+        // public profile, still carrying the original seller's phone number.
+        //
+        // Frozen through affectedKeys rather than the equality
+        // `request.resource.data.sellerId == resource.data.sellerId`,
+        // which would be equivalent for a changed value but not for a
+        // deleted one — and a listing with no sellerId is unownable by
+        // anybody, including the moderator who would have to clean it up.
+        //
+        // The badge, its job-post twin, the seller's displayed identity and
+        // createdAt join it: all of them are read by cards that trust them,
+        // and none of them are things an edit needs to touch. The listing
+        // form already strips every one of these before it calls updateDoc,
+        // so nothing legitimate changes here.
+        //
+        // Counters are frozen on this branch and remain writable on the
+        // three counter branches below, which is what keeps a seller from
+        // typing their own view count while a reader can still add one.
+        //
+        // Deliberately NOT frozen: title, description, price, media, city,
+        // category, phone, saleStatus, soldAt, previousPrice, updatedAt,
+        // roadsideAvailability and every category-specific field. Those are
+        // the listing, and editing them is the point.
         && !request.resource.data.diff(resource.data).affectedKeys()
               .hasAny(['moderatedBy', 'moderatedAt', 'approvedAt',
-                       'moderationNote', 'isPromoted', 'promotedUntil']);
+                       'moderationNote', 'isPromoted', 'promotedUntil',
+                       'sellerId', 'sellerVerified', 'verified',
+                       'sellerName', 'sellerCompanyName', 'sellerPhotoUrl',
+                       'sellerMemberSince', 'createdAt',
+                       'viewCount', 'viewCountToday', 'viewCountDate',
+                       'shareCount', 'contactCount', 'contactCountToday',
+                       'contactCountDate', 'saveCount', 'reportCount',
+                       'lastReportedAt'])
+        // Renewal writes expiresAt from the dashboard, so this stays open —
+        // bounded rather than frozen. See expiresAtOk.
+        && expiresAtOk(request.resource.data)
+        && listingTextOk(request.resource.data)
+        && listingPriceOk(request.resource.data);
 
       // Moderation, from inside the app rather than from a laptop.
       //
@@ -273,12 +445,26 @@ service cloud.firestore {
              .hasAll(['moderatedAt'])
         && request.resource.data.moderatedBy == request.auth.uid;
 
-      // Lets anyone who can already read an approved listing (including
-      // signed-out browsers, per the read rule above) bump its view
+      // Lets a signed-in reader of an approved listing bump its view
       // counter — but ONLY that one field, and only by exactly 1 at a
       // time, so this can't be used to touch price/status/etc. or to
       // jump the count by an arbitrary amount in one write.
-      allow update: if resource.data.status == 'approved'
+      //
+      // Signed in, where it used to be anyone at all. These three rules
+      // were the only writes in the whole database open to an
+      // unauthenticated caller, and the Firebase config is in the app
+      // bundle — so with no App Check, a script could drive billed writes
+      // against any listing id it could read, forever, at the project
+      // owner's expense. A hot listing would also start losing writes to
+      // Firestore's per-document contention ceiling while that ran.
+      //
+      // The cost is real and accepted: a browser who has never made an
+      // account no longer counts. The seller's figures become a measure of
+      // signed-in interest rather than of all interest, which is a smaller
+      // loss than an unbounded bill, and the write is fire-and-forget at
+      // every call site so nothing on screen changes for anyone.
+      allow update: if request.auth != null
+        && resource.data.status == 'approved'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
         && request.resource.data.viewCount == resource.data.get('viewCount', 0) + 1;
 
@@ -286,7 +472,8 @@ service cloud.firestore {
       // wants counted. Same shape as the view rule: this single field, +1
       // exactly, and only on a listing that is already public — so it can
       // neither touch the price nor be pumped in one write.
-      allow update: if resource.data.status == 'approved'
+      allow update: if request.auth != null
+        && resource.data.status == 'approved'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['shareCount'])
         && request.resource.data.shareCount == resource.data.get('shareCount', 0) + 1;
 
@@ -295,7 +482,8 @@ service cloud.firestore {
       // counter — still exactly +1 on viewCount, and viewCountToday can
       // only ever go up by exactly 1 (same day) or reset to exactly 1
       // (new day), never jump or combine with any other field.
-      allow update: if resource.data.status == 'approved'
+      allow update: if request.auth != null
+        && resource.data.status == 'approved'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'viewCountToday', 'viewCountDate'])
         && request.resource.data.viewCount == resource.data.get('viewCount', 0) + 1
         && request.resource.data.viewCountDate is string
@@ -314,16 +502,21 @@ service cloud.firestore {
       // photograph or the price is what is wrong.
       //
       // Exactly +1, nothing else touched, same daily bucket as viewCount so
-      // "this week" can be answered without a second collection. Signed in
-      // or not: a buyer who has never made an account still rings the
-      // number, and refusing to count them would make the figure a measure
-      // of registration.
+      // "this week" can be answered without a second collection.
+      //
+      // This comment used to argue the opposite of the rule below it — that
+      // a buyer who never made an account still rings the number, so
+      // refusing to count them would make the figure a measure of
+      // registration. That is true, and it is now the price of closing the
+      // only unauthenticated write path in the database. See the view
+      // counter above for the reasoning.
       // Approved only, like viewCount and shareCount above. This rule was
       // written without that guard while the two beside it had it, so a
       // pending or rejected listing — one nobody can see — could still
       // have its contact figures moved by anyone. Nothing read those
       // numbers, which is exactly why the omission survived.
-      allow update: if resource.data.status == 'approved'
+      allow update: if request.auth != null
+        && resource.data.status == 'approved'
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['contactCount', 'contactCountToday', 'contactCountDate'])
         && request.resource.data.contactCount == resource.data.get('contactCount', 0) + 1
@@ -573,13 +766,33 @@ service cloud.firestore {
       // Applying is posting to an employer, so it follows the same rule as
       // everything else somebody writes into the market. A job in Cotonou is
       // filled by somebody who can be reached on a Bénin number.
+      //
+      // One application per person per job, and the id is what makes a
+      // second one impossible — the same device already used by favorites,
+      // jobFavorites, eventLikes, follows, ratings and reports, and the one
+      // collection that was written with an auto-id instead. With an
+      // auto-id nothing stopped the same candidate applying twenty times:
+      // twenty documents in the employer's list, twenty pushes from
+      // notifyNewJobApplication, and twenty copies of the same CV left in
+      // Storage.
+      //
+      // A second attempt now lands on an existing document, which makes it
+      // an update, which this rule refuses — the update branch below
+      // belongs to the employer. JobDetailScreen reads that refusal back as
+      // "you have already applied" rather than as a generic failure.
       allow create: if request.auth != null
         && request.auth.token.canPost == true
         && request.resource.data.applicantUid == request.auth.uid
+        && applicationId == request.resource.data.jobId + '_' + request.auth.uid
         && request.resource.data.employerUid ==
           get(/databases/$(database)/documents/listings/$(request.resource.data.jobId)).data.sellerId
         && get(/databases/$(database)/documents/listings/$(request.resource.data.jobId)).data.status == 'approved'
-        && request.resource.data.status == 'new';
+        && request.resource.data.status == 'new'
+        // Free text an employer reads, bounded for the same reason a
+        // listing description is.
+        && textOk(request.resource.data, 'applicantMessage', 2000)
+        && textOk(request.resource.data, 'applicantName', 120)
+        && textOk(request.resource.data, 'applicantPhone', 32);
 
       // The employer can mark an application reviewed — nothing else about
       // it (who applied, what they said) is theirs to change.
@@ -604,9 +817,24 @@ service cloud.firestore {
         allow read: if request.auth != null
           && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
 
+        // A message body, bounded.
+        //
+        // The composer is multiline with no maxLength, and this rule
+        // checked nothing about the payload, so a message could carry a
+        // pasted document up to Firestore's 1 MiB document ceiling — read
+        // back in full by both participants every time either opens the
+        // thread, since the thread has no pagination.
+        //
+        // 4000 characters is far longer than anybody types on a phone and
+        // still small enough that a thread stays cheap. `text` is absent
+        // entirely on an image or voice message, which is why this is a
+        // conditional rather than a required field.
         allow create: if request.auth != null
           && request.resource.data.senderId == request.auth.uid
-          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
+          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds
+          && (!('text' in request.resource.data)
+            || (request.resource.data.text is string
+              && request.resource.data.text.size() <= 4000));
 
         allow delete: if request.auth != null && request.auth.uid == resource.data.senderId;
       }

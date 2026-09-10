@@ -237,10 +237,11 @@ export function ParkInventoryScreen({ navigation }) {
         sellerId: user.uid,
         sellerName: sellerProfile?.fullName ?? "",
         sellerMemberSince: sellerProfile?.createdAt ?? null,
-        sellerVerified: Boolean(
-          sellerProfile?.accountType === "company" &&
-          sellerProfile?.verificationStatus === "verified",
-        ),
+        // False from here, granted server-side — the same change as in
+        // CreateListingScreen, and this screen is the second way a listing
+        // gets created, so leaving it would have left the badge assertable
+        // from a form nobody thinks about.
+        sellerVerified: false,
         titleEn: title,
         titleFr: title,
         descriptionEn: "",

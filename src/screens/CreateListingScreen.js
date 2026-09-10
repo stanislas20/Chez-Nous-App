@@ -231,6 +231,10 @@ import { nearestKnownCity } from "../utils/nearestCity";
 import { CalendarPicker } from "../components/CalendarPicker";
 import { postingTitleKey } from "../data/postingTitles";
 import { PROMOTION_DAYS } from "../data/promotion";
+import {
+  LISTING_DESCRIPTION_MAX,
+  LISTING_TITLE_MAX,
+} from "../data/listingLimits";
 import { accountCountry, canPublish } from "../utils/canPublish";
 import { POSTING_DIAL } from "../data/countries";
 import { electricServices } from "../data/carElectrics";
@@ -2097,17 +2101,26 @@ export function CreateListingScreen({ route, navigation }) {
         // changes their picture later keeps the old one on listings already
         // published — the same staleness sellerName has always accepted.
         sellerPhotoUrl: sellerProfile?.photoUrl ?? null,
-        // Also denormalized rather than joined live — a company only
-        // reaches 'verified' via manual review (see firestore.rules), so
-        // this is exactly as trustworthy as reading their profile
-        // directly, without a read a buyer's client isn't allowed to make.
-        // A listing posted before verification stays stamped false even
-        // after the seller later gets verified — same staleness tradeoff
-        // sellerName/sellerMemberSince already accept.
-        sellerVerified: Boolean(
-          sellerProfile?.accountType === "company" &&
-          sellerProfile?.verificationStatus === "verified",
-        ),
+        // Always false from here, and granted a moment later by the server.
+        //
+        // This used to be `Boolean(accountType === 'company' &&
+        // verificationStatus === 'verified')` — read from the seller's own
+        // profile, which is honest for the seller and worth nothing as a
+        // guarantee: the field went into the document the phone wrote, and
+        // no rule looked at it. Anybody holding the SDK could publish with
+        // the badge on, and ModerationScreen filters sellerVerified out as
+        // plumbing, so the moderator approving the listing never saw the
+        // claim. It is the one assertion in this app that means a human
+        // checked an RCCM and IFU against the national registry.
+        //
+        // firestore.rules now refuses any create carrying it as true, so
+        // sending the old value would have refused every publish by a
+        // verified company — the exact accounts the badge exists for.
+        // autoPublishVerifiedCompanyListing does the same read against the
+        // same profile, server-side, in the write that publishes the
+        // listing, so a verified company's listing arrives badged as it
+        // always did and the field can no longer be asserted from here.
+        sellerVerified: false,
         // The trading name, which `sellerName` is not.
         //
         // A company signs up with two names — companyName and the
@@ -2144,14 +2157,12 @@ export function CreateListingScreen({ route, navigation }) {
                 jobType,
                 jobCategory,
                 salary: salary.trim() || null,
-                // Mirrors sellerVerified above — only a company that's
-                // actually been through manual review gets this badge on
-                // its job postings; an individual or a still-pending
-                // company always posts unverified.
-                verified: Boolean(
-                  sellerProfile?.accountType === "company" &&
-                  sellerProfile?.verificationStatus === "verified",
-                ),
+                // Mirrors sellerVerified above, including the part where it
+                // is no longer written from here: this is the same badge
+                // under a second name on a job post, so leaving it
+                // client-set would have moved the hole rather than closed
+                // it. autoPublishVerifiedCompanyListing sets both.
+                verified: false,
                 // Stored under both language keys, like title and
                 // description: one author, one language, and the reader's
                 // locale picks a key that always resolves.
@@ -3250,6 +3261,11 @@ export function CreateListingScreen({ route, navigation }) {
             <Input
               value={title}
               onChangeText={setTitle}
+              // Mirrors the ceiling firestore.rules now enforces on
+              // titleFr/titleEn. The rule is what binds; this is so the
+              // limit is met by the keyboard stopping rather than by a
+              // refusal after the photos have already uploaded.
+              maxLength={LISTING_TITLE_MAX}
               placeholder={t(
                 (isServices ? SERVICE_TRADE_HINT_KEYS[trade] : null) ??
                   TRADE_HINT_KEYS[trade] ??
@@ -7872,6 +7888,8 @@ export function CreateListingScreen({ route, navigation }) {
             <TextArea
               value={description}
               onChangeText={setDescription}
+              // Same mirror as the title above.
+              maxLength={LISTING_DESCRIPTION_MAX}
               placeholder={t(
                 TRADE_DESC_HINT_KEYS[trade] ??
                   goodsHints?.desc ??

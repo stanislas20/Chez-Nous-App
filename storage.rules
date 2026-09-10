@@ -41,11 +41,36 @@ service firebase.storage {
 
     match /jobApplicationCvs/{applicantId}/{fileName} {
       // The applicant's own uploaded CV, attached to a jobApplications doc.
-      // Read is gated to signed-in users generally (not `if true`, unlike
-      // listing photos) since a CV carries more personal info than a
-      // product photo — the employer reaches this URL only via the
-      // applicantUid/employerUid-gated jobApplications doc itself.
-      allow read: if request.auth != null;
+      //
+      // This used to read `if request.auth != null` — every signed-in
+      // account, on the reasoning that "the employer reaches this URL only
+      // via the applicantUid/employerUid-gated jobApplications doc itself".
+      // That is true of the app and irrelevant to the SDK, which addresses
+      // Storage by path. Storage evaluates `list` against this same rule,
+      // and the path is jobApplicationCvs/{uid}/ where the uid is printed
+      // on every public listing as sellerId — so anybody with an account
+      // could enumerate a folder and download what is in it. A CV is the
+      // densest personal-data object in this app: legal name, phone, home
+      // address, employment history, sometimes an ID number.
+      //
+      // Read is now the uploader alone, which closes enumeration and
+      // path retrieval. The employer's access does NOT go through this
+      // rule and is unchanged: JobDetailScreen calls getDownloadURL() as
+      // the applicant, immediately after their own upload, and stores the
+      // resulting tokenised URL on the jobApplications document, which
+      // firestore.rules already restricts to that application's applicant
+      // and employer. JobApplicationsScreen opens that stored string with
+      // Linking.openURL. A download URL carries its own token and is
+      // served without consulting these rules, so the employer keeps
+      // working and nobody who cannot read the application document ever
+      // learns the URL.
+      //
+      // What that leaves, honestly: a download URL is a capability, so
+      // one that leaks out of the application document is usable by
+      // whoever holds it. That is unchanged by this edit and is the same
+      // property every listing photo has had since the first upload.
+      // Revoking one means rotating the object's token.
+      allow read: if request.auth != null && request.auth.uid == applicantId;
       allow write: if request.auth != null
         && request.auth.uid == applicantId
         && request.resource.size < 10 * 1024 * 1024
@@ -55,15 +80,48 @@ service firebase.storage {
     }
 
     match /conversations/{conversationId}/{fileName} {
-      // Cross-service firestore.get() would need a one-time IAM link that
-      // can only be granted interactively, which isn't available in this
-      // deploy flow. Access to these files is already effectively gated by
-      // Firestore's own rules on the message documents that reference
-      // them — only conversation participants can ever read a message doc
-      // to obtain its attachment URL in the first place — so it's
-      // sufficient here to require the uploader to name the file after
-      // their own uid.
-      allow read: if request.auth != null;
+      // A photo or a voice note sent inside a private conversation.
+      //
+      // The reasoning this replaces was half right. It said that access is
+      // already gated by Firestore's rules on the message documents, since
+      // only participants can read a message to obtain its attachment URL
+      // — true, and still true. What it then concluded was that read could
+      // therefore be left open to every signed-in account, and that does
+      // not follow: a caller who never reads the message document can
+      // still address the object BY PATH, and Storage evaluates `list`
+      // against this rule too. Conversation ids are `listingId_buyerUid`
+      // and listing ids are public, so the search space was one uid wide.
+      //
+      // Read is now the uploader alone. Every getDownloadURL() call in
+      // ChatScreen is made by the sender immediately after their own
+      // upload (lines 436 and 579), so it still resolves; the recipient
+      // renders `message.imageUrl` / `message.audioUrl` — the tokenised
+      // URL stored on the message document, which is already restricted to
+      // participants — and never touches this rule. Nothing in the app
+      // reads an attachment by path.
+      //
+      // Cross-service firestore.get() would express "participants only"
+      // directly and is the better rule. It needs a one-time IAM grant
+      // that has to be made from the console, and a rule that depends on
+      // a grant nobody has made denies every attachment silently — so it
+      // is deliberately not taken here, and is the right change to make
+      // once that grant exists.
+      //
+      // Same residual as jobApplicationCvs above: the download URL is a
+      // capability, and this edit does not change that.
+      //
+      // A `list` on this path logs "Null value error" beside its denial,
+      // because {fileName} is unbound for a list and the rules runtime
+      // evaluates every operand of the `&&` rather than short-circuiting on
+      // the guard. Both a ternary fallback and a `fileName is string` guard
+      // were tried and neither silences it — the runtime reports the error
+      // at the conjunction whatever the operands are. It is noise, not a
+      // hole: the enumeration is refused, and two cases in
+      // scripts/rules-tests/storage.test.js pin that it stays refused. Left
+      // as the simplest expression that is correct rather than a more
+      // elaborate one that is equally noisy.
+      allow read: if request.auth != null
+        && fileName.matches(request.auth.uid + '-.*');
       allow write: if request.auth != null
         && fileName.matches(request.auth.uid + '-.*')
         && request.resource.size < 15 * 1024 * 1024

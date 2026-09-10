@@ -14,18 +14,28 @@ const {
   assertFails,
   assertSucceeds,
 } = require("@firebase/rules-unit-testing");
-const { doc, getDoc, setDoc, updateDoc } = require("firebase/firestore");
+const {
+  doc,
+  getDoc,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} = require("firebase/firestore");
 
 const MOD = "moderator-uid";
 const SELLER = "seller-uid";
 const OUTSIDER = "outsider-uid";
 
+// serverTimestamp() rather than a literal: the create rule requires
+// createdAt to equal request.time, because every browse query orders by it
+// and a date the client chooses is a permanent place at the top of the feed.
 const listing = {
   sellerId: SELLER,
   status: "pending",
   titleFr: "Annonce en attente",
   categoryKey: "services",
   city: "Cotonou",
+  createdAt: serverTimestamp(),
 };
 
 const results = [];

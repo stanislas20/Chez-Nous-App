@@ -22,10 +22,14 @@ const {
 } = require("@firebase/rules-unit-testing");
 const {
   collection,
+  deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
+  serverTimestamp,
   setDoc,
+  Timestamp,
   updateDoc,
 } = require("firebase/firestore");
 
@@ -34,13 +38,24 @@ const BUYER = "buyer-uid";
 const OUTSIDER = "outsider-uid";
 const FOREIGN = "foreign-uid"; // signed in, but no canPost claim
 
+// createdAt is serverTimestamp() and not a date, because the create rule now
+// requires it to equal request.time — the server's clock, not the phone's.
+// Every browse query orders by this field, so a client-chosen value is a
+// permanent place at the top of every feed. Written as a literal here the
+// legitimate-publish case would fail, which is exactly the point.
 const listing = {
   sellerId: SELLER,
   status: "pending",
   titleFr: "Annonce en attente",
   categoryKey: "services",
   city: "Cotonou",
+  createdAt: serverTimestamp(),
 };
+
+// A future date inside the 120-day ceiling expiresAtOk allows, for the cases
+// that check renewal still works.
+const inThirtyDays = () =>
+  Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
 const results = [];
 const check = async (label, promise) => {
@@ -563,13 +578,66 @@ async function main() {
   );
 
   // ── Job applications ────────────────────────────────────────────────────
+  // The id is the one the client now writes. It used to be "a1", which under
+  // the deterministic-id rule fails for two reasons at once — and a case that
+  // can pass for the wrong reason is not testing what its name says.
   await check(
     "an account without canPost cannot apply for a job",
     assertFails(
-      setDoc(doc(asForeign, "jobApplications/a1"), {
+      setDoc(doc(asForeign, `jobApplications/live_${FOREIGN}`), {
         applicantUid: FOREIGN,
         employerUid: SELLER,
         jobId: "live",
+        status: "new",
+      }),
+    ),
+  );
+  // A8. An auto-id let the same candidate apply as many times as they
+  // tapped: one document, one push to the employer and one more copy of the
+  // CV in Storage per tap.
+  await check(
+    "an application must be filed at jobId_applicantUid",
+    assertFails(
+      setDoc(doc(asOutsider, "jobApplications/whatever-i-like"), {
+        applicantUid: OUTSIDER,
+        employerUid: SELLER,
+        jobId: "live",
+        status: "new",
+      }),
+    ),
+  );
+  await check(
+    "a candidate applies once",
+    assertSucceeds(
+      setDoc(doc(asOutsider, `jobApplications/live_${OUTSIDER}`), {
+        applicantUid: OUTSIDER,
+        employerUid: SELLER,
+        jobId: "live",
+        applicantMessage: "Je suis disponible immédiatement.",
+        status: "new",
+      }),
+    ),
+  );
+  await check(
+    "the same candidate cannot apply to the same job twice",
+    assertFails(
+      setDoc(doc(asOutsider, `jobApplications/live_${OUTSIDER}`), {
+        applicantUid: OUTSIDER,
+        employerUid: SELLER,
+        jobId: "live",
+        applicantMessage: "Encore moi.",
+        status: "new",
+      }),
+    ),
+  );
+  await check(
+    "a covering letter cannot be a pasted document",
+    assertFails(
+      setDoc(doc(asBuyer, `jobApplications/live_${BUYER}`), {
+        applicantUid: BUYER,
+        employerUid: SELLER,
+        jobId: "live",
+        applicantMessage: "x".repeat(2001),
         status: "new",
       }),
     ),
@@ -591,6 +659,425 @@ async function main() {
       setDoc(doc(asOutsider, `favorites/${OUTSIDER}_live`), {
         userId: OUTSIDER,
         listingId: "live",
+      }),
+    ),
+  );
+
+  // ══ Phase A ═════════════════════════════════════════════════════════════
+  // Everything below was written against a specific audit finding, and every
+  // one of them passed — that is, the attack succeeded — before the rule it
+  // exercises existed. Each is attempted through the Firestore SDK directly,
+  // which is the only way that matters: the app's own forms would never send
+  // any of these.
+
+  // ── A1. The Vérifié badge ───────────────────────────────────────────────
+  // The badge means a human checked an RCCM and IFU against the national
+  // registry. It travelled denormalised on the listing, written from the
+  // phone, believed by every card that renders it — and filtered out of the
+  // moderation screen as plumbing, so the human approving the listing never
+  // saw the claim being made.
+  await check(
+    "a seller cannot publish wearing the Vérifié badge",
+    assertFails(
+      setDoc(doc(asSeller, "listings/forgedBadge"), {
+        ...listing,
+        sellerId: SELLER,
+        sellerVerified: true,
+      }),
+    ),
+  );
+  await check(
+    "a job post cannot carry the badge under its second name",
+    assertFails(
+      setDoc(doc(asSeller, "listings/forgedBadgeJob"), {
+        ...listing,
+        sellerId: SELLER,
+        categoryKey: "jobs",
+        verified: true,
+      }),
+    ),
+  );
+  await check(
+    "an ordinary listing still publishes with the badge off",
+    assertSucceeds(
+      setDoc(doc(asSeller, "listings/honestBadge"), {
+        ...listing,
+        sellerId: SELLER,
+        sellerVerified: false,
+      }),
+    ),
+  );
+  await check(
+    "a seller cannot switch the badge on after approval",
+    assertFails(
+      updateDoc(doc(asSeller, "listings/live"), { sellerVerified: true }),
+    ),
+  );
+  // The other half of A1: the badge has to still be grantable, or closing
+  // the hole would have quietly unverified every real company. Only the
+  // Admin SDK can do it, which is what autoPublishVerifiedCompanyListing and
+  // backfillVerifiedBadge run as.
+  await check(
+    "the server can still grant the badge",
+    assertSucceeds(
+      env.withSecurityRulesDisabled((ctx) =>
+        updateDoc(doc(ctx.firestore(), "listings/live"), {
+          sellerVerified: true,
+        }),
+      ),
+    ),
+  );
+
+  // ── A2. Ownership ───────────────────────────────────────────────────────
+  // The rule authorised on the stored sellerId and never asked whether the
+  // incoming one matched, so a seller could publish, get approved, and then
+  // move the listing onto somebody else's public profile — still carrying
+  // their own phone number.
+  await check(
+    "a seller cannot hand their listing to another account",
+    assertFails(
+      updateDoc(doc(asSeller, "listings/live"), { sellerId: BUYER }),
+    ),
+  );
+  await check(
+    "a seller cannot orphan their listing by dropping sellerId",
+    assertFails(
+      updateDoc(doc(asSeller, "listings/live"), { sellerId: deleteField() }),
+    ),
+  );
+  await check(
+    "a stranger still cannot edit somebody else's listing",
+    assertFails(
+      updateDoc(doc(asOutsider, "listings/live"), { titleFr: "Détourné" }),
+    ),
+  );
+  await check(
+    "a seller can still edit the things an edit is for",
+    assertSucceeds(
+      updateDoc(doc(asSeller, "listings/live"), {
+        titleFr: "Titre corrigé",
+        descriptionFr: "Description corrigée.",
+        price: 45000,
+        city: "Porto-Novo",
+        saleStatus: "negotiating",
+      }),
+    ),
+  );
+
+  // ── A6. The rest of the fields a listing asserts about itself ───────────
+  await check(
+    "a seller cannot type their own view count",
+    assertFails(updateDoc(doc(asSeller, "listings/live"), { viewCount: 9000 })),
+  );
+  await check(
+    "a seller cannot rewrite the name buyers see",
+    assertFails(
+      updateDoc(doc(asSeller, "listings/live"), {
+        sellerCompanyName: "Bank of Africa",
+      }),
+    ),
+  );
+  await check(
+    "a listing cannot be published with its counters already seeded",
+    assertFails(
+      setDoc(doc(asSeller, "listings/seededCounters"), {
+        ...listing,
+        sellerId: SELLER,
+        viewCount: 4000,
+      }),
+    ),
+  );
+  await check(
+    "a listing cannot be published already stamped approved by somebody",
+    assertFails(
+      setDoc(doc(asSeller, "listings/forgedAudit"), {
+        ...listing,
+        sellerId: SELLER,
+        approvedAt: new Date(),
+        moderatedBy: "moderator-uid",
+      }),
+    ),
+  );
+  // Every browse query orders by createdAt descending, so a date the client
+  // chooses is a permanent place at the top of every feed.
+  await check(
+    "a listing cannot be published with a date it chose itself",
+    assertFails(
+      setDoc(doc(asSeller, "listings/forgedDate"), {
+        ...listing,
+        sellerId: SELLER,
+        createdAt: Timestamp.fromMillis(Date.now() + 3153600000000),
+      }),
+    ),
+  );
+  await check(
+    "a seller cannot backdate an existing listing to the top of the feed",
+    assertFails(
+      updateDoc(doc(asSeller, "listings/live"), {
+        createdAt: Timestamp.fromMillis(Date.now() + 3153600000000),
+      }),
+    ),
+  );
+  // expiresAt is the only thing keeping the catalogue from growing forever,
+  // and the client writes it — at publish and again on every renewal.
+  await check(
+    "a listing cannot be given a lifetime measured in decades",
+    assertFails(
+      setDoc(doc(asSeller, "listings/immortal"), {
+        ...listing,
+        sellerId: SELLER,
+        expiresAt: Timestamp.fromMillis(Date.now() + 3153600000000),
+      }),
+    ),
+  );
+  await check(
+    "a listing publishes with an ordinary expiry",
+    assertSucceeds(
+      setDoc(doc(asSeller, "listings/mortal"), {
+        ...listing,
+        sellerId: SELLER,
+        expiresAt: inThirtyDays(),
+      }),
+    ),
+  );
+  await check(
+    "renewing a listing from the dashboard still works",
+    assertSucceeds(
+      updateDoc(doc(asSeller, "listings/live"), { expiresAt: inThirtyDays() }),
+    ),
+  );
+
+  // ── A7. Length, on the server, where it binds ───────────────────────────
+  await check(
+    "a description cannot be a pasted document",
+    assertFails(
+      setDoc(doc(asSeller, "listings/wall"), {
+        ...listing,
+        sellerId: SELLER,
+        descriptionFr: "x".repeat(5001),
+      }),
+    ),
+  );
+  await check(
+    "a title cannot be a paragraph",
+    assertFails(
+      setDoc(doc(asSeller, "listings/longTitle"), {
+        ...listing,
+        sellerId: SELLER,
+        titleFr: "x".repeat(121),
+      }),
+    ),
+  );
+  await check(
+    "a price cannot be astronomical",
+    assertFails(
+      setDoc(doc(asSeller, "listings/richest"), {
+        ...listing,
+        sellerId: SELLER,
+        price: 99999999999999,
+      }),
+    ),
+  );
+  await check(
+    "a real listing's own text and price are comfortably inside the limits",
+    assertSucceeds(
+      setDoc(doc(asSeller, "listings/ordinary"), {
+        ...listing,
+        sellerId: SELLER,
+        titleFr: "Toyota RAV4 2013, boîte automatique, climatisation",
+        descriptionFr: "Véhicule bien entretenu. ".repeat(40),
+        price: 3500000,
+      }),
+    ),
+  );
+  await check(
+    "an edit cannot smuggle a pasted document past the create rule",
+    assertFails(
+      updateDoc(doc(asSeller, "listings/live"), {
+        descriptionFr: "x".repeat(5001),
+      }),
+    ),
+  );
+  await check(
+    "a message cannot be a pasted document",
+    assertFails(
+      setDoc(doc(asBuyer, "conversations/thread/messages/wall"), {
+        senderId: BUYER,
+        text: "x".repeat(4001),
+      }),
+    ),
+  );
+  await check(
+    "an ordinary message still sends",
+    assertSucceeds(
+      setDoc(doc(asBuyer, "conversations/thread/messages/normal"), {
+        senderId: BUYER,
+        text: "Bonjour, est-ce toujours disponible ?",
+      }),
+    ),
+  );
+  await check(
+    "a photo message carries no text at all and still sends",
+    assertSucceeds(
+      setDoc(doc(asBuyer, "conversations/thread/messages/photo"), {
+        senderId: BUYER,
+        imageUrl: "https://example.test/x.jpg",
+      }),
+    ),
+  );
+
+  // ── A5. The last unauthenticated writes in the database ─────────────────
+  // These three counter rules were the only place a caller with no account
+  // could write. The Firebase config ships in the app bundle and there is no
+  // App Check, so that was an open, billed write path against any listing id
+  // a script could read.
+  await check(
+    "a signed-out reader can no longer add a view",
+    assertFails(updateDoc(doc(asGuest, "listings/live"), { viewCount: 6 })),
+  );
+  await check(
+    "a signed-out reader can no longer count a contact",
+    assertFails(
+      updateDoc(doc(asGuest, "listings/live"), {
+        contactCount: 1,
+        contactCountToday: 1,
+        contactCountDate: "2026-09-10",
+      }),
+    ),
+  );
+  await check(
+    "a signed-out reader can no longer count a share",
+    assertFails(updateDoc(doc(asGuest, "listings/live"), { shareCount: 2 })),
+  );
+  await check(
+    "a signed-out visitor can still read the listing itself",
+    assertSucceeds(getDoc(doc(asGuest, "listings/live"))),
+  );
+
+  // ── The document the app actually sends ─────────────────────────────────
+  // Every case above builds its payload from a four-field fixture, which is
+  // how a rule can pass a whole suite and still refuse every real publish.
+  // It nearly did: tightening sellerVerified made the create rule reject the
+  // value CreateListingScreen was sending — `Boolean(accountType ===
+  // 'company' && verificationStatus === 'verified')` — so publishing would
+  // have broken for exactly the verified companies the badge exists for,
+  // and every test here would still have been green.
+  //
+  // So this one mirrors the real payload: the seller-identity block, the
+  // media block, the counters that are absent, the lifecycle fields. Keep it
+  // in step with the `data` object in CreateListingScreen#handleSubmit and
+  // the addDoc in ParkInventoryScreen.
+  const publishedShape = {
+    sellerId: SELLER,
+    sellerName: "Kossi A.",
+    sellerMemberSince: null,
+    sellerPhotoUrl: null,
+    sellerVerified: false,
+    sellerCompanyName: null,
+    titleEn: "Toyota RAV4 2013",
+    titleFr: "Toyota RAV4 2013",
+    descriptionEn: "Véhicule bien entretenu, climatisation, boîte auto.",
+    descriptionFr: "Véhicule bien entretenu, climatisation, boîte auto.",
+    price: 3500000,
+    condition: "used",
+    negotiable: true,
+    categoryKey: "vehicles",
+    customCategory: null,
+    customTrade: null,
+    city: "Cotonou",
+    latitude: 6.37,
+    longitude: 2.39,
+    media: [
+      {
+        mediaType: "image",
+        mediaUrl: "https://firebasestorage.googleapis.com/x.jpg",
+        mediaPath: `listings/${SELLER}/1.jpg`,
+        thumbUrl: "https://firebasestorage.googleapis.com/x-thumb.jpg",
+        thumbPath: `listings/${SELLER}/1-thumb.jpg`,
+      },
+    ],
+    mediaType: "image",
+    mediaUrl: "https://firebasestorage.googleapis.com/x.jpg",
+    mediaPath: `listings/${SELLER}/1.jpg`,
+    thumbUrl: "https://firebasestorage.googleapis.com/x-thumb.jpg",
+    isPromoted: false,
+    promotionRequested: false,
+    popular: false,
+    status: "pending",
+    expiresAt: inThirtyDays(),
+    createdAt: serverTimestamp(),
+  };
+  await check(
+    "the document CreateListingScreen actually sends still publishes",
+    assertSucceeds(
+      setDoc(doc(asSeller, "listings/realShape"), publishedShape),
+    ),
+  );
+  // A job post carries the badge under a second name, and the same screen
+  // writes it. Same trap, one field over.
+  await check(
+    "the document a job post actually sends still publishes",
+    assertSucceeds(
+      setDoc(doc(asSeller, "listings/realShapeJob"), {
+        ...publishedShape,
+        categoryKey: "jobs",
+        company: "Sobebra",
+        jobType: "fullTime",
+        jobCategory: "logistics",
+        verified: false,
+        price: 0,
+        createdAt: serverTimestamp(),
+      }),
+    ),
+  );
+  // What the edit flow sends: CreateListingScreen destructures the identity
+  // and lifecycle fields out before updateDoc, so an ordinary edit touches
+  // none of the newly frozen keys.
+  await check(
+    "the update an edit actually sends still saves",
+    assertSucceeds(
+      updateDoc(doc(asSeller, "listings/realShape"), {
+        titleFr: "Toyota RAV4 2013 — prix revu",
+        descriptionFr: "Véhicule bien entretenu. Prix négociable.",
+        price: 3200000,
+        previousPrice: 3500000,
+        priceDroppedAt: serverTimestamp(),
+        media: publishedShape.media,
+        updatedAt: serverTimestamp(),
+      }),
+    ),
+  );
+  await check(
+    "a seller can still delete their own listing",
+    assertSucceeds(deleteDoc(doc(asSeller, "listings/realShapeJob"))),
+  );
+  await check(
+    "a stranger still cannot delete somebody else's listing",
+    assertFails(deleteDoc(doc(asOutsider, "listings/realShape"))),
+  );
+  // Opening a chat and sending the first message — the whole contact flow a
+  // buyer goes through, unchanged by Phase A and pinned so it stays that way.
+  await check(
+    "a buyer can still open a conversation on a listing",
+    assertSucceeds(
+      setDoc(doc(asBuyer, `conversations/realShape_${BUYER}`), {
+        listingId: "realShape",
+        listingTitle: "Toyota RAV4 2013",
+        sellerId: SELLER,
+        buyerId: BUYER,
+        participantIds: [SELLER, BUYER],
+        unreadCount: { [SELLER]: 0, [BUYER]: 0 },
+        createdAt: serverTimestamp(),
+      }),
+    ),
+  );
+  await check(
+    "and send the first message into it",
+    assertSucceeds(
+      setDoc(doc(asBuyer, `conversations/realShape_${BUYER}/messages/m1`), {
+        senderId: BUYER,
+        text: "Bonjour, est-ce toujours disponible ?",
+        createdAt: serverTimestamp(),
       }),
     ),
   );

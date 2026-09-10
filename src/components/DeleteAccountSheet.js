@@ -72,7 +72,15 @@ export function DeleteAccountSheet({ visible, onClose, onDeleted }) {
       <Backdrop>
         <Sheet>
           <SheetTitle>{t("deleteAccountTitle")}</SheetTitle>
+          {/* The consequence first, in one sentence, before the list. Somebody
+              who reads only the first line should still learn the thing that
+              matters: the account goes and they cannot sign in again. */}
           <SheetBody>{t("deleteAccountWhatGoes")}</SheetBody>
+          <SheetList>{t("deleteAccountWhatGoesList")}</SheetList>
+          {/* And what does NOT go, because it is the half people are
+              surprised by. Somebody deleting an account to erase a
+              conversation should learn here that the other person keeps
+              their copy, not afterwards. */}
           <SheetNote>{t("deleteAccountWhatStays")}</SheetNote>
 
           <FieldLabel>{t("deleteAccountPasswordLabel")}</FieldLabel>
@@ -127,6 +135,11 @@ const SheetTitle = styled.Text`
 
 const SheetBody = styled.Text`
   ${type.body}
+  color: ${(props) => props.theme.text};
+`;
+
+const SheetList = styled.Text`
+  ${type.caption}
   color: ${(props) => props.theme.text};
 `;
 

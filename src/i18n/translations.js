@@ -2513,9 +2513,11 @@ export const translations = {
     deleteAccountButton: "Delete my account",
     deleteAccountTitle: "Delete your account",
     deleteAccountWhatGoes:
-      "This removes your profile, your listings and their photos, your saved items, the sellers you follow, your job applications and your CVs. It cannot be undone.",
+      "Your account is deleted permanently and you will not be able to sign in again.",
+    deleteAccountWhatGoesList:
+      "Deleted: your profile and photo, your listings and all their photos, your saved listings and jobs, the sellers you follow, your job applications and CVs, the reviews you left, and any verification documents you sent us.",
     deleteAccountWhatStays:
-      "Your conversations stay with the people you spoke to \u2014 they keep their own copy \u2014 but your name is removed from them.",
+      "Kept: conversations you had. The people you spoke to keep their own copy, including messages and photos you sent \u2014 your name is removed from them.",
     deleteAccountPasswordLabel: "Your password",
     deleteAccountConfirmButton: "Delete permanently",
     deleteAccountDoneTitle: "Account deleted",
@@ -5651,9 +5653,11 @@ export const translations = {
     deleteAccountButton: "Supprimer mon compte",
     deleteAccountTitle: "Supprimer votre compte",
     deleteAccountWhatGoes:
-      "Cela supprime votre profil, vos annonces et leurs photos, vos favoris, les vendeurs que vous suivez, vos candidatures et vos CV. C'est d\u00e9finitif.",
+      "Votre compte est supprim\u00e9 d\u00e9finitivement et vous ne pourrez plus vous connecter.",
+    deleteAccountWhatGoesList:
+      "Supprim\u00e9s : votre profil et votre photo, vos annonces et toutes leurs photos, vos favoris et offres enregistr\u00e9es, les vendeurs que vous suivez, vos candidatures et vos CV, les avis que vous avez laiss\u00e9s, et les documents de v\u00e9rification envoy\u00e9s.",
     deleteAccountWhatStays:
-      "Vos conversations restent chez vos interlocuteurs \u2014 ils en gardent leur copie \u2014 mais votre nom en est retir\u00e9.",
+      "Conserv\u00e9 : vos conversations. Vos interlocuteurs en gardent leur copie, y compris les messages et photos que vous avez envoy\u00e9s \u2014 votre nom en est retir\u00e9.",
     deleteAccountPasswordLabel: "Votre mot de passe",
     deleteAccountConfirmButton: "Supprimer d\u00e9finitivement",
     deleteAccountDoneTitle: "Compte supprim\u00e9",

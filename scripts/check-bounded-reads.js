@@ -24,7 +24,15 @@ const failures = [];
 // must carry.
 const BOUNDED_HOOKS = [
   ["src/hooks/useListingsQuery.js", /limit\(pageSize\)/],
-  ["src/hooks/useCategoryListings.js", /limit\(CATEGORY_CAP\)/],
+  // Phase C gave this a growing window so a category over the cap can be
+  // browsed past it, so the bound is no longer the literal CATEGORY_CAP. It
+  // is still a bound: the query asks for `entry.window`, which starts at
+  // CATEGORY_CAP and only ever grows when a reader asks it to. All three
+  // parts are checked, because a window with no starting value or no limit()
+  // is the unbounded read wearing a different name.
+  ["src/hooks/useCategoryListings.js", /limit\(entry\.window\)/],
+  ["src/hooks/useCategoryListings.js", /window:\s*CATEGORY_CAP/],
+  ["src/hooks/useCategoryListings.js", /current\.window \+= CATEGORY_PAGE/],
   // Bounded by construction rather than by limit(): it reads a caller's own
   // list of ids, chunked at Firestore's cap of 30 per `in` filter.
   ["src/hooks/useListingsByIds.js", /CHUNK = 30/],

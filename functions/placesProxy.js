@@ -26,11 +26,26 @@ const { logger } = require("firebase-functions");
 // is one way to hold a secret in this project rather than two.
 const placesApiKey = defineSecret("GOOGLE_PLACES_API_KEY");
 
-// The Republic of Bénin's real bounding box, mirrored from
-// src/hooks/useSearchPharmacies.js. Enforced here as well as there, because
-// a caller can now ask this function for anything and a text search
-// unrestricted by geography is a general-purpose Places account for whoever
-// finds the endpoint.
+// Bénin's bounding box, enforced here because a text search unrestricted by
+// geography is a general-purpose Places account for whoever finds the
+// endpoint.
+//
+// It is a RECTANGLE, and Bénin is a narrow country, so it admits parts of two
+// neighbours: Lagos and Lomé both fall inside it. That is measured, not
+// guessed — scripts/functions-tests/places.test.js pins it — and it is worth
+// writing down because the comment this replaces claimed the rectangle
+// "guarantees every result is really in Bénin", which is not true of any
+// rectangle drawn around this country.
+//
+// What it does do, and what it was actually introduced for, is exclude Benin
+// City in Nigeria: Google matches that on the word "Benin" and was observed
+// interleaving real Nigerian pharmacies with Cotonou ones. At 5.62°E it is
+// well outside, along with Accra, Niamey and everywhere else.
+//
+// Not a security boundary either way. What stops this endpoint being an
+// unmetered Places account is the auth requirement, the place-type allowlist
+// and the radius clamp below. Tightening this to a polygon would change
+// results for real border towns, which is a product decision.
 const BENIN_BOUNDS = {
   low: { latitude: 6.1, longitude: 0.75 },
   high: { latitude: 12.45, longitude: 3.9 },

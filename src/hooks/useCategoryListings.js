@@ -43,6 +43,13 @@ import { visibleListings } from "../utils/listingVisibility";
 // below the "download everything" it replaces.
 export const CATEGORY_CAP = 200;
 
+// How much a "voir plus" adds. The window GROWS rather than paging, which is
+// the same shape ChatScreen uses and for the same reason: these screens group
+// the whole set before rendering — by trade, by city, by custom label — and a
+// cursor through grouped sections reshuffles them as pages land. A growing
+// window is monotonic, so a section only ever gains rows.
+export const CATEGORY_PAGE = 200;
+
 // How long a category's rows are reused before the next mount refetches.
 // Long enough that moving between Garages, Pneus and Batterie — three screens
 // on the same category, one after another — is one read rather than three.
@@ -58,6 +65,13 @@ function entryFor(key) {
       fetchedAt: 0,
       promise: null,
       subscribers: new Set(),
+      // How many documents this category is currently asking for, and
+      // whether the answer filled it. Without the second, a truncated
+      // category is indistinguishable from a complete one — which is what
+      // scripts/rules-tests/categoryCap.test.js measured: at 1,000 listings
+      // the reader was shown 200 and nothing said so.
+      window: CATEGORY_CAP,
+      hasMore: false,
     });
   }
   return cache.get(key);
@@ -80,10 +94,13 @@ async function load(categoryKey, entry) {
           where("status", "==", "approved"),
           where("categoryKey", "==", categoryKey),
           orderBy("createdAt", "desc"),
-          limit(CATEGORY_CAP),
+          limit(entry.window),
         ),
       );
       entry.listings = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      // A page that came back full may have more behind it; one that came
+      // back short is the whole category.
+      entry.hasMore = snapshot.docs.length === entry.window;
       entry.status = "ready";
       entry.fetchedAt = Date.now();
     } catch (error) {
@@ -134,8 +151,30 @@ export function useCategoryListings(categoryKey) {
     return load(categoryKey, current);
   }, [categoryKey]);
 
+  // Grows the window by a page and refetches.
+  //
+  // Only the screens that genuinely browse an aisle to its end call this.
+  // A directory landing page — Cars, Services, Garages — shows rails and
+  // groupings and is a discovery surface rather than an exhaustive list, so
+  // it keeps the plain 200 and says nothing.
+  const loadMore = useCallback(() => {
+    if (!categoryKey || !isFirebaseConfigured) return Promise.resolve();
+    const current = entryFor(categoryKey);
+    if (current.promise || !current.hasMore) return Promise.resolve();
+    current.window += CATEGORY_PAGE;
+    current.fetchedAt = 0;
+    return load(categoryKey, current);
+  }, [categoryKey]);
+
   if (!categoryKey || !isFirebaseConfigured) {
-    return { listings: null, status: "unconfigured", refresh };
+    return {
+      listings: null,
+      status: "unconfigured",
+      hasMore: false,
+      isLoadingMore: false,
+      refresh,
+      loadMore,
+    };
   }
 
   return {
@@ -144,7 +183,13 @@ export function useCategoryListings(categoryKey) {
     // Firestore would make it dictate the sort order.
     listings: entry.listings ? visibleListings(entry.listings) : null,
     status: entry.status,
+    // Whether this category was cut. Before this existed a truncated list and
+    // a complete one looked identical to every caller, so no screen could
+    // offer to show the rest and none said the list was not all of it.
+    hasMore: entry.hasMore,
+    isLoadingMore: Boolean(entry.promise) && Boolean(entry.listings),
     refresh,
+    loadMore,
   };
 }
 

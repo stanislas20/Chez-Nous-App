@@ -32,10 +32,15 @@ import { BrandSplash } from "./src/components/BrandSplash";
 import { AppErrorBoundary } from "./src/components/AppErrorBoundary";
 import { OfflineBanner } from "./src/components/OfflineBanner";
 import { installGlobalErrorHandler } from "./src/utils/globalErrorHandler";
+import { attachCrashReporter } from "./src/utils/crashReporter";
 import { useI18n } from "./src/i18n/I18nContext";
 
 // Before anything else renders, so a failure during startup is reported
 // rather than lost. Idempotent and cheap.
+// Crashlytics first, so the global handler installed on the next line has
+// somewhere to send what it catches. Both are safe to call before anything
+// renders, and both no-op cleanly in a binary without the native module.
+attachCrashReporter();
 installGlobalErrorHandler();
 
 SplashScreen.preventAutoHideAsync();

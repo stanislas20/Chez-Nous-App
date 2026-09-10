@@ -500,8 +500,13 @@ export function CategoryListingsScreen({ route, navigation }) {
   // grid) and all four group the whole set before rendering. Bounding the
   // read to the category is the change that matters here; a cursor through
   // grouped sections would reshuffle the groups as pages landed.
-  const { listings: liveListings, status: listingsStatus } =
-    useCategoryListings(categoryKey);
+  const {
+    listings: liveListings,
+    status: listingsStatus,
+    hasMore: hasMoreInCategory,
+    isLoadingMore: loadingMoreInCategory,
+    loadMore: loadMoreInCategory,
+  } = useCategoryListings(categoryKey);
   const allListings =
     liveListings ?? (listingsStatus === "unconfigured" ? mockListings : []);
   const categoryListings = allListings.filter(
@@ -799,6 +804,16 @@ export function CategoryListingsScreen({ route, navigation }) {
       setTimeout(() => setRefreshing(false), 600);
     }
   }, [groupByLocation, requestLocation]);
+
+  // Says which of the three things is true: more is coming, more exists, or
+  // this is all of it. Before this the third and the second looked the same.
+  const categoryListFooter = loadingMoreInCategory ? (
+    <ListFooterRow>
+      <ActivityIndicator color={colors.primary} />
+    </ListFooterRow>
+  ) : !hasMoreInCategory && listings.length > 0 ? (
+    <ListFooterNote>{t("localEndOfResults")}</ListFooterNote>
+  ) : null;
 
   const refreshControl = (
     <RefreshControl
@@ -1212,6 +1227,22 @@ export function CategoryListingsScreen({ route, navigation }) {
             contentContainerStyle={listContentStyle}
             refreshControl={refreshControl}
             showsVerticalScrollIndicator={false}
+            // The one list in the app whose job is browsing an aisle to its
+            // end. A category holding more than 200 used to stop dead at 200
+            // with nothing on screen saying so — measured in
+            // scripts/rules-tests/categoryCap.test.js, where a category of
+            // 1,000 showed 200 and hid 800 silently.
+            //
+            // The window grows rather than paging with a cursor, because this
+            // screen groups its whole set before rendering and a cursor would
+            // reshuffle the groups underneath the reader.
+            onEndReached={loadMoreInCategory}
+            onEndReachedThreshold={0.6}
+            initialNumToRender={8}
+            maxToRenderPerBatch={8}
+            windowSize={7}
+            removeClippedSubviews
+            ListFooterComponent={categoryListFooter}
             renderItem={({ item }) => <ListingCard listing={item} flush />}
           />
         )
@@ -1901,4 +1932,16 @@ const SheetRowLabel = styled.Text`
   ${type.bodyMedium}
   color: ${(props) => props.theme.text};
   flex: 1;
+`;
+
+const ListFooterRow = styled.View`
+  padding-vertical: ${spacing.lg}px;
+  align-items: center;
+`;
+
+const ListFooterNote = styled.Text`
+  ${type.caption}
+  color: ${(props) => props.theme.textMuted};
+  text-align: center;
+  padding-vertical: ${spacing.lg}px;
 `;

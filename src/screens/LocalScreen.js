@@ -623,7 +623,6 @@ export function LocalScreen({ navigation }) {
         initialNumToRender={8}
         maxToRenderPerBatch={8}
         windowSize={7}
-        removeClippedSubviews
         onEndReached={loadMoreListings}
         onEndReachedThreshold={0.5}
         ListHeaderComponent={

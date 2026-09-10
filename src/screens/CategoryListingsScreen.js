@@ -1264,7 +1264,6 @@ export function CategoryListingsScreen({ route, navigation }) {
             initialNumToRender={8}
             maxToRenderPerBatch={8}
             windowSize={7}
-            removeClippedSubviews
             ListFooterComponent={categoryListFooter}
             renderItem={({ item }) => <ListingCard listing={item} flush />}
           />

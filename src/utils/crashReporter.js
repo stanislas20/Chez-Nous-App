@@ -32,11 +32,10 @@ import { setErrorReporter } from "./reportError";
 const MAX_ATTRIBUTE = 1000;
 
 export function attachCrashReporter() {
-  let crashlytics;
+  let modular;
   try {
     // eslint-disable-next-line global-require
-    const module = require("@react-native-firebase/crashlytics");
-    crashlytics = module.default ?? module;
+    modular = require("@react-native-firebase/crashlytics");
   } catch (error) {
     // Not in this binary — Expo Go, or a build made before the package was
     // added. Reports keep going to the console, which is what they did
@@ -45,7 +44,11 @@ export function attachCrashReporter() {
   }
 
   try {
-    const instance = crashlytics();
+    // The modular API, not the namespaced `crashlytics()` call it replaced.
+    // The namespaced form still works in v25 but logs a deprecation warning
+    // on every launch, and it goes away in the next major version.
+    const { getCrashlytics, log, recordError, setAttributes } = modular;
+    const instance = getCrashlytics();
     setErrorReporter({
       recordError: (error, payload) => {
         const attributes = {};
@@ -56,12 +59,12 @@ export function attachCrashReporter() {
         // Attributes first: Crashlytics attaches whatever is set at the
         // moment recordError is called, so setting them afterwards would
         // file them against the NEXT error instead of this one.
-        instance.setAttributes(attributes).catch(() => {});
+        setAttributes(instance, attributes).catch(() => {});
         // A breadcrumb as well as the record, because the Crashlytics console
         // shows the log inline with the stack and the `where` is the first
         // thing anybody reading it wants.
-        instance.log(`${payload?.where ?? "unknown"}: ${payload?.kind ?? ""}`);
-        instance.recordError(error);
+        log(instance, `${payload?.where ?? "unknown"}: ${payload?.kind ?? ""}`);
+        recordError(instance, error);
       },
     });
     return { attached: true, reason: null };

@@ -66,6 +66,84 @@ through a `CustomProvider`. One attestation, both pipelines.
    → Manage debug tokens. One per machine or simulator. These never reach a
    release build — the provider is chosen by `__DEV__`.
 
+## What Phase C validated locally
+
+Everything below was run, not reasoned about. `scripts/functions-tests/appCheck.test.js`
+(13 cases) and the iOS/Android prebuilds:
+
+| Checked | Result |
+|---|---|
+| Release build selects Play Integrity / App Attest+DeviceCheck | PASS |
+| Debug build selects the debug provider, gated on `__DEV__` alone | PASS |
+| The native token actually reaches the JS SDK through `CustomProvider` | PASS |
+| The token carries the `expireTimeMillis` the JS SDK requires (≈1h) | PASS |
+| Auto-refresh enabled on both SDKs | PASS |
+| A binary with no native module keeps working (fail-open) | PASS |
+| A JS SDK failure does not throw either | PASS |
+| Calling the bridge twice does not open two | PASS |
+| `app.json` carries the plugin and `RNFBAppCheck` static linking | PASS |
+| The bridge starts before Firestore, Storage and Functions are created | PASS |
+| Nothing in `functions/` sets `enforceAppCheck: true` | PASS |
+| iOS: `pod install` resolves `RNFBAppCheck` → `FirebaseAppCheck 12.15.0` | PASS |
+| Android: RN autolinking picks up `@react-native-firebase/app-check` | PASS |
+
+**Not validated, and not validatable here:** Play Integrity and App Attest
+producing a real token. That needs the physical devices below.
+
+## Real-device test — ANDROID (Play Integrity)
+
+1. Firebase console → Project settings → your Android app → add the **SHA-256**
+   of the certificate that will sign the build you are testing. A build signed
+   with a different key attests as a different app and is rejected. For a Play
+   internal-testing build this is Play's own app-signing certificate, listed in
+   Play Console → Setup → App integrity.
+2. Play Console: the app must have been uploaded at least once, to any track.
+   Play Integrity cannot verify an APK Play has never seen.
+3. Firebase console → App Check → your Android app → **register Play Integrity**.
+4. Build a release-configuration APK/AAB signed with that key:
+   ```
+   npx expo prebuild -p android --clean
+   echo "sdk.dir=$HOME/Library/Android/sdk" > android/local.properties
+   npm run build:android
+   ```
+5. Install it on a **physical device with Google Play services** and a Google
+   account signed in. Play Integrity does not work on an emulator, on a device
+   without Play services, or on a rooted device — all three report as
+   unverified, which is correct behaviour and not a bug to chase.
+6. Use the app: open the feed, open a listing, send a message, upload a photo.
+7. Firebase console → App Check → **Metrics**, per service. Within a few
+   minutes Firestore, Storage and Functions should each show **Verified**
+   requests climbing.
+
+**What each outcome means**
+- *Verified climbing* → the bridge works end to end.
+- *Unverified climbing* → tokens are not reaching the JS SDK. Do not enforce.
+- *Invalid climbing* → wrong signing certificate, or an unregistered debug
+  token. Check step 1.
+
+## Real-device test — iOS (App Attest / DeviceCheck)
+
+1. Firebase console → App Check → your iOS app → **register App Attest**.
+   The Team ID (`MY9Y7Y46Q7`) and bundle id (`com.stanislas20.cheznous`) on the
+   Firebase app must match the build exactly.
+2. App Attest requires a **physical device on iOS 14+**. The simulator cannot
+   attest — that is what the debug provider is for. DeviceCheck is the
+   configured fallback for older devices.
+3. Build for release, with the entitlement set correctly:
+   ```
+   APS_ENVIRONMENT=production npx expo prebuild -p ios --clean
+   ```
+   Then archive in Xcode, or `npx expo run:ios --configuration Release`.
+   Verified in Phase C: with `APS_ENVIRONMENT=production` the generated
+   `ios/ChezNous/ChezNous.entitlements` contains
+   `<key>aps-environment</key><string>production</string>`.
+4. Install via TestFlight or a direct device build, and use the app as above.
+5. Firebase console → App Check → Metrics. Read them exactly as for Android.
+
+**iOS-specific gotcha:** App Attest keys are per-device-per-install. Deleting
+and reinstalling the app produces a fresh attestation, so a device that has
+just been reinstalled may briefly report unverified.
+
 ## Verifying before enforcing
 
 Do this in a **release-configuration build on a real device**, not a dev

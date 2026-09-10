@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { memo, useRef } from "react";
 import { Animated, Pressable, Share } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -34,7 +34,7 @@ const saleStatusTint = (theme) => ({
 // Enregistrées, the seller dashboard, a profile — and only the Local grid
 // was asked to change. Making it global would have restyled eight screens
 // nobody mentioned.
-export function ListingCard({
+function ListingCardBase({
   listing,
   style,
   isFavorite,
@@ -452,3 +452,29 @@ const City = styled.Text`
   line-height: 14px;
   color: ${(props) => props.theme.textMuted};
 `;
+
+// Memoised, because this is the component every list in the app renders and
+// none of them were memoising it.
+//
+// The cost it removes is specific: a browse screen re-renders on every
+// keystroke in its search field, every filter chip, every arriving page and —
+// on ForYou — every tick of the five-minute interval that re-evaluates the
+// sold-listing cutoff. Each of those rebuilt every visible card and every
+// styled-component inside it, for data that had not changed.
+//
+// The comparison is written out rather than left to the default shallow one
+// for one reason: `onToggleFavorite` is an inline arrow at most call sites,
+// so it is a new function identity on every parent render and the default
+// comparison would never match. Comparing the listing by identity and the two
+// booleans by value is what makes the memo actually hold.
+//
+// `listing` is compared by reference, which is correct here: the objects come
+// from a Firestore snapshot and are rebuilt only when the document changes.
+export const ListingCard = memo(ListingCardBase, (prev, next) => {
+  return (
+    prev.listing === next.listing &&
+    prev.isFavorite === next.isFavorite &&
+    prev.flush === next.flush &&
+    prev.style === next.style
+  );
+});

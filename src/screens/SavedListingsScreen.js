@@ -92,6 +92,14 @@ export function SavedListingsScreen() {
         numColumns={2}
         columnWrapperStyle={rowStyle}
         contentContainerStyle={listContentStyle}
+        // Virtualization budget. The defaults keep about ten screens of
+        // rows mounted, and each row here is two photographs — a decoded
+        // 600px bitmap is roughly 1.4 MB, so the default is tens of
+        // megabytes of images held for scrolling nobody has done yet.
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        removeClippedSubviews
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => <ListingCard listing={item} flush />}
       />

@@ -65,6 +65,27 @@ if (isFirebaseConfigured) {
     auth = getAuth(app);
   }
 
+  // Attestation before the services that need it.
+  //
+  // Started here rather than in App.js so it runs before the first Firestore
+  // read is issued: App Check attaches its token to requests made after it
+  // initialises, and a listener opened first would go out unattested. It
+  // returns a promise nothing awaits on purpose — blocking startup on a Play
+  // Integrity round trip would put a network call on the path to the first
+  // frame, and enforcement is off, so an unattested first request is
+  // accepted either way.
+  //
+  // Required lazily for the same reason the module itself requires its native
+  // dependency lazily. See src/config/appCheck.js.
+  try {
+    // eslint-disable-next-line global-require
+    require("./appCheck")
+      .initializeAppCheckBridge(app)
+      .catch(() => {});
+  } catch (error) {
+    // App Check is not available in this binary. Everything below still runs.
+  }
+
   firestoreInstance = getFirestore(app);
   storageInstance = getStorage(app);
   functionsInstance = getFunctions(app);

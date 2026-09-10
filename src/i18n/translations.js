@@ -2510,6 +2510,20 @@ export const translations = {
 
     errorMediaRequired: "Please add a title and choose a photo or video.",
     connectionOffline: "No connection \u2014 showing what was already loaded.",
+    deleteAccountButton: "Delete my account",
+    deleteAccountTitle: "Delete your account",
+    deleteAccountWhatGoes:
+      "This removes your profile, your listings and their photos, your saved items, the sellers you follow, your job applications and your CVs. It cannot be undone.",
+    deleteAccountWhatStays:
+      "Your conversations stay with the people you spoke to \u2014 they keep their own copy \u2014 but your name is removed from them.",
+    deleteAccountPasswordLabel: "Your password",
+    deleteAccountConfirmButton: "Delete permanently",
+    deleteAccountDoneTitle: "Account deleted",
+    deleteAccountDoneMessage: "Your account and your listings have been removed.",
+    deleteAccountReauthNeeded:
+      "For your security, sign in again and then retry deleting your account.",
+    deleteAccountPartial:
+      "Some of your data could not be removed, so nothing was deleted. Please try again.",
     errorUploadFailed: "Upload failed. Please try again.",
     errorUploadOffline:
       "No connection. Your listing was not sent — try again once you are back online.",
@@ -5634,6 +5648,20 @@ export const translations = {
       "Veuillez ajouter un titre et choisir une photo ou une vidéo.",
     connectionOffline:
       "Pas de connexion \u2014 affichage des donn\u00e9es d\u00e9j\u00e0 charg\u00e9es.",
+    deleteAccountButton: "Supprimer mon compte",
+    deleteAccountTitle: "Supprimer votre compte",
+    deleteAccountWhatGoes:
+      "Cela supprime votre profil, vos annonces et leurs photos, vos favoris, les vendeurs que vous suivez, vos candidatures et vos CV. C'est d\u00e9finitif.",
+    deleteAccountWhatStays:
+      "Vos conversations restent chez vos interlocuteurs \u2014 ils en gardent leur copie \u2014 mais votre nom en est retir\u00e9.",
+    deleteAccountPasswordLabel: "Votre mot de passe",
+    deleteAccountConfirmButton: "Supprimer d\u00e9finitivement",
+    deleteAccountDoneTitle: "Compte supprim\u00e9",
+    deleteAccountDoneMessage: "Votre compte et vos annonces ont \u00e9t\u00e9 supprim\u00e9s.",
+    deleteAccountReauthNeeded:
+      "Pour votre s\u00e9curit\u00e9, reconnectez-vous puis relancez la suppression.",
+    deleteAccountPartial:
+      "Certaines de vos donn\u00e9es n'ont pas pu \u00eatre supprim\u00e9es, donc rien n'a \u00e9t\u00e9 effac\u00e9. Veuillez r\u00e9essayer.",
     errorUploadFailed: "Échec de l'envoi. Veuillez réessayer.",
     errorUploadOffline:
       "Pas de connexion. Votre annonce n'a pas \u00e9t\u00e9 envoy\u00e9e \u2014 r\u00e9essayez une fois reconnect\u00e9.",

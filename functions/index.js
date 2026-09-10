@@ -30,6 +30,9 @@ exports.listingPage = require("./listingPage").listingPage;
 // Google Places, called from a server that can hold a key — the app used
 // to call it directly with a key EXPO_PUBLIC_ had inlined into the bundle.
 exports.placesProxy = require("./placesProxy").placesProxy;
+// The way out. Anonymises shared conversations rather than deleting them —
+// see the note in the file for why that is a decision and not an omission.
+exports.deleteAccount = require("./deleteAccount").deleteAccount;
 
 const PSEUDO_EMAIL_DOMAIN = "chez-nous.app";
 const MIN_PASSWORD_LENGTH = 6;

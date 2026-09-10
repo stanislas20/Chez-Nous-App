@@ -19,7 +19,7 @@ const result = spawnSync(
     "firestore,storage",
     "--project",
     "rules-probe",
-    "node scripts/rules-tests/moderation.test.js && node scripts/rules-tests/rules.test.js && node scripts/rules-tests/storage.test.js",
+    "node scripts/rules-tests/moderation.test.js && node scripts/rules-tests/rules.test.js && node scripts/rules-tests/storage.test.js && node scripts/rules-tests/pagination.test.js",
   ],
   { stdio: "inherit", cwd: process.cwd() },
 );

@@ -584,6 +584,14 @@ export function LocalScreen({ navigation }) {
         // Load-more. The threshold is half a screen rather than the default,
         // because these rows are two cards wide and tall: by the time the
         // last one is on screen the next page has usually landed.
+        // Virtualization budget. The defaults keep about ten screens of
+        // rows mounted, and each row here is two photographs — a decoded
+        // 600px bitmap is roughly 1.4 MB, so the default is tens of
+        // megabytes of images held for scrolling nobody has done yet.
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        removeClippedSubviews
         onEndReached={loadMoreListings}
         onEndReachedThreshold={0.5}
         ListHeaderComponent={

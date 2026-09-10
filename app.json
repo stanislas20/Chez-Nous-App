@@ -16,7 +16,9 @@
         "aps-environment": "development"
       },
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"],
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
         "UIRequiresFullScreen": true
       }
     },
@@ -47,7 +49,9 @@
           "backgroundColor": "#00553A",
           "image": "./assets/splash-mark.png",
           "imageWidth": 180,
-          "dark": { "backgroundColor": "#00553A" }
+          "dark": {
+            "backgroundColor": "#00553A"
+          }
         }
       ],
       "@react-native-firebase/app",
@@ -56,13 +60,21 @@
         {
           "ios": {
             "useFrameworks": "static",
-            "forceStaticLinking": ["RNFBApp", "RNFBMessaging"],
+            "forceStaticLinking": [
+              "RNFBApp",
+              "RNFBMessaging",
+              "RNFBAppCheck"
+            ],
             "deploymentTarget": "16.4"
           },
           "android": {
             "enableMinifyInReleaseBuilds": true,
             "enableShrinkResourcesInReleaseBuilds": true,
-            "buildArchs": ["armeabi-v7a", "arm64-v8a", "x86_64"]
+            "buildArchs": [
+              "armeabi-v7a",
+              "arm64-v8a",
+              "x86_64"
+            ]
           }
         }
       ],
@@ -95,11 +107,14 @@
         {
           "microphonePermission": "Allow Chez-Nous to access your microphone to record voice messages and search by voice.",
           "speechRecognitionPermission": "Allow Chez-Nous to use speech recognition for voice search.",
-          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
         }
       ],
       "@react-native-firebase/auth",
-      "@react-native-firebase/messaging"
+      "@react-native-firebase/messaging",
+      "@react-native-firebase/app-check"
     ]
   }
 }

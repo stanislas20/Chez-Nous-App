@@ -657,10 +657,15 @@ export function RestaurantsScreen({ navigation, route }) {
               {/* The picture leads. A featured slot that shows a generic
                   icon is a paid placement wasting the one thing that makes
                   someone choose a restaurant. */}
-              {promoted.mediaUrl ? (
+              {smallImageUri(promoted) ? (
                 <PromotedBanner>
                   <PromotedPhoto
-                    source={{ uri: promoted.mediaUrl }}
+                    // The 600px copy, like every other card on this screen.
+                    // This one banner was pulling the full 1600px file — a
+                    // quarter of a megabyte to fill a strip a few hundred
+                    // pixels tall, on every open of the screen, on a
+                    // connection the reader pays for by the megabyte.
+                    source={{ uri: smallImageUri(promoted) }}
                     resizeMode="contain"
                   />
                 </PromotedBanner>

@@ -8,6 +8,7 @@ import { radius, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { categories } from "../data/categories";
+import { DeleteAccountSheet } from "../components/DeleteAccountSheet";
 import { useAuth } from "../auth/AuthContext";
 import { useI18n } from "../i18n/I18nContext";
 import { openAccountGate } from "../utils/openAccountGate";
@@ -81,6 +82,8 @@ export function MoreScreen({ navigation }) {
   // question somebody taps it to ask is what was already done with their
   // number.
   const openInfoPage = (page) => navigation.navigate("InfoPage", { page });
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(t("logoutConfirmTitle"), t("logoutConfirmMessage"), [
@@ -482,6 +485,19 @@ export function MoreScreen({ navigation }) {
             <SignOutLabel>{t("logoutButton")}</SignOutLabel>
           </SignOutRow>
         ) : null}
+        {/* Beneath sign-out, quieter than it, and only for somebody who is
+            signed in. Deliberately not a button that looks like the others:
+            it is the one action here that cannot be undone. */}
+        {user ? (
+          <DeleteAccountRow onPress={() => setDeleteOpen(true)}>
+            <DeleteAccountLabel>{t("deleteAccountButton")}</DeleteAccountLabel>
+          </DeleteAccountRow>
+        ) : null}
+        <DeleteAccountSheet
+          visible={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          onDeleted={resetLanguage}
+        />
       </ScrollView>
     </Container>
   );
@@ -746,4 +762,17 @@ const SignOutRow = styled(Pressable)`
 const SignOutLabel = styled.Text`
   ${type.bodyMedium}
   color: ${(props) => props.theme.error};
+`;
+
+// Quiet on purpose: a muted label rather than a filled destructive button.
+// Somebody looking for this will find it; nobody reaches it by accident.
+const DeleteAccountRow = styled.Pressable`
+  align-items: center;
+  padding-vertical: ${spacing.md}px;
+`;
+
+const DeleteAccountLabel = styled.Text`
+  ${type.caption}
+  color: ${(props) => props.theme.textMuted};
+  text-decoration-line: underline;
 `;

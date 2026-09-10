@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
+import { searchPlacesNearby } from "../utils/places";
 import { distanceInKm } from "../utils/geo";
 import { extractPlacePhoto } from "../utils/placePhoto";
 
-const PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
 const SEARCH_RADIUS_METERS = 5000;
 const FIELD_MASK =
   "places.id,places.displayName,places.location,places.formattedAddress," +
@@ -19,33 +19,20 @@ export function useNearbyPharmacies(coords) {
 
   useEffect(() => {
     if (!coords) return;
-    if (!PLACES_API_KEY) {
-      setStatus("error");
-      return;
-    }
 
     let cancelled = false;
     setStatus("loading");
 
-    fetch("https://places.googleapis.com/v1/places:searchNearby", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Goog-Api-Key": PLACES_API_KEY,
-        "X-Goog-FieldMask": FIELD_MASK,
-      },
-      body: JSON.stringify({
-        includedTypes: ["pharmacy"],
-        maxResultCount: 20,
-        locationRestriction: {
-          circle: {
-            center: { latitude: coords.latitude, longitude: coords.longitude },
-            radius: SEARCH_RADIUS_METERS,
-          },
-        },
-      }),
+    // Through the Cloud Function, not straight at Google. The key this used
+    // to carry was inlined into the app bundle by EXPO_PUBLIC_, and a Places
+    // REST key cannot be restricted to a package the way a Maps SDK key can.
+    // The answer's shape is unchanged — this is still Google's own JSON.
+    searchPlacesNearby({
+      coords,
+      radius: SEARCH_RADIUS_METERS,
+      type: "pharmacy",
+      fieldMask: FIELD_MASK,
     })
-      .then((response) => response.json())
       .then((data) => {
         if (cancelled) return;
         if (data.error) {

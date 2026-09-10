@@ -2509,6 +2509,7 @@ export const translations = {
       "Your ad was submitted for review. It will appear in the app once approved.",
 
     errorMediaRequired: "Please add a title and choose a photo or video.",
+    connectionOffline: "No connection \u2014 showing what was already loaded.",
     errorUploadFailed: "Upload failed. Please try again.",
     errorUploadOffline:
       "No connection. Your listing was not sent — try again once you are back online.",
@@ -5631,6 +5632,8 @@ export const translations = {
 
     errorMediaRequired:
       "Veuillez ajouter un titre et choisir une photo ou une vidéo.",
+    connectionOffline:
+      "Pas de connexion \u2014 affichage des donn\u00e9es d\u00e9j\u00e0 charg\u00e9es.",
     errorUploadFailed: "Échec de l'envoi. Veuillez réessayer.",
     errorUploadOffline:
       "Pas de connexion. Votre annonce n'a pas \u00e9t\u00e9 envoy\u00e9e \u2014 r\u00e9essayez une fois reconnect\u00e9.",

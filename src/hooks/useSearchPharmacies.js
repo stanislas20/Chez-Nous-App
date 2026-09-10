@@ -1,24 +1,12 @@
 import { useEffect, useState } from "react";
+import { searchPlacesByText } from "../utils/places";
 import { distanceInKm } from "../utils/geo";
 import { extractPlacePhoto } from "../utils/placePhoto";
 
-const PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
 const FIELD_MASK =
   "places.id,places.displayName,places.location,places.formattedAddress," +
   "places.internationalPhoneNumber,places.currentOpeningHours.openNow,places.rating," +
   "places.photos";
-
-// The Republic of Bénin's real bounding box. "Benin" in a text query is
-// genuinely ambiguous to Google — it also matches Benin City, Nigeria
-// (~700km east, in Edo State), and a soft locationBias alone doesn't
-// prevent that from mixing into results (confirmed live: "pharmacy Benin"
-// returned real Nigerian pharmacies interleaved with Cotonou ones). A hard
-// locationRestriction rectangle is the only way to actually guarantee every
-// result is really in Bénin, not just biased toward it.
-const BENIN_BOUNDS = {
-  low: { latitude: 6.1, longitude: 0.75 },
-  high: { latitude: 12.45, longitude: 3.9 },
-};
 
 // useNearbyPharmacies only ever sees whatever's within a fixed radius of the
 // user (capped at 20 results) — a specific pharmacy the user names by
@@ -41,38 +29,20 @@ export function useSearchPharmacies(query, coords) {
       setPharmacies([]);
       return undefined;
     }
-    if (!PLACES_API_KEY) {
-      console.log("[pharmacy text search] no API key configured");
-      setStatus("error");
-      return undefined;
-    }
 
     let cancelled = false;
     setStatus("loading");
-    console.log("[pharmacy text search] query", trimmed, "coords", coords);
 
-    const body = {
+    // Through the Cloud Function. The Bénin bounding rectangle is applied
+    // there as well as here: this endpoint is now reachable by any signed-in
+    // caller, and an unbounded text search is a general-purpose Places
+    // account for whoever finds it.
+    searchPlacesByText({
       textQuery: `${trimmed} pharmacy Benin`,
-      includedType: "pharmacy",
-      maxResultCount: 10,
-      locationRestriction: { rectangle: BENIN_BOUNDS },
-    };
-
-    fetch("https://places.googleapis.com/v1/places:searchText", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Goog-Api-Key": PLACES_API_KEY,
-        "X-Goog-FieldMask": FIELD_MASK,
-      },
-      body: JSON.stringify(body),
+      type: "pharmacy",
+      fieldMask: FIELD_MASK,
     })
-      .then((response) => response.json())
       .then((data) => {
-        console.log(
-          "[pharmacy text search] response",
-          JSON.stringify(data).slice(0, 500),
-        );
         if (cancelled) return;
         if (data.error) {
           setStatus("error");
@@ -103,7 +73,6 @@ export function useSearchPharmacies(query, coords) {
         setStatus("loaded");
       })
       .catch((e) => {
-        console.log("[pharmacy text search] fetch failed", e.message);
         if (!cancelled) setStatus("error");
       });
 

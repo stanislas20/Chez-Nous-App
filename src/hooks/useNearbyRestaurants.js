@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
+import { searchPlacesNearby } from "../utils/places";
 import { distanceInKm } from "../utils/geo";
 import { extractPlacePhoto } from "../utils/placePhoto";
 
-const PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
 const SEARCH_RADIUS_METERS = 5000;
 const FIELD_MASK =
   "places.id,places.displayName,places.location,places.formattedAddress," +
@@ -32,33 +32,17 @@ export function useNearbyRestaurants(coords) {
 
   useEffect(() => {
     if (!coords) return;
-    if (!PLACES_API_KEY) {
-      setStatus("error");
-      return;
-    }
 
     let cancelled = false;
     setStatus("loading");
 
-    fetch("https://places.googleapis.com/v1/places:searchNearby", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Goog-Api-Key": PLACES_API_KEY,
-        "X-Goog-FieldMask": FIELD_MASK,
-      },
-      body: JSON.stringify({
-        includedTypes: ["restaurant"],
-        maxResultCount: 20,
-        locationRestriction: {
-          circle: {
-            center: { latitude: coords.latitude, longitude: coords.longitude },
-            radius: SEARCH_RADIUS_METERS,
-          },
-        },
-      }),
+    // Through the Cloud Function — see useNearbyPharmacies for why.
+    searchPlacesNearby({
+      coords,
+      radius: SEARCH_RADIUS_METERS,
+      type: "restaurant",
+      fieldMask: FIELD_MASK,
     })
-      .then((response) => response.json())
       .then((data) => {
         if (cancelled) return;
         if (data.error) {

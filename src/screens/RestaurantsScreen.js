@@ -18,7 +18,7 @@ import styled from "styled-components/native";
 import { BeninFlag } from "../components/BeninFlag";
 import { HeroPostBar } from "../components/HeroPostBar";
 import { ScreenFooter } from "../components/ScreenFooter";
-import { buildPlacePhotoUrl } from "../utils/placePhoto";
+import { usePlacePhotoUrl } from "../utils/placePhoto";
 import { isPromotionLive } from "../data/promotion";
 import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
@@ -69,6 +69,16 @@ const SORTS = [
 ];
 
 const PRICE_ORDER = { budget: 0, mid: 1, high: 2 };
+
+// A hook cannot be called inside a .map() callback, so the photograph gets a
+// component of its own. It resolves its URL through the Places proxy and
+// renders nothing until it arrives — the same shape as a restaurant that has
+// no photograph, which the row beside it already handles.
+function NearbyRestaurantPhoto({ photoName }) {
+  const uri = usePlacePhotoUrl(photoName);
+  if (!uri) return null;
+  return <RestoPhoto source={{ uri }} resizeMode="cover" />;
+}
 
 export function RestaurantsScreen({ navigation, route }) {
   const { colors } = useTheme();
@@ -788,10 +798,7 @@ export function RestaurantsScreen({ navigation, route }) {
                   <AccentEdge accent={EMERALD} />
                   {place.photoName ? (
                     <RestoPhotoWrap>
-                      <RestoPhoto
-                        source={{ uri: buildPlacePhotoUrl(place.photoName) }}
-                        resizeMode="cover"
-                      />
+                      <NearbyRestaurantPhoto photoName={place.photoName} />
                     </RestoPhotoWrap>
                   ) : (
                     <RestoThumb

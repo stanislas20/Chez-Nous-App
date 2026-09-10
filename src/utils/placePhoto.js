@@ -1,19 +1,42 @@
-const PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
+import { useEffect, useState } from "react";
+import { resolvePlacePhotoUrl } from "./places";
 
-// Builds a Place Photos (New) media URL from the `photos[].name` returned by
-// a Places search — the name already encodes the place and the photo, so no
-// separate lookup is needed.
+// A Place photo, resolved through the Cloud Function rather than built from
+// a key in the bundle.
 //
-// Deliberately built at render time rather than stored: Google's terms don't
-// allow caching Places content indefinitely, and a URL carrying the API key
-// has no business sitting in our database. It also means a photo that is
-// removed upstream stops resolving instead of lingering.
-export function buildPlacePhotoUrl(photoName, maxWidthPx = 400) {
-  if (!photoName || !PLACES_API_KEY) return null;
-  return (
-    `https://places.googleapis.com/v1/${photoName}/media` +
-    `?maxWidthPx=${maxWidthPx}&key=${PLACES_API_KEY}`
-  );
+// This used to be a synchronous string builder: it pasted
+// EXPO_PUBLIC_GOOGLE_PLACES_API_KEY into a media URL and handed it to an
+// <Image>. Every rendered photograph therefore put the key on the wire, and
+// the key was in the APK to begin with.
+//
+// Now the function is asked for the photograph's own short-lived Google URL
+// (Places' skipHttpRedirect returns it as JSON), and the phone loads the
+// image from Google directly. The bytes never pass through our backend —
+// only the address does — so a screen of restaurant photos costs a few tiny
+// calls rather than proxying megabytes.
+//
+// Still resolved at render time and never stored, for the reason the old
+// comment gave and which has not changed: Places' terms do not allow caching
+// its content indefinitely, and a photo removed upstream should stop
+// resolving rather than linger in our database.
+export function usePlacePhotoUrl(photoName, maxWidthPx = 400) {
+  const [url, setUrl] = useState(null);
+
+  useEffect(() => {
+    if (!photoName) {
+      setUrl(null);
+      return undefined;
+    }
+    let cancelled = false;
+    resolvePlacePhotoUrl(photoName, maxWidthPx).then((next) => {
+      if (!cancelled) setUrl(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [photoName, maxWidthPx]);
+
+  return url;
 }
 
 // Google requires the contributor to be credited wherever their photo is

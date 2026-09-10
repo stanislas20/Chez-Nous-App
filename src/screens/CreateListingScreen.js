@@ -236,6 +236,7 @@ import {
   pathsDroppedByEdit,
 } from "../utils/uploadCleanup";
 import { uploadErrorKey } from "../utils/firebaseErrors";
+import { reportNonFatal } from "../utils/reportError";
 import {
   LISTING_DESCRIPTION_MAX,
   LISTING_TITLE_MAX,
@@ -1156,6 +1157,41 @@ export function CreateListingScreen({ route, navigation }) {
       : [],
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Uploads that succeeded but whose listing has not been written yet, keyed
+  // by the local asset uri. Survives a failed attempt so a retry resumes;
+  // cleared on success; swept from Storage if the screen is abandoned.
+  const uploadedByAssetRef = useRef(new Map());
+  // The transfer currently in flight, so leaving the screen can stop it.
+  const activeUploadRef = useRef(null);
+
+  // Leaving the screen with photographs uploaded and no listing written.
+  //
+  // Two things have to happen and neither did. The transfer in flight kept
+  // running against an unmounted component, still calling setProgress; and
+  // everything it had already uploaded stayed in the bucket referenced by
+  // nothing — unfindable afterwards, because there is no document to join it
+  // back to.
+  //
+  // Runs on unmount only, and reads through refs, so it cannot fire on a
+  // re-render and cannot capture a stale list.
+  useEffect(
+    () => () => {
+      try {
+        activeUploadRef.current?.cancel?.();
+      } catch {
+        // A task that has already settled throws rather than returning
+        // false. Nothing to do about it and nothing to say.
+      }
+      const stranded = [...uploadedByAssetRef.current.values()].flatMap(
+        (item) => [item.mediaPath, item.thumbPath].filter(Boolean),
+      );
+      uploadedByAssetRef.current.clear();
+      // Fire-and-forget: the screen is going, and there is nobody left to
+      // tell. A delete that fails leaves one orphan rather than a set.
+      if (stranded.length) cleanUpAbandonedUploads(stranded).catch(() => {});
+    },
+    [],
+  );
   const [progress, setProgress] = useState(0);
   // Opens on the category when nothing chose one for us.
   //
@@ -2036,6 +2072,23 @@ export function CreateListingScreen({ route, navigation }) {
           setProgress((i + 1) / assets.length);
           continue;
         }
+        // Uploaded by an ATTEMPT that failed later on.
+        //
+        // The failure mode this removes: eight photographs, the connection
+        // drops at the fifth, the seller presses Publier again — and the
+        // first four upload a second time. On a Bénin mobile connection that
+        // is their data allowance twice over for one listing, and it left a
+        // duplicate set in the bucket each time.
+        //
+        // Keyed by the local asset uri, which is stable for as long as the
+        // form is open. Cleared on a successful publish, and cleaned out of
+        // Storage if the screen is abandoned — see the unmount effect.
+        const alreadyUploaded = uploadedByAssetRef.current.get(asset.uri);
+        if (alreadyUploaded) {
+          media.push(alreadyUploaded);
+          setProgress((i + 1) / assets.length);
+          continue;
+        }
         const mediaType = asset.type === "video" ? "video" : "image";
         const extension = asset.uri.split(".").pop().split("?")[0];
         const fileName = `${Date.now()}-${i}.${extension}`;
@@ -2057,6 +2110,12 @@ export function CreateListingScreen({ route, navigation }) {
           cacheControl: PUBLIC_UPLOAD_CACHE,
         });
 
+        // Held so the unmount effect can cancel a transfer in flight. Without
+        // it, leaving the screen mid-upload left the request running against
+        // a component that no longer exists — the bytes kept going, and the
+        // setProgress calls that followed were state updates on an unmounted
+        // tree.
+        activeUploadRef.current = uploadTask;
         await new Promise((resolve, reject) => {
           uploadTask.on(
             "state_changed",
@@ -2069,6 +2128,7 @@ export function CreateListingScreen({ route, navigation }) {
             resolve,
           );
         });
+        activeUploadRef.current = null;
 
         const mediaUrl = await getDownloadURL(storageRef);
 
@@ -2101,7 +2161,10 @@ export function CreateListingScreen({ route, navigation }) {
           }
         }
 
-        media.push({ mediaType, mediaUrl, mediaPath, thumbUrl, thumbPath });
+        const uploaded = { mediaType, mediaUrl, mediaPath, thumbUrl, thumbPath };
+        // Remembered so a retry after a later failure does not send it again.
+        uploadedByAssetRef.current.set(asset.uri, uploaded);
+        media.push(uploaded);
       }
 
       const cover = media[0] ?? null;
@@ -2740,6 +2803,11 @@ export function CreateListingScreen({ route, navigation }) {
       // shows (autoPublishVerifiedCompanyListing), so telling them it's
       // "awaiting review" would be false — and would send them looking for
       // a delay that isn't there.
+      // Published. Nothing is left to carry over, and leaving the map
+      // populated would make the unmount effect delete files the listing now
+      // points at.
+      uploadedByAssetRef.current.clear();
+
       const publishesImmediately =
         sellerProfile?.accountType === "company" &&
         sellerProfile?.verificationStatus === "verified";
@@ -2792,7 +2860,23 @@ export function CreateListingScreen({ route, navigation }) {
       // Files carried over from a previous save (asset.published) are never
       // in this list, so a failed EDIT cannot delete the photographs of the
       // listing it was editing.
-      await cleanUpAbandonedUploads(uploadedThisAttempt);
+      // Remove only what cannot be reused: a transfer that died part-way
+      // leaves an object at its path with no download URL, and that one is
+      // pure litter. Anything that completed stays, keyed by asset uri, so
+      // pressing Publier again resumes rather than restarts.
+      const reusable = new Set(
+        [...uploadedByAssetRef.current.values()].flatMap((item) =>
+          [item.mediaPath, item.thumbPath].filter(Boolean),
+        ),
+      );
+      await cleanUpAbandonedUploads(
+        uploadedThisAttempt.filter((path) => !reusable.has(path)),
+      );
+      reportNonFatal("publishListing", error, {
+        assetCount: assets.length,
+        editing: Boolean(editing),
+        category: selectedCategory,
+      });
       Alert.alert(t("sellFormTitle"), t(uploadErrorKey(error)));
     } finally {
       setIsSubmitting(false);

@@ -38,7 +38,7 @@ import {
 } from "../data/customCategories";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { openListing } from "../utils/openListing";
-import { buildPlacePhotoUrl } from "../utils/placePhoto";
+import { usePlacePhotoUrl } from "../utils/placePhoto";
 import { useNearbyPharmacies } from "../hooks/useNearbyPharmacies";
 import { useSearchPharmacies } from "../hooks/useSearchPharmacies";
 import { useI18n } from "../i18n/I18nContext";
@@ -249,7 +249,10 @@ function NearbyPharmacyRow({ place }) {
   const { colors } = useTheme();
   const { t } = useI18n();
 
-  const photoUrl = buildPlacePhotoUrl(place.photoName, 240);
+  // Resolved through the Places proxy rather than built from a key in
+  // the bundle. Null until it arrives, which the row below already
+  // handles — a pharmacy without a photograph is the ordinary case.
+  const photoUrl = usePlacePhotoUrl(place.photoName, 240);
 
   const handleDirections = () => {
     Linking.openURL(

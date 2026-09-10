@@ -29,7 +29,14 @@ import { AuthProvider } from "./src/auth/AuthContext";
 import { ThemeProvider, useTheme } from "./src/theme/ThemeContext";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { BrandSplash } from "./src/components/BrandSplash";
+import { AppErrorBoundary } from "./src/components/AppErrorBoundary";
+import { OfflineBanner } from "./src/components/OfflineBanner";
+import { installGlobalErrorHandler } from "./src/utils/globalErrorHandler";
 import { useI18n } from "./src/i18n/I18nContext";
+
+// Before anything else renders, so a failure during startup is reported
+// rather than lost. Idempotent and cheap.
+installGlobalErrorHandler();
 
 SplashScreen.preventAutoHideAsync();
 
@@ -88,6 +95,10 @@ function AppNavigationContainer() {
       // exists, so its destination is held and replayed here.
       onReady={onNavigationReady}
     >
+      {/* Above the navigator so it shows on every screen, and outside it so
+          no screen has to know it exists. Renders nothing at all unless
+          Firestore is actually unreachable. */}
+      <OfflineBanner />
       <RootNavigator />
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
     </NavigationContainer>
@@ -160,6 +171,10 @@ export default function App() {
   }, []);
 
   return (
+    // Outermost, so a render error anywhere below reaches a fallback instead
+    // of unmounting the tree into a blank screen. It deliberately uses no
+    // provider from inside itself — see AppErrorBoundary.
+    <AppErrorBoundary label="root">
     <ThemeProvider>
       <ThemedRoot>
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
@@ -182,5 +197,6 @@ export default function App() {
         </SafeAreaProvider>
       </ThemedRoot>
     </ThemeProvider>
+    </AppErrorBoundary>
   );
 }

@@ -27,6 +27,9 @@ exports.sendPaperReminders =
 // The page a shared listing links to. Required after initializeApp above,
 // like the two before it, because it reads Firestore on the first request.
 exports.listingPage = require("./listingPage").listingPage;
+// Google Places, called from a server that can hold a key — the app used
+// to call it directly with a key EXPO_PUBLIC_ had inlined into the bundle.
+exports.placesProxy = require("./placesProxy").placesProxy;
 
 const PSEUDO_EMAIL_DOMAIN = "chez-nous.app";
 const MIN_PASSWORD_LENGTH = 6;

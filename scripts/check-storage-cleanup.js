@@ -212,10 +212,33 @@ for (const { name, listing, expected } of FIXTURES) {
         "publish leaves them in the bucket referenced by nothing",
     );
   }
-  if (!/cleanUpAbandonedUploads\(uploadedThisAttempt\)/.test(form)) {
+  if (!/cleanUpAbandonedUploads\(\s*uploadedThisAttempt/.test(form)) {
     failures.push(
       "the publish form no longer removes its own uploads when the write " +
         "fails — every retry on a bad connection leaves another full set",
+    );
+  }
+  // The other half, added with the retry behaviour: an upload that SUCCEEDED
+  // is kept for the retry rather than deleted, so pressing Publier again
+  // resumes instead of re-sending photographs the seller has already paid to
+  // send once. That only stays safe while something sweeps them when the
+  // screen is abandoned — otherwise "keep for the retry" is just a leak with
+  // a better name.
+  if (!/uploadedByAssetRef/.test(form)) {
+    failures.push(
+      "the publish form no longer remembers uploads across a retry, so a " +
+        "failure at photo five re-sends the first four",
+    );
+  }
+  if (!/activeUploadRef\.current\?\.cancel\?\.\(\)/.test(form)) {
+    failures.push(
+      "leaving the publish screen no longer cancels the transfer in flight",
+    );
+  }
+  if (!/if \(stranded\.length\) cleanUpAbandonedUploads\(stranded\)/.test(form)) {
+    failures.push(
+      "leaving the publish screen no longer sweeps the uploads it kept for " +
+        "a retry that never came — those are orphans nothing can find again",
     );
   }
 }

@@ -10,7 +10,6 @@ import {
   useRoute,
 } from "@react-navigation/native";
 import { deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { deleteObject, ref } from "firebase/storage";
 import { Ionicons } from "@expo/vector-icons";
 import styled from "styled-components/native";
 import { radius, shadow, spacing } from "../theme/colors";
@@ -35,7 +34,7 @@ import { useConversations } from "../hooks/useConversations";
 // pushing the next figure onto its own line.
 import { formatCount, statLabelKey } from "../utils/formatCount";
 import { statTints } from "../theme/statTints";
-import { firestore, storage } from "../config/firebase";
+import { firestore } from "../config/firebase";
 import { getDutyLabel } from "../utils/pharmacyDuty";
 import { listingPriceText } from "../utils/listingPrice";
 import { openListing } from "../utils/openListing";
@@ -205,17 +204,21 @@ export function MyListingsScreen() {
     }
   };
 
+  // The document, and nothing else.
+  //
+  // This used to delete the Storage files first and the document second, and
+  // both halves were wrong. The order meant a delete that failed after the
+  // files had gone left a live listing in the market with broken
+  // photographs — the one outcome worse than an orphaned file. And the paths
+  // it collected were `mediaPath` and `media[].mediaPath` only, so every
+  // thumbnail ever generated survived its listing, unreferenced and
+  // therefore unfindable.
+  //
+  // Both are now cleanupDeletedListingMedia's job (functions/index.js). It
+  // fires on the document event, so it also covers the deletions this screen
+  // never saw: from the console, from a script, from any future admin tool.
   const handleDelete = async (item) => {
     try {
-      const paths = [
-        item.mediaPath,
-        ...(item.media ?? []).map((m) => m.mediaPath),
-      ].filter(Boolean);
-      await Promise.all(
-        [...new Set(paths)].map((path) =>
-          deleteObject(ref(storage, path)).catch(() => {}),
-        ),
-      );
       await deleteDoc(doc(firestore, "listings", item.id));
     } catch {
       Alert.alert(t("myListingsTitle"), t("errorDeleteFailed"));

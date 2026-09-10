@@ -232,6 +232,11 @@ import { CalendarPicker } from "../components/CalendarPicker";
 import { postingTitleKey } from "../data/postingTitles";
 import { PROMOTION_DAYS } from "../data/promotion";
 import {
+  cleanUpAbandonedUploads,
+  pathsDroppedByEdit,
+} from "../utils/uploadCleanup";
+import { uploadErrorKey } from "../utils/firebaseErrors";
+import {
   LISTING_DESCRIPTION_MAX,
   LISTING_TITLE_MAX,
 } from "../data/listingLimits";
@@ -2005,6 +2010,21 @@ export function CreateListingScreen({ route, navigation }) {
 
     setIsSubmitting(true);
     setProgress(0);
+    // Every path this attempt puts in the bucket, so a failure can take them
+    // back out again.
+    //
+    // The uploads run first and the Firestore write last, so any failure
+    // after the first file lands — a dropped connection at photo five of
+    // eight, a rules refusal on the write, a lapsed canPost claim — used to
+    // leave those files in Storage referenced by nothing. Unreferenced means
+    // unfindable: there is no listing to join them back to, so they could
+    // not be cleaned up later even deliberately, only by walking the whole
+    // bucket. Every retry left another set.
+    //
+    // Deliberately NOT the same list as the media array: this holds the
+    // thumbnail paths too, and it holds paths from an upload whose
+    // getDownloadURL never came back.
+    const uploadedThisAttempt = [];
     try {
       const media = [];
       for (let i = 0; i < assets.length; i += 1) {
@@ -2024,6 +2044,10 @@ export function CreateListingScreen({ route, navigation }) {
         const response = await fetch(asset.uri);
         const blob = await response.blob();
         const storageRef = ref(storage, mediaPath);
+        // Recorded BEFORE the transfer, not after it. An upload that fails
+        // part-way can still have left an object at this path, and the whole
+        // point of the list is to know about the ones that did not finish.
+        uploadedThisAttempt.push(mediaPath);
         // storage.rules requires contentType to match image/* or video/*,
         // and a blob built from a file:// URI on React Native carries no
         // type at all — so without this the rule rejects every upload and
@@ -2062,6 +2086,7 @@ export function CreateListingScreen({ route, navigation }) {
             const thumbUri = await makeThumbnail(asset.uri);
             if (thumbUri) {
               thumbPath = `listings/${user.uid}/${Date.now()}-${i}-thumb.jpg`;
+              uploadedThisAttempt.push(thumbPath);
               const thumbRef = ref(storage, thumbPath);
               const thumbBlob = await (await fetch(thumbUri)).blob();
               await uploadBytesResumable(thumbRef, thumbBlob, {
@@ -2684,6 +2709,15 @@ export function CreateListingScreen({ route, navigation }) {
           Number(editing.price) > 0 &&
           data.price > 0 &&
           data.price < editing.price;
+        // Photographs this edit has just stopped referencing.
+        //
+        // Replacing one uploaded the new file and left the old one in the
+        // bucket forever: cleanup only ever ran on a whole-listing delete,
+        // and the server trigger fires on that same event. Computed before
+        // the write and deleted after it, so a write that fails leaves the
+        // old files in place rather than stranding a live listing with
+        // broken images.
+        const droppedPaths = pathsDroppedByEdit(editing, media);
         await updateDoc(doc(firestore, "listings", editing.id), {
           ...editable,
           ...(isPriceDrop
@@ -2695,6 +2729,9 @@ export function CreateListingScreen({ route, navigation }) {
           ...(backToReview ? { status: "pending" } : {}),
           updatedAt: serverTimestamp(),
         });
+        // After the write, and best-effort: an orphaned file costs storage,
+        // a missing one costs the listing its photograph.
+        await cleanUpAbandonedUploads(droppedPaths);
       } else {
         await addDoc(collection(firestore, "listings"), data);
       }
@@ -2745,7 +2782,18 @@ export function CreateListingScreen({ route, navigation }) {
         [{ text: t("continue"), onPress: () => navigation.goBack() }],
       );
     } catch (error) {
-      Alert.alert(t("sellFormTitle"), t("errorUploadFailed"));
+      // Take back what this attempt put in the bucket.
+      //
+      // Best-effort and unawaited-by-the-alert on purpose: the seller is
+      // looking at a failure and wants to try again, not to wait while we
+      // tidy up. A delete that itself fails leaves one orphan instead of
+      // eight, which is the direction that matters.
+      //
+      // Files carried over from a previous save (asset.published) are never
+      // in this list, so a failed EDIT cannot delete the photographs of the
+      // listing it was editing.
+      await cleanUpAbandonedUploads(uploadedThisAttempt);
+      Alert.alert(t("sellFormTitle"), t(uploadErrorKey(error)));
     } finally {
       setIsSubmitting(false);
     }

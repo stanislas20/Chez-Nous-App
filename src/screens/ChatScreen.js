@@ -1,5 +1,12 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  ActivityIndicator,
   Alert,
   Animated,
   FlatList,
@@ -26,6 +33,7 @@ import {
   deleteDoc,
   doc,
   increment,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -77,6 +85,12 @@ function formatDuration(seconds) {
   const secs = total % 60;
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
+
+// How many messages arrive with the screen, and how many more each "load
+// earlier" adds. Fifty is about four screens of bubbles on a phone — enough
+// that opening a thread never shows a half-empty scroll, few enough that a
+// long conversation opens as fast as a new one.
+const MESSAGE_PAGE = 50;
 
 const SCRUB_TRACK_WIDTH = 130;
 
@@ -210,6 +224,11 @@ export function ChatScreen({ route, navigation }) {
   const { user } = useAuth();
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState(null);
+  // How many of the newest messages the live query holds. Grows by a page
+  // each time the reader reaches the top of the thread and asks for more.
+  const [messageWindow, setMessageWindow] = useState(MESSAGE_PAGE);
+  const [hasEarlier, setHasEarlier] = useState(true);
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -330,10 +349,35 @@ export function ChatScreen({ route, navigation }) {
     return unsubscribe;
   }, [conversationId]);
 
+  // The newest messages, live, in a window that grows when the reader asks
+  // for older ones.
+  //
+  // This used to be `orderBy("createdAt","desc")` with no limit: opening a
+  // conversation downloaded and rendered its entire history, and because the
+  // read rule performs a get() on the parent conversation — and rules access
+  // calls are billed as reads — the real cost was roughly double the message
+  // count. A two-thousand-message thread cost about four thousand reads and
+  // held two thousand rendered rows in memory, every time it was opened. The
+  // busiest conversation, which is the one that matters most, was the
+  // slowest and most expensive screen in the app.
+  //
+  // A growing window rather than a live page plus separately-fetched older
+  // pages, and the difference is worth stating because the other shape is
+  // the obvious one: with two sources you have to merge them, dedupe ids
+  // across the seam, keep the seam stable as new messages push the window,
+  // and notice deletions that happen in the part you fetched once and never
+  // watched again. One query with a growing limit has none of those
+  // problems — Firestore owns the ordering, the identity and the removals,
+  // and "load earlier" is a number going up.
+  //
+  // What it costs: expanding the window re-reads it. Firestore serves the
+  // documents it already holds from cache, so the billed part is the fifty
+  // newly revealed ones — the same fifty a separate page would have cost.
   useEffect(() => {
     const messagesQuery = query(
       collection(firestore, "conversations", conversationId, "messages"),
       orderBy("createdAt", "desc"),
+      limit(messageWindow),
     );
     const unsubscribe = onSnapshot(
       messagesQuery,
@@ -344,11 +388,31 @@ export function ChatScreen({ route, navigation }) {
             ...docSnap.data(),
           })),
         );
+        // Fewer documents than the window means the window now reaches the
+        // first message ever sent, so there is nothing earlier to offer.
+        setHasEarlier(snapshot.docs.length >= messageWindow);
+        setLoadingEarlier(false);
       },
-      () => setMessages([]),
+      () => {
+        setMessages([]);
+        setLoadingEarlier(false);
+      },
     );
     return unsubscribe;
+  }, [conversationId, messageWindow]);
+
+  // Reset when the thread changes, or a long scroll back through one
+  // conversation would be inherited by the next one opened.
+  useEffect(() => {
+    setMessageWindow(MESSAGE_PAGE);
+    setHasEarlier(true);
   }, [conversationId]);
+
+  const loadEarlierMessages = useCallback(() => {
+    if (loadingEarlier || !hasEarlier) return;
+    setLoadingEarlier(true);
+    setMessageWindow((current) => current + MESSAGE_PAGE);
+  }, [loadingEarlier, hasEarlier]);
 
   useEffect(() => {
     if (!user) return;
@@ -641,6 +705,21 @@ export function ChatScreen({ route, navigation }) {
           data={messages ?? []}
           keyExtractor={(item) => item.id}
           inverted
+          // The list is inverted, so its "end" is the TOP of the thread —
+          // which makes onEndReached exactly the right hook for "load
+          // earlier" and needs no scroll maths of its own.
+          onEndReached={loadEarlierMessages}
+          onEndReachedThreshold={0.4}
+          // Inverted again: the footer renders at the top, above the oldest
+          // message on screen, which is where a "fetching older messages"
+          // spinner belongs.
+          ListFooterComponent={
+            loadingEarlier ? (
+              <LoadingEarlierRow>
+                <ActivityIndicator color={colors.primary} />
+              </LoadingEarlierRow>
+            ) : null
+          }
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ padding: spacing.md }}
           renderItem={({ item }) => {
@@ -1008,4 +1087,9 @@ const BlockedBannerText = styled.Text`
 const UnblockLinkText = styled.Text`
   ${type.captionMedium}
   color: ${(props) => props.theme.primary};
+`;
+
+const LoadingEarlierRow = styled.View`
+  padding-vertical: ${spacing.md}px;
+  align-items: center;
 `;

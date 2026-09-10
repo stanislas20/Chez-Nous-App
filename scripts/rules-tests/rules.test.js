@@ -1082,6 +1082,140 @@ async function main() {
     ),
   );
 
+  // ══ Phase B ═════════════════════════════════════════════════════════════
+
+  // ── B9. Conversation identity, and blocking that blocks ─────────────────
+  await check(
+    "a conversation cannot be opened at an id of the caller's choosing",
+    assertFails(
+      setDoc(doc(asOutsider, "conversations/chez-nous-securite"), {
+        listingId: "realShape",
+        listingTitle: "Chez-Nous · Sécurité",
+        sellerId: SELLER,
+        buyerId: OUTSIDER,
+        participantIds: [SELLER, OUTSIDER],
+      }),
+    ),
+  );
+  await check(
+    "a conversation cannot name a seller the listing does not have",
+    assertFails(
+      setDoc(doc(asOutsider, `conversations/realShape_${OUTSIDER}`), {
+        listingId: "realShape",
+        sellerId: BUYER,
+        buyerId: OUTSIDER,
+        participantIds: [BUYER, OUTSIDER],
+      }),
+    ),
+  );
+  await check(
+    "a conversation cannot be opened against somebody who is not in it",
+    assertFails(
+      setDoc(doc(asOutsider, `conversations/realShape_${OUTSIDER}`), {
+        listingId: "realShape",
+        sellerId: SELLER,
+        buyerId: OUTSIDER,
+        participantIds: [SELLER, BUYER, OUTSIDER],
+      }),
+    ),
+  );
+  await check(
+    "a genuine conversation still opens",
+    assertSucceeds(
+      setDoc(doc(asOutsider, `conversations/realShape_${OUTSIDER}`), {
+        listingId: "realShape",
+        listingTitle: "Toyota RAV4 2013",
+        sellerId: SELLER,
+        buyerId: OUTSIDER,
+        participantIds: [SELLER, OUTSIDER],
+        createdAt: serverTimestamp(),
+      }),
+    ),
+  );
+  await check(
+    "a participant cannot add a third person to the thread",
+    assertFails(
+      updateDoc(doc(asOutsider, `conversations/realShape_${OUTSIDER}`), {
+        participantIds: [SELLER, OUTSIDER, FOREIGN],
+      }),
+    ),
+  );
+  await check(
+    "a participant cannot repoint the thread at another listing",
+    assertFails(
+      updateDoc(doc(asOutsider, `conversations/realShape_${OUTSIDER}`), {
+        listingId: "live",
+      }),
+    ),
+  );
+  await check(
+    "a participant can still write the things a send writes",
+    assertSucceeds(
+      updateDoc(doc(asOutsider, `conversations/realShape_${OUTSIDER}`), {
+        lastMessage: "Bonjour",
+        lastMessageAt: serverTimestamp(),
+        lastMessageSenderId: OUTSIDER,
+        [`unreadCount.${SELLER}`]: 1,
+      }),
+    ),
+  );
+  await check(
+    "a message sends while nobody has blocked anybody",
+    assertSucceeds(
+      setDoc(
+        doc(asOutsider, `conversations/realShape_${OUTSIDER}/messages/a`),
+        { senderId: OUTSIDER, text: "Bonjour", createdAt: serverTimestamp() },
+      ),
+    ),
+  );
+  await check(
+    "blocking is a write the blocker is allowed to make",
+    assertSucceeds(
+      updateDoc(doc(asSeller, `conversations/realShape_${OUTSIDER}`), {
+        [`blockedBy.${SELLER}`]: true,
+      }),
+    ),
+  );
+  // The finding this closes: the block was a field only the client and the
+  // push trigger read, so the blocked party kept writing and the person who
+  // blocked them kept receiving — silently.
+  await check(
+    "a blocked user cannot post through the SDK",
+    assertFails(
+      setDoc(
+        doc(asOutsider, `conversations/realShape_${OUTSIDER}/messages/b`),
+        { senderId: OUTSIDER, text: "encore moi", createdAt: serverTimestamp() },
+      ),
+    ),
+  );
+  await check(
+    "and neither can the person who did the blocking",
+    assertFails(
+      setDoc(doc(asSeller, `conversations/realShape_${OUTSIDER}/messages/c`), {
+        senderId: SELLER,
+        text: "…",
+        createdAt: serverTimestamp(),
+      }),
+    ),
+  );
+  await check(
+    "unblocking lets the thread run again",
+    assertSucceeds(
+      updateDoc(doc(asSeller, `conversations/realShape_${OUTSIDER}`), {
+        [`blockedBy.${SELLER}`]: false,
+      }),
+    ),
+  );
+  await check(
+    "a message sends once the block is lifted",
+    assertSucceeds(
+      setDoc(
+        doc(asOutsider, `conversations/realShape_${OUTSIDER}/messages/d`),
+        { senderId: OUTSIDER, text: "merci", createdAt: serverTimestamp() },
+      ),
+    ),
+  );
+
   await env.cleanup();
 
   const failed = results.filter(([ok]) => !ok);

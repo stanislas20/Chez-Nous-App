@@ -901,6 +901,71 @@ exports.notifyNewJobApplication = onDocumentCreated(
   },
 );
 
+// Every file a listing owns, from whichever of the four fields holds it.
+//
+// A listing's media has accumulated shapes: `mediaPath` is the cover, `media`
+// is the ordered array each entry of which carries its own `mediaPath` and
+// `thumbPath`, and `thumbUrl`/`thumbPath` at the top level is the cover's
+// small copy. Anything that cleans up has to know all four, and the client's
+// delete knew two — which is why every thumbnail ever generated outlived its
+// listing.
+function listingStoragePaths(listing) {
+  const paths = [listing?.mediaPath, listing?.thumbPath];
+  for (const item of Array.isArray(listing?.media) ? listing.media : []) {
+    paths.push(item?.mediaPath, item?.thumbPath);
+  }
+  // Deduplicated because the cover is also the first entry of `media`, so
+  // every listing names its own cover twice.
+  return [...new Set(paths.filter((path) => typeof path === "string" && path))];
+}
+
+// Delete the files a listing owned, wherever the deletion came from.
+//
+// Cleanup lived in MyListingsScreen and therefore only ran when a seller
+// pressed Supprimer in the app. A listing removed from the console, by a
+// script, or by any future admin tool left its photographs in the bucket
+// forever — unreferenced, so not findable again without walking the whole
+// bucket. This runs on the document event, so it covers all of those.
+//
+// It also fixes the ordering. The client deleted the FILES first and the
+// document second, so a delete that failed halfway left a live listing whose
+// photographs had already gone: a card in the market with broken images.
+// Doing it here means the document goes first by construction.
+//
+// Idempotent on purpose. Storage answers 404 for a file already gone, and
+// this treats that as success — a retried event, or a client that managed to
+// delete some files before the document write landed, must not turn into a
+// failed function that retries forever.
+exports.cleanupDeletedListingMedia = onDocumentDeleted(
+  "listings/{listingId}",
+  async (event) => {
+    const listing = event.data?.data();
+    const paths = listingStoragePaths(listing);
+    if (!paths.length) return;
+
+    const bucket = admin.storage().bucket();
+    const results = await Promise.allSettled(
+      paths.map((path) => bucket.file(path).delete({ ignoreNotFound: true })),
+    );
+    const failed = results.filter((r) => r.status === "rejected").length;
+    logger.info(
+      `Listing ${event.params.listingId} deleted: removed ${
+        paths.length - failed
+      }/${paths.length} stored files.`,
+    );
+    if (failed) {
+      // Logged rather than thrown: a retry would re-delete the files that
+      // did succeed, which is harmless, but the listing is already gone and
+      // a function that keeps failing is noise on a dashboard rather than a
+      // problem anybody can act on.
+      logger.warn(
+        `Listing ${event.params.listingId}: ${failed} file(s) could not be ` +
+          `removed and are now orphaned.`,
+      );
+    }
+  },
+);
+
 // Firestore caps a batched write at 500 operations.
 const FIRESTORE_BATCH_LIMIT = 500;
 

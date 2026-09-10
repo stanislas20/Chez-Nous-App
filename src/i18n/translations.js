@@ -2510,6 +2510,11 @@ export const translations = {
 
     errorMediaRequired: "Please add a title and choose a photo or video.",
     errorUploadFailed: "Upload failed. Please try again.",
+    errorUploadOffline:
+      "No connection. Your listing was not sent — try again once you are back online.",
+    errorServiceBusy:
+      "The service is busy right now. Please try again in a few minutes.",
+    errorUploadCancelled: "Upload cancelled.",
     errorInvalidLink: "Please enter a valid website or product link.",
     errorCategoryRequired: "Please choose a business category.",
 
@@ -5627,6 +5632,11 @@ export const translations = {
     errorMediaRequired:
       "Veuillez ajouter un titre et choisir une photo ou une vidéo.",
     errorUploadFailed: "Échec de l'envoi. Veuillez réessayer.",
+    errorUploadOffline:
+      "Pas de connexion. Votre annonce n'a pas \u00e9t\u00e9 envoy\u00e9e \u2014 r\u00e9essayez une fois reconnect\u00e9.",
+    errorServiceBusy:
+      "Le service est occup\u00e9 pour le moment. R\u00e9essayez dans quelques minutes.",
+    errorUploadCancelled: "Envoi annul\u00e9.",
     errorInvalidLink: "Veuillez entrer un site web ou lien produit valide.",
     errorCategoryRequired: "Veuillez choisir une catégorie d'activité.",
 

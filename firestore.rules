@@ -803,15 +803,63 @@ service cloud.firestore {
         && request.resource.data.applicantUid == resource.data.applicantUid;
     }
 
+    // Has either side of this conversation blocked the other?
+    //
+    // `blockedBy` is a map of uid -> bool, and unblocking writes false rather
+    // than deleting the key, so this asks whether any value is true rather
+    // than whether any key exists. One test covers both directions, which is
+    // what the app means: the composer disappears for both people.
+    function conversationBlocked(conversationId) {
+      return get(/databases/$(database)/documents/conversations/$(conversationId))
+        .data.get('blockedBy', {}).values().hasAny([true]);
+    }
+
     match /conversations/{conversationId} {
       allow read: if request.auth != null
         && (resource == null || request.auth.uid in resource.data.participantIds);
 
+      // A conversation is about a listing, between that listing's seller and
+      // whoever tapped Message. All three of those were taken on trust.
+      //
+      // What that allowed: the id was unconstrained, `participantIds` was any
+      // array containing the caller, and `listingTitle`, `listingThumbnail`
+      // and `participantNames` were free text. So anybody could open a thread
+      // against any uid, with a title and a display name of their choosing —
+      // "Chez-Nous · Sécurité" arriving in somebody's inbox, in the app's own
+      // chrome, asking for something. That is a phishing surface, and it does
+      // not need a compromised account to build.
+      //
+      // Now: the id is the one openChat writes, the participants are exactly
+      // the listing's seller and the caller, and the seller is read from the
+      // listing rather than declared. A listing that has been deleted can no
+      // longer be the subject of a NEW conversation, which is right — there
+      // is nothing left to be about — and existing threads are untouched,
+      // since none of this applies to update.
       allow create: if request.auth != null
+        && conversationId == request.resource.data.listingId + '_' + request.auth.uid
+        && request.resource.data.buyerId == request.auth.uid
+        && request.resource.data.sellerId ==
+          get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.sellerId
+        && request.resource.data.participantIds.hasOnly([
+          request.resource.data.sellerId, request.auth.uid
+        ])
         && request.auth.uid in request.resource.data.participantIds
-        && request.resource.data.buyerId == request.auth.uid;
+        && request.resource.data.sellerId in request.resource.data.participantIds
+        && textOk(request.resource.data, 'listingTitle', 200);
 
-      allow update: if request.auth != null && request.auth.uid in resource.data.participantIds;
+      // A participant could rewrite every field on the thread, including
+      // participantIds — so one of the two could add a third uid and hand a
+      // stranger the whole message history, or repoint the thread at another
+      // listing after the fact.
+      //
+      // Frozen: who is in it, who is who, and what it is about. Left open:
+      // the last-message preview, the unread counters and blockedBy, which
+      // are the four things the app writes on every send and every open.
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.participantIds
+        && !request.resource.data.diff(resource.data).affectedKeys()
+             .hasAny(['participantIds', 'buyerId', 'sellerId', 'listingId',
+                      'createdAt']);
 
       match /messages/{messageId} {
         allow read: if request.auth != null
@@ -834,7 +882,20 @@ service cloud.firestore {
           && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds
           && (!('text' in request.resource.data)
             || (request.resource.data.text is string
-              && request.resource.data.text.size() <= 4000));
+              && request.resource.data.text.size() <= 4000))
+          // Blocking, enforced where it binds.
+          //
+          // It was a field on the conversation that only the client and the
+          // push trigger consulted: ChatScreen hid the composer and
+          // sendMessagePush declined to notify. Neither stops a write. So
+          // somebody told they had blocked a harasser kept receiving
+          // messages — silently, which is worse than not offering the button
+          // at all, because they had been told the problem was handled.
+          //
+          // Either direction blocks. That matches what the app shows: the
+          // composer disappears for both people, not just for the one who
+          // pressed the button.
+          && !conversationBlocked(conversationId);
 
         allow delete: if request.auth != null && request.auth.uid == resource.data.senderId;
       }

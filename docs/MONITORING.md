@@ -122,3 +122,30 @@ No billing or account changes are made from this repository, and none should
 be. Budgets, quotas and enforcement switches are the controls that stop a
 mistake in this repository from becoming an unbounded bill — putting them under
 the same version control as the mistake defeats the purpose.
+
+---
+
+## Collections with a retention policy (Phase F)
+
+Three collections exist only to remember something briefly. Without a TTL
+they grow for ever, which is how the post-Phase-E re-audit found them.
+
+| Collection | TTL field | Retention | What it holds |
+|---|---|---|---|
+| `counterMarkers` | `expiresAt` | 7 days | one row per person, listing, kind and day |
+| `placesQuota` | `expiresAt` | 2 hours | one row per uid and per IP, per 1-hour window |
+| `recoveryLookups` | `expiresAt` | 2 hours | one row per hashed IP and hashed number |
+
+**If TTL deletion is delayed** — Firestore gives no deletion-time guarantee,
+only "within 24 hours of expiry" in practice — nothing breaks. The retention
+is deliberately longer than the window each document serves, so a late
+deletion means a slightly larger collection and never a wrong answer.
+
+**Deleting a marker cannot re-enable an old duplicate.** A `counterMarkers`
+document is keyed by its day. Once that day has passed, the bucket it guarded
+can never be written again anyway: the rule derives the day from
+`request.time` and refuses anything that is not today. So a marker for last
+Tuesday is inert long before the TTL removes it.
+
+**Watch:** document count per collection. A `counterMarkers` count that keeps
+climbing after 7 days of steady traffic means the TTL policy is not enabled.

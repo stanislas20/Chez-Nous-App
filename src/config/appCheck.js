@@ -22,16 +22,50 @@ import { reportNonFatal } from "../utils/reportError";
 // merely make our own requests fail.
 const FALLBACK_TTL_MS = 5 * 60 * 1000;
 
+// base64url, decoded without atob and without Buffer.
+//
+// The first version of this reached for `atob`, falling back to `Buffer`.
+// The re-audit checked whether either exists in the target runtime and
+// neither does: `atob` appears in zero files under react-native, `buffer` is
+// not a dependency and `Buffer` is not a React Native global, and nothing in
+// Expo SDK 54 polyfills them. So the decoder always threw, always returned
+// null, and the token was always given the fallback lifetime — while four
+// unit tests asserted the opposite, because they run in Node, where `Buffer`
+// is a global. A test proving a behaviour the device cannot reach.
+//
+// Thirty lines of arithmetic instead of a dependency. Only the bytes of the
+// JWT payload are needed, and a JWT payload is ASCII JSON, so this decodes
+// to a string directly and does not need a TextDecoder either.
+const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+function decodeBase64Url(input) {
+  let bits = 0;
+  let value = 0;
+  let out = "";
+  for (let i = 0; i < input.length; i += 1) {
+    const c = input[i];
+    if (c === "=") break;
+    const index = B64.indexOf(c);
+    // Any character outside the alphabet means this is not a token we can
+    // read, and guessing at a malformed one is worse than the fallback.
+    if (index === -1) return null;
+    value = (value << 6) | index;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      out += String.fromCharCode((value >> bits) & 0xff);
+    }
+  }
+  return out;
+}
+
 function decodeExpiry(token) {
   try {
+    if (typeof token !== "string") return null;
     const payload = token.split(".")[1];
     if (!payload) return null;
-    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
-    const json =
-      typeof atob === "function"
-        ? atob(padded)
-        : Buffer.from(padded, "base64").toString("binary");
+    const json = decodeBase64Url(payload);
+    if (!json) return null;
     const exp = JSON.parse(json)?.exp;
     return typeof exp === "number" && Number.isFinite(exp) ? exp * 1000 : null;
   } catch {
@@ -39,10 +73,6 @@ function decodeExpiry(token) {
   }
 }
 
-// A token that cannot be parsed gets five minutes rather than an hour. Short
-// is the safe direction: the cost of being wrong is one extra native call,
-// where the cost of being wrong the other way is every request refused once
-// enforcement is on.
 export function tokenExpiryMillis(token, now = Date.now()) {
   const exp = decodeExpiry(token);
   if (exp === null) return now + FALLBACK_TTL_MS;

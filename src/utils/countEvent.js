@@ -1,4 +1,4 @@
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, serverTimestamp, setDoc, Timestamp } from "firebase/firestore";
 import { firebaseAuth, firestore, isFirebaseConfigured } from "../config/firebase";
 
 // One place that knows how a view, a share or a contact gets counted.
@@ -24,16 +24,30 @@ import { firebaseAuth, firestore, isFirebaseConfigured } from "../config/firebas
 // buyer used to read as ten; it now reads as one. That is a more useful
 // number and a smaller one, and the seller's dashboard should be read that
 // way.
+// Matches the duration in firestore.rules and the TTL policy on the
+// collection. Long enough that the daily bucket is never the thing that
+// expires; short enough that the collection does not grow without end.
+export const COUNTER_MARKER_TTL_DAYS = 7;
+
 export const COUNTER_VIEW = "view";
 export const COUNTER_SHARE = "share";
 export const COUNTER_CONTACT = "contact";
 
-// Local date, not UTC: "today" has to mean the seller's today.
+// UTC, because the rule computes the same value from request.time.
+//
+// This used to be the device's local date, which was fine while the rule
+// accepted any ten-character string. It no longer does: firestore.rules
+// derives the day from the SERVER clock and refuses anything else, so a
+// phone in Cotonou and the rule have to agree on what today is. UTC is the
+// only clock both can name — request.time.year()/month()/day() are UTC, and
+// toISOString() is UTC.
+//
+// The visible consequence is that the daily bucket rolls at midnight UTC,
+// which is 01:00 in Bénin. A view at 00:30 local counts against the previous
+// day. That is a bucket boundary, not a lost count, and it is the price of
+// having a limit the client cannot move.
 export function counterDayKey(now = new Date()) {
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return now.toISOString().slice(0, 10);
 }
 
 /**
@@ -69,6 +83,9 @@ export function countEvent(listing, kind) {
     kind,
     day,
     createdAt: serverTimestamp(),
+    // Retention. The rule requires exactly this value, and Firestore's TTL
+    // policy deletes the document once it passes — see docs/LAUNCH-CHECKLIST.md.
+    expiresAt: Timestamp.fromMillis(Date.now() + COUNTER_MARKER_TTL_DAYS * 86400000),
   }).catch(() => {
     // Already counted today, offline, or refused. All three are ordinary and
     // none of them is worth telling anybody about: the duplicate is the rate

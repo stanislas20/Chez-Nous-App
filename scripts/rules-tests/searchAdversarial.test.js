@@ -84,22 +84,43 @@ async function search(db, text, filters = []) {
     return { rows: [], docsRead: 0, counts: 0, total: null, complete: true };
   }
 
-  const candidates =
+  const cheapest = async (candidates) => {
+    const counted = await Promise.all(
+      candidates.map(async (candidate) => {
+        const snap = await getCountFromServer(
+          query(listings, ...scope, where(candidate.field, "array-contains", candidate.value)),
+        );
+        return { candidate, count: snap.data().count };
+      }),
+    );
+    return counted.reduce((a, b) => (b.count < a.count ? b : a));
+  };
+
+  const pairPlan =
     words.length >= 2
       ? queryPairCandidates(text)
           .slice(0, MAX_COUNTED_CANDIDATES)
           .map((value) => ({ field: "searchPairs", value }))
-      : [{ field: "searchTokens", value: words[0] }];
+      : [];
+  const tokenPlan = words
+    .slice(0, MAX_COUNTED_CANDIDATES)
+    .map((value) => ({ field: "searchTokens", value }));
 
-  const counted = await Promise.all(
-    candidates.map(async (candidate) => {
-      const snap = await getCountFromServer(
-        query(listings, ...scope, where(candidate.field, "array-contains", candidate.value)),
-      );
-      return { candidate, count: snap.data().count };
-    }),
-  );
-  const best = counted.reduce((a, b) => (b.count < a.count ? b : a));
+  // The Phase F fallback: a pair that matches nothing may simply not have
+  // been built, so the search retries on the rarest single token rather than
+  // reporting an empty, complete result.
+  let counts = 0;
+  let best = null;
+  if (pairPlan.length) {
+    best = await cheapest(pairPlan);
+    counts += pairPlan.length;
+  }
+  let viaFallback = false;
+  if (!best || best.count === 0) {
+    best = await cheapest(tokenPlan);
+    counts += tokenPlan.length;
+    viaFallback = words.length >= 2;
+  }
 
   const snapshot = await getDocs(
     query(
@@ -112,25 +133,26 @@ async function search(db, text, filters = []) {
   );
   const rows = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-  // Three or more words: the pair guarantees two, the rest narrow locally.
+  const needsLocalPass = viaFallback || words.length > 2 || pairPlan.length === 0;
   const narrowed =
-    words.length <= 2
-      ? rows
-      : rows.filter((r) => {
+    needsLocalPass && words.length > 1
+      ? rows.filter((r) => {
           const t = r.searchTokens ?? [];
           return words.every((w) => t.includes(w));
-        });
+        })
+      : rows;
 
+  const exhaustive = best.count <= SEARCH_FETCH;
+  const visible = narrowed.slice(0, SEARCH_RESULTS);
   return {
-    rows: narrowed.slice(0, SEARCH_RESULTS),
+    rows: visible,
     docsRead: snapshot.size,
-    counts: counted.length,
-    total: best.count,
-    complete:
-      words.length <= 2
-        ? best.count <= SEARCH_RESULTS
-        : snapshot.size < SEARCH_FETCH,
+    counts,
+    total: exhaustive && needsLocalPass ? narrowed.length : best.count,
+    totalIsExact: !needsLocalPass,
+    complete: exhaustive && narrowed.length <= SEARCH_RESULTS,
     chosen: best.candidate.value,
+    viaFallback,
   };
 }
 
@@ -203,6 +225,29 @@ async function main() {
   // 8/9. Category and city filtering.
   docs.push(listing("cat-veh", { titleFr: "Peugeot Partner utilitaire", categoryKey: "vehicles", city: "Cotonou" }, 11));
   docs.push(listing("cat-oth", { titleFr: "Peugeot Partner pièces", categoryKey: "other", city: "Porto-Novo" }, 12));
+
+  // ── Phase F: the long-title cases the re-audit used ──────────────────
+  //
+  // These are the ones Phase E could not find. A title long enough to push
+  // the location out of the pair window made "product + place" return zero
+  // while reporting complete — the most ordinary query a classifieds site
+  // gets. The titles here are all inside the 120-character rule.
+  const W = (n) => Array.from({ length: n }, (_, i) => `mot${i}`).join(" ");
+  docs.push(listing("long-10", {
+    titleFr: `Corolla ${W(9)}`, brand: "Toyota", model: "Corolla",
+    categoryKey: "vehicles", city: "Parakou", quartier: "Zongo",
+  }, 20));
+  docs.push(listing("long-11", {
+    titleFr: `Terrain ${W(10)}`, categoryKey: "realEstate", city: "Calavi", quartier: "Tankpe",
+  }, 21));
+  docs.push(listing("long-20", {
+    titleFr: `Appartement ${W(19)}`.slice(0, 118),
+    categoryKey: "realEstate", city: "Cotonou", quartier: "Fidjrosse",
+  }, 22));
+  docs.push(listing("long-20-model", {
+    titleFr: `Voiture ${W(19)}`.slice(0, 118),
+    brand: "Peugeot", model: "Partner", categoryKey: "vehicles", city: "Bohicon",
+  }, 23));
 
   // 10. A target buried beyond 2,000 listings.
   docs.push(listing("deep-target", { titleFr: "Groupe électrogène Kipor silencieux", city: "Bohicon" }, 0));
@@ -312,6 +357,42 @@ async function main() {
       "a target buried beyond 2,000 listings is still found",
       res.rows.some((r) => r.id === "deep-target"),
       `${res.rows.length} result(s), ${res.docsRead} docs read of ${docs.length} seeded`,
+    );
+  }
+
+  // ── Phase F: long titles must not hide the location ──────────────────
+  for (const [q, id, why] of [
+    ["corolla zongo", "long-10", "10-word title + quartier"],
+    ["corolla parakou", "long-10", "10-word title + city"],
+    ["corolla parakou zongo", "long-10", "three words, one past the window"],
+    ["terrain calavi", "long-11", "11-word title + city"],
+    ["terrain tankpe", "long-11", "11-word title + quartier"],
+    ["appartement cotonou", "long-20", "20-word title + city"],
+    ["appartement fidjrosse", "long-20", "20-word title + quartier"],
+    ["voiture partner", "long-20-model", "20-word title + model"],
+    ["partner bohicon", "long-20-model", "model + city on a 20-word title"],
+  ]) {
+    const truth = await trueMatches(db, q);
+    const r = await search(db, q);
+    const found = r.rows.some((x) => x.id === id);
+    ok(
+      `${why}: "${q}"`,
+      found && truth.length > 0,
+      `${truth.length} in DB, ${r.rows.length} returned, ${r.docsRead} docs read` +
+        `, total=${r.total} complete=${r.complete}` +
+        (r.viaFallback ? " (token fallback)" : ` pair "${r.chosen}"`),
+    );
+  }
+
+  // The honesty rule: an empty result may only claim completeness when the
+  // search actually proved it. This is what Phase E got wrong — it returned
+  // total=0 complete=true on a listing it simply could not see.
+  {
+    const r = await search(db, "corolla zongo");
+    ok(
+      "a search that finds something never reports itself empty-and-complete",
+      !(r.rows.length === 0 && r.complete === true && r.total === 0),
+      `rows=${r.rows.length} total=${r.total} complete=${r.complete}`,
     );
   }
 

@@ -21,6 +21,7 @@ const {
   collection,
   collectionGroup,
   documentId,
+  getCountFromServer,
   getDocs,
   limit,
   orderBy,
@@ -143,6 +144,59 @@ async function main() {
       "ChatScreen — the message window",
       () => query(collection(db, "conversations/thread/messages"), orderBy("createdAt", "desc"), limit(50)),
     ],
+    // ── Phase F: the whole search path, which was not covered before ────
+    //
+    // The re-audit found that neither searchPairs nor getCountFromServer
+    // appeared in this file, so every query Phase E's search actually issues
+    // was outside the one invariant that exists to catch a missing index —
+    // the quietest deployment failure Firestore offers, and the exact thing
+    // this file's header warns about.
+    //
+    // Both shapes matter and they are different. The count carries no
+    // orderBy, so it must be servable by an index whose trailing field is
+    // only used for ordering; the fetch adds orderBy(createdAt).
+    [
+      "useListingsSearch — pair fetch, no filter",
+      () => query(collection(db, "listings"), where("status", "==", "approved"), where("searchPairs", "array-contains", "a|b"), orderBy("createdAt", "desc"), limit(120)),
+    ],
+    [
+      "useListingsSearch — pair count, no filter",
+      () => getCountFromServer(query(collection(db, "listings"), where("status", "==", "approved"), where("searchPairs", "array-contains", "a|b"))),
+    ],
+    [
+      "useListingsSearch — pair fetch, category filter",
+      () => query(collection(db, "listings"), where("status", "==", "approved"), where("categoryKey", "==", "vehicles"), where("searchPairs", "array-contains", "a|b"), orderBy("createdAt", "desc"), limit(120)),
+    ],
+    [
+      "useListingsSearch — pair count, category filter",
+      () => getCountFromServer(query(collection(db, "listings"), where("status", "==", "approved"), where("categoryKey", "==", "vehicles"), where("searchPairs", "array-contains", "a|b"))),
+    ],
+    [
+      "useListingsSearch — pair fetch, city filter",
+      () => query(collection(db, "listings"), where("status", "==", "approved"), where("city", "==", "Cotonou"), where("searchPairs", "array-contains", "a|b"), orderBy("createdAt", "desc"), limit(120)),
+    ],
+    [
+      "useListingsSearch — pair count, city filter",
+      () => getCountFromServer(query(collection(db, "listings"), where("status", "==", "approved"), where("city", "==", "Cotonou"), where("searchPairs", "array-contains", "a|b"))),
+    ],
+    // The single-token path: one-word queries, and the fallback a two-word
+    // query takes when its pair matches nothing.
+    [
+      "useListingsSearch — token fetch, no filter",
+      () => query(collection(db, "listings"), where("status", "==", "approved"), where("searchTokens", "array-contains", "corolla"), orderBy("createdAt", "desc"), limit(120)),
+    ],
+    [
+      "useListingsSearch — token count, no filter",
+      () => getCountFromServer(query(collection(db, "listings"), where("status", "==", "approved"), where("searchTokens", "array-contains", "corolla"))),
+    ],
+    [
+      "useListingsSearch — token fetch, category filter",
+      () => query(collection(db, "listings"), where("status", "==", "approved"), where("categoryKey", "==", "vehicles"), where("searchTokens", "array-contains", "corolla"), orderBy("createdAt", "desc"), limit(120)),
+    ],
+    [
+      "useListingsSearch — token count, city filter",
+      () => getCountFromServer(query(collection(db, "listings"), where("status", "==", "approved"), where("city", "==", "Cotonou"), where("searchTokens", "array-contains", "corolla"))),
+    ],
     [
       "useJobApplications — an employer's inbox",
       () => query(collection(db, "jobApplications"), where("employerUid", "==", uid), orderBy("createdAt", "desc")),
@@ -219,8 +273,12 @@ async function main() {
 
   for (const [label, build] of QUERIES) {
     try {
-      const q = await build();
-      await getDocs(q);
+      // A builder either hands back a Query to run, or has already run its
+      // own read — which is how the count shapes are expressed, since
+      // getCountFromServer takes a query and returns a snapshot rather than
+      // being something getDocs can be pointed at.
+      const built = await build();
+      if (built && built.type === "query") await getDocs(built);
       check(label, true);
     } catch (error) {
       const needsIndex =

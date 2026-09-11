@@ -50,13 +50,30 @@ function savePushToken(uid, token) {
 // conversation they are not in. The audit filed this as P2-5; it is a privacy
 // failure with a one-line cause.
 //
-// Only the row that still names THIS device is cleared, which is what keeps
-// multi-device working: a user signed in on a phone and a tablet loses the
-// phone's token and keeps the tablet's. Signing in again re-registers through
-// the ordinary path, so nothing has to be restored.
+// ── What this does and does not do, accurately ─────────────────────────
 //
-// arrayRemove is not used because the field is a single string today. If it
-// ever becomes a list of devices, this is the function that changes.
+// Only the row that still names THIS device is cleared. The Phase E note
+// here said that "keeps multi-device working", and the re-audit was right to
+// call that overstated, so it is corrected rather than left to mislead.
+//
+// sellers/{uid}.pushToken is a SINGLE STRING. savePushToken writes it with
+// merge, so each device that registers OVERWRITES the previous one. The
+// practical model is therefore:
+//
+//   * the most recently registered device is the only one that receives
+//     notifications for an account
+//   * this is not multi-device push support, and never has been
+//
+// What the token check below actually buys is correctness on sign-out: it
+// refuses to clear a token that now belongs to a different handset, so
+// signing out of an old phone cannot silently switch off notifications on
+// the tablet the user has since registered. That is worth having, and it is
+// a smaller claim than the one it replaces.
+//
+// Real multi-device delivery means an array of tokens (or a subcollection),
+// a fan-out that sends to all of them, and invalid-token pruning per entry.
+// That is a notifications change, not a logout change, and it is deliberately
+// NOT attempted here.
 export async function detachPushToken(uid) {
   if (!uid || !firestore) return { detached: false, reason: "no-account" };
   let token = null;

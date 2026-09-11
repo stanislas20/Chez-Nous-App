@@ -196,58 +196,132 @@ export function querySearchTokens(query) {
   return tokenize(query);
 }
 
-// ── Pairs: the conjunction, moved to the server ─────────────────────────
+// ── Pairs, grouped by what a classifieds query is actually made of ──────
 //
-// `array-contains` takes one value, so Phase D sent the single "most
-// selective" token and filtered the rest of the words in JavaScript over
-// whatever came back. The independent audit showed what that costs. Querying
-// "iphone 15" sent "iphone", Firestore returned the newest 120 listings
-// carrying that word, none of them were the iPhone 15, and the search said
-// "no results" while two exact matches sat in the database. The window was
-// full of documents that did not match.
+// Phase E built pairs from "the first 14 tokens" and the re-audit proved
+// what that costs. searchTokensFor emits the title first, so a listing whose
+// title runs to eleven words pushes the CITY out of the window — and
+// "corolla zongo", with both words present in searchTokens, returned nothing
+// while reporting complete. Product-plus-place is the most ordinary query
+// this marketplace gets, and it was the one that broke.
 //
-// A pair fixes the shape of the problem rather than the choice of token. Each
-// listing carries every unordered 2-token combination of its most meaningful
-// words, so "15|iphone" is a single value that means "contains both". Sending
-// that as the array-contains means every document Firestore returns already
-// matches both words — the cap can bound how many matches are shown, which is
-// ordinary pagination, but it can no longer fill itself with non-matches and
-// report nothing.
+// The mistake was treating all tokens as interchangeable. They are not. A
+// classifieds search is a subject and, very often, a place:
 //
-// Sorted before joining so the writer and the reader always agree: a listing
-// titled "iPhone 15" and a search for "15 iphone" have to produce the same
-// string.
+//   subject   what it is   — brand, model, trade, category, and the title
+//   place     where it is  — city, quartier, area
 //
-// Only the first PAIR_SOURCE_MAX tokens contribute. searchTokensFor already
-// orders them title, then brand/model/trade/category, then city/quartier —
-// so the cheap prefix is exactly the part of a listing people search by, and
-// C(14,2) = 91 pairs is a bounded number of index entries per document.
+// So the pair budget is allocated by role rather than by position, and the
+// place group is RESERVED: it cannot be crowded out by a long title however
+// many words the seller writes. The attributes come first within the subject
+// group for the same reason — a twenty-word title can no longer push `model`
+// out, which is what made "20-word title + model" fail.
+//
+// Three families, and the count is bounded by construction:
+//
+//   subject x subject   C(10,2) = 45    "toyota corolla", "iphone 15"
+//   subject x place     10 x 3   = 30   "corolla parakou", "terrain calavi"
+//   place x place       C(3,2)   = 3    "parakou zongo"
+//                                  ──
+//                                  78   (was 91: smaller AND more correct)
+//
+// What this still does not cover: the twelfth word of a long title paired
+// with its fifteenth. That is not a gap to paper over with a bigger cap —
+// it is what the query-side fallback in useListingsSearch exists for, and
+// completeness is reported honestly when it is used.
 export const SEARCH_PAIR_MAX = 100;
-export const PAIR_SOURCE_MAX = 14;
+export const PAIR_SUBJECT_MAX = 10;
+export const PAIR_PLACE_MAX = 3;
 
 export function pairKey(a, b) {
   return a < b ? `${a}|${b}` : `${b}|${a}`;
 }
 
-function pairsFrom(tokens) {
-  const source = tokens.slice(0, PAIR_SOURCE_MAX);
+// Attributes before title inside the subject group: they are short, few, and
+// the highest-value words a buyer types.
+function attributeStrings(listing) {
+  return [
+    listing?.brand,
+    listing?.model,
+    listing?.trade,
+    listing?.customCategory,
+    listing?.customTrade,
+    listing?.partType,
+    listing?.company,
+    listing?.cuisine,
+    listing?.categoryKey,
+  ];
+}
+
+function titleStrings(listing) {
+  return [listing?.titleFr, listing?.titleEn, listing?.title];
+}
+
+function placeStrings(listing) {
+  return [listing?.city, listing?.quartier, listing?.area];
+}
+
+function tokensOf(values, allowed, max) {
+  const out = [];
   const seen = new Set();
-  const pairs = [];
-  for (let i = 0; i < source.length; i += 1) {
-    for (let j = i + 1; j < source.length; j += 1) {
-      if (source[i] === source[j]) continue;
-      const key = pairKey(source[i], source[j]);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      pairs.push(key);
-      if (pairs.length >= SEARCH_PAIR_MAX) return pairs;
+  for (const value of values) {
+    if (typeof value !== "string" || !value) continue;
+    for (const word of tokenize(value)) {
+      // Only words the document actually carries in searchTokens. A pair
+      // naming a word the token array dropped at its own cap would be a pair
+      // no query could ever corroborate.
+      if (!allowed.has(word) || seen.has(word)) continue;
+      seen.add(word);
+      out.push(word);
+      if (out.length >= max) return out;
     }
   }
-  return pairs;
+  return out;
+}
+
+/**
+ * The two groups a listing's pairs are built from.
+ *
+ * Exported because scripts/check-search-tokens.js asserts the guarantee in
+ * terms of these groups rather than by slicing a window — which is how the
+ * Phase E check managed to pass while the guarantee was false.
+ */
+export function searchPairGroups(listing) {
+  const allowed = new Set(searchTokensFor(listing));
+  const attributes = tokensOf(attributeStrings(listing), allowed, PAIR_SUBJECT_MAX);
+  const title = tokensOf(titleStrings(listing), allowed, PAIR_SUBJECT_MAX);
+  const subject = [];
+  const seen = new Set();
+  for (const word of [...attributes, ...title]) {
+    if (seen.has(word)) continue;
+    seen.add(word);
+    subject.push(word);
+    if (subject.length >= PAIR_SUBJECT_MAX) break;
+  }
+  const place = tokensOf(placeStrings(listing), allowed, PAIR_PLACE_MAX);
+  return { subject, place };
 }
 
 export function searchPairsFor(listing) {
-  return pairsFrom(searchTokensFor(listing));
+  const { subject, place } = searchPairGroups(listing);
+  const pairs = [];
+  const seen = new Set();
+  const add = (a, b) => {
+    if (a === b || pairs.length >= SEARCH_PAIR_MAX) return;
+    const key = pairKey(a, b);
+    if (seen.has(key)) return;
+    seen.add(key);
+    pairs.push(key);
+  };
+
+  for (let i = 0; i < subject.length; i += 1) {
+    for (let j = i + 1; j < subject.length; j += 1) add(subject[i], subject[j]);
+  }
+  for (const s of subject) for (const p of place) add(s, p);
+  for (let i = 0; i < place.length; i += 1) {
+    for (let j = i + 1; j < place.length; j += 1) add(place[i], place[j]);
+  }
+  return pairs;
 }
 
 export function searchPairsUnchanged(listing, existing) {
@@ -259,7 +333,7 @@ export function searchPairsUnchanged(listing, existing) {
 // Every pair a query could be sent as, so the caller can ask Firestore which
 // one is rarest instead of guessing from word length.
 export function queryPairCandidates(query) {
-  const tokens = tokenize(query).slice(0, PAIR_SOURCE_MAX);
+  const tokens = tokenize(query);
   const seen = new Set();
   const pairs = [];
   for (let i = 0; i < tokens.length; i += 1) {

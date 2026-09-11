@@ -87,6 +87,39 @@ removed from `.env`. Exact steps are in §11 at the end of this file.
 
 ---
 
+## 3b. FIRESTORE TTL POLICIES — before rules (new in Phase F)
+
+Three collections exist only to remember something briefly. Without a TTL
+they grow for ever. Each has an `expiresAt` timestamp written by the code;
+the policy is a console/CLI setting and is **not** in this repository.
+
+| Collection | Field | Retention written by the code |
+|---|---|---|
+| `counterMarkers` | `expiresAt` | 7 days |
+| `placesQuota` | `expiresAt` | 2 hours |
+| `recoveryLookups` | `expiresAt` | 2 hours |
+
+- [ ] 12a. Create the three policies:
+      ```
+      gcloud firestore fields ttls update expiresAt \
+        --collection-group=counterMarkers --enable-ttl \
+        --project=benin-marketplace-3eb04
+      gcloud firestore fields ttls update expiresAt \
+        --collection-group=placesQuota --enable-ttl \
+        --project=benin-marketplace-3eb04
+      gcloud firestore fields ttls update expiresAt \
+        --collection-group=recoveryLookups --enable-ttl \
+        --project=benin-marketplace-3eb04
+      ```
+      Or Firebase console → Firestore → **Time-to-live** → Create policy.
+- [ ] 12b. Confirm each shows **Active**. A TTL policy takes up to 24 hours
+      to start deleting, and Firestore gives no deletion-time guarantee —
+      which is why the retentions above are all longer than the window each
+      document actually serves. A late deletion means a larger collection,
+      never a wrong answer.
+
+---
+
 ## 4. IAM — required before Storage rules (new in Phase E)
 
 - [ ] 12. **Grant Firebase Storage read access to Firestore.** The chat
@@ -144,7 +177,11 @@ Each step is separately reversible. Do not batch them.
       npx firebase deploy --only functions --project benin-marketplace-3eb04
       ```
 - [ ] 15. **Search backfill.** *Missing from every previous version of this
-      checklist.* Existing listings have no `searchTokens` and no
+      checklist, and it must run again for Phase F:* the pair layout changed
+      from "first 14 tokens" to reserved subject/place groups, so every
+      existing `searchPairs` array is the wrong shape until this re-runs.
+      The script compares before writing, so it is safe to run over listings
+      that are already correct. Existing listings have no `searchTokens` and no
       `searchPairs`, so until this runs **search finds nothing** — the exact
       failure the last two phases existed to remove.
       ```

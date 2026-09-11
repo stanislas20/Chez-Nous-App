@@ -444,71 +444,172 @@ async function main() {
     ),
   );
 
-  // ── The marker that replaced them ──────────────────────────────────────
+  // ── The marker that replaced them, and the bucket it cannot invent ────
+  //
+  // Phase E required `day` to be a ten-character string and nothing else.
+  // The re-audit showed what that bought: the field is part of the document
+  // id, so every distinct string is a distinct document and a distinct
+  // allowed create. One account produced 55 markers for one listing in a
+  // burst. The rule now derives the day from request.time and the client's
+  // value merely has to agree.
+  const utc = new Date();
+  const today = utc.toISOString().slice(0, 10);
+  const tomorrow = new Date(utc.getTime() + 86400000).toISOString().slice(0, 10);
+  const yesterday = new Date(utc.getTime() - 86400000).toISOString().slice(0, 10);
+  const marker = (uid, listingId, kind, day, overrides = {}) => ({
+    listingId,
+    uid,
+    kind,
+    day,
+    createdAt: serverTimestamp(),
+    expiresAt: Timestamp.fromMillis(Date.now() + 7 * 86400000),
+    ...overrides,
+  });
+  const markerId = (listingId, uid, kind, day) => `${listingId}_${uid}_${kind}_${day}`;
+
   await check(
-    "a reader may record one counted view",
+    "a reader may record one counted view today",
     assertSucceeds(
-      setDoc(doc(asOutsider, "counterMarkers/live_outsider-uid_view_2026-09-04"), {
-        listingId: "live",
-        uid: "outsider-uid",
-        kind: "view",
-        day: "2026-09-04",
-        createdAt: serverTimestamp(),
-      }),
+      setDoc(
+        doc(asOutsider, `counterMarkers/${markerId("live", OUTSIDER, "view", today)}`),
+        marker(OUTSIDER, "live", "view", today),
+      ),
     ),
   );
   await check(
     "the same reader cannot record the same view twice",
     assertFails(
-      setDoc(doc(asOutsider, "counterMarkers/live_outsider-uid_view_2026-09-04"), {
-        listingId: "live",
-        uid: "outsider-uid",
-        kind: "view",
-        day: "2026-09-04",
-        createdAt: serverTimestamp(),
-      }),
+      setDoc(
+        doc(asOutsider, `counterMarkers/${markerId("live", OUTSIDER, "view", today)}`),
+        marker(OUTSIDER, "live", "view", today),
+      ),
+    ),
+  );
+  await check(
+    "a day in the future is refused",
+    assertFails(
+      setDoc(
+        doc(asOutsider, `counterMarkers/${markerId("live", OUTSIDER, "view", tomorrow)}`),
+        marker(OUTSIDER, "live", "view", tomorrow),
+      ),
+    ),
+  );
+  await check(
+    "a fabricated past day is refused",
+    assertFails(
+      setDoc(
+        doc(asOutsider, `counterMarkers/${markerId("live", OUTSIDER, "view", yesterday)}`),
+        marker(OUTSIDER, "live", "view", yesterday),
+      ),
+    ),
+  );
+  await check(
+    "an arbitrary ten-character string is refused — the Phase E bypass",
+    assertFails(
+      setDoc(
+        doc(asOutsider, `counterMarkers/${markerId("live", OUTSIDER, "view", "0000000001")}`),
+        marker(OUTSIDER, "live", "view", "0000000001"),
+      ),
+    ),
+  );
+  await check(
+    "so is a non-date of the right length",
+    assertFails(
+      setDoc(
+        doc(asOutsider, `counterMarkers/${markerId("live", OUTSIDER, "view", "aaaaaaaaaa")}`),
+        marker(OUTSIDER, "live", "view", "aaaaaaaaaa"),
+      ),
+    ),
+  );
+  await check(
+    "a different KIND is its own bucket",
+    assertSucceeds(
+      setDoc(
+        doc(asOutsider, `counterMarkers/${markerId("live", OUTSIDER, "share", today)}`),
+        marker(OUTSIDER, "live", "share", today),
+      ),
+    ),
+  );
+  await check(
+    "a different LISTING is its own bucket",
+    assertSucceeds(
+      setDoc(
+        doc(asOutsider, `counterMarkers/${markerId("live-2", OUTSIDER, "view", today)}`),
+        marker(OUTSIDER, "live-2", "view", today),
+      ),
+    ),
+  );
+  await check(
+    "a different USER is its own bucket",
+    assertSucceeds(
+      setDoc(
+        doc(asBuyer, `counterMarkers/${markerId("live", BUYER, "view", today)}`),
+        marker(BUYER, "live", "view", today),
+      ),
+    ),
+  );
+  await check(
+    "a listing id containing underscores still composes correctly",
+    assertSucceeds(
+      setDoc(
+        doc(asOutsider, `counterMarkers/${markerId("deal_of_the_day", OUTSIDER, "view", today)}`),
+        marker(OUTSIDER, "deal_of_the_day", "view", today),
+      ),
     ),
   );
   await check(
     "a reader cannot record a view under somebody else's name",
     assertFails(
-      setDoc(doc(asOutsider, "counterMarkers/live_someone-else_view_2026-09-04"), {
-        listingId: "live",
-        uid: "someone-else",
-        kind: "view",
-        day: "2026-09-04",
-        createdAt: serverTimestamp(),
-      }),
+      setDoc(
+        doc(asOutsider, `counterMarkers/${markerId("live", "someone-else", "view", today)}`),
+        marker("someone-else", "live", "view", today),
+      ),
     ),
   );
   await check(
     "a signed-out visitor cannot record a counted event",
     assertFails(
-      setDoc(doc(asGuest, "counterMarkers/live_anon_view_2026-09-04"), {
-        listingId: "live",
-        uid: "anon",
-        kind: "view",
-        day: "2026-09-04",
-        createdAt: serverTimestamp(),
-      }),
+      setDoc(
+        doc(asGuest, `counterMarkers/${markerId("live", "anon", "view", today)}`),
+        marker("anon", "live", "view", today),
+      ),
     ),
   );
   await check(
     "a marker cannot be back-dated",
     assertFails(
-      setDoc(doc(asOutsider, "counterMarkers/live_outsider-uid_share_2026-09-04"), {
-        listingId: "live",
-        uid: "outsider-uid",
-        kind: "share",
-        day: "2026-09-04",
-        createdAt: new Date(2020, 0, 1),
-      }),
+      setDoc(
+        doc(asOutsider, `counterMarkers/${markerId("live", OUTSIDER, "contact", today)}`),
+        marker(OUTSIDER, "live", "contact", today, { createdAt: new Date(2020, 0, 1) }),
+      ),
+    ),
+  );
+  await check(
+    "a marker cannot ask to be kept for a year",
+    assertFails(
+      setDoc(
+        doc(asOutsider, `counterMarkers/${markerId("live", OUTSIDER, "contact", today)}`),
+        marker(OUTSIDER, "live", "contact", today, {
+          expiresAt: Timestamp.fromMillis(Date.now() + 365 * 86400000),
+        }),
+      ),
+    ),
+  );
+  await check(
+    "nor to be forgotten immediately",
+    assertFails(
+      setDoc(
+        doc(asOutsider, `counterMarkers/${markerId("live", OUTSIDER, "contact", today)}`),
+        marker(OUTSIDER, "live", "contact", today, {
+          expiresAt: Timestamp.fromMillis(Date.now() + 60000),
+        }),
+      ),
     ),
   );
   await check(
     "nobody can read the markers back",
     assertFails(
-      getDoc(doc(asOutsider, "counterMarkers/live_outsider-uid_view_2026-09-04")),
+      getDoc(doc(asOutsider, `counterMarkers/${markerId("live", OUTSIDER, "view", today)}`)),
     ),
   );
   await check(

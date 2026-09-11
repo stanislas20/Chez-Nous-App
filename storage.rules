@@ -136,9 +136,25 @@ service firebase.storage {
       // The grant is: Firebase Storage's service agent
       // (service-PROJECT_NUMBER@gcp-sa-firebasestorage.iam.gserviceaccount.com)
       // needs roles/datastore.viewer on the project.
+      // One document consulted, expressed once.
+      //
+      // This was exists() followed by get() on the same path. The re-audit
+      // filed that as two billed cross-service reads; on checking, the rules
+      // engine caches get()/exists() results per evaluation for a given path,
+      // so the pair was almost certainly already served by a single read and
+      // that finding was overstated. Rules have no let-binding, so the call
+      // still appears twice in the text below and is still one lookup.
+      //
+      // What this version does gain is one fewer distinct operation and a
+      // clearer statement of intent: get() returns null for a missing
+      // document rather than throwing, so the null check does exactly the
+      // work exists() was there for, and a conversation that does not exist
+      // is still refused rather than producing an evaluation error.
       function inConversation(conversationId) {
         return request.auth != null
-          && firestore.exists(/databases/(default)/documents/conversations/$(conversationId))
+          && firestore.get(
+               /databases/(default)/documents/conversations/$(conversationId)
+             ) != null
           && request.auth.uid in firestore.get(
                /databases/(default)/documents/conversations/$(conversationId)
              ).data.participantIds;

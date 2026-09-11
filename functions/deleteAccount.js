@@ -99,6 +99,15 @@ const OWNED_BY_ARRAY = [["contacts", "participantIds"]];
 // Documents whose id IS the uid.
 const OWNED_BY_ID = ["sellers", "advertisers", "sellerStats", "verifiedCompanies"];
 
+// Documents whose id EMBEDS the uid behind a prefix.
+//
+// placesQuota/u_{uid} was marked PRESERVE in Phase E on the grounds that it
+// "expires on its own window". The re-audit checked: there was no TTL, and
+// the window only resets on that user's next call — which never comes after
+// the account is gone. So it kept the departing uid indefinitely. It now has
+// a TTL, and it is deleted here as well rather than waited out.
+const OWNED_BY_PREFIXED_ID = [["placesQuota", "u_"]];
+
 // Storage prefixes the person owns outright.
 const OWNED_PREFIXES = ["sellers/", "sellerVerificationDocs/", "jobApplicationCvs/", "listings/", "ads/"];
 
@@ -199,6 +208,15 @@ exports.deleteAccount = onCall(async (request) => {
       if (anonymised) summary[`${collection}.${field}.anonymised`] = anonymised;
     } catch (error) {
       logger.error(`deleteAccount: anonymising ${collection}.${field} failed`, error);
+      summary.errors = (summary.errors ?? 0) + 1;
+    }
+  }
+
+  for (const [collection, prefix] of OWNED_BY_PREFIXED_ID) {
+    try {
+      await db.collection(collection).doc(`${prefix}${uid}`).delete();
+    } catch (error) {
+      logger.error(`deleteAccount: ${collection}/${prefix}${uid} failed`, error);
       summary.errors = (summary.errors ?? 0) + 1;
     }
   }

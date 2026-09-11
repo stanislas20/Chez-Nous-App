@@ -168,25 +168,63 @@ for (const { name, listing } of FIXTURES) {
     }
   }
 
-  // The property the whole design rests on: for any two tokens the document
-  // has, the pair a QUERY for those two words would build is present. If this
-  // ever fails, a two-word search silently returns nothing.
-  const source = a.slice(0, client.PAIR_SOURCE_MAX);
-  for (let i = 0; i < source.length; i += 1) {
-    for (let j = i + 1; j < source.length; j += 1) {
-      if (source[i] === source[j]) continue;
-      const wanted = client.pairKey(source[i], source[j]);
-      const asked = client.queryPairCandidates(`${source[i]} ${source[j]}`);
-      if (asked.length && !pa.includes(asked[0])) {
-        failures.push(
-          `${name}: a search for "${source[i]} ${source[j]}" builds ` +
-            `"${asked[0]}" but the document carries no such pair`,
-        );
-      }
-      if (asked.length && asked[0] !== wanted) {
-        failures.push(`${name}: pairKey and queryPairCandidates disagree`);
-      }
+  // ── The guarantee, stated over the GROUPS rather than over a window ───
+  //
+  // The Phase E version of this sliced the token list to PAIR_SOURCE_MAX and
+  // then checked that pairs existed within the slice. That is circular: it
+  // asserted the property exactly where it was true by construction, so it
+  // passed while "corolla zongo" returned nothing. The re-audit found the
+  // false negative; this check could never have.
+  //
+  // What must actually hold is that the combinations a classifieds buyer
+  // types are pairable, whatever the seller wrote in the title:
+  //
+  //   subject x subject   product + model, brand + model
+  //   subject x place     product + city, product + quartier
+  //   place x place       city + quartier
+  const groups = client.searchPairGroups(listing);
+  const mustPair = [];
+  for (let i = 0; i < groups.subject.length; i += 1) {
+    for (let j = i + 1; j < groups.subject.length; j += 1) {
+      mustPair.push([groups.subject[i], groups.subject[j], "subject x subject"]);
     }
+  }
+  for (const s1 of groups.subject) {
+    for (const p1 of groups.place) mustPair.push([s1, p1, "subject x place"]);
+  }
+  for (let i = 0; i < groups.place.length; i += 1) {
+    for (let j = i + 1; j < groups.place.length; j += 1) {
+      mustPair.push([groups.place[i], groups.place[j], "place x place"]);
+    }
+  }
+
+  for (const [w1, w2, why] of mustPair) {
+    const asked = client.queryPairCandidates(`${w1} ${w2}`);
+    if (!asked.length) {
+      failures.push(`${name}: a search for "${w1} ${w2}" builds no pair at all`);
+      continue;
+    }
+    if (asked[0] !== client.pairKey(w1, w2)) {
+      failures.push(`${name}: pairKey and queryPairCandidates disagree on "${w1} ${w2}"`);
+    }
+    if (!pa.includes(asked[0])) {
+      failures.push(
+        `${name}: ${why} — a search for "${w1} ${w2}" builds "${asked[0]}" ` +
+          `but the document carries no such pair`,
+      );
+    }
+  }
+
+  // And the place group must never be squeezed out by a long title, which is
+  // the specific regression that produced the re-audit's P1-A.
+  const placeWords = [listing?.city, listing?.quartier, listing?.area].filter(
+    (v) => typeof v === "string" && v,
+  );
+  if (placeWords.length && groups.place.length === 0) {
+    failures.push(
+      `${name}: the listing has a location but no pairable place token — ` +
+        `product-plus-place search cannot work for it`,
+    );
   }
 }
 
@@ -196,7 +234,8 @@ for (const key of [
   "SEARCH_TOKEN_MIN_LENGTH",
   "SEARCH_TOKEN_MAX_LENGTH",
   "SEARCH_PAIR_MAX",
-  "PAIR_SOURCE_MAX",
+  "PAIR_SUBJECT_MAX",
+  "PAIR_PLACE_MAX",
 ]) {
   if (client[key] !== server[key]) {
     failures.push(`${key} differs: src ${client[key]} vs functions ${server[key]}`);

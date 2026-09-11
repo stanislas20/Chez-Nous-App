@@ -92,6 +92,10 @@ export function useListingsSearch(queryText, { filters = [], enabled = true } = 
   // How many matches exist, and whether the reader is seeing all of them.
   const [total, setTotal] = useState(null);
   const [complete, setComplete] = useState(true);
+  // Whether `total` is a count of matches or only an upper bound. A screen
+  // that says "340 results" when it means "at most 340" is the same class of
+  // dishonesty as a silent cap.
+  const [totalIsExact, setTotalIsExact] = useState(true);
 
   const words = useMemo(() => querySearchTokens(queryText ?? ""), [queryText]);
   const wordCount = words.length;
@@ -124,9 +128,9 @@ export function useListingsSearch(queryText, { filters = [], enabled = true } = 
     };
   }, []);
 
-  // Counting every candidate pair costs one aggregation each. Six is far more
-  // words than anybody types into a marketplace search, and it keeps the worst
-  // case bounded rather than combinatorial.
+  // Counting every candidate costs one aggregation each. Six is far more
+  // words than anybody types into a marketplace search, and it keeps the
+  // worst case bounded rather than combinatorial.
   const MAX_COUNTED_CANDIDATES = 6;
 
   const run = useCallback(async () => {
@@ -135,6 +139,7 @@ export function useListingsSearch(queryText, { filters = [], enabled = true } = 
       setStatus("idle");
       setResults(null);
       setTotal(null);
+      setTotalIsExact(true);
       setComplete(true);
       return;
     }
@@ -161,26 +166,11 @@ export function useListingsSearch(queryText, { filters = [], enabled = true } = 
         where(candidate.field, "array-contains", candidate.value),
       );
 
-    try {
-      const candidates =
-        wordCount >= 2
-          ? pairs
-              .slice(0, MAX_COUNTED_CANDIDATES)
-              .map((value) => ({ field: "searchPairs", value }))
-          : [{ field: "searchTokens", value: words[0] }];
-
-      if (candidates.length === 0) {
-        setStatus("idle");
-        setResults(null);
-        setTotal(null);
-        setComplete(true);
-        return;
-      }
-
-      // Ask Firestore which candidate is rarest, rather than deciding from
-      // word length. One aggregation each, in parallel, and a candidate whose
-      // count fails is simply not chosen.
-      const counts = await Promise.all(
+    // Ask Firestore which candidate is rarest rather than deciding from word
+    // length. A count aggregation is billed at one read per thousand index
+    // entries, so this is the cheapest question in the file.
+    const cheapest = async (candidates) => {
+      const counted = await Promise.all(
         candidates.map(async (candidate) => {
           try {
             const snap = await getCountFromServer(candidateQuery(candidate));
@@ -190,10 +180,45 @@ export function useListingsSearch(queryText, { filters = [], enabled = true } = 
           }
         }),
       );
-      if (!mountedRef.current || generation !== generationRef.current) return;
+      return counted.reduce((a, b) => (b.count < a.count ? b : a));
+    };
 
-      const best = counts.reduce((a, b) => (b.count < a.count ? b : a));
-      if (!Number.isFinite(best.count)) {
+    try {
+      const pairPlan =
+        wordCount >= 2
+          ? pairs
+              .slice(0, MAX_COUNTED_CANDIDATES)
+              .map((value) => ({ field: "searchPairs", value }))
+          : [];
+      const tokenPlan = words
+        .slice(0, MAX_COUNTED_CANDIDATES)
+        .map((value) => ({ field: "searchTokens", value }));
+
+      // ── Why there is a second attempt ────────────────────────────────
+      //
+      // A pair covers two words server-side, which is what makes the fetch
+      // window contain only real matches. But a pair only exists if BOTH
+      // words fall inside the groups searchPairsFor builds from, and for a
+      // very long title the twelfth word is not in any of them.
+      //
+      // Before, that returned zero and called itself complete. Now a pair
+      // that matches nothing is treated as "this pair may simply not have
+      // been built" rather than "there is nothing to find": the search falls
+      // back to the rarest single TOKEN and applies the other words locally,
+      // which is what the pre-pair implementation always did — except that
+      // the count now tells us whether that local pass saw everything, so
+      // the result can say so honestly instead of guessing.
+      let best = pairPlan.length ? await cheapest(pairPlan) : null;
+      let viaFallback = false;
+      if (!best || !Number.isFinite(best.count) || best.count === 0) {
+        const tokenBest = await cheapest(tokenPlan);
+        if (!best || best.count === 0 || !Number.isFinite(best.count)) {
+          best = tokenBest;
+          viaFallback = wordCount >= 2;
+        }
+      }
+      if (!mountedRef.current || generation !== generationRef.current) return;
+      if (!best || !Number.isFinite(best.count)) {
         // Every count failed, which means the query itself will fail too —
         // usually a missing index. Say so rather than showing an empty page.
         throw new Error("search-count-unavailable");
@@ -209,12 +234,13 @@ export function useListingsSearch(queryText, { filters = [], enabled = true } = 
       if (!mountedRef.current || generation !== generationRef.current) return;
 
       const rows = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-      // Two words are already guaranteed by the pair. Anything longer has its
-      // remaining words applied here, by the matcher every screen shares.
+      // A pair already guarantees two words. Everything else — a longer
+      // query, or the token fallback — has the remaining words applied here
+      // by the matcher every screen shares.
+      const needsLocalPass = viaFallback || wordCount > 2 || pairPlan.length === 0;
       const narrowed =
-        wordCount <= 2
-          ? rows
-          : rows.filter((listing) =>
+        needsLocalPass && wordCount > 1
+          ? rows.filter((listing) =>
               queryMatches(
                 text,
                 listing.titleFr,
@@ -222,20 +248,25 @@ export function useListingsSearch(queryText, { filters = [], enabled = true } = 
                 listing.city,
                 ...listingSearchParts(listing),
               ),
-            );
+            )
+          : rows;
 
       const visible = visibleListings(narrowed);
-      setResults(visible.slice(0, SEARCH_RESULTS));
-      // For one and two word queries the count IS the number of matches, so
-      // the screen can be exact. Beyond that the local narrowing has removed
-      // some of them and the count becomes an upper bound, so completeness is
-      // judged on what actually came back.
-      setTotal(best.count);
-      setComplete(
-        wordCount <= 2
-          ? best.count <= SEARCH_RESULTS
-          : snapshot.size < SEARCH_FETCH && visible.length <= SEARCH_RESULTS,
-      );
+      // Exhaustive means: every document that could possibly match was
+      // examined. That is true exactly when the chosen candidate had no more
+      // matches than the fetch window could hold.
+      const exhaustive = best.count <= SEARCH_FETCH;
+      const shown = visible.slice(0, SEARCH_RESULTS);
+
+      setResults(shown);
+      // The count is the number of listings carrying the chosen pair or
+      // token. For a two-word pair search that IS the match count. Whenever a
+      // local pass ran, some of those were filtered out, so it is only an
+      // upper bound and the UI must not present it as a fact.
+      const exact = !needsLocalPass;
+      setTotalIsExact(exact);
+      setTotal(exhaustive && !exact ? visible.length : best.count);
+      setComplete(exhaustive && visible.length <= SEARCH_RESULTS);
       setStatus("ready");
     } catch (error) {
       if (!mountedRef.current || generation !== generationRef.current) return;
@@ -245,6 +276,7 @@ export function useListingsSearch(queryText, { filters = [], enabled = true } = 
       // in the other direction.
       setResults(null);
       setTotal(null);
+      setTotalIsExact(true);
       setComplete(true);
       setStatus("error");
     }
@@ -267,9 +299,11 @@ export function useListingsSearch(queryText, { filters = [], enabled = true } = 
     // How many approved listings match, within the same filters. Null unless
     // a search actually ran.
     total,
-    // False when more matches exist than are being shown. A screen that draws
-    // this is the difference between honest pagination and a silent cap.
+    // False when more matches exist than are being shown, OR when the search
+    // could not prove it saw them all. A screen that draws this is the
+    // difference between honest pagination and a silent cap.
     complete,
+    totalIsExact,
     retry: run,
   };
 }

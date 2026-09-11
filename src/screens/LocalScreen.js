@@ -50,6 +50,7 @@ import { useI18n } from "../i18n/I18nContext";
 import { smallImageUri } from "../utils/listingImage";
 import { TabSafeAreaView } from "../components/TabSafeAreaView";
 import { useBannerStatusBar } from "../hooks/useBannerStatusBar";
+import { SearchResultNote } from "../components/SearchResultNote";
 
 const EMERALD = "#0B6E4F";
 // Module-level so its identity is stable across renders — it feeds useMemo
@@ -249,6 +250,9 @@ export function LocalScreen({ navigation }) {
     status: searchStatus,
     isSearching,
     failed: searchFailed,
+    total: searchTotal,
+    complete: searchComplete,
+    totalIsExact: searchTotalIsExact,
   } = useListingsSearch(debouncedQuery, { filters: searchFilters });
   const isSearchMode = searchStatus !== "idle";
 
@@ -627,6 +631,14 @@ export function LocalScreen({ navigation }) {
         onEndReachedThreshold={0.5}
         ListHeaderComponent={
           <>
+            {isSearchMode ? (
+              <SearchResultNote
+                shown={searchResults?.length ?? 0}
+                total={searchTotal}
+                complete={searchComplete}
+                totalIsExact={searchTotalIsExact}
+              />
+            ) : null}
             {/* First thing in the list, because when the query is down every
                 section below it is empty — and an unexplained empty
                 marketplace reads as "nothing is for sale" rather than "we

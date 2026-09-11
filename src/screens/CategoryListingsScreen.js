@@ -55,6 +55,7 @@ import { distanceInKm } from "../utils/geo";
 import { getDutyLabel } from "../utils/pharmacyDuty";
 import { queryMatches } from "../utils/search";
 import { compareNames } from "../utils/collate";
+import { SearchResultNote } from "../components/SearchResultNote";
 
 const pharmacyMark = require("../../assets/pharmacy-mark.png");
 
@@ -524,6 +525,9 @@ export function CategoryListingsScreen({ route, navigation }) {
     status: searchStatus,
     isSearching,
     failed: searchFailed,
+    total: searchTotal,
+    complete: searchComplete,
+    totalIsExact: searchTotalIsExact,
   } = useListingsSearch(debouncedQuery, { filters: searchFilters });
   const isSearchMode = searchStatus !== "idle";
   const allListings =
@@ -709,8 +713,21 @@ export function CategoryListingsScreen({ route, navigation }) {
   //
   // Only when there is more than one aisle: a single chip is not a filter,
   // it is the whole list with a button on it.
-  const renderTradeRail = () =>
-    tradeRail.length > 1 ? (
+  // Prepended to whichever header this screen is rendering, so the note
+  // appears once above the results in every one of its list shapes.
+  const searchNote = isSearchMode ? (
+    <SearchResultNote
+      shown={searchResults?.length ?? 0}
+      total={searchTotal}
+      complete={searchComplete}
+      totalIsExact={searchTotalIsExact}
+    />
+  ) : null;
+
+  const renderTradeRail = () => (
+    <>
+      {searchNote}
+      {tradeRail.length > 1 ? (
       <AisleRow
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -736,10 +753,14 @@ export function CategoryListingsScreen({ route, navigation }) {
           );
         })}
       </AisleRow>
-    ) : null;
+      ) : null}
+    </>
+  );
 
-  const renderAisleRow = () =>
-    isOtherCategory && customAisles.length > 1 ? (
+  const renderAisleRow = () => (
+    <>
+      {searchNote}
+      {isOtherCategory && customAisles.length > 1 ? (
       <AisleRow
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -764,7 +785,9 @@ export function CategoryListingsScreen({ route, navigation }) {
           );
         })}
       </AisleRow>
-    ) : null;
+      ) : null}
+    </>
+  );
 
   const filteredSheetCities = cities.filter((city) =>
     city.toLowerCase().includes(citySearch.trim().toLowerCase()),

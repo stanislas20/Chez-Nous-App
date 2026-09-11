@@ -49,8 +49,8 @@ const DECISIONS = {
 
   // ── Hold no uid of their own ──────────────────────────────────────────
   dealerships: ["PRESERVE", "curated directory, written by the Admin SDK only"],
-  recoveryLookups: ["PRESERVE", "keyed by IP, holds no uid"],
-  placesQuota: ["PRESERVE", "keyed by uid or IP, expires on its own window"],
+  recoveryLookups: ["PRESERVE", "keyed by hashed IP and hashed number; TTL'd"],
+  placesQuota: ["DELETE", "the u_{uid} document; the IP ones carry no uid and TTL out"],
   pharmacyRosterDrafts: ["PRESERVE", "scheduled roster sync; no uid, server only"],
   pharmacyRosterState: ["PRESERVE", "scheduled roster sync cursor; no uid"],
 };

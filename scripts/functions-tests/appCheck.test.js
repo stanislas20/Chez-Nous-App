@@ -14,6 +14,7 @@
 // Both SDKs are stubbed, so this measures the wiring rather than Google.
 //
 // Run: node scripts/functions-tests/appCheck.test.js
+const fs = require("fs");
 const path = require("path");
 const babel = require("@babel/core");
 const { check, report, assert } = require("./harness");
@@ -338,6 +339,63 @@ async function main() {
     const payload = Buffer.from(JSON.stringify({ exp })).toString("base64url");
     const got = bridge.tokenExpiryMillis(`h.${payload}.s`, now);
     assert.ok(got > now, "an expired token was passed through with a past expiry");
+  });
+
+  // ── F4: the decoder must work where the app actually runs ────────────
+  //
+  // The Phase E version used atob with a Buffer fallback. Neither exists in
+  // React Native, so on device it always threw and always took the 5-minute
+  // fallback — while the cases above passed, because this file runs in Node
+  // and Node has Buffer. The test proved a behaviour the target could not
+  // reach.
+  //
+  // So this one evaluates the real source with both globals shadowed away.
+  await check("the expiry decoder works with no atob and no Buffer", async () => {
+    const source = fs.readFileSync(SOURCE, "utf8");
+    const pieces = [
+      source.match(/const B64 = [\s\S]*?\n}\n/),
+      source.match(/function decodeExpiry\(token\)[\s\S]*?\n}\n/),
+      source.match(/export function tokenExpiryMillis[\s\S]*?\n}\n/),
+    ];
+    assert.ok(pieces.every(Boolean), "appCheck.js no longer has the decoder");
+    const body =
+      "const FALLBACK_TTL_MS = 5 * 60 * 1000;" +
+      pieces[0][0] +
+      pieces[1][0] +
+      pieces[2][0].replace("export ", "") +
+      "return { decodeExpiry, tokenExpiryMillis };";
+    // atob and Buffer are parameters, so they shadow anything Node provides.
+    const sandbox = new Function("atob", "Buffer", body)(undefined, undefined);
+
+    const now = Date.now();
+    const jwt = (payload) => {
+      const b64 = Buffer.from(JSON.stringify(payload))
+        .toString("base64")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+      return `header.${b64}.signature`;
+    };
+
+    const exp = Math.floor(now / 1000) + 45 * 60;
+    assert.strictEqual(
+      sandbox.decodeExpiry(jwt({ exp })),
+      exp * 1000,
+      "a valid token's exp was not decoded without Node globals",
+    );
+    assert.strictEqual(sandbox.tokenExpiryMillis(jwt({ exp }), now), exp * 1000);
+
+    // Malformed, expired, near-expiry and non-string all land somewhere safe.
+    assert.strictEqual(sandbox.decodeExpiry("not-a-jwt"), null);
+    assert.strictEqual(sandbox.tokenExpiryMillis("not-a-jwt", now), now + 5 * 60 * 1000);
+    assert.strictEqual(sandbox.decodeExpiry(null), null);
+    assert.strictEqual(sandbox.decodeExpiry("h.!!!!!!.s"), null, "invalid base64 accepted");
+
+    const expired = sandbox.tokenExpiryMillis(jwt({ exp: Math.floor(now / 1000) - 600 }), now);
+    assert.ok(expired > now, "an expired token was passed through with a past expiry");
+
+    const near = sandbox.tokenExpiryMillis(jwt({ exp: Math.floor(now / 1000) + 30 }), now);
+    assert.ok(near - now < 60 * 1000, "a 30-second token was granted a long life");
   });
 
   report("App Check bridge cases");

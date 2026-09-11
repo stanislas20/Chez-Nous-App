@@ -633,6 +633,14 @@ export const translations = {
       "Sample postings, shown while employers are still joining. You can open them to see how a job looks, but there is no employer behind them yet — an application won't be sent anywhere.",
     jobsExperienceLegend:
       "Badge on the card = experience the employer asks for",
+    // Phase F: the search cap, said out loud. Drawn only when the search
+    // could not prove it showed everything — an ordinary small search says
+    // nothing at all.
+    searchShowingOf: "Showing {{shown}} of {{total}} results",
+    searchShowingOfApprox: "Showing {{shown}} of about {{total}} matches",
+    searchMoreRefine: "More results exist. Add a word to narrow the search.",
+    searchNoResultsPartial:
+      "Nothing found in the results we could check. There may be more — try a different or more specific word.",
     // Phase E: actions that used to fail silently now say so.
     errorTitle: "Something went wrong",
     blockUpdateFailed:
@@ -3763,6 +3771,12 @@ export const translations = {
       "Offres d’exemple, affichées en attendant l’arrivée des employeurs. Vous pouvez les ouvrir pour voir à quoi ressemble une offre, mais aucun employeur n’est derrière : une candidature ne sera envoyée nulle part.",
     jobsExperienceLegend:
       "Badge sur la carte = expérience demandée par l’employeur",
+    searchShowingOf: "{{shown}} résultats affichés sur {{total}}",
+    searchShowingOfApprox: "{{shown}} résultats affichés sur environ {{total}}",
+    searchMoreRefine:
+      "D’autres résultats existent. Ajoutez un mot pour affiner la recherche.",
+    searchNoResultsPartial:
+      "Rien trouvé parmi les résultats que nous avons pu vérifier. Il peut y en avoir d’autres — essayez un mot différent ou plus précis.",
     errorTitle: "Une erreur est survenue",
     blockUpdateFailed:
       "Le blocage n’a pas pu être mis à jour. Vérifiez votre connexion et " +

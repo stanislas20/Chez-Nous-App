@@ -118,13 +118,37 @@ function exportBundle() {
   return out;
 }
 
-function jsFilesUnder(dir) {
+// EVERY file in the export, not just the ones with a familiar extension.
+//
+// The re-audit pointed out that filtering on .js/.hbc/.json/.map leaves a
+// hiding place: Expo writes bundled assets under assets/ with no extension at
+// all, so a text file that happened to carry a key would never be read. The
+// scan now walks everything and decides by content.
+//
+// Binary assets are not skipped either — a Hermes bundle IS binary, and the
+// key the audit found was inside one. What keeps this from drowning in false
+// positives is that the pattern is specific (`AIza` plus exactly 35 more
+// base64url characters) rather than a general hunt for entropy, so ordinary
+// React Native framework binaries and JPEGs produce nothing.
+const MAX_SCAN_BYTES = 64 * 1024 * 1024;
+
+function filesUnder(dir) {
   const files = [];
   const walk = (d) => {
     for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, entry.name);
-      if (entry.isDirectory()) walk(p);
-      else if (/\.(js|hbc|json|map)$/.test(entry.name)) files.push(p);
+      if (entry.isDirectory()) {
+        walk(p);
+        continue;
+      }
+      // A file too large to hold in memory is reported rather than skipped
+      // silently, which is the failure mode this whole script exists for.
+      const { size } = fs.statSync(p);
+      if (size > MAX_SCAN_BYTES) {
+        console.warn(`  ! ${path.relative(dir, p)} is ${size} bytes — not scanned`);
+        continue;
+      }
+      files.push(p);
     }
   };
   walk(dir);
@@ -140,8 +164,10 @@ function main() {
   const failures = [];
   const seen = new Map();
 
-  for (const file of jsFilesUnder(dir)) {
-    const text = fs.readFileSync(file, "utf8");
+  for (const file of filesUnder(dir)) {
+    // latin1 so binary bytes map 1:1 to characters and an ASCII key inside a
+    // Hermes bundle or an extensionless asset is still found.
+    const text = fs.readFileSync(file, "latin1");
 
     for (const key of text.match(GOOGLE_KEY_RE) ?? []) {
       if (!seen.has(key)) seen.set(key, new Set());
@@ -171,7 +197,7 @@ function main() {
     );
   }
 
-  console.log(`scanned ${jsFilesUnder(dir).length} files in ${dir}`);
+  console.log(`scanned ${filesUnder(dir).length} files in ${dir}`);
   for (const [key, why] of allowed) {
     const present = seen.has(key);
     console.log(`  ${present ? "present" : "absent "}  ${key.slice(0, 10)}…  ${why}`);

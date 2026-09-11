@@ -94,6 +94,7 @@ import { TabSafeAreaView } from "../components/TabSafeAreaView";
 import { useBannerStatusBar } from "../hooks/useBannerStatusBar";
 import { isPromotionLive } from "../data/promotion";
 import { listingSearchParts } from "../data/customCategories";
+import { SearchResultNote } from "../components/SearchResultNote";
 
 // Fixed brand accents from the design mockup (not theme-reactive, like the
 // onboarding screen's Benin flag colors) — used for small decorative surfaces
@@ -1123,6 +1124,9 @@ export function ForYouScreen({ navigation, route }) {
     status: searchStatus,
     isSearching,
     failed: searchFailed,
+    total: searchTotal,
+    complete: searchComplete,
+    totalIsExact: searchTotalIsExact,
   } = useListingsSearch(debouncedQuery);
   const isSearchMode = searchStatus !== "idle";
 
@@ -2424,6 +2428,14 @@ export function ForYouScreen({ navigation, route }) {
           refreshControl={refreshControl}
           ListHeaderComponent={
             <FeedHeaderPad>
+              {isSearchMode ? (
+                <SearchResultNote
+                  shown={searchResults?.length ?? 0}
+                  total={searchTotal}
+                  complete={searchComplete}
+                  totalIsExact={searchTotalIsExact}
+                />
+              ) : null}
               <VerifiedFilterRow>
                 <VerifiedFilterPill
                   active={showVerifiedOnly}

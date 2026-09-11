@@ -118,8 +118,14 @@ async function consumeQuota(db, key, max) {
     const windowStart = snap.exists ? (snap.data().windowStart ?? 0) : 0;
     const count = snap.exists ? (snap.data().count ?? 0) : 0;
 
+    // expiresAt carries the Firestore TTL policy. A counter is only useful
+    // for the length of its window; keeping one per uid and one per IP
+    // forever was how the re-audit found this collection growing without
+    // end. Two windows of slack so a document is never deleted while it is
+    // still rate-limiting anybody.
+    const expiresAt = new Date(now + 2 * QUOTA_WINDOW_MS);
     if (now - windowStart > QUOTA_WINDOW_MS) {
-      tx.set(ref, { windowStart: now, count: 1 });
+      tx.set(ref, { windowStart: now, count: 1, expiresAt });
       return;
     }
     if (count >= max) {
@@ -128,7 +134,7 @@ async function consumeQuota(db, key, max) {
         "Too many place lookups. Try again later.",
       );
     }
-    tx.set(ref, { windowStart, count: count + 1 }, { merge: true });
+    tx.set(ref, { windowStart, count: count + 1, expiresAt }, { merge: true });
   });
 }
 

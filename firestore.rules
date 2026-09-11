@@ -265,29 +265,68 @@ service cloud.firestore {
     // readers, not an audit trail, and somebody determined enough to make
     // accounts can still move them. What this stops is the cheap version: one
     // account, one loop, unlimited.
+    // The day is the SERVER's, computed here, never the caller's.
+    //
+    // Phase E checked that `day` was a ten-character string and nothing more.
+    // The re-audit showed what that was worth: the field is part of the
+    // document id, so every distinct ten-character string is a distinct
+    // document and therefore a distinct allowed create. One account produced
+    // 55 accepted view markers for one listing in a single burst using
+    // "0000000000", "0000000001", "aaaaaaaaaa" and so on. The rate limit was
+    // decorative.
+    //
+    // request.time is the server's clock and cannot be moved by a caller, so
+    // the bucket is derived from it and the client's value merely has to
+    // agree. A future day, a past day and an invented string are all now the
+    // same thing: a value that is not today, and refused.
+    //
+    // Zero-padded by hand because rules have no formatting: string(9) is "9"
+    // and the id has to match what the client builds, which is
+    // toISOString().slice(0, 10).
+    function twoDigits(n) {
+      return n < 10 ? '0' + string(n) : string(n);
+    }
+
+    function serverDay() {
+      return string(request.time.year()) + '-'
+        + twoDigits(request.time.month()) + '-'
+        + twoDigits(request.time.day());
+    }
+
     match /counterMarkers/{markerId} {
-      // Readable by nobody: it exists to be created, and its existence is
-      // checked by the rules rather than by the app.
       allow read: if false;
-      // One create, ever, per id. Firestore refuses the second, and that
-      // refusal is the rate limit.
-      // The id is COMPOSED rather than parsed. Splitting on '_' and taking
-      // a field by position looked equivalent and is not: a listing id
-      // containing an underscore silently shifts every position after it,
-      // and conversation ids in this same database are built that way. The
-      // same composition shape as favorites, follows and ratings above.
+
+      // The id is COMPOSED rather than parsed. Splitting on '_' and taking a
+      // field by position looked equivalent and is not: a listing id
+      // containing an underscore silently shifts every position after it, and
+      // conversation ids in this same database are built that way.
       allow create: if request.auth != null
-        && request.resource.data.keys().hasOnly(['listingId', 'uid', 'kind', 'day', 'createdAt'])
+        && request.resource.data.keys().hasOnly(
+             ['listingId', 'uid', 'kind', 'day', 'createdAt', 'expiresAt'])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.kind in ['view', 'share', 'contact']
-        && request.resource.data.day is string
-        && request.resource.data.day.size() == 10
+        && request.resource.data.day == serverDay()
         && request.resource.data.listingId is string
+        && request.resource.data.listingId.size() > 0
         && markerId == request.resource.data.listingId + '_'
              + request.auth.uid + '_'
              + request.resource.data.kind + '_'
              + request.resource.data.day
-        && request.resource.data.createdAt == request.time;
+        && request.resource.data.createdAt == request.time
+        // Retention, bounded against the server clock rather than fixed to
+        // it. The client computes this from its own Date.now(), which will
+        // never equal request.time to the millisecond — an equality test here
+        // would refuse every honest write. A window instead: far enough out
+        // that the daily bucket always outlives its purpose, near enough that
+        // nobody can ask to be remembered for a year.
+        //
+        // A device whose clock is more than a day out loses its counts. That
+        // is the safe direction, and it is the same clock that would have
+        // produced the wrong `day` anyway.
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time + duration.value(6, 'd')
+        && request.resource.data.expiresAt < request.time + duration.value(8, 'd');
+
       allow update, delete: if false;
     }
 

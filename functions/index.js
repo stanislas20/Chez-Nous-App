@@ -606,13 +606,54 @@ exports.notifyFollowersOfNewListing = onDocumentUpdated(
     // to build the queue — a decision made from a real figure rather than a
     // guess.
     const FOLLOWER_FANOUT_CAP = 2000;
-    const followsSnap = await admin
-      .firestore()
-      .collection("follows")
-      .where("sellerId", "==", after.sellerId)
-      .orderBy("createdAt", "desc")
-      .limit(FOLLOWER_FANOUT_CAP + 1)
-      .get();
+    const follows = admin.firestore().collection("follows");
+
+    // Two bounded queries, because orderBy silently excludes what it cannot
+    // sort.
+    //
+    // The cap needs an order to be meaningful — "the newest 2,000" rather
+    // than an arbitrary 2,000 — but a Firestore orderBy drops every document
+    // missing the field entirely. firestore.rules now requires createdAt on
+    // every new follow, so no NEW row can have the problem; rows written
+    // before that rule can, and quietly losing a seller's oldest followers
+    // is exactly the kind of thing nobody would ever notice.
+    //
+    // So the ordered query is joined by an unordered sweep, which sees
+    // everything including the legacy rows, and the two are merged by id.
+    // Both are bounded, so the fan-out is still capped.
+    //
+    // The sweep exists only until the legacy rows are gone. Once a backfill
+    // has stamped createdAt on every follow, this second query and the merge
+    // can be deleted.
+    const [orderedSnap, sweepSnap] = await Promise.all([
+      follows
+        .where("sellerId", "==", after.sellerId)
+        .orderBy("createdAt", "desc")
+        .limit(FOLLOWER_FANOUT_CAP + 1)
+        .get(),
+      follows
+        .where("sellerId", "==", after.sellerId)
+        .limit(FOLLOWER_FANOUT_CAP + 1)
+        .get(),
+    ]);
+
+    const merged = new Map();
+    for (const doc of [...orderedSnap.docs, ...sweepSnap.docs]) {
+      if (!merged.has(doc.id)) merged.set(doc.id, doc);
+    }
+    const followsSnap = {
+      docs: [...merged.values()],
+      size: merged.size,
+      empty: merged.size === 0,
+    };
+    const legacy = sweepSnap.docs.filter((d) => !d.data().createdAt).length;
+    if (legacy) {
+      logger.info(
+        `notifyFollowersOfNewListing: ${legacy} follow row(s) for ` +
+          `${after.sellerId} predate createdAt and were caught by the sweep. ` +
+          `Backfill them and this second query can go.`,
+      );
+    }
     if (followsSnap.empty) return;
 
     if (followsSnap.size > FOLLOWER_FANOUT_CAP) {

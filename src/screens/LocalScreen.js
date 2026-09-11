@@ -874,13 +874,18 @@ export function LocalScreen({ navigation }) {
             />
           </StickyHeading>
         )}
-        renderItem={({ item: row }) => (
+        renderItem={({ item: row, section }) => (
           <GridRow style={rowStyle}>
             {row.map((listing) => (
               <ListingCard
                 key={listing.id}
                 listing={listing}
                 flush
+                // A section holding exactly one listing gives it the whole
+                // row. `total` is the section's real count before the
+                // preview cap, so a category with one listing qualifies and
+                // the first row of a capped forty-listing section does not.
+                full={section.total === 1}
                 isFavorite={favoriteIds.has(listing.id)}
                 onToggleFavorite={() => toggleFavorite(listing.id)}
               />

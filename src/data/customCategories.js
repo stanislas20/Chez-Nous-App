@@ -108,8 +108,36 @@ export function listingSubLabel(listing) {
 // number of text parts. The point of asking a seller to "name it the way a
 // buyer would search for it" is that the buyer can then search for it; until
 // this was passed in, that sentence in the form was not true.
+//
+// ── Why this list has to match the search index ────────────────────────
+//
+// This used to return only customCategory and customTrade, and that was a
+// silent filter on top of a correct server answer. Firestore would find a
+// listing by a word in its QUARTIER — searchTokensFor indexes quartier, and
+// Phase F gave the place group a reserved slot in searchPairs precisely so
+// "corolla zongo" would work — and then queryMatches, which never saw the
+// quartier, would throw the result away on the client. On a real phone the
+// search returned nothing while the database returned one.
+//
+// So the rule is: every field searchTokensFor indexes must be visible to
+// queryMatches. title and city are passed separately by each caller.
+// categoryKey is deliberately left out — it is a slug like "realEstate",
+// not a word anybody types.
+//
+// If src/utils/searchTokens.js gains a source field, it belongs here too.
 export function listingSearchParts(listing) {
-  return [listing?.customCategory, listing?.customTrade].filter(Boolean);
+  return [
+    listing?.customCategory,
+    listing?.customTrade,
+    listing?.brand,
+    listing?.model,
+    listing?.trade,
+    listing?.partType,
+    listing?.company,
+    listing?.cuisine,
+    listing?.quartier,
+    listing?.area,
+  ].filter(Boolean);
 }
 
 // What to call a listing whose category is "other": the seller's own word if

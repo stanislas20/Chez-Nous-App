@@ -36,20 +36,47 @@ function loadBridge({ dev, nativeAvailable = true, nativeToken = "native-token",
     reports: [],
   };
 
-  const rnAppCheck = {
+  // Shaped like the REAL @react-native-firebase/app-check, not like the code
+  // under test.
+  //
+  // The previous version of this stub exposed
+  // newReactNativeFirebaseAppCheckProvider and initializeAppCheck as
+  // top-level functions. In v25.1.0 they are methods on the instance the
+  // DEFAULT export returns, and modular.js exports only getToken,
+  // getLimitedUseToken, setTokenAutoRefreshEnabled and onTokenChanged.
+  //
+  // Because the mock agreed with the code rather than with the library, 21
+  // assertions passed while App Check had never initialised on a device.
+  // A physical phone reported it in one line. This stub now refuses to lie:
+  // a caller that reaches for a top-level provider factory gets undefined,
+  // exactly as it would on the handset.
+  const appCheckInstance = {
     newReactNativeFirebaseAppCheckProvider: () => ({
       configure: (options) => {
         recorded.providerConfig = options;
       },
     }),
-    initializeAppCheck: (app, options) => {
+    // options only; no app argument.
+    initializeAppCheck: async (options) => {
       recorded.nativeInit = options;
-      return { native: true };
+      return { configured: true };
     },
     getToken: async () => {
       recorded.tokenRequests += 1;
       return { token: nativeToken };
     },
+  };
+
+  const rnAppCheck = {
+    // The namespace getter. appCheck() -> the module instance.
+    default: () => appCheckInstance,
+    // The genuine modular surface, for completeness.
+    getToken: async (instance, forceRefresh) => {
+      recorded.tokenInstance = instance;
+      return instance.getToken(forceRefresh);
+    },
+    setTokenAutoRefreshEnabled: () => {},
+    onTokenChanged: () => () => {},
   };
 
   const stubs = {
@@ -396,6 +423,57 @@ async function main() {
 
     const near = sandbox.tokenExpiryMillis(jwt({ exp: Math.floor(now / 1000) + 30 }), now);
     assert.ok(near - now < 60 * 1000, "a 30-second token was granted a long life");
+  });
+
+  // ── The regression a physical phone found ────────────────────────────
+  //
+  // Guards the exact shape mistake: reaching for the provider factory or
+  // initializeAppCheck on the PACKAGE rather than on the instance the
+  // default export returns. Both are undefined there, and the old stub hid
+  // that for five phases.
+  await check("the bridge uses the namespace getter, not the package", async () => {
+    // Comments stripped first: this file DOCUMENTS the old wrong calls, and
+    // a check that cannot tell code from prose fails on its own explanation.
+    const source = fs
+      .readFileSync(SOURCE, "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .split("\n")
+      .map((line) => line.replace(/^\s*\/\/.*$/, ""))
+      .join("\n");
+    assert.ok(
+      !/rnAppCheck\.newReactNativeFirebaseAppCheckProvider\s*\(/.test(source),
+      "calling newReactNativeFirebaseAppCheckProvider on the package is undefined on device",
+    );
+    assert.ok(
+      !/rnAppCheck\.initializeAppCheck\s*\(/.test(source),
+      "calling initializeAppCheck on the package is undefined on device",
+    );
+    assert.ok(
+      /rnAppCheck\.default\s*\?\?\s*rnAppCheck/.test(source),
+      "the bridge no longer resolves the default-export namespace getter",
+    );
+  });
+
+  await check("initializeAppCheck is called with options only", async () => {
+    const { bridge, recorded } = loadBridge({ dev: false });
+    await bridge.initializeAppCheckBridge({ name: "[DEFAULT]" });
+    assert.ok(recorded.nativeInit, "initializeAppCheck was never reached");
+    assert.ok(
+      recorded.nativeInit.provider,
+      "the provider was not passed in the options object",
+    );
+    assert.strictEqual(recorded.nativeInit.isTokenAutoRefreshEnabled, true);
+  });
+
+  await check("getToken is handed the module, not the init return value", async () => {
+    const { bridge, recorded } = loadBridge({ dev: false });
+    await bridge.initializeAppCheckBridge({ name: "[DEFAULT]" });
+    const token = await recorded.jsInit.provider.options.getToken();
+    assert.ok(token.token, "no token came back");
+    assert.ok(
+      recorded.tokenRequests > 0,
+      "getToken never reached the native module",
+    );
   });
 
   report("App Check bridge cases");

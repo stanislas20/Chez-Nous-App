@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   Easing,
@@ -2426,6 +2427,25 @@ export function ForYouScreen({ navigation, route }) {
           columnWrapperStyle={rowStyle}
           contentContainerStyle={listContentStyle}
           refreshControl={refreshControl}
+          ListEmptyComponent={
+            /* Three states, and they must not be confused with each other. A
+               search still running must never say "no results" — that is the
+               sentence that sends somebody away from a listing that was about
+               to appear. A failed search must not say it either: "we found
+               nothing" and "we could not look" are different facts, and only
+               one of them is worth retrying. Same shape as LocalScreen. */
+            <FeedEmptyState>
+              {isSearching ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : searchFailed ? (
+                <FeedEmptyText>{t("searchFailed")}</FeedEmptyText>
+              ) : isSearchMode ? (
+                <FeedEmptyText>
+                  {t("searchNoResults", { query: query.trim() })}
+                </FeedEmptyText>
+              ) : null}
+            </FeedEmptyState>
+          }
           ListHeaderComponent={
             <FeedHeaderPad>
               {isSearchMode ? (
@@ -2523,7 +2543,14 @@ export function ForYouScreen({ navigation, route }) {
             item.type === "ad" ? (
               <AdCard ad={item.ad} flush />
             ) : (
-              <ListingCard listing={item.listing} flush />
+              <ListingCard
+                listing={item.listing}
+                flush
+                // gridItems mixes listings with ad slots, so this is "the
+                // feed has exactly one card", which is the case the empty
+                // half-row looked broken in.
+                full={gridItems.length === 1}
+              />
             )
           }
           ListFooterComponent={<ScreenFooter />}
@@ -3610,6 +3637,21 @@ const NearSectionHeader = styled(Tappable)`
   flex-direction: row;
   align-items: center;
   gap: 4px;
+`;
+
+// The home feed had no empty state at all: a search that legitimately found
+// nothing rendered a blank screen with the verified-businesses row and the
+// footer, which is indistinguishable from a failure. Local and the category
+// aisles have had one of these all along.
+const FeedEmptyState = styled.View`
+  padding: ${spacing.xl}px ${spacing.md}px;
+  align-items: center;
+`;
+
+const FeedEmptyText = styled.Text`
+  ${type.body}
+  color: ${(props) => props.theme.textMuted};
+  text-align: center;
 `;
 
 const EmptyCityText = styled.Text`

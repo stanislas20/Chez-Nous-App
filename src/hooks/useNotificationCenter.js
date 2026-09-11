@@ -12,7 +12,11 @@ import { useJobApplications } from "./useJobApplications";
 export function useNotificationCenter(uid) {
   const conversations = useConversations(uid);
   const listings = useNewListingsFeed();
-  const jobApplications = useJobApplications(uid);
+  // Destructured, like every other call site. Phase E changed this hook to
+  // return { applications, failed } so a failed read stops rendering as "no
+  // applicants"; this caller was missed, and because MainTabs sits behind
+  // every screen the app could not get past its splash.
+  const { applications: jobApplications } = useJobApplications(uid);
   const { lastSeenAt, markSeen } = useNotificationsSeen(uid);
 
   const unreadMessageCount = (conversations ?? []).reduce(

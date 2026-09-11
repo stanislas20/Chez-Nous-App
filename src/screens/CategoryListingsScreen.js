@@ -1254,10 +1254,17 @@ export function CategoryListingsScreen({ route, navigation }) {
                 />
               </StickyHeading>
             )}
-            renderItem={({ item: row }) => (
+            renderItem={({ item: row, section }) => (
               <GridRow style={rowStyle}>
                 {row.map((listing) => (
-                  <ListingCard key={listing.id} listing={listing} flush />
+                  <ListingCard
+                    key={listing.id}
+                    listing={listing}
+                    flush
+                    // One listing in the trade: it takes the row. See
+                    // ListingCard's `full`.
+                    full={section.total === 1}
+                  />
                 ))}
               </GridRow>
             )}
@@ -1288,7 +1295,12 @@ export function CategoryListingsScreen({ route, navigation }) {
             maxToRenderPerBatch={8}
             windowSize={7}
             ListFooterComponent={categoryListFooter}
-            renderItem={({ item }) => <ListingCard listing={item} flush />}
+            // numColumns keeps a lone item at column width, so the
+            // single-listing case is handled here the same way the grouped
+            // grid handles it above.
+            renderItem={({ item }) => (
+              <ListingCard listing={item} flush full={listings.length === 1} />
+            )}
           />
         )
       )}

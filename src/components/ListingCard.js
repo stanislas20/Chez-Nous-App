@@ -34,12 +34,20 @@ const saleStatusTint = (theme) => ({
 // Enregistrées, the seller dashboard, a profile — and only the Local grid
 // was asked to change. Making it global would have restyled eight screens
 // nobody mentioned.
+// `full` is the lone-card case: a section holding exactly one listing.
+//
+// The grid is two columns of 47% in a space-between row, so a single listing
+// sat on the left with more than half the row empty beside it — which reads
+// as a layout that failed rather than as a category with one thing in it.
+// Only a section of ONE takes this; a trailing odd card in a longer section
+// is the ordinary end of a grid and keeps its column width.
 function ListingCardBase({
   listing,
   style,
   isFavorite,
   onToggleFavorite,
   flush = false,
+  full = false,
 }) {
   const { colors } = useTheme();
   const { language, t } = useI18n();
@@ -100,13 +108,14 @@ function ListingCardBase({
   return (
     <Card
       flush={flush}
+      full={full}
       style={[style, { transform: [{ scale }] }]}
       onPressIn={pressIn}
       onPressOut={pressOut}
       onPress={() => openListing(navigation, listing, t, language)}
     >
       <CardInner flush={flush}>
-        <Thumbnail flush={flush}>
+        <Thumbnail flush={flush} full={full}>
           {/* Everything, including video, goes through one component.
               This used to branch: a video cover got a private player that
               never called play(), so it sat on its first frame under a play
@@ -231,7 +240,7 @@ function ListingCardBase({
 }
 
 const Card = styled(Animated.createAnimatedComponent(Pressable))`
-  width: ${(props) => (props.flush ? "49.6%" : "47%")};
+  width: ${(props) => (props.full ? "100%" : props.flush ? "49.6%" : "47%")};
   border-radius: ${(props) => (props.flush ? 0 : radius.xl)}px;
   margin-bottom: ${(props) => (props.flush ? 2 : spacing.lg)}px;
   background-color: ${(props) => props.theme.surface};
@@ -257,8 +266,13 @@ const CardInner = styled.View`
 const Thumbnail = styled.View`
   /* Square rather than 4:3 landscape, which left a third of the card to
      text. On Marketplace the photograph is the listing and the words are a
-     caption under it. */
-  aspect-ratio: ${(props) => (props.flush ? "1 / 1" : "4 / 3")};
+     caption under it.
+
+     Except at full width, where square is wrong: a 1:1 photograph across the
+     whole screen is as tall as the screen is wide, and the card stops being a
+     card. 16:9 keeps a lone listing prominent without it filling the view. */
+  aspect-ratio: ${(props) =>
+    props.full ? "16 / 9" : props.flush ? "1 / 1" : "4 / 3"};
   background-color: ${(props) => props.theme.surfaceAlt};
 `;
 

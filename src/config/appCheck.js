@@ -150,18 +150,45 @@ export async function initializeAppCheckBridge(app) {
     // reports, very unhelpfully, as "App entry not found". The same lesson
     // ensureNotificationChannels already carries a comment about.
     rnAppCheck = require("@react-native-firebase/app-check");
-    const { getApp } = require("@react-native-firebase/app");
 
-    const provider = rnAppCheck.newReactNativeFirebaseAppCheckProvider();
+    // ── The namespace getter, not the package object ──────────────────
+    //
+    // This used to call rnAppCheck.newReactNativeFirebaseAppCheckProvider()
+    // and rnAppCheck.initializeAppCheck(getApp(), options) as if both were
+    // package-level exports. In v25.1.0 neither is, and a physical device
+    // said so plainly:
+    //
+    //   rnAppCheck.newReactNativeFirebaseAppCheckProvider is not a function
+    //
+    // Both are methods on the instance the DEFAULT export returns — the
+    // package's own comment spells it out: `import appCheck from
+    // '@react-native-firebase/app-check'; appCheck().X(...)`. modular.js
+    // exports only getToken, getLimitedUseToken, setTokenAutoRefreshEnabled
+    // and onTokenChanged.
+    //
+    // So App Check had never initialised on any build. It went unnoticed
+    // because enforcement is off — every request simply went unattested and
+    // was accepted — and because the test harness stubbed the module with
+    // top-level functions, mirroring this code's assumption rather than the
+    // library's shape.
+    const appCheck = rnAppCheck.default ?? rnAppCheck;
+    const module = appCheck();
+
+    const provider = module.newReactNativeFirebaseAppCheckProvider();
     provider.configure(providerOptions());
 
-    nativeInstance = rnAppCheck.initializeAppCheck(getApp(), {
+    // initializeAppCheck takes options ONLY — no app argument — and returns
+    // the native configureProvider promise rather than an instance. The
+    // thing getToken needs is the module itself, which is what
+    // nativeInstance holds.
+    await module.initializeAppCheck({
       provider,
       // The library refreshes tokens on its own. Without this every request
       // would wait on a fresh attestation, which on Play Integrity is a
       // round trip to Google.
       isTokenAutoRefreshEnabled: true,
     });
+    nativeInstance = module;
   } catch (error) {
     // No native module in this binary (an older build, or Expo Go). The app
     // must keep working: enforcement is off, so unattested requests are

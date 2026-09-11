@@ -43,6 +43,7 @@ import { useI18n } from "./src/i18n/I18nContext";
 attachCrashReporter();
 installGlobalErrorHandler();
 
+
 SplashScreen.preventAutoHideAsync();
 
 // app.json declares "default" so the native binary is *allowed* to rotate —

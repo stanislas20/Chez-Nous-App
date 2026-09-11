@@ -417,6 +417,17 @@ export const translations = {
       "Optional. One item per line — each line becomes a bullet on your posting.",
     sellFieldSalary: "Salary (optional)",
     sellFieldSalaryPlaceholder: "e.g. 80,000 - 120,000 FCFA / month",
+    // The period is asked for separately so a job card can never show a bare
+    // number. A salary without one reads as a sale price.
+    sellFieldSalaryPeriod: "Paid per",
+    salaryPeriodHour: "Hour",
+    salaryPeriodDay: "Day",
+    salaryPeriodWeek: "Week",
+    salaryPeriodMonth: "Month",
+    salaryPerHour: "{amount} / hour",
+    salaryPerDay: "{amount} / day",
+    salaryPerWeek: "{amount} / week",
+    salaryPerMonth: "{amount} / month",
     sellFieldExperience: "Experience required",
     sellMediaHintJobs:
       "Optional · a company logo or workplace photo helps applicants trust the post",
@@ -636,8 +647,8 @@ export const translations = {
     // Phase F: the search cap, said out loud. Drawn only when the search
     // could not prove it showed everything — an ordinary small search says
     // nothing at all.
-    searchShowingOf: "Showing {{shown}} of {{total}} results",
-    searchShowingOfApprox: "Showing {{shown}} of about {{total}} matches",
+    searchShowingOf: "Showing {shown} of {total} results",
+    searchShowingOfApprox: "Showing {shown} of about {total} matches",
     searchMoreRefine: "More results exist. Add a word to narrow the search.",
     searchNoResultsPartial:
       "Nothing found in the results we could check. There may be more — try a different or more specific word.",
@@ -795,9 +806,9 @@ export const translations = {
     listingLinkBrowse: "Browse Chez-Nous",
     sellVideoTooLongTitle: "Video too long",
     sellVideoTooLong:
-      "This video lasts {{actual}}s. Keep it under {{max}}s — a short clip uploads on any connection and buyers watch it to the end.",
+      "This video lasts {actual}s. Keep it under {max}s — a short clip uploads on any connection and buyers watch it to the end.",
     sellVideoTooLarge:
-      "This video weighs {{actual}} MB. Keep it under {{max}} MB — film in 1080p rather than 4K, or trim it.",
+      "This video weighs {actual} MB. Keep it under {max} MB — film in 1080p rather than 4K, or trim it.",
     eventActionFailedTitle: "Not saved",
     eventActionFailedMessage:
       "That did not go through. Check your connection and try again.",
@@ -3546,6 +3557,15 @@ export const translations = {
       "Facultatif. Un élément par ligne — chaque ligne devient un point de votre annonce.",
     sellFieldSalary: "Salaire (optionnel)",
     sellFieldSalaryPlaceholder: "ex. 80 000 - 120 000 FCFA / mois",
+    sellFieldSalaryPeriod: "Payé par",
+    salaryPeriodHour: "Heure",
+    salaryPeriodDay: "Jour",
+    salaryPeriodWeek: "Semaine",
+    salaryPeriodMonth: "Mois",
+    salaryPerHour: "{amount} / heure",
+    salaryPerDay: "{amount} / jour",
+    salaryPerWeek: "{amount} / semaine",
+    salaryPerMonth: "{amount} / mois",
     sellFieldExperience: "Expérience requise",
     sellMediaHintJobs:
       "Optionnel · un logo d'entreprise ou une photo du lieu de travail aide les candidats à faire confiance à l'annonce",
@@ -3771,8 +3791,8 @@ export const translations = {
       "Offres d’exemple, affichées en attendant l’arrivée des employeurs. Vous pouvez les ouvrir pour voir à quoi ressemble une offre, mais aucun employeur n’est derrière : une candidature ne sera envoyée nulle part.",
     jobsExperienceLegend:
       "Badge sur la carte = expérience demandée par l’employeur",
-    searchShowingOf: "{{shown}} résultats affichés sur {{total}}",
-    searchShowingOfApprox: "{{shown}} résultats affichés sur environ {{total}}",
+    searchShowingOf: "{shown} résultats affichés sur {total}",
+    searchShowingOfApprox: "{shown} résultats affichés sur environ {total}",
     searchMoreRefine:
       "D’autres résultats existent. Ajoutez un mot pour affiner la recherche.",
     searchNoResultsPartial:
@@ -3929,9 +3949,9 @@ export const translations = {
     listingLinkBrowse: "Parcourir Chez-Nous",
     sellVideoTooLongTitle: "Vidéo trop longue",
     sellVideoTooLong:
-      "Cette vidéo dure {{actual}} s. Restez sous {{max}} s — une vidéo courte s’envoie sur n’importe quelle connexion et les acheteurs la regardent en entier.",
+      "Cette vidéo dure {actual} s. Restez sous {max} s — une vidéo courte s’envoie sur n’importe quelle connexion et les acheteurs la regardent en entier.",
     sellVideoTooLarge:
-      "Cette vidéo pèse {{actual}} Mo. Restez sous {{max}} Mo — filmez en 1080p plutôt qu’en 4K, ou raccourcissez-la.",
+      "Cette vidéo pèse {actual} Mo. Restez sous {max} Mo — filmez en 1080p plutôt qu’en 4K, ou raccourcissez-la.",
     eventActionFailedTitle: "Non enregistré",
     eventActionFailedMessage:
       "Ça n’est pas passé. Vérifiez votre connexion et réessayez.",

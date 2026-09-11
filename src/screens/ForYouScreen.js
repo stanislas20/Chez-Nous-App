@@ -2037,7 +2037,21 @@ export function ForYouScreen({ navigation, route }) {
                   // border rather than being guessed at.
                   const experienceKey = getExperienceLevel(item);
                   return (
-                    <FeedJobCard onPress={() => setSelectedChipKey("jobs")}>
+                    // Opens the job that was tapped.
+                    //
+                    // This used to call setSelectedChipKey("jobs"), which
+                    // switched the feed to the Emplois list and threw away
+                    // WHICH card had been pressed — the reader then had to
+                    // find it again in a list they had not been looking at.
+                    // A card that shows one job should open that job.
+                    //
+                    // feedJobs comes from jobPool, which is already built
+                    // with normalizeJobListing, so these are exactly the
+                    // objects JobDetail expects — the same navigate the main
+                    // job list below makes.
+                    <FeedJobCard
+                      onPress={() => navigation.navigate("JobDetail", { job: item })}
+                    >
                       <FeedJobCardInner
                         accent={
                           experienceKey
@@ -3983,16 +3997,23 @@ const JobCardTopRow = styled.View`
 
 // Same box as the gradient it replaces, so a list of employers — some with
 // a logo, some without — stays on one grid.
+// 64 rather than 42.
+//
+// The slot was sized for an employer's LOGO, where 42px is generous — a mark
+// reads fine that small. But a job posted from a phone carries a photograph,
+// and a photograph at 42px is a smudge: on a real listing the picture was
+// unrecognisable. The gradient initial below has to match it exactly or a
+// list mixing logos and initials steps up and down as you scroll.
 const JobLogoPhoto = styled(Image)`
-  width: 42px;
-  height: 42px;
+  width: 64px;
+  height: 64px;
   border-radius: ${radius.md}px;
   background-color: ${(props) => props.theme.border};
 `;
 
 const JobLogoGradient = styled(LinearGradient)`
-  width: 42px;
-  height: 42px;
+  width: 64px;
+  height: 64px;
   border-radius: ${radius.md}px;
   align-items: center;
   justify-content: center;
@@ -4000,7 +4021,9 @@ const JobLogoGradient = styled(LinearGradient)`
 
 const JobLogoLabel = styled.Text`
   font-family: ${fontFamily.bold};
-  font-size: 15px;
+  // Scaled with the tile it sits in: a 15px initial in a 64px square reads
+  // as a mistake rather than a monogram.
+  font-size: 22px;
   color: #ffffff;
 `;
 

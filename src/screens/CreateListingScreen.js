@@ -626,6 +626,24 @@ const JOB_TYPES = [
   },
 ];
 
+// Asked separately from the amount, and that is the whole point.
+//
+// The salary field is free text and the placeholder shows the intended shape
+// — "80 000 FCFA / mois" — but a placeholder disappears the moment somebody
+// types. An employer who enters 50000 gets a job card reading "50000", which
+// a reader has every reason to take for a sale price. The period cannot be
+// left to whether the hint was still on screen.
+//
+// Stored beside the amount rather than baked into the string, so the number
+// stays a number: estimateDailyWage already parses salary text to sort jobs
+// by pay, and it can only get better if the unit is explicit.
+const SALARY_PERIODS = [
+  { key: "hour", labelKey: "salaryPeriodHour", formatKey: "salaryPerHour" },
+  { key: "day", labelKey: "salaryPeriodDay", formatKey: "salaryPerDay" },
+  { key: "week", labelKey: "salaryPeriodWeek", formatKey: "salaryPerWeek" },
+  { key: "month", labelKey: "salaryPeriodMonth", formatKey: "salaryPerMonth" },
+];
+
 function VideoTile({ uri }) {
   const player = useVideoPlayer(uri, (p) => {
     p.bufferOptions = previewBufferOptions;
@@ -1109,6 +1127,11 @@ export function CreateListingScreen({ route, navigation }) {
   const [jobType, setJobType] = useState(seed("jobType", null));
   const [jobCategory, setJobCategory] = useState(seed("jobCategory", null));
   const [salary, setSalary] = useState(seedText("salary", ""));
+  // Defaults to monthly: it is what most Bénin job posts quote, and a default
+  // means the common case needs no tap.
+  const [salaryPeriod, setSalaryPeriod] = useState(
+    seedText("salaryPeriod", "month"),
+  );
   // Replaces a yes/no "no experience" checkbox. A band is what the home
   // feed colours by, and a poster who had only a checkbox could say
   // "experience needed" without ever saying how much.
@@ -2253,6 +2276,8 @@ export function CreateListingScreen({ route, navigation }) {
                 jobType,
                 jobCategory,
                 salary: salary.trim() || null,
+                // Only meaningful alongside an amount.
+                salaryPeriod: salary.trim() ? salaryPeriod : null,
                 // Mirrors sellerVerified above, including the part where it
                 // is no longer written from here: this is the same badge
                 // under a second name on a job post, so leaving it
@@ -5411,6 +5436,30 @@ export function CreateListingScreen({ route, navigation }) {
                   placeholderTextColor={colors.textMuted}
                 />
               </InputRow>
+              {/* Shown only once there is an amount to qualify — an empty
+                  salary needs no period, and four pills under a blank field
+                  is a question nobody asked. */}
+              {salary.trim() ? (
+                <>
+                  <Label>{t("sellFieldSalaryPeriod")}</Label>
+                  <ChipWrapRow>
+                    {SALARY_PERIODS.map((option) => {
+                      const active = salaryPeriod === option.key;
+                      return (
+                        <TradeChip
+                          key={option.key}
+                          selected={active}
+                          onPress={() => setSalaryPeriod(option.key)}
+                        >
+                          <TradeChipLabel selected={active}>
+                            {t(option.labelKey)}
+                          </TradeChipLabel>
+                        </TradeChip>
+                      );
+                    })}
+                  </ChipWrapRow>
+                </>
+              ) : null}
               <Label>{t("sellFieldResponsibilities")}</Label>
               <FieldNote>{t("sellJobListHint")}</FieldNote>
               <TextAreaRow>

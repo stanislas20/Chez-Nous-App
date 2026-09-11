@@ -29,7 +29,26 @@ export function MainTabs() {
 
   return (
     <Tab.Navigator
-      initialRouteName="ForYou"
+      // Where the app opens, and it depends on whether anybody is signed in.
+      //
+      // It used to open on "Pour vous" for everybody. For a signed-out
+      // visitor that is a personalised feed with nothing personal in it and
+      // no visible way in — and it is the very first thing somebody sees
+      // after choosing a language on first run, which made the language
+      // screen feel like it had dropped them somewhere arbitrary.
+      //
+      // The first tab's stack is where signing in and signing up live, and
+      // for an account that cannot publish it is already LABELLED "Acheter"
+      // rather than "Vendre" (see the title below). So a signed-out visitor
+      // now lands on the buying screen, which is both the thing they came to
+      // do and the way to an account.
+      //
+      // React Navigation reads initialRouteName once, when the navigator
+      // first mounts. That is the behaviour we want rather than a limitation
+      // to work around: signing in mid-session must not yank the tab out
+      // from under somebody. It applies at app launch, which is when the
+      // question is actually being asked.
+      initialRouteName={user ? "ForYou" : "Sell"}
       // "Back" has to mean the screen they came from.
       //
       // A bottom tab navigator defaults to backBehavior="firstRoute", so

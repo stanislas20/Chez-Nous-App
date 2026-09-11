@@ -38,6 +38,55 @@ function formatPosted(daysAgo, language) {
 // inside a useMemo that already depends on `language`, so it re-resolves
 // correctly on every language switch; it just doesn't pre-compute the
 // *other* language up front.
+// Amount plus period, or the raw text when there is no period to add.
+//
+// A bare "50000" on a job card is indistinguishable from a sale price, which
+// is exactly what a reader took it for. The period is stored separately, so
+// it can be attached at display time rather than depending on the employer
+// having typed it.
+const SALARY_PERIOD_KEYS = {
+  hour: "salaryPerHour",
+  day: "salaryPerDay",
+  week: "salaryPerWeek",
+  month: "salaryPerMonth",
+};
+
+// The same fr-FR grouping listingPrice uses, so 50000 reads as 50 000 on a
+// job card exactly as it does on a listing card.
+const salaryFormatter = new Intl.NumberFormat("fr-FR");
+
+function formatSalary(doc, t) {
+  const raw = typeof doc?.salary === "string" ? doc.salary.trim() : doc?.salary;
+  if (!raw) return null;
+
+  // Only a bare number gets currency and grouping added. An employer who
+  // typed "80 000 - 120 000 FCFA" already said it their way, and appending
+  // another FCFA to that would be worse than leaving it alone.
+  const digitsOnly = /^[\d\s.,]+$/.test(String(raw));
+  const value = Number(String(raw).replace(/[^\d]/g, ""));
+  const amount =
+    digitsOnly && Number.isFinite(value) && value > 0
+      ? `${salaryFormatter.format(value)} FCFA`
+      : String(raw);
+
+  // Monthly unless the employer said otherwise.
+  //
+  // A bare number with no period was the original complaint: on a card it is
+  // indistinguishable from a sale price. Postings made before salaryPeriod
+  // existed have no answer stored, so the choice is between saying nothing
+  // and assuming the norm — and for salaried work in Bénin the norm is
+  // monthly, which is also what the form now pre-selects.
+  //
+  // The assumption is deliberately narrow. It applies ONLY where the salary
+  // is a bare number, because that is the only case with nothing to lose: an
+  // employer who wrote "80 000 - 120 000 FCFA / mois" already said it, and
+  // `amount` below is their text untouched, so no period is appended to it.
+  const period = doc?.salaryPeriod ?? (digitsOnly ? "month" : null);
+  const key = SALARY_PERIOD_KEYS[period];
+  if (!key || typeof t !== "function") return amount;
+  return t(key, { amount });
+}
+
 export function normalizeJobListing(doc, t, language) {
   const typeLabelKey = JOB_TYPE_LABEL_KEYS[doc.jobType] ?? null;
   const typeLabel = typeLabelKey ? t(typeLabelKey) : "";
@@ -82,8 +131,15 @@ export function normalizeJobListing(doc, t, language) {
     // needs to select gigs, and it can't do that from a translated string
     // that changes with the UI language.
     jobType: doc.jobType ?? null,
-    salaryEn: doc.salary || null,
-    salaryFr: doc.salary || null,
+    // The amount with its period attached, composed here so every surface
+    // that shows a salary shows the same thing.
+    //
+    // salaryPeriod did not exist before Phase G, and a job posted without it
+    // keeps whatever text the employer typed — which for the bundled examples
+    // is already "80 000 FCFA / mois". So the fallback is the raw string, and
+    // nothing that predates the field changes appearance.
+    salaryEn: formatSalary(doc, t),
+    salaryFr: formatSalary(doc, t),
     descriptionEn: doc.descriptionEn,
     descriptionFr: doc.descriptionFr,
     typeEn: typeLabel,

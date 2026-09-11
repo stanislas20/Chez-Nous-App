@@ -89,15 +89,32 @@ function expectedPublicKeys() {
 // is allowed to carry it.
 const FORBIDDEN_ENV = ["EXPO_PUBLIC_GOOGLE_PLACES_API_KEY"];
 
+// android and ios, never "all".
+//
+// `--platform all` includes web, and this app cannot bundle for web: it
+// imports react-native/Libraries/Utilities/codegenNativeCommands, which is
+// native-only, and the export dies there. Web is not a shipping target, so
+// asking for it proved nothing and cost the whole check.
+const SHIPPING_PLATFORMS = ["android", "ios"];
+
 function exportBundle() {
   const out = fs.mkdtempSync(path.join(os.tmpdir(), "cheznous-bundle-"));
-  process.stdout.write("exporting the bundle (this takes a minute)… ");
-  execFileSync(
-    "npx",
-    ["expo", "export", "--platform", "all", "--output-dir", out, "--clear"],
-    { cwd: root, stdio: ["ignore", "pipe", "pipe"], env: process.env },
-  );
-  process.stdout.write("done\n");
+  for (const platform of SHIPPING_PLATFORMS) {
+    process.stdout.write(`exporting ${platform}… `);
+    execFileSync(
+      "npx",
+      [
+        "expo",
+        "export",
+        "--platform",
+        platform,
+        "--output-dir",
+        path.join(out, platform),
+      ],
+      { cwd: root, stdio: ["ignore", "pipe", "pipe"], env: process.env },
+    );
+    process.stdout.write("done\n");
+  }
   return out;
 }
 

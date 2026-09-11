@@ -36,6 +36,9 @@ function loadClient() {
   const require_ = (id) => {
     if (id === "firebase/storage") return { deleteObject: () => {}, ref: () => {} };
     if (id === "../config/firebase") return { storage: null };
+    // Phase E: cleanUpAbandonedUploads now reports the objects it could not
+    // remove, because an orphan is paid for monthly and appears on no screen.
+    if (id === "./reportError") return { reportNonFatal: () => {} };
     return require(id);
   };
   new Function("module", "exports", "require", code)(

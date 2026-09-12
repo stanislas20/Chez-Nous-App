@@ -9,11 +9,13 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  AppState,
   FlatList,
   PanResponder,
   Platform,
   Pressable,
 } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -501,8 +503,43 @@ export function ChatScreen({ route, navigation }) {
     setMessages(merged);
   }, [liveMessages, olderMessages]);
 
+  // Whether the app itself is in the foreground. Navigation focus is not
+  // enough on its own: a backgrounded app keeps this screen "focused" and
+  // keeps its Firestore listener running, so without this a message arriving
+  // while the phone is in somebody's pocket would be marked read and its
+  // badge lost before they ever saw it.
+  const [appActive, setAppActive] = useState(
+    AppState.currentState === "active",
+  );
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (next) => {
+      setAppActive(next === "active");
+    });
+    return () => subscription.remove();
+  }, []);
+
+  const isFocused = useIsFocused();
+
+  // The newest message that somebody ELSE sent. Messages are held newest
+  // first, so the first match is the latest one.
+  //
+  // This is the dependency that makes the reset below fire again, and it is
+  // deliberately this rather than the message list: it changes only when a
+  // message ARRIVES FROM THE OTHER PARTICIPANT, so sending, re-rendering, a
+  // read receipt, a changed unread count or any other conversation write
+  // does not trigger a write of its own. Comparing ids rather than counts
+  // also survives a deletion without re-firing.
+  // `messages` starts as null while the first page loads, so it is checked
+  // rather than assumed — reading .find off it is a crash on first render.
+  const latestIncomingId =
+    user && messages
+      ? messages.find((message) => message.senderId !== user.uid)?.id
+      : undefined;
+
   useEffect(() => {
     if (!user) return;
+    // Only while the reader is actually looking at this conversation.
+    if (!isFocused || !appActive) return;
     // No alert: a failed reset shows a stale badge, which is confusing
     // rather than unsafe. It is reported so a systematic failure is visible
     // in Crashlytics instead of only in everybody's badge count.
@@ -511,7 +548,11 @@ export function ChatScreen({ route, navigation }) {
     }).catch((error) => {
       reportNonFatal("chatUnreadReset", error, { where: "ChatScreen" });
     });
-  }, [conversationId, user]);
+    // latestIncomingId is what re-runs this when a message arrives while the
+    // screen is already open — the case the original dependency list missed,
+    // where the message was rendered in front of the reader and the badge
+    // stayed on the conversation they were reading.
+  }, [conversationId, user, latestIncomingId, isFocused, appActive]);
 
   const updateLastMessage = async ({ messageType, preview }) => {
     const otherParticipant = conversation.participantIds.find(

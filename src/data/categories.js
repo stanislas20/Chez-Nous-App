@@ -57,3 +57,32 @@ export function getCategoryLabel(key, language) {
   if (!category) return null;
   return language === "en" ? category.labelEn : category.labelFr;
 }
+
+// The three categories that are directories rather than a market.
+//
+// Each has its own screen, its own card and its own detail route, and none
+// of them carries a price. Rendered by the generic ListingCard they are
+// wrong in different ways: a job navigates to ProductDetail and silently
+// loses the apply flow, a restaurant asks "0 FCFA", and a pharmacy duty
+// roster is not for sale at all.
+export const DIRECTORY_CATEGORIES = ["pharmacyOnDuty", "jobs", "restaurants"];
+
+// What the marketplace feed asks Firestore for, derived rather than typed.
+//
+// This exists because filtering the directories out AFTER the page came back
+// is what emptied both browse screens in production. The pharmacy roster
+// holds 200 of 209 approved listings and is rewritten weekly with a fresh
+// createdAt, so a page of the 60 newest was 60 pharmacies, every one of them
+// discarded by the client-side filter, and the feed rendered "no listings"
+// over a catalogue that was there the whole time.
+//
+// The query now names what the screens actually want, so a page is never
+// spent on rows that will be thrown away. Derived from `categories` so a new
+// category joins the feed by existing rather than by being remembered here —
+// the hand-maintained copy is exactly what would rot.
+//
+// Firestore allows up to 30 values in an `in` filter; this is 13, and
+// scripts/check-feed-categories.js fails if that stops being true.
+export const MARKETPLACE_FEED_CATEGORIES = categories
+  .map((item) => item.key)
+  .filter((key) => !DIRECTORY_CATEGORIES.includes(key));

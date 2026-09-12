@@ -30,7 +30,11 @@ import { Tappable } from "../components/Tappable";
 import { SectionHeading } from "../components/SectionHeading";
 import { ListingMedia } from "../components/ListingMedia";
 import { listingBadgeLabel } from "../data/listingBadge";
-import { getCategoryIcon } from "../data/categories";
+import {
+  getCategoryIcon,
+  DIRECTORY_CATEGORIES,
+  MARKETPLACE_FEED_CATEGORIES,
+} from "../data/categories";
 import { SearchBar } from "../components/SearchBar";
 import { ListingCard } from "../components/ListingCard";
 import { ScreenFooter } from "../components/ScreenFooter";
@@ -1109,11 +1113,23 @@ export function ForYouScreen({ navigation, route }) {
   // near-you row filters by city and the deals row by a price drop, so a
   // page that is only just big enough for the grid leaves those two empty on
   // a quiet week.
+  //
+  // The directories are excluded in the QUERY, not after it. Filtering them
+  // out of a page that had already come back is what emptied this screen in
+  // production: the pharmacy roster holds 200 of 209 approved listings and
+  // is rewritten weekly with a fresh createdAt, so the 60 newest were 60
+  // pharmacies, every one discarded below, and the feed said "no listings"
+  // over a catalogue that was there all along.
   const {
     listings: liveListings,
     status: listingsStatus,
     refresh: refreshListings,
-  } = useListingsQuery({ pageSize: 60 });
+  } = useListingsQuery({
+    pageSize: 60,
+    filters: [
+      { field: "categoryKey", op: "in", value: MARKETPLACE_FEED_CATEGORIES },
+    ],
+  });
 
   // The remote half of search. Debounced, so a two-word query is one read
   // rather than fourteen. No category filter: the chips on this screen filter
@@ -1148,11 +1164,12 @@ export function ForYouScreen({ navigation, route }) {
   // Restaurants join pharmacy and jobs in being excluded here: all three are
   // directories with their own screens, and none carries a price. Left in,
   // a restaurant rendered as a goods card asking "0 FCFA".
+  // Kept as a second line rather than deleted: mockListings take the same
+  // path when Firebase is unconfigured and never went through the query, and
+  // a listing whose categoryKey is missing entirely is invisible to an `in`
+  // filter but would still render here.
   const listings = listingSource.filter(
-    (listing) =>
-      listing.categoryKey !== "pharmacyOnDuty" &&
-      listing.categoryKey !== "jobs" &&
-      listing.categoryKey !== "restaurants",
+    (listing) => !DIRECTORY_CATEGORIES.includes(listing.categoryKey),
   );
 
   // Real nearest-on-duty-pharmacy lookup for the home utility card — same

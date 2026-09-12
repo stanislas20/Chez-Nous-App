@@ -27,7 +27,11 @@ import { mockListings } from "../data/mockListings";
 import { cities } from "../data/cities";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { nearestKnownCity } from "../utils/nearestCity";
-import { categories } from "../data/categories";
+import {
+  categories,
+  DIRECTORY_CATEGORIES,
+  MARKETPLACE_FEED_CATEGORIES,
+} from "../data/categories";
 import { listingSearchParts } from "../data/customCategories";
 import { LinearGradient } from "expo-linear-gradient";
 import { useListingsQuery } from "../hooks/useListingsQuery";
@@ -226,7 +230,17 @@ export function LocalScreen({ navigation }) {
     loadMore: loadMoreListings,
     refresh: refreshListings,
   } = useListingsQuery({
-    filters: selectedCity ? [{ field: "city", value: selectedCity }] : [],
+    // Directories are excluded server-side. Filtering them out of a page
+    // already fetched is what emptied this screen on "All cities": the
+    // pharmacy roster is 200 of 209 approved listings and carries a fresh
+    // createdAt every week, so the 60 newest were all pharmacies and every
+    // one was thrown away below. With a city chosen the page narrowed enough
+    // to survive, which is why this looked like it worked and only failed
+    // in the default state.
+    filters: [
+      { field: "categoryKey", op: "in", value: MARKETPLACE_FEED_CATEGORIES },
+      ...(selectedCity ? [{ field: "city", value: selectedCity }] : []),
+    ],
     pageSize: 60,
   });
 
@@ -269,7 +283,6 @@ export function LocalScreen({ navigation }) {
   // pharmacies were excluded here, which meant a job and (once the category
   // existed) a restaurant both rendered as goods cards asking "0 FCFA" —
   // the same leak that was fixed on the home feed.
-  const DIRECTORY_CATEGORIES = ["pharmacyOnDuty", "jobs", "restaurants"];
   const listings = listingSource.filter(
     (listing) => !DIRECTORY_CATEGORIES.includes(listing.categoryKey),
   );

@@ -47,7 +47,25 @@ const failures = [];
   const seller = rules.slice(
     rules.indexOf("allow update: if request.auth != null"),
   );
-  if (!/resource\.data\.status == 'rejected'/.test(seller) ||
+  // Two spellings mean the same thing, and both have shipped. It was
+  // `resource.data.status == 'rejected'` while that was the only way back
+  // into the queue; it is now `resource.data.status in ['rejected',
+  // 'approved']`, because a device session found that a material edit to a
+  // LIVE listing sends it back to review too and the rule refused it. This
+  // matches either, so the check keeps asking "is there a way back?" rather
+  // than "is it written the way it was written in Phase F".
+  // Both spellings are anchored to the CURRENT status — `resource.data` and
+  // never `request.resource.data`. Without that lookbehind the second pattern
+  // also matches the moderator branch's `request.resource.data.status in
+  // ['approved', 'rejected', 'pending']`, which is the set of statuses a
+  // moderator may WRITE and says nothing about a seller's way back. Checked
+  // by mutation: replace the clause and this must fail.
+  const allowsRejectedToPending =
+    /(?<!request\.)resource\.data\.status == 'rejected'/.test(seller) ||
+    /(?<!request\.)resource\.data\.status in \[[^\]]*'rejected'[^\]]*\]/.test(
+      seller,
+    );
+  if (!allowsRejectedToPending ||
       !/request\.resource\.data\.status == 'pending'/.test(seller)) {
     failures.push(
       "firestore.rules does not allow rejected -> pending, so a rejection " +

@@ -2,7 +2,7 @@ import styled from "styled-components/native";
 import { useI18n } from "../i18n/I18nContext";
 import { useTheme } from "../theme/ThemeContext";
 import { spacing } from "../theme/colors";
-import { fontFamily, type } from "../theme/typography";
+import { type } from "../theme/typography";
 
 // What the search could not prove, said in one line.
 //
@@ -24,10 +24,22 @@ import { fontFamily, type } from "../theme/typography";
 // The last one matters most. A zero-result search that was exhaustive means
 // "there is none"; one that was not means "we did not look everywhere", and
 // those are different sentences to show somebody trying to buy a fridge.
+// Interpolated as a block, which is what `type.caption` is — a css`` chunk
+// carrying family, size and line-height together.
+//
+// It was written as `${type.caption.size}px` / `${type.caption.line}px`, and
+// a css`` chunk has no `.size` or `.line`. Both resolved to undefined, so the
+// declarations rendered as `font-size: undefinedpx`, styled-components passed
+// the string straight through, and React Native's native text view threw
+// ClassCastException: String cannot be cast to Double — a white screen, not a
+// JS error an ErrorBoundary could catch.
+//
+// It only ever fired when this component actually rendered, and it renders
+// only when a search is INCOMPLETE — so every search small enough to be
+// exhaustive stayed silent and the crash hid behind the one case the
+// component exists for: a common word with more matches than the fetch window.
 const Note = styled.Text`
-  font-family: ${fontFamily.regular};
-  font-size: ${type.caption.size}px;
-  line-height: ${type.caption.line}px;
+  ${type.caption}
   color: ${({ theme }) => theme.textMuted};
   padding: 0 ${spacing.md}px ${spacing.sm}px;
 `;

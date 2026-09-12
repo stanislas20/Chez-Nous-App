@@ -440,10 +440,26 @@ service cloud.firestore {
       // one-way door on a document is not the remedy for it.
       allow update: if request.auth != null
         && request.auth.uid == resource.data.sellerId
+        // 'approved' joins 'rejected' here, and a device session is what
+        // found it. The form sends an approved listing back to review when a
+        // MATERIAL_FIELD changes — title, description, price, category, city,
+        // cover photo or partType (CreateListingScreen MATERIAL_FIELDS) —
+        // because a listing whose price or photograph changed is not the
+        // listing a moderator approved. That is the behaviour the comment
+        // above argues for, and this clause simply never permitted it: only
+        // rejected -> pending was allowed, so every material edit to a live
+        // listing was refused with PERMISSION_DENIED and the seller was told
+        // "nothing was created" about an update that changed nothing.
+        //
+        // Nothing widens here except the one transition. A seller still
+        // cannot approve, cannot publish without canPost, and cannot touch
+        // anybody else's listing. Pulling your own listing out of the market
+        // costs you visibility and costs nobody else anything, which is why
+        // it is safe to allow and was always safe to allow.
         && (
           request.resource.data.status == resource.data.status
           || (
-            resource.data.status == 'rejected'
+            resource.data.status in ['rejected', 'approved']
             && request.resource.data.status == 'pending'
             && request.auth.token.canPost == true
           )

@@ -3115,8 +3115,14 @@ export const translations = {
       "Camera access is turned off for Chez-Nous. Open Settings to turn it back on, then try again.",
     permissionOpenSettings: "Open Settings",
 
+    // Shown for every PERMISSION_DENIED, not just account edits — a listing
+    // save lands here too. It said "your account details … nothing was
+    // created", which named the wrong thing and the wrong verb on an edit: a
+    // seller correcting a price read that nothing had been created, about a
+    // listing that already existed. What is always true is that the write was
+    // refused whole, so that is what it says now.
     errorPermissionDenied:
-      "We couldn't save your account details, so nothing was created. Please try again.",
+      "We couldn't save that, so nothing was changed. Please try again.",
     errorGeneric: "Something went wrong. Please try again.",
     errorRequiredFields: "Please fill in all fields.",
     errorPasswordMismatch: "Passwords do not match.",
@@ -6293,8 +6299,11 @@ export const translations = {
       "L'accès à l'appareil photo est désactivé pour Chez-Nous. Ouvrez les Réglages pour l'autoriser, puis réessayez.",
     permissionOpenSettings: "Ouvrir les Réglages",
 
+    // Voir la note côté anglais : ce message couvre toutes les écritures
+    // refusées, pas seulement un profil, et « créé » était faux lors d'une
+    // modification.
     errorPermissionDenied:
-      "Nous n’avons pas pu enregistrer vos informations, rien n’a donc été créé. Veuillez réessayer.",
+      "Nous n’avons pas pu enregistrer, rien n’a donc été modifié. Veuillez réessayer.",
     errorGeneric: "Une erreur est survenue. Veuillez réessayer.",
     errorRequiredFields: "Veuillez remplir tous les champs.",
     errorPasswordMismatch: "Les mots de passe ne correspondent pas.",

@@ -131,6 +131,9 @@ async function main() {
         viewCount: 5,
         shareCount: 1,
       }),
+      setDoc(doc(db, "listings/liveEditA"), { ...listing, status: "approved" }),
+      setDoc(doc(db, "listings/liveEditB"), { ...listing, status: "approved" }),
+      setDoc(doc(db, "listings/liveEditC"), { ...listing, status: "approved" }),
       setDoc(doc(db, "sellers/" + SELLER), {
         fullName: "Vendeur",
         phone: "+2290146464674",
@@ -172,6 +175,13 @@ async function main() {
     .firestore();
   const asForeign = env
     .authenticatedContext(FOREIGN, { canPost: false })
+    .firestore();
+  // The owner, with a lapsed claim. Distinct from asForeign, which is a
+  // different uid: testing "no canPost" with a stranger's uid proves nothing,
+  // because ownership refuses it first and the case passes for the wrong
+  // reason.
+  const asSellerNoPost = env
+    .authenticatedContext(SELLER, { canPost: false })
     .firestore();
   const asGuest = env.unauthenticatedContext().firestore();
 
@@ -326,6 +336,37 @@ async function main() {
     "a seller cannot jump the queue from rejected straight to approved",
     assertFails(
       updateDoc(doc(asSeller, "listings/rejectedA"), { status: "approved" }),
+    ),
+  );
+
+  // The other direction out of the market, which nothing here covered until a
+  // physical device found it. The form sends an approved listing back to
+  // review whenever a MATERIAL_FIELD changes, so this is the ordinary edit —
+  // a seller correcting a price — and the rule refused it. Every case above
+  // exercises rejected -> pending; none exercised approved -> pending, and
+  // that is exactly the gap the defect lived in.
+  await check(
+    "a seller edits a live listing materially and it returns to review",
+    assertSucceeds(
+      updateDoc(doc(asSeller, "listings/liveEditA"), {
+        status: "pending",
+        price: 5678,
+      }),
+    ),
+  );
+  await check(
+    "returning a live listing to review still needs canPost",
+    assertFails(
+      updateDoc(doc(asSellerNoPost, "listings/liveEditB"), {
+        status: "pending",
+        price: 5678,
+      }),
+    ),
+  );
+  await check(
+    "a seller cannot take their live listing straight to rejected",
+    assertFails(
+      updateDoc(doc(asSeller, "listings/liveEditC"), { status: "rejected" }),
     ),
   );
   await check(

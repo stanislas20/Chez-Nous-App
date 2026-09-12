@@ -28,6 +28,7 @@
 // Run: node scripts/check-verified-badge.js
 const fs = require("fs");
 const path = require("path");
+const babel = require("@babel/core");
 const { stripComments } = require("./lib/stripComments");
 
 const root = path.join(__dirname, "..");
@@ -43,22 +44,53 @@ const WRITERS = [
   "src/screens/CreateListingScreen.js",
   "src/screens/ParkInventoryScreen.js",
 ];
+// Read as structure rather than as text, because the two look identical and
+// mean opposite things. `sellerVerified: false` inside an object literal is
+// the form ASSERTING the badge is unearned, which is the only value the rules
+// accept. `sellerVerified: _sellerVerified` inside a DESTRUCTURE is the edit
+// path REMOVING the field so it is never sent at all — strictly safer, and a
+// regex over the file reports it as setting the badge to a variable.
+//
+// An ObjectExpression is an assignment; an ObjectPattern is a destructure.
+// Walking the AST tells them apart; `\bsellerVerified:` cannot.
 for (const rel of WRITERS) {
-  const source = read(rel);
-  for (const field of ["sellerVerified", "verified"]) {
-    const assignments = [
-      ...source.matchAll(new RegExp(`\\b${field}:\\s*([^,\\n]+)`, "g")),
-    ];
-    for (const [, value] of assignments) {
-      if (value.trim() !== "false") {
-        failures.push(
-          `${rel} sets ${field} to \`${value.trim()}\`. A listing writer may ` +
-            `only ever send false — firestore.rules refuses anything else, ` +
-            `so this would refuse every publish by a verified company.`,
-        );
+  const file = path.join(root, rel);
+  const ast = babel.parseSync(fs.readFileSync(file, "utf8"), {
+    filename: file,
+    presets: [require.resolve("babel-preset-expo")],
+    babelrc: false,
+    configFile: false,
+  });
+
+  const walk = (node) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) return node.forEach(walk);
+
+    if (node.type === "ObjectExpression") {
+      for (const prop of node.properties) {
+        if (prop.type !== "ObjectProperty" || prop.computed) continue;
+        const name = prop.key.name ?? prop.key.value;
+        if (name !== "sellerVerified" && name !== "verified") continue;
+        const ok =
+          prop.value.type === "BooleanLiteral" && prop.value.value === false;
+        if (!ok) {
+          failures.push(
+            `${rel} sets ${name} to something other than false. A listing ` +
+              `writer may only ever send false — firestore.rules refuses ` +
+              `anything else, so this would refuse every publish by a ` +
+              `verified company.`,
+          );
+        }
       }
     }
-  }
+
+    for (const key of Object.keys(node)) {
+      if (key === "loc" || key === "start" || key === "end") continue;
+      walk(node[key]);
+    }
+  };
+
+  walk(ast);
 }
 
 // 2. The rules refuse it on the way in and freeze it afterwards.

@@ -2740,11 +2740,25 @@ export function CreateListingScreen({ route, navigation }) {
         // `isPromoted` is dropped because it comes from the route params of
         // whoever opened the form — carrying it in would silently unpromote
         // a paid listing the moment its owner fixed a word.
+        // sellerVerified and sellerCompanyName join the list, and a live
+        // listing is what proved they had to.
+        //
+        // Both are already frozen by firestore.rules — they are claims about
+        // the seller, granted by review, not facts an edit may restate — and
+        // the form sent them on every save anyway. On a listing created by
+        // THIS form that was harmless: the values matched, so affectedKeys()
+        // saw no change. On anything older, where neither field exists yet,
+        // writing `false` and `null` ADDS the keys, addition counts as a
+        // change, and the whole update was refused. Every listing predating
+        // these fields could therefore never be edited again, and the seller
+        // was told only that nothing could be saved.
         const {
           sellerId: _sellerId,
           sellerName: _sellerName,
           sellerMemberSince: _memberSince,
           sellerPhotoUrl: _photo,
+          sellerVerified: _sellerVerified,
+          sellerCompanyName: _sellerCompanyName,
           status: _status,
           createdAt: _createdAt,
           isPromoted: _promoted,

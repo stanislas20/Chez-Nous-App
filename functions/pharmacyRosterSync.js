@@ -674,6 +674,67 @@ async function notifyReviewer(newDraftCount, revisionCount = 0) {
 // Distinct from "no new post" (which is normal and silent) — this only
 // fires when a region actually threw, so silence from this function
 // reliably means nothing broke, not just "nothing new happened to notice."
+// The reminder for drafts nobody has acted on yet.
+//
+// Counted from the same query apply-draft.js lists with — status
+// 'pending_review', which apply() moves to 'applied' and reject() to
+// 'rejected' — so clearing the queue silences this with no extra
+// bookkeeping and no flag that could disagree with reality.
+//
+// Says the oldest age out loud. "3 drafts waiting" reads like a to-do;
+// "3 drafts waiting, oldest 5 days" says the app is serving last week.
+async function remindAboutPendingDrafts() {
+  const snap = await admin
+    .firestore()
+    .collection("pharmacyRosterDrafts")
+    .where("status", "==", "pending_review")
+    .get();
+  if (snap.empty) return;
+
+  const now = Date.now();
+  let oldestDays = 0;
+  let alreadyPast = 0;
+  const regions = [];
+  snap.forEach((doc) => {
+    const data = doc.data();
+    if (data.postingRegion) regions.push(data.postingRegion);
+    // `fetchedAt`, which is what the draft is actually written with. Reading
+    // `createdAt` here returned undefined on every document and the age
+    // simply vanished from the message — a wrong field name that degrades to
+    // silence rather than to an error, which is the kind of thing this whole
+    // function exists to stop happening.
+    const fetchedMs = data.fetchedAt?.toMillis?.();
+    if (fetchedMs) {
+      const days = Math.floor((now - fetchedMs) / DAY_MS);
+      if (days > oldestDays) oldestDays = days;
+    }
+    // A draft whose own duty week has already ended cannot fix the screen —
+    // applying it swaps one expired roster for another. It needs the reviewer
+    // to know that rather than to work through it and wonder why nothing
+    // improved; the replacement comes from the next sync, not from this draft.
+    const dutyUntilMs = data.dutyUntil?.toMillis?.();
+    if (dutyUntilMs && dutyUntilMs < now) alreadyPast += 1;
+  });
+
+  const count = snap.size;
+  const age =
+    oldestDays > 0
+      ? `, oldest ${oldestDays} day${oldestDays > 1 ? "s" : ""} old`
+      : "";
+  const expired =
+    alreadyPast > 0
+      ? ` ${alreadyPast} of them ${alreadyPast > 1 ? "cover weeks" : "covers a week"} that ${alreadyPast > 1 ? "have" : "has"} already ended and ${alreadyPast > 1 ? "need" : "needs"} a fresh sync instead.`
+      : "";
+  await sendReviewerPush(
+    "Pharmacy rosters still waiting",
+    `${count} draft${count > 1 ? "s" : ""} not yet applied${age}` +
+      (regions.length ? `: ${[...new Set(regions)].join(", ")}.` : ".") +
+      " The app is showing the previous roster until they are." +
+      expired,
+    { type: "pharmacyRosterDraft" },
+  );
+}
+
 async function notifyFailure(failedRegions) {
   await sendReviewerPush(
     "Pharmacy roster sync failed",
@@ -940,6 +1001,29 @@ async function syncPharmacyRosters(apiKey) {
 
   if (newDraftCount > 0) {
     await notifyReviewer(newDraftCount, revisionCount);
+  } else {
+    // Nothing new today, but something may still be waiting from a previous
+    // day — and until now that was said exactly once, on the day the draft
+    // was written, and never again.
+    //
+    // That single push was the whole feedback loop. Miss it and the drafts
+    // sat in Firestore while the app went on serving the previous week,
+    // because nothing downstream of the notification knows or cares whether
+    // a reviewer ever saw it: no badge, no in-app queue, no second attempt.
+    // The only backstop was rosterStaleness below, which needs a fortnight
+    // to speak up.
+    //
+    // Measured, not imagined: on 2026-09-12 four drafts were pending, three
+    // of them the CURRENT week's rosters for Littoral, Atlantique and the
+    // northern departments, written five days earlier. 151 of 204 pharmacy
+    // listings were serving an expired duty period, one group of them five
+    // weeks out of date, and no alert had fired about any of it.
+    //
+    // So the reminder repeats for as long as there is something to review.
+    // It is one query against a collection that holds a handful of documents,
+    // it only sends when the count is non-zero, and a reviewer who has
+    // cleared the queue never hears from it.
+    await remindAboutPendingDrafts();
   }
   if (failedRegions.length > 0) {
     await notifyFailure(failedRegions);

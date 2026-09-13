@@ -3121,6 +3121,7 @@ export const translations = {
     // seller correcting a price read that nothing had been created, about a
     // listing that already existed. What is always true is that the write was
     // refused whole, so that is what it says now.
+    chatImageChange: "Change",
     errorPermissionDenied:
       "We couldn't save that, so nothing was changed. Please try again.",
     errorGeneric: "Something went wrong. Please try again.",
@@ -6302,6 +6303,7 @@ export const translations = {
     // Voir la note côté anglais : ce message couvre toutes les écritures
     // refusées, pas seulement un profil, et « créé » était faux lors d'une
     // modification.
+    chatImageChange: "Changer",
     errorPermissionDenied:
       "Nous n’avons pas pu enregistrer, rien n’a donc été modifié. Veuillez réessayer.",
     errorGeneric: "Une erreur est survenue. Veuillez réessayer.",

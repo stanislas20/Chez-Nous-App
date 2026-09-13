@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ImageLightbox } from "../components/ImageLightbox";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { ensureCameraAccess } from "../utils/mediaAccess";
@@ -518,6 +519,13 @@ export function ChatScreen({ route, navigation }) {
     return () => subscription.remove();
   }, []);
 
+  // An image the sender has chosen and not yet sent. Local file:// only —
+  // nothing is uploaded while this is set.
+  const [pendingImage, setPendingImage] = useState(null);
+
+  // The image message currently open full screen, or null.
+  const [lightboxUri, setLightboxUri] = useState(null);
+
   const isFocused = useIsFocused();
 
   // The newest message that somebody ELSE sent. Messages are held newest
@@ -617,6 +625,15 @@ export function ChatScreen({ route, navigation }) {
     }
   };
 
+  // The only path from a chosen image to Storage. Clears the preview first
+  // so a second tap on Send cannot start a second upload of the same asset.
+  const handleSendPendingImage = async () => {
+    if (!pendingImage || isUploading) return;
+    const asset = pendingImage;
+    setPendingImage(null);
+    await uploadAndSendImage(asset);
+  };
+
   const uploadAndSendImage = async (asset) => {
     setIsUploading(true);
     try {
@@ -663,9 +680,8 @@ export function ChatScreen({ route, navigation }) {
     if (!allowed) return;
     const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
     if (result.canceled || !result.assets?.length) return;
-    await uploadAndSendImage(
-      (await downscalePickedAssets(result.assets))[0],
-    );
+    // Staged, not sent. See the pendingImage branch in InputRow.
+    setPendingImage((await downscalePickedAssets(result.assets))[0]);
   };
 
   const handlePickFromLibrary = async () => {
@@ -674,9 +690,7 @@ export function ChatScreen({ route, navigation }) {
       quality: 0.7,
     });
     if (result.canceled || !result.assets?.length) return;
-    await uploadAndSendImage(
-      (await downscalePickedAssets(result.assets))[0],
-    );
+    setPendingImage((await downscalePickedAssets(result.assets))[0]);
   };
 
   // Opened straight into the picker when the caller asked for it, and only
@@ -865,12 +879,35 @@ export function ChatScreen({ route, navigation }) {
             const isMine = item.senderId === user?.uid;
             return (
               <BubbleRow mine={isMine}>
+                {/* Two different permissions on one bubble, and they were
+                    previously collapsed into one.
+
+                    `disabled={!isMine}` was there so the recipient could not
+                    long-press somebody else's message into the delete
+                    prompt. It also swallowed every tap, so an image sent TO
+                    you could not be opened — and since there was no onPress
+                    at all, neither could one you sent yourself. A photo
+                    arrived in the conversation and could only ever be looked
+                    at as a thumbnail.
+
+                    Viewing and deleting are now separate: onPress opens any
+                    image for either party, onLongPress is attached only for
+                    the sender, and the bubble stays enabled when it is mine
+                    OR when there is an image to open. A text message from the
+                    other person is still inert, exactly as before. */}
                 <Bubble
                   mine={isMine}
                   noPadding={Boolean(item.imageUrl)}
-                  onLongPress={() => handleDeleteMessage(item)}
+                  onPress={
+                    item.imageUrl
+                      ? () => setLightboxUri(item.imageUrl)
+                      : undefined
+                  }
+                  onLongPress={
+                    isMine ? () => handleDeleteMessage(item) : undefined
+                  }
                   delayLongPress={350}
-                  disabled={!isMine}
+                  disabled={!isMine && !item.imageUrl}
                 >
                   {item.imageUrl ? (
                     <MessageImage
@@ -907,7 +944,62 @@ export function ChatScreen({ route, navigation }) {
           </BlockedBanner>
         ) : (
           <InputRow>
-            {recordedClip ? (
+            {pendingImage ? (
+              /* Chosen but not sent. Deliberately the same shape as the
+                 recorded-clip branch below — discard on the left, the thing
+                 itself in the middle, an explicit send on the right — because
+                 a voice note already worked this way and a photograph did
+                 not. Picking from the gallery uploaded and posted the image
+                 in one motion, so the first time the sender saw what they had
+                 chosen was after the other person could already see it.
+
+                 Nothing reaches Storage or Firestore from this state. The
+                 asset is a local file:// URI until Send is pressed, so
+                 discarding costs nothing and changing the selection cannot
+                 leave an orphan behind. */
+              <>
+                <IconButton
+                  onPress={() => setPendingImage(null)}
+                  disabled={isUploading}
+                  hitSlop={8}
+                >
+                  <Ionicons
+                    name="trash-outline"
+                    size={20}
+                    color={colors.textMuted}
+                  />
+                </IconButton>
+                <PendingImageContainer>
+                  <PendingImagePreview
+                    source={{ uri: pendingImage.uri }}
+                    resizeMode="cover"
+                  />
+                  <PendingImageChange
+                    onPress={handleAttachImage}
+                    disabled={isUploading}
+                    hitSlop={8}
+                  >
+                    <PendingImageChangeText>
+                      {t("chatImageChange")}
+                    </PendingImageChangeText>
+                  </PendingImageChange>
+                </PendingImageContainer>
+                <SendButton
+                  onPress={handleSendPendingImage}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <ActivityIndicator color={colors.textInverse} />
+                  ) : (
+                    <Ionicons
+                      name="send"
+                      size={18}
+                      color={colors.textInverse}
+                    />
+                  )}
+                </SendButton>
+              </>
+            ) : recordedClip ? (
               <>
                 <IconButton
                   onPress={handleDiscardRecording}
@@ -1003,6 +1095,18 @@ export function ChatScreen({ route, navigation }) {
           </InputRow>
         )}
       </Container>
+      {/* One image at a time: a chat is a stream rather than a gallery, so
+          there is no sensible "next photo" to page to — the message above
+          might be a voice note. ImageLightbox takes an array and shows its
+          counter only when there is more than one, so a single entry gives
+          the pinch, pan and rotation behaviour with no pager chrome. */}
+      {lightboxUri ? (
+        <ImageLightbox
+          visible
+          media={[{ uri: lightboxUri, isVideo: false }]}
+          onClose={() => setLightboxUri(null)}
+        />
+      ) : null}
     </Flex>
   );
 }
@@ -1153,6 +1257,35 @@ const PreviewPlayerContainer = styled.View`
   flex: 1;
   align-items: flex-start;
   padding-vertical: ${spacing.xs}px;
+`;
+
+// The chosen-but-unsent image, sized to sit in the composer rather than to
+// be admired: big enough to tell two photographs apart, small enough that
+// the send button and the discard button are both still reachable with a
+// thumb. Tapping "Change" reopens the same picker, replacing the selection —
+// the old one was never uploaded, so there is nothing to clean up.
+const PendingImageContainer = styled.View`
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.sm}px;
+  padding-vertical: ${spacing.xs}px;
+`;
+
+const PendingImagePreview = styled.Image`
+  width: 56px;
+  height: 56px;
+  border-radius: ${radius.md}px;
+  background-color: ${(props) => props.theme.surfaceAlt};
+`;
+
+const PendingImageChange = styled(Pressable)`
+  padding: ${spacing.xs}px 0px;
+`;
+
+const PendingImageChangeText = styled.Text`
+  ${type.captionMedium}
+  color: ${(props) => props.theme.primary};
 `;
 
 const IconButton = styled(Pressable)`

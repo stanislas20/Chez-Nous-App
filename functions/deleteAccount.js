@@ -99,6 +99,12 @@ const OWNED_BY_ARRAY = [["contacts", "participantIds"]];
 // Documents whose id IS the uid.
 const OWNED_BY_ID = ["sellers", "advertisers", "sellerStats", "verifiedCompanies"];
 
+// Subcollections beneath sellers/{uid}. Named separately from OWNED_BY_ID
+// because deleting the parent document leaves these untouched and reachable
+// — Firestore has no cascade — so a name added to that list gets its
+// subcollections deleted only if it also appears here.
+const OWNED_SUBCOLLECTIONS = ["notifications"];
+
 // Documents whose id EMBEDS the uid behind a prefix.
 //
 // placesQuota/u_{uid} was marked PRESERVE in Phase E on the grounds that it
@@ -217,6 +223,34 @@ exports.deleteAccount = onCall(async (request) => {
       await db.collection(collection).doc(`${prefix}${uid}`).delete();
     } catch (error) {
       logger.error(`deleteAccount: ${collection}/${prefix}${uid} failed`, error);
+      summary.errors = (summary.errors ?? 0) + 1;
+    }
+  }
+
+  // 1d. Subcollections hanging off the person's own documents.
+  //
+  // Deleting a document does NOT delete anything beneath it — the parent
+  // vanishes from every query and the subcollection stays behind, live,
+  // reachable by path, holding whatever it held. So this has to run
+  // explicitly, and it has to run BEFORE the loop below removes the parent,
+  // or the rows are orphaned under a document that no longer exists and
+  // nothing will ever look for them again.
+  //
+  // sellers/{uid}/notifications is the server's record of what it told this
+  // person: roster drafts waiting, syncs that failed. Every row is about
+  // them and addressed to them, so it goes with them.
+  for (const subcollection of OWNED_SUBCOLLECTIONS) {
+    try {
+      const removed = await deleteQueryInBatches(
+        db,
+        db.collection("sellers").doc(uid).collection(subcollection),
+      );
+      if (removed) summary[`sellers.${subcollection}`] = removed;
+    } catch (error) {
+      logger.error(
+        `deleteAccount: sellers/${uid}/${subcollection} failed`,
+        error,
+      );
       summary.errors = (summary.errors ?? 0) + 1;
     }
   }

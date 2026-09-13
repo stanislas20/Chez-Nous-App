@@ -54,6 +54,37 @@ async function openListingById(listingId) {
   }
 }
 
+// Does this payload name a screen of its own?
+//
+// The same question openNotification answers by navigating, asked without
+// navigating — because a row already sitting IN the notification centre must
+// not be pressable if pressing it would only re-open the notification
+// centre. Kept immediately above the switch it mirrors so the two are read
+// together; a new case added below without a line here makes a row inert
+// that should have been tappable, which check-notification-centre.js is what
+// notices.
+export function notificationTarget(data) {
+  if (!data || Object.keys(data).length === 0) return null;
+  if (data.conversationId) return "Chat";
+  switch (data.type) {
+    case "listingPendingReview":
+      return "Moderation";
+    case "followedSellerListing":
+    case "listingApproved":
+    case "listingRejected":
+      // openListingById falls back to the centre when the listing cannot be
+      // fetched, but it cannot be known here whether it can — the id being
+      // present is the most this can honestly say.
+      return data.listingId ? "ProductDetail" : null;
+    case "paperExpiring":
+      return "Papers";
+    case "newJobApplication":
+      return "JobApplications";
+    default:
+      return null;
+  }
+}
+
 export async function openNotification(data) {
   // A tap with nothing attached still has to go somewhere.
   //

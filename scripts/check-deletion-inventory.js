@@ -42,6 +42,12 @@ const DECISIONS = {
   dealershipSuggestions: ["DELETE", "submittedBy; pending and unreviewed"],
   contacts: ["DELETE", "participantIds; a pair that no longer describes two accounts"],
   counterMarkers: ["DELETE", "uid; one row per person per listing per day"],
+  // A subcollection, sellers/{uid}/notifications, not a top-level
+  // collection — and that is the whole reason it needs its own line.
+  // Deleting sellers/{uid} leaves it behind intact, so "the document id is
+  // the uid" does NOT cover it; deleteAccount removes it explicitly through
+  // OWNED_SUBCOLLECTIONS.
+  notifications: ["DELETE", "sellers/{uid}/notifications — what the server told them"],
 
   // ── Survive without the person ────────────────────────────────────────
   carParks: ["ANONYMISE", "submittedBy cleared; the directory entry is public"],

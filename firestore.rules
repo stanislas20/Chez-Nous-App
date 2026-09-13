@@ -54,6 +54,33 @@ service cloud.firestore {
             && request.resource.data.get('ifu', '') == resource.data.get('ifu', '')
           )
         );
+
+      // The durable half of a push notification.
+      //
+      // A push is a delivery attempt with no memory: once the banner is
+      // gone the notification is gone, and the notification centre — built
+      // from unread conversations, newly approved listings and job
+      // applications — never knew about it in the first place. That is why
+      // tapping "Voir" on a pharmacy roster alert landed on "no
+      // notifications yet". These rows are what the centre reads so that a
+      // notification the reader was shown is a notification they can find.
+      //
+      // Read by the owner and nobody else. Written by the Admin SDK only:
+      // every one of these is a statement the SERVER is making — a roster
+      // is waiting, a sync failed — and a client that could write them
+      // could manufacture one. `write` covers create, update and delete
+      // together on purpose; a reader who could delete their own could
+      // clear the record of a roster they never applied, which is the one
+      // thing this row exists to prevent them doing quietly.
+      //
+      // Nested rather than nested-under-a-wildcard: rules do not cascade
+      // into subcollections, so without this block the collection would be
+      // unreadable rather than owner-readable, and the centre would be
+      // empty for a second reason.
+      match /notifications/{notificationId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
     }
 
     // Public projection of a verified company — name, sector, city, logo,

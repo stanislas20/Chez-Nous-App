@@ -20,6 +20,7 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { defineSecret } = require("firebase-functions/params");
 const { logger } = require("firebase-functions");
 const admin = require("firebase-admin");
+const { recordNotification } = require("./recordNotification");
 
 const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
 
@@ -618,13 +619,17 @@ async function transcribeRosterImages(imageUrls, apiKey) {
   return JSON.parse(cleaned);
 }
 
-async function getReviewerPushToken() {
+// The reviewer's identity AND their token, because those are two different
+// questions and this used to answer only the second. A reviewer with no
+// registered token returned null, and the whole notification was abandoned —
+// nothing sent, nothing recorded, nothing anywhere to find later.
+async function getReviewer() {
   const db = admin.firestore();
   const configSnap = await db.doc("appConfig/pharmacyRosterReviewer").get();
   const reviewerUid = configSnap.exists ? configSnap.data().sellerUid : null;
   if (!reviewerUid) {
     logger.info(
-      "No pharmacyRosterReviewer configured — skipping push notification.",
+      "No pharmacyRosterReviewer configured — nothing to notify.",
     );
     return null;
   }
@@ -633,21 +638,42 @@ async function getReviewerPushToken() {
   const pushToken = sellerSnap.exists ? sellerSnap.data().pushToken : null;
   if (!pushToken) {
     logger.info(
-      `Reviewer ${reviewerUid} has no pushToken registered — skipping push notification.`,
+      `Reviewer ${reviewerUid} has no pushToken registered — recording the ` +
+        `notification without pushing it.`,
     );
-    return null;
   }
-  return pushToken;
+  return { uid: reviewerUid, pushToken: pushToken ?? null };
 }
 
+// Record first, then push.
+//
+// A push used to be the whole notification. FCM is a delivery attempt and
+// nothing more: it leaves no trace, so a roster notification existed only for
+// as long as the banner was on screen. Tapping "Voir" on it routed to the
+// notification centre — openNotification has no case for these types and its
+// default lands there — and the centre is built from unread conversations,
+// newly approved listings and job applications. It had never heard of a
+// pharmacy roster. The reviewer was told something had happened, tapped to
+// see it, and was shown "no notifications yet".
+//
+// So the durable record is written first and the push second. The order is
+// the point: if messaging throws, if the token is stale, if the reviewer
+// never registered one at all, the notification is still there to be found.
+// The push is now an alert ABOUT a record rather than the record itself.
 async function sendReviewerPush(title, body, data) {
-  const pushToken = await getReviewerPushToken();
-  if (!pushToken) return;
+  const reviewer = await getReviewer();
+  if (!reviewer) return;
+
+  await recordNotification(reviewer.uid, { title, body, data });
+
+  if (!reviewer.pushToken) return;
 
   try {
-    await admin
-      .messaging()
-      .send({ token: pushToken, notification: { title, body }, data });
+    await admin.messaging().send({
+      token: reviewer.pushToken,
+      notification: { title, body },
+      data,
+    });
   } catch (error) {
     logger.warn("Failed to send reviewer push notification", error);
   }

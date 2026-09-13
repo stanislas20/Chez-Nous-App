@@ -14,6 +14,7 @@ const { setGlobalOptions } = require("firebase-functions/v2");
 // notified.
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
+const { recordNotification } = require("./recordNotification");
 // The document half of search. Twinned with src/utils/searchTokens.js and
 // held in step by scripts/check-search-tokens.js.
 const {
@@ -1205,26 +1206,41 @@ exports.notifyApplicationDecision = onDocumentUpdated(
     const pushToken = applicantSnap.exists
       ? applicantSnap.data().pushToken
       : null;
-    if (!pushToken) return;
 
     const jobTitle = after.jobTitle || "votre candidature";
     const shortlisted = after.status === "shortlisted";
 
+    const notification = shortlisted
+      ? {
+          title: "Candidature retenue",
+          body: `Votre candidature pour ${jobTitle} a \u00e9t\u00e9 pr\u00e9s\u00e9lectionn\u00e9e.`,
+        }
+      : {
+          title: "Candidature non retenue",
+          body: `Votre candidature pour ${jobTitle} n\u2019a pas \u00e9t\u00e9 retenue cette fois.`,
+        };
+    const data = {
+      type: shortlisted ? "applicationShortlisted" : "applicationDeclined",
+    };
+
+    // Recorded first, and recorded whether or not there is a token.
+    //
+    // A shortlisting result is about nothing else \u2014 no listing, no
+    // conversation \u2014 so openNotification has no case for it and its default
+    // branch lands on the notification centre. Until this row existed the
+    // centre had nothing to show: the applicant was told the outcome of
+    // their application, tapped Voir, and read "no notifications yet". The
+    // early `if (!pushToken) return` above made it worse, because an
+    // applicant with no registered token got no record either.
+    await recordNotification(after.applicantUid, { ...notification, data });
+
+    if (!pushToken) return;
+
     try {
       await admin.messaging().send({
         token: pushToken,
-        notification: shortlisted
-          ? {
-              title: "Candidature retenue",
-              body: `Votre candidature pour ${jobTitle} a \u00e9t\u00e9 pr\u00e9s\u00e9lectionn\u00e9e.`,
-            }
-          : {
-              title: "Candidature non retenue",
-              body: `Votre candidature pour ${jobTitle} n\u2019a pas \u00e9t\u00e9 retenue cette fois.`,
-            },
-        data: {
-          type: shortlisted ? "applicationShortlisted" : "applicationDeclined",
-        },
+        notification,
+        data,
       });
     } catch (error) {
       if (
@@ -1332,23 +1348,35 @@ exports.notifyCompanyVerificationDecision = onDocumentUpdated(
     await syncVerifiedCompanyEntry(sellerId, after, isVerified);
 
     const pushToken = after.pushToken;
-    if (!pushToken) return;
 
     const companyName = after.companyName?.trim() || "Votre entreprise";
+
+    const notification = isVerified
+      ? {
+          title: "Entreprise vérifiée",
+          body: `${companyName} est confirmée au registre. Le badge Vérifié apparaît désormais sur vos annonces.`,
+        }
+      : {
+          title: "Vérification non aboutie",
+          body: `Nous n’avons pas pu valider le dossier de ${companyName}. Ouvrez votre tableau de bord pour la suite.`,
+        };
+    const data = { type: isVerified ? "companyVerified" : "companyRejected" };
+
+    // The outcome of a manual review, which the company has often been
+    // waiting days for, and which points at no document of its own — so it
+    // reaches the notification centre by openNotification's default branch
+    // and needs a row waiting there. Recorded before the token check for the
+    // same reason as everywhere else: a company with no registered token is
+    // exactly the one that most needs to be able to find this later.
+    await recordNotification(sellerId, { ...notification, data });
+
+    if (!pushToken) return;
 
     try {
       await admin.messaging().send({
         token: pushToken,
-        notification: isVerified
-          ? {
-              title: "Entreprise vérifiée",
-              body: `${companyName} est confirmée au registre. Le badge Vérifié apparaît désormais sur vos annonces.`,
-            }
-          : {
-              title: "Vérification non aboutie",
-              body: `Nous n’avons pas pu valider le dossier de ${companyName}. Ouvrez votre tableau de bord pour la suite.`,
-            },
-        data: { type: isVerified ? "companyVerified" : "companyRejected" },
+        notification,
+        data,
       });
     } catch (error) {
       if (

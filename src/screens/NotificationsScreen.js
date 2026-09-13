@@ -11,6 +11,10 @@ import { smallImageUri } from "../utils/listingImage";
 import { useAuth } from "../auth/AuthContext";
 import { useNotificationCenter } from "../hooks/useNotificationCenter";
 import { openListing } from "../utils/openListing";
+import {
+  notificationTarget,
+  openNotification,
+} from "../notifications/openNotification";
 import { TabSafeAreaView } from "../components/TabSafeAreaView";
 
 const listContentStyle = { padding: spacing.md, flexGrow: 1 };
@@ -31,11 +35,20 @@ function formatTimestamp(date, language) {
   }).format(date);
 }
 
-// Three kinds of real, non-fabricated activity feed this bell: unread
+// Four kinds of real, non-fabricated activity feed this bell: unread
 // messages (a device-level push already fires for these too, via the
 // sendMessagePush Cloud Function), listings that just cleared moderation
-// (whose seller is pushed via notifyListingModerated), and new applications
-// to the user's own real job postings (pushed via notifyNewJobApplication).
+// (whose seller is pushed via notifyListingModerated), new applications
+// to the user's own real job postings (pushed via notifyNewJobApplication),
+// and notifications the server recorded outright.
+//
+// The fourth was added because the first three are all DERIVED — each one
+// reads a row that exists for another reason and infers a notification from
+// it. A push with no listing and no conversation behind it therefore had
+// nothing here to derive it from, and a reviewer told "3 pharmacy roster
+// drafts waiting" who tapped Voir was shown "no notifications yet". Those
+// now arrive as stored rows, carrying the title and body the server sent.
+//
 // Events is deliberately excluded — it's left empty rather than showing
 // invented listings, so it has no genuine "new" event to surface.
 export function NotificationsScreen() {
@@ -43,8 +56,13 @@ export function NotificationsScreen() {
   const { language, t } = useI18n();
   const { user } = useAuth();
   const navigation = useNavigation();
-  const { conversations, newListings, newJobApplications, markSeen } =
-    useNotificationCenter(user?.uid);
+  const {
+    conversations,
+    newListings,
+    newJobApplications,
+    storedNotifications,
+    markSeen,
+  } = useNotificationCenter(user?.uid);
 
   // Marked seen on the way OUT of this tab, not on the way in — marking on
   // focus would flip newListings' filter live while the user is still
@@ -94,9 +112,21 @@ export function NotificationsScreen() {
       item,
       time: item.createdAt?.toDate?.(),
     })),
+    // Not filtered against lastSeenAt like the three above. Those are
+    // inferred from rows that go on existing after the notification has been
+    // read — every approved listing would come back as "new" for ever
+    // without the cursor. A stored notification is the notification, so it
+    // stays in the list once seen; the cursor governs the badge, not the
+    // feed.
+    ...(storedNotifications ?? []).map((item) => ({
+      kind: "stored",
+      id: `n-${item.id}`,
+      item,
+      time: item.createdAt?.toDate?.(),
+    })),
   ].sort((a, b) => (b.time?.getTime() ?? 0) - (a.time?.getTime() ?? 0));
 
-  const isLoading = conversations === null;
+  const isLoading = conversations === null || storedNotifications === null;
 
   return (
     <Container edges={["left", "right"]}>
@@ -119,6 +149,49 @@ export function NotificationsScreen() {
           ) : null
         }
         renderItem={({ item: entry }) => {
+          if (entry.kind === "stored") {
+            const stored = entry.item;
+            // Pressable only when the payload names somewhere to go.
+            // Without this the pharmacy rows would route through
+            // openNotification's default branch straight back to this
+            // screen — a tap that looks like it should do something and
+            // cannot, which is the shape of the original complaint.
+            const target = notificationTarget(stored.data);
+            return (
+              <Row
+                onPress={
+                  target ? () => openNotification(stored.data) : undefined
+                }
+                disabled={!target}
+              >
+                <IconThumb>
+                  <Ionicons
+                    name={
+                      stored.type?.startsWith("pharmacy")
+                        ? "medkit-outline"
+                        : "notifications-outline"
+                    }
+                    size={20}
+                    color={colors.primary}
+                  />
+                </IconThumb>
+                <RowBody>
+                  {/* The server's own words. These are written by the Cloud
+                      Function in one language and are not translated here:
+                      the roster notifications go to a single reviewer, and
+                      inventing a French rendering of a body that carries
+                      live counts and region names would be a translation of
+                      a sentence this app never composed. */}
+                  <RowTitle numberOfLines={1}>{stored.title ?? ""}</RowTitle>
+                  <RowPreview numberOfLines={2}>{stored.body ?? ""}</RowPreview>
+                </RowBody>
+                <RowMeta>
+                  <RowTime>{formatTimestamp(entry.time, language)}</RowTime>
+                </RowMeta>
+              </Row>
+            );
+          }
+
           if (entry.kind === "application") {
             const application = entry.item;
             return (

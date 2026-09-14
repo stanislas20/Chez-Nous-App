@@ -111,6 +111,9 @@ const BADGE_TEXT = "#7A4E00";
 const TERRACOTTA = "#C1512D";
 
 const priceFormatter = new Intl.NumberFormat("fr-FR");
+// display:none keeps the view tree alive while taking it out of layout
+// and drawing entirely.
+const HIDDEN_BODY = { display: "none" };
 
 // Content-vertical chips shown on the home feed — distinct from the app's
 // listing categoryKey taxonomy (src/data/categories.js). "Marketplace" clears
@@ -1838,8 +1841,28 @@ export function ForYouScreen({ navigation, route }) {
         ) : null}
       </HeaderCard>
 
-      {isDefaultBrowse ? (
-        <ScrollView
+      {/* Mounted once and hidden, never unmounted.
+
+          This subtree is the curated marketplace feed: a quick-access
+          row, the verified-businesses strip and five horizontal rails.
+          Building it costs about 1.35s of frozen UI, measured on an S20
+          Ultra as 200 + 600 + 650ms frames on a single Emplois ->
+          Marketplace tap, reproduced three times. The other direction
+          costs 250ms, and replacing this subtree with an empty
+          ScrollView removed every frame over 100ms — so the cost is
+          mounting precisely this, and nothing else on the screen.
+
+          Keeping it mounted is free of the usual objection: every data
+          hook it reads lives at the top of this component and runs
+          whichever chip is selected, so hiding rather than unmounting
+          costs view memory and no extra queries. It also preserves the
+          reader's scroll position across a trip to Emplois.
+
+          Virtualising the rails was tried first and changed nothing:
+          initialNumToRender 10 -> 3 on all five left the 1.35s intact,
+          which is what ruled out the cards and pointed here. */}
+      <ScrollView
+        style={isDefaultBrowse ? undefined : HIDDEN_BODY}
           contentContainerStyle={scrollContentStyle}
           refreshControl={refreshControl}
           showsVerticalScrollIndicator={false}
@@ -2128,9 +2151,11 @@ export function ForYouScreen({ navigation, route }) {
           ) : null}
 
           <ScreenFooter />
-        </ScrollView>
-      ) : selectedChipKey === "jobs" ? (
-        <ScrollView
+      </ScrollView>
+
+      {/* Same treatment, same reason: mounted once, hidden when idle. */}
+      <ScrollView
+        style={selectedChipKey === "jobs" ? undefined : HIDDEN_BODY}
           contentContainerStyle={jobsBodyContentStyle}
           showsVerticalScrollIndicator={false}
           refreshControl={refreshControl}
@@ -2446,8 +2471,9 @@ export function ForYouScreen({ navigation, route }) {
           </CatGrid>
 
           <ScreenFooter />
-        </ScrollView>
-      ) : (
+      </ScrollView>
+
+      {isDefaultBrowse || selectedChipKey === "jobs" ? null : (
         <FlatList
           data={gridItems}
           showsVerticalScrollIndicator={false}

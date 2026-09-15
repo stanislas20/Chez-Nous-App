@@ -2,6 +2,7 @@
   "expo": {
     "name": "Chez-Nous",
     "slug": "chez-nous",
+    "owner": "stanislas20",
     "scheme": "cheznous",
     "version": "1.0.0",
     "orientation": "default",
@@ -31,6 +32,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.stanislas20.cheznous",
+      "versionCode": 1,
       "softwareKeyboardLayoutMode": "pan",
       "config": {
         "googleMaps": {
@@ -117,6 +119,11 @@
       "@react-native-firebase/messaging",
       "@react-native-firebase/app-check",
       "@react-native-firebase/crashlytics"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e9de94fe-41a8-4b37-a9fb-95cd7c07e5be"
+      }
+    }
   }
 }

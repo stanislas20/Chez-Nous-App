@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -455,6 +455,22 @@ function NearestPharmacyCard({ status, nearest, onRequestLocation }) {
   );
 }
 
+// One reading of the departments param, used by both the initial state and
+// the later re-sync. Two copies of this would be two chances to disagree
+// about what an empty or malformed value means.
+//
+// Arrives comma-joined because FCM data values must be strings; an array is
+// accepted too so a direct navigate() is not a special case.
+function parseDepartments(raw) {
+  const list = Array.isArray(raw)
+    ? raw
+    : typeof raw === "string"
+      ? raw.split(",")
+      : [];
+  const cleaned = list.map((name) => name.trim()).filter(Boolean);
+  return cleaned.length ? cleaned : null;
+}
+
 export function CategoryListingsScreen({ route, navigation }) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
@@ -465,6 +481,44 @@ export function CategoryListingsScreen({ route, navigation }) {
   // mind — the car-services tiles land here with "garage", "pneu" and so on.
   const [query, setQuery] = useState(route.params?.initialQuery ?? "");
   const [refreshing, setRefreshing] = useState(false);
+  // Departments a roster notification asked us to scope to.
+  //
+  // Both pharmacy notifications are about the live duty roster, so both
+  // opened this screen — and landed on the same unfiltered list of 200,
+  // which made two different messages produce one identical outcome. The
+  // notification knows which regions it concerns; this is where that
+  // survives into the view.
+  //
+  // State rather than a bare route param so it can be cleared: arriving in a
+  // filtered list with no way out is how somebody concludes the other
+  // pharmacies are gone.
+  const rawDepartments = route.params?.departments;
+  const [departmentFilter, setDepartmentFilter] = useState(() =>
+    parseDepartments(rawDepartments),
+  );
+
+  // Re-scope when a LATER notification names different departments.
+  //
+  // departmentFilter was initialised from route.params once, and a lazy
+  // useState initialiser runs only at mount. Opening a second roster
+  // notification while this screen is already the focused route merges the
+  // new params and nothing else happens: the reader taps a Littoral
+  // notification and keeps looking at Ouémé and Plateau. The notification
+  // routed correctly and the screen ignored it.
+  //
+  // Keyed on the PARAM VALUE, not on every render, and that distinction is
+  // the whole difficulty. Re-reading params each render would undo the
+  // clearable chip — tapping X sets the filter to null, the next ordinary
+  // render would read the unchanged param and put it straight back, and the
+  // X would look broken. So the last value actually synced is remembered,
+  // seeded with what the initialiser already consumed so mount does not
+  // apply it twice.
+  const lastSyncedDepartments = useRef(rawDepartments);
+  useEffect(() => {
+    if (rawDepartments === lastSyncedDepartments.current) return;
+    lastSyncedDepartments.current = rawDepartments;
+    setDepartmentFilter(parseDepartments(rawDepartments));
+  }, [rawDepartments]);
   const [selectedCity, setSelectedCity] = useState(null);
   const [citySheetOpen, setCitySheetOpen] = useState(false);
   // Two lists, not one long scroll. "Autres pharmacies" used to sit below
@@ -576,10 +630,20 @@ export function CategoryListingsScreen({ route, navigation }) {
         )
       : categoryListings;
 
+  // Applied before the city grouping, because a department contains many
+  // cities and the two narrow in that order.
+  const departmentFilteredListings = departmentFilter
+    ? aisleFilteredListings.filter((listing) =>
+        departmentFilter.includes(listing.department),
+      )
+    : aisleFilteredListings;
+
   const cityFilteredListings =
     groupByLocation && selectedCity
-      ? aisleFilteredListings.filter((listing) => listing.city === selectedCity)
-      : aisleFilteredListings;
+      ? departmentFilteredListings.filter(
+          (listing) => listing.city === selectedCity,
+        )
+      : departmentFilteredListings;
 
   // Searching this aisle asks Firestore for the whole aisle, not the 200 that
   // happen to be loaded. Phase C measured a listing in this very category
@@ -789,7 +853,40 @@ export function CategoryListingsScreen({ route, navigation }) {
     </>
   );
 
-  const filteredSheetCities = cities.filter((city) =>
+  // The city choices that exist INSIDE the department scope.
+  //
+  // The scope is the parent filter and the city narrows within it. Offering
+  // the national list while scoped invited a combination that can only be
+  // empty — picking Cotonou under an Ouémé/Plateau scope produced nought
+  // results and a message blaming a search the reader never made.
+  //
+  // Derived from the scoped listings, never hard-coded, so a roster that
+  // stops covering a town stops offering it. Ordered through the canonical
+  // list so the sheet keeps its familiar order, with any city the data has
+  // and the canonical list lacks appended rather than dropped — a pharmacy
+  // that cannot be reached through the filter is worse than an unfamiliar
+  // ordering.
+  const scopedCityNames = useMemo(() => {
+    if (!departmentFilter) return null;
+    const present = new Set();
+    for (const listing of departmentFilteredListings) {
+      if (listing.city) present.add(listing.city);
+    }
+    const canonical = cities.filter((city) => present.has(city));
+    const extras = [...present].filter((city) => !cities.includes(city));
+    return [...canonical, ...extras];
+  }, [departmentFilter, departmentFilteredListings]);
+
+  // A city chosen before the scope arrived may not exist inside it. Reset
+  // deterministically when the scope changes rather than rendering an
+  // impossible pair — and only then, so a city picked WITHIN the scope is
+  // left alone.
+  useEffect(() => {
+    if (!scopedCityNames || !selectedCity) return;
+    if (!scopedCityNames.includes(selectedCity)) setSelectedCity(null);
+  }, [scopedCityNames, selectedCity]);
+
+  const filteredSheetCities = (scopedCityNames ?? cities).filter((city) =>
     city.toLowerCase().includes(citySearch.trim().toLowerCase()),
   );
 
@@ -955,6 +1052,19 @@ export function CategoryListingsScreen({ route, navigation }) {
                     color={colors.textMuted}
                   />
                 </LocationRow>
+              ) : null}
+              {/* Arrived from a roster notification, which is about some
+                  regions and not others. Shown as a chip with an X rather
+                  than applied silently, so the scope is visible and one tap
+                  undoes it. */}
+              {departmentFilter ? (
+                <ScopeChip onPress={() => setDepartmentFilter(null)}>
+                  <Ionicons name="funnel" size={13} color={colors.primary} />
+                  <ScopeChipLabel numberOfLines={1}>
+                    {departmentFilter.join(", ")}
+                  </ScopeChipLabel>
+                  <Ionicons name="close" size={14} color={colors.textMuted} />
+                </ScopeChip>
               ) : null}
               {/* Only when the rotation has actually run out. Two ways
                   through that do not depend on us: the register itself, and
@@ -1125,9 +1235,15 @@ export function CategoryListingsScreen({ route, navigation }) {
             ) : (
               <EmptyState>
                 <EmptyText>
+                  {/* "No results for your search" was shown whenever the
+                      list came back empty, including when the reader had
+                      only picked filters. It named a cause that did not
+                      exist and hid the one that did. */}
                   {categoryListings.length === 0
                     ? t("categoryListingsComingSoon")
-                    : t("categoryListingsNoResults")}
+                    : query.trim()
+                      ? t("categoryListingsNoResults")
+                      : t("categoryListingsNoFilterMatch")}
                 </EmptyText>
               </EmptyState>
             )
@@ -1534,6 +1650,25 @@ const LapsedActionLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 12.5px;
   color: ${(props) => props.theme.primary};
+`;
+
+const ScopeChip = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  align-self: flex-start;
+  gap: ${spacing.xs}px;
+  margin-horizontal: ${spacing.md}px;
+  margin-bottom: ${spacing.sm}px;
+  padding-vertical: ${spacing.xs}px;
+  padding-horizontal: ${spacing.sm}px;
+  border-radius: ${radius.pill}px;
+  background-color: ${(props) => props.theme.surfaceAlt};
+`;
+
+const ScopeChipLabel = styled.Text`
+  ${type.caption}
+  color: ${(props) => props.theme.text};
+  max-width: 220px;
 `;
 
 const LocationRow = styled(Pressable)`

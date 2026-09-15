@@ -113,6 +113,16 @@ function typeLiteralsIn(expression) {
 function pushTypes(source) {
   const types = [];
 
+  // A payload built by a named helper: rosterData("pharmacyRosterStale", …).
+  // Introduced when the roster notifications started carrying the departments
+  // they concern, which took their type literals out of the object-literal
+  // forms below — and the blindness guard caught it, reporting 11 types where
+  // there had been 13. That is the check working: a scanner that silently
+  // stops seeing two of the types it exists to police is worse than none.
+  for (const m of source.matchAll(/\brosterData\(\s*("[A-Za-z]+")/g)) {
+    types.push(...typeLiteralsIn(m[1]));
+  }
+
   // Bare single-key payload, the sendReviewerPush form. A trailing comma is
   // permitted: `{ type: "x" }` and `{ type: "x", }` are the same object and
   // only one of them used to be seen.
@@ -308,6 +318,30 @@ if (targetStart < 0) {
       (m) => m[1],
     ),
   );
+  // A case label is not a destination. Mutation testing turned
+  // `case "pharmacyRosterStale": return "CategoryListings"` into
+  // `return null` and this check still passed, because both switches still
+  // LISTED the type. That is precisely the bug this file was written about —
+  // openNotification navigates, notificationTarget says there is nowhere to
+  // go, and the row renders inert while the push deep links. So the returned
+  // value is read, not just the label.
+  const targetBody = openSource.slice(
+    targetStart,
+    openStart > targetStart ? openStart : undefined,
+  );
+  for (const m of targetBody.matchAll(
+    /case\s+"([A-Za-z]+)":\s*(?:case\s+"[A-Za-z]+":\s*)*\n?\s*return\s+null\s*;/g,
+  )) {
+    if (openCases.has(m[1])) {
+      failures.push(
+        `notificationTarget returns null for "${m[1]}" while ` +
+          `openNotification navigates for it — the row is drawn un-pressable ` +
+          `and the same notification tapped from the system tray goes ` +
+          `somewhere. Those two must not disagree`,
+      );
+    }
+  }
+
   for (const type of openCases) {
     if (!targetCases.has(type)) {
       failures.push(

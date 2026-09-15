@@ -679,7 +679,36 @@ async function sendReviewerPush(title, body, data) {
   }
 }
 
-async function notifyReviewer(newDraftCount, revisionCount = 0) {
+// Which departments a set of posting regions covers, as one string.
+//
+// FCM data values must be strings — a nested array is silently dropped — so
+// the list travels joined and the client splits it back. The names come from
+// REGIONS above rather than from the notification prose, and they are the
+// accented forms ("Ouémé", not "Oueme") because that is what listings carry
+// in their `department` field. Matching the prose instead would look right
+// and filter nothing.
+//
+// This is what lets a roster notification open the duty directory scoped to
+// the regions it is actually about. Without it every one of them landed on
+// the same unfiltered list, which is what made the taps indistinguishable.
+function departmentsFor(postingRegions) {
+  const names = new Set();
+  for (const posting of postingRegions ?? []) {
+    const region = REGIONS.find((item) => item.postingRegion === posting);
+    for (const department of region?.departments ?? []) names.add(department);
+  }
+  return [...names].join(",");
+}
+
+// Omitted rather than sent empty: the client treats an absent key as "no
+// scope", and an empty string would have to mean the same thing in a second
+// place.
+function rosterData(type, postingRegions) {
+  const departments = departmentsFor(postingRegions);
+  return departments ? { type, departments } : { type };
+}
+
+async function notifyReviewer(newDraftCount, revisionCount = 0, regions = []) {
   // A revision is said out loud and said first. An ordinary draft is next
   // week's roster and can wait for the morning; a revision means the roster
   // already on people's screens has been corrected at the source, and the
@@ -693,7 +722,7 @@ async function notifyReviewer(newDraftCount, revisionCount = 0) {
   await sendReviewerPush(
     revisionCount ? "Pharmacy roster corrected" : "Pharmacy roster drafts ready",
     body,
-    { type: "pharmacyRosterDraft" },
+    rosterData("pharmacyRosterDraft", regions),
   );
 }
 
@@ -757,7 +786,7 @@ async function remindAboutPendingDrafts() {
       (regions.length ? `: ${[...new Set(regions)].join(", ")}.` : ".") +
       " The app is showing the previous roster until they are." +
       expired,
-    { type: "pharmacyRosterDraft" },
+    rosterData("pharmacyRosterDraft", regions),
   );
 }
 
@@ -824,7 +853,7 @@ async function notifyStale(staleRegions) {
   await sendReviewerPush(
     "Pharmacy rosters look stale",
     `No fresh roster for: ${staleRegions.join(", ")}. The source may have changed.`,
-    { type: "pharmacyRosterStale" },
+    rosterData("pharmacyRosterStale", staleRegions),
   );
 }
 
@@ -835,6 +864,9 @@ async function syncPharmacyRosters(apiKey) {
   let revisionCount = 0;
   const failedRegions = [];
   const staleRegions = [];
+  // Which regions actually produced a draft this run, so the notification
+  // can name the departments they cover rather than all twelve.
+  const draftedRegions = [];
 
   for (const region of REGIONS) {
     try {
@@ -1013,6 +1045,7 @@ async function syncPharmacyRosters(apiKey) {
       });
 
       newDraftCount += 1;
+      draftedRegions.push(region.postingRegion);
       if (isRevision) revisionCount += 1;
       logger.info(
         `${region.postingRegion}: drafted ${transcription.entries?.length ?? 0} entries from ${latest.postUrl}`,
@@ -1026,7 +1059,7 @@ async function syncPharmacyRosters(apiKey) {
   }
 
   if (newDraftCount > 0) {
-    await notifyReviewer(newDraftCount, revisionCount);
+    await notifyReviewer(newDraftCount, revisionCount, draftedRegions);
   } else {
     // Nothing new today, but something may still be waiting from a previous
     // day — and until now that was said exactly once, on the day the draft
@@ -1082,6 +1115,8 @@ exports.syncPharmacyRosters = onSchedule(
 // Exported for local testing/inspection without waiting for the schedule.
 exports._internal = {
   parseWeekEndDate,
+  departmentsFor,
+  rosterData,
   isRosterSuperseded,
   imageSetChanged,
   fetchLatestPost,

@@ -1,6 +1,31 @@
 import { doc, getDoc } from "firebase/firestore";
 import { firestore, isFirebaseConfigured } from "../config/firebase";
 import { navigateWhenReady } from "../navigation/navigationRef";
+import { categories } from "../data/categories";
+
+// The duty-pharmacy directory, addressed the same way every other caller
+// addresses it: CategoryListings needs labelEn/labelFr because it renders
+// them as the header, and categories.js is where those two strings live.
+// Reading them here rather than retyping them means a rename in one place
+// cannot leave this screen captioned with the old name.
+// `departments` arrives as a comma-joined string because FCM data values must
+// be strings — an array is dropped in transit, so the push and the stored row
+// both carry the joined form and it is split here. Absent on notifications
+// written before the senders learned to include it, and on those the screen
+// simply opens unscoped, which is what it did for all of them before.
+function openPharmacyDirectory(data) {
+  const pharmacy = categories.find((item) => item.key === "pharmacyOnDuty");
+  const departments = String(data?.departments ?? "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+  navigateWhenReady("CategoryListings", {
+    categoryKey: "pharmacyOnDuty",
+    labelEn: pharmacy?.labelEn ?? "Pharmacy On Duty",
+    labelFr: pharmacy?.labelFr ?? "Pharmacie de Garde",
+    ...(departments.length ? { departments } : {}),
+  });
+}
 
 // The notification centre is a TAB, not a root screen, so it is addressed
 // through MainTabs — navigating to the bare name resolves to nothing and the
@@ -80,6 +105,19 @@ export function notificationTarget(data) {
       return "Papers";
     case "newJobApplication":
       return "JobApplications";
+    // The roster notifications. They were the reason stored rows exist and
+    // they were the one kind with nowhere to go, so the row rendered inert:
+    // a notification you could read and not act on. The duty directory is
+    // where the consequence of both of them is visible — a roster waiting to
+    // be applied, or a region with no fresh roster at all, both show up as
+    // what the reader's own users are currently being shown.
+    //
+    // pharmacyRosterSyncFailure is deliberately NOT here. "Sync failed, check
+    // functions logs" has no counterpart in the app; sending it to a list of
+    // pharmacies would be answering a question it did not ask.
+    case "pharmacyRosterDraft":
+    case "pharmacyRosterStale":
+      return "CategoryListings";
     default:
       return null;
   }
@@ -133,6 +171,12 @@ export async function openNotification(data) {
       // rather than the posting — somebody told "X applied" wants the
       // application, not their own advert.
       navigateWhenReady("JobApplications");
+      return;
+    // Kept in step with notificationTarget above, which decides whether the
+    // row in the notification centre is pressable at all.
+    case "pharmacyRosterDraft":
+    case "pharmacyRosterStale":
+      openPharmacyDirectory(data);
       return;
     // Everything else — a shortlisting result, a company verification — has
     // no id attached, so the notification centre is the honest destination:

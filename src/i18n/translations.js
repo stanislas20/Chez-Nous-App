@@ -857,6 +857,7 @@ export const translations = {
 
     categoryListingsComingSoon: "Listings in this category are coming soon.",
     categoryListingsNoResults: "No results for your search.",
+    categoryListingsNoFilterMatch: "No pharmacies match these filters.",
 
     nearestPharmacyTitle: "Nearest pharmacy on duty",
     nearestPharmacyDistance: "{distance} km away",
@@ -4008,6 +4009,8 @@ export const translations = {
     categoryListingsComingSoon:
       "Les annonces de cette catégorie arrivent bientôt.",
     categoryListingsNoResults: "Aucun résultat pour votre recherche.",
+    categoryListingsNoFilterMatch:
+      "Aucune pharmacie ne correspond à ces filtres.",
 
     nearestPharmacyTitle: "Pharmacie de garde la plus proche",
     nearestPharmacyDistance: "à {distance} km",

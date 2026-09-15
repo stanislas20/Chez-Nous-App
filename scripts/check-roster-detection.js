@@ -155,7 +155,11 @@ const wiring = [
   ["the image comparison runs in the sync loop", /imageSetChanged\(state\.lastImageUrls/],
   ["the baseline is recorded on the state doc", /lastImageUrls: imageUrls/],
   ["a revision is flagged on the draft", /revisionOfProcessedPost: isRevision/],
-  ["and the reviewer is told it is a revision", /notifyReviewer\(newDraftCount, revisionCount\)/],
+  // Not anchored on the closing paren: the call grew a third argument (the
+  // regions that drafted, so the notification can name their departments)
+  // and the property this protects is that revisionCount still reaches the
+  // reviewer, not how many arguments follow it.
+  ["and the reviewer is told it is a revision", /notifyReviewer\(newDraftCount, revisionCount/],
 ];
 wiring.forEach(([label, pattern]) => {
   if (!pattern.test(source)) failures.push(`${label}: not found`);

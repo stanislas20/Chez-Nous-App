@@ -2,8 +2,10 @@ import { useState } from "react";
 import {
   Alert,
   FlatList,
+  KeyboardAvoidingView,
   Linking,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Share,
@@ -433,10 +435,42 @@ export function SellerProfileScreen({ route, navigation }) {
         transparent
         onRequestClose={() => setRateOpen(false)}
       >
+        {/* The review sheet is pinned to the bottom of the screen — that is
+            what SheetBackdrop's justify-content: flex-end does — which is
+            precisely where the keyboard opens. Writing a review, the reader
+            could not see the words they were typing.
+
+            Android does not rescue this on its own, despite the app asking
+            for softwareKeyboardLayoutMode "pan": a React Native Modal is its
+            OWN window, and the pan applies to the activity's window, not to
+            this one. So the sheet sat still while the keyboard covered it.
+
+            behavior="padding" on both platforms, matching
+            SubmitDealershipScreen — padding shrinks this view, the backdrop
+            below it shrinks with it, and the bottom-anchored sheet rides up
+            above the keyboard. Sheet keeps its max-height: 78%, now measured
+            against the reduced space, and the ScrollView inside takes over
+            when the sheet can no longer show everything — which is what
+            keeps this usable on a small screen.
+
+            keyboardVerticalOffset is 0, not the 90 that screen uses: this
+            modal is full-screen and transparent, so there is no navigation
+            header above it to compensate for. */}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior="padding"
+          keyboardVerticalOffset={0}
+        >
         <SheetBackdrop onPress={() => setRateOpen(false)}>
           <Sheet onStartShouldSetResponder={() => true}>
             <SheetHandle />
-            <ScrollView showsVerticalScrollIndicator={false}>
+            {/* Without this, the first tap on Submit is swallowed dismissing
+                the keyboard and the reader has to press it twice — the
+                second defect hiding behind the first. */}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
               <SheetTitle>{t("ratingSheetTitle")}</SheetTitle>
 
               <FieldLabel>{t("ratingStarsLabel")}</FieldLabel>
@@ -479,6 +513,7 @@ export function SellerProfileScreen({ route, navigation }) {
             </ScrollView>
           </Sheet>
         </SheetBackdrop>
+        </KeyboardAvoidingView>
       </Modal>
     </Container>
   );

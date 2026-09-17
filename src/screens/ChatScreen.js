@@ -1016,15 +1016,6 @@ export function ChatScreen({ route, navigation }) {
 
             return (
               <>
-              {startsDay ? (
-                <DaySeparatorRow>
-                  <DaySeparatorPill>
-                    <DaySeparatorText>
-                      {separatorLabelFor(own)}
-                    </DaySeparatorText>
-                  </DaySeparatorPill>
-                </DaySeparatorRow>
-              ) : null}
               <BubbleRow mine={isMine}>
                 {/* Two different permissions on one bubble, and they were
                     previously collapsed into one.
@@ -1088,6 +1079,46 @@ export function ChatScreen({ route, navigation }) {
                   </MetaColumn>
                 ) : null}
               </BubbleRow>
+              {/* AFTER the row, which is what puts it ABOVE on screen.
+                  That is not a typo, and it is the bug this replaced.
+
+                  Work it through, because normal-list intuition gets it
+                  backwards every time:
+
+                    data        messages[0] is the NEWEST message
+                    inverted    index 0 is drawn at the BOTTOM, so reading
+                                the screen downward walks indices DOWNWARD;
+                                index + 1 is the message ABOVE, index - 1 the
+                                message BELOW
+                    the cell    `inverted` flips the list AND each cell, and
+                                on this version the net effect is that a
+                                cell's own children are laid out bottom-up —
+                                verified on a device, not assumed
+
+                  A day label belongs above the first message of that day in
+                  human reading order. Reading order is top-down, so the
+                  first message of a day is its OLDEST one — the highest
+                  index in that day — which is what startsDay selects.
+
+                  Rendered before the row, that label came out BELOW its own
+                  message: on the device "Today" sat between 03:27 and 03:30,
+                  both of which were the same day, so it appeared to
+                  introduce the wrong message. Rendered after the row, the
+                  cell flip puts it where it belongs.
+
+                  check-chat-chronology.js asserts this ORDER specifically,
+                  because the previous suite asserted the index arithmetic —
+                  which was already correct — and passed while the screen was
+                  visibly wrong. */}
+              {startsDay ? (
+                <DaySeparatorRow>
+                  <DaySeparatorPill>
+                    <DaySeparatorText>
+                      {separatorLabelFor(own)}
+                    </DaySeparatorText>
+                  </DaySeparatorPill>
+                </DaySeparatorRow>
+              ) : null}
               </>
             );
           }}

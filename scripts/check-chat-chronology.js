@@ -90,6 +90,50 @@ if (!/own && \(!older \|\| dayKeyOf\(own\) !== dayKeyOf\(older\)\)/.test(chat)) 
   );
 }
 
+// 3b. WHERE the separator is rendered, not just whether it exists.
+//
+//     This is the assertion the previous version of this file lacked, and
+//     the gap let a visibly wrong screen pass a green suite. Every index
+//     calculation above was already correct; the separator was simply drawn
+//     on the wrong side of its own message.
+//
+//     `inverted` flips the list AND each cell, so within a cell the children
+//     are laid out bottom-up. A separator written BEFORE the bubble
+//     therefore appears BELOW it — on the device, "Today" sat between 03:27
+//     and 03:30, two messages from the same day, appearing to introduce the
+//     wrong one. Written AFTER the bubble, it lands above, which is where a
+//     day label belongs in reading order.
+//
+//     So: in this file, "after" is correct and "before" is the bug. Any
+//     change that moves the separator back above <BubbleRow> in the JSX is
+//     the regression, and it fails here.
+const renderItemBody = chat.slice(
+  chat.search(/renderItem=\{\(\{ item, index \}\) =>/),
+  chat.search(/ListEmptyComponent|\/>\s*\n\s*\{isBlocked/),
+);
+if (!renderItemBody.trim()) {
+  failures.push(
+    `${CHAT} renderItem could not be located — this check reads its JSX order`,
+  );
+} else {
+  const bubbleClose = renderItemBody.search(/<\/BubbleRow>/);
+  const separator = renderItemBody.search(/<DaySeparatorRow>/);
+  if (separator === -1) {
+    failures.push(
+      "the day separator is no longer rendered inside renderItem",
+    );
+  } else if (bubbleClose === -1) {
+    failures.push("BubbleRow could not be located inside renderItem");
+  } else if (separator < bubbleClose) {
+    failures.push(
+      "the day separator is rendered BEFORE </BubbleRow>. In an inverted " +
+        "list that draws it BELOW its own message, which is the exact defect " +
+        "found on the device: the label appeared to introduce the following " +
+        "message instead of the day it belongs to",
+    );
+  }
+}
+
 // 4. Restraint: one time per run, not one per bubble.
 if (!/const endsRun =/.test(chat)) {
   failures.push(

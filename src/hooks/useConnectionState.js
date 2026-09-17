@@ -84,8 +84,67 @@ export const CONNECTION = {
 //   * two consecutive failures before declaring offline, so a single blip
 //     on a Bénin mobile connection does not raise a banner about a
 //     connection that is merely having a bad second
-const PROBE_INTERVAL_MS = 45000;
+// ── The bound that was missing ──────────────────────────────────────────
+//
+// The first version of this probe awaited getDocFromServer and counted a
+// rejection as a failure. On a physical device, foregrounded, with the
+// network switched off, the banner never appeared — 200 seconds, stale
+// listings still on screen, exactly the defect the probe was added to fix.
+//
+// getDocFromServer does not reject promptly when there is no network. The
+// SDK retries internally and the promise simply stays pending, so the
+// failure counter never advanced past zero and OFFLINE was never reached.
+// Nothing in a static check could have caught that: the code asserted the
+// right shape and made a wrong assumption about a library's timing.
+//
+// So the timeout is now OURS. A probe is raced against a timer we control,
+// and a probe that has not answered within PROBE_TIMEOUT_MS is a failure
+// regardless of what Firestore intends to do about it later.
+//
+// ── Timing, and why these numbers ───────────────────────────────────────
+//
+//   PROBE_INTERVAL_MS   30s   steady state while ONLINE and foregrounded.
+//                             Two reads a minute is the ongoing cost of
+//                             knowing; shorter would detect faster and bill
+//                             more for every user who never goes offline.
+//   PROBE_TIMEOUT_MS     8s   generous for a round trip to Firestore on a
+//                             Bénin mobile connection, short enough that a
+//                             dead link is not mistaken for a slow one for
+//                             long.
+//   PROBE_RETRY_MS       5s   after a FAILED probe only. The expensive part
+//                             is asking often when everything is fine; once
+//                             something looks wrong, confirming quickly is
+//                             cheap and makes the banner appear sooner.
+//   FAILURES_BEFORE_OFFLINE 2 one slow request on a bad connection is not
+//                             an outage, and a banner that flickers is one
+//                             people learn to ignore.
+//
+// Worst case from the instant the network dies to the banner:
+//   30 (waiting for the next probe) + 8 (that probe times out)
+//    + 5 (fast retry)              + 8 (retry times out)   =  51s
+// Typical, when the loss lands mid-interval: roughly 20-35s.
+//
+// Recovery is not this probe's job. The snapshot listener re-emits with
+// fromCache false the moment the stream re-establishes, which is faster
+// than any poll and costs nothing.
+const PROBE_INTERVAL_MS = 30000;
+const PROBE_RETRY_MS = 5000;
+const PROBE_TIMEOUT_MS = 8000;
 const FAILURES_BEFORE_OFFLINE = 2;
+
+// Rejects rather than hangs. The Firestore promise is left to settle
+// whenever it likes — nobody is listening to it after this resolves, and
+// the epoch guard in the effect below makes sure a late answer cannot
+// change a state that has moved on.
+function withTimeout(promise, ms) {
+  let timer = null;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error("probe-timeout")), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
 
 export function useConnectionState() {
   const [state, setState] = useState(CONNECTION.UNKNOWN);
@@ -119,26 +178,67 @@ export function useConnectionState() {
     let cancelled = false;
     let failures = 0;
     let timer = null;
+    let inFlight = false;
+    // Bumped on teardown and on every probe. A probe compares the epoch it
+    // started under against the current one before touching anything, so a
+    // Firestore promise that settles minutes late — after the network came
+    // back, after the effect was torn down, after the reader signed out —
+    // cannot resurrect a stale verdict.
+    let epoch = 0;
 
-    const probe = async () => {
-      if (cancelled || AppState.currentState !== "active") return;
-      try {
-        await getDocFromServer(doc(firestore, ...PROBE_PATH));
-        failures = 0;
-      } catch {
-        // getDocFromServer refuses to fall back to cache, so a rejection
-        // here means the server genuinely could not be reached — which is
-        // the question being asked.
-        failures += 1;
-        if (!cancelled && failures >= FAILURES_BEFORE_OFFLINE) {
-          setState(CONNECTION.OFFLINE);
-          return;
-        }
-      }
-      if (!cancelled) timer = setTimeout(probe, PROBE_INTERVAL_MS);
+    const schedule = (delay) => {
+      if (cancelled) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(probe, delay);
     };
 
-    timer = setTimeout(probe, PROBE_INTERVAL_MS);
+    async function probe() {
+      if (cancelled) return;
+      // One probe at a time. Without this, a resume during a probe that is
+      // still racing its timeout starts a second chain, and from then on
+      // every interval doubles the number of timers and reads.
+      if (inFlight) return;
+      if (AppState.currentState !== "active") {
+        // Nobody to show a banner to. Do not probe, but do not abandon the
+        // chain either — the resume listener restarts it.
+        return;
+      }
+
+      const mine = ++epoch;
+      inFlight = true;
+      let failed = false;
+      try {
+        await withTimeout(
+          getDocFromServer(doc(firestore, ...PROBE_PATH)),
+          PROBE_TIMEOUT_MS,
+        );
+      } catch {
+        // Either the server said no, or it said nothing for eight seconds.
+        // Both answer the question the same way.
+        failed = true;
+      } finally {
+        inFlight = false;
+      }
+
+      if (cancelled || mine !== epoch) return;
+
+      if (!failed) {
+        failures = 0;
+        schedule(PROBE_INTERVAL_MS);
+        return;
+      }
+
+      failures += 1;
+      if (failures >= FAILURES_BEFORE_OFFLINE) {
+        setState(CONNECTION.OFFLINE);
+        // No reschedule: this effect is about to be torn down by the state
+        // change, and the snapshot listener owns recovery from here.
+        return;
+      }
+      schedule(PROBE_RETRY_MS);
+    }
+
+    schedule(PROBE_INTERVAL_MS);
 
     // Coming back to the foreground is the likeliest moment for the answer
     // to have changed — the reader may have been in aeroplane mode, or
@@ -149,7 +249,9 @@ export function useConnectionState() {
 
     return () => {
       cancelled = true;
+      epoch += 1;
       if (timer) clearTimeout(timer);
+      timer = null;
       appStateSubscription.remove();
     };
   }, [state]);

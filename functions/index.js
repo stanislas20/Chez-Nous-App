@@ -351,6 +351,12 @@ exports.lookupSellerForRecovery = onCall(async (request) => {
   };
 });
 
+// The id the app creates in ensureNotificationChannels() at DEFAULT
+// importance with sound and vibration. It has to match that string exactly:
+// naming a channel Android has never been told about is the same as naming
+// none, and lands the notification back in FCM's fallback channel.
+const MESSAGES_CHANNEL = "messages";
+
 exports.sendMessagePush = onDocumentCreated(
   "conversations/{conversationId}/messages/{messageId}",
   async (event) => {
@@ -406,6 +412,29 @@ exports.sendMessagePush = onDocumentCreated(
         data: {
           conversationId,
           listingTitle: conversation.listingTitle || "",
+        },
+        // Without an explicit channelId, Android files the notification
+        // under fcm_fallback_notification_channel — a channel FCM invents,
+        // named "Miscellaneous" in the system UI. Two consequences, both
+        // observed on a physical device: the `messages` channel the app
+        // creates at DEFAULT importance with sound and vibration is
+        // bypassed entirely, and a reader who wants to silence marketplace
+        // chatter without silencing everything has nothing to switch off,
+        // because the channel they would look for is never the one being
+        // used.
+        //
+        // paperReminders.js has always set this. Message pushes did not,
+        // which is why they were the ones landing in the fallback.
+        android: {
+          priority: "high",
+          notification: {
+            channelId: MESSAGES_CHANNEL,
+            sound: "default",
+            defaultVibrateTimings: true,
+          },
+        },
+        apns: {
+          payload: { aps: { sound: "default" } },
         },
       });
     } catch (error) {
@@ -768,9 +797,33 @@ async function moderatorPushTokens() {
   const sellers = await Promise.all(
     uids.map((uid) => db.doc(`sellers/${uid}`).get()),
   );
+  // The language travels with the token now, because the text is chosen per
+  // recipient rather than once for everybody. See localeOf().
   return sellers
-    .map((doc) => (doc.exists ? doc.data().pushToken : null))
+    .map((doc) =>
+      doc.exists && doc.data().pushToken
+        ? { token: doc.data().pushToken, language: localeOf(doc.data()) }
+        : null,
+    )
     .filter(Boolean);
+}
+
+// Which language to write a push in.
+//
+// A moderator using the app in English received "Nouvelle annonce à valider
+// — … attend votre validation.": an entirely French notification, in an
+// English app, from a server that had never been told which language the
+// reader uses. That was the actual defect. The strings were not missing —
+// the recipient's locale simply did not exist anywhere the server could
+// read it, because the preference lived only in AsyncStorage on the handset.
+//
+// sellers/{uid}.language is written by the client whenever the language is
+// chosen or the user signs in, which is what makes this possible at all.
+// Absent for anyone who has not opened the app since that shipped, so the
+// fallback is French: it is what these notifications have always been, and
+// it is the majority language of the readership.
+function localeOf(seller) {
+  return seller?.language === "en" ? "en" : "fr";
 }
 
 // A seller correcting three listings in a row should not buzz three times.
@@ -815,35 +868,66 @@ async function notifyModeratorOfQueue(listing, listingId, arrival) {
     .get();
   const waiting = pending.data().count;
 
-  const title = listing.titleFr || listing.titleEn || "Annonce";
-  const body =
-    waiting > 1
-      ? `${title} · ${waiting} annonces en attente de validation.`
-      : `${title} attend votre validation.`;
-
   await Promise.all(
-    tokens.map((token) =>
-      admin
+    tokens.map(({ token, language }) => {
+      const copy = MODERATION_PUSH_COPY[language];
+      // The listing's own title follows the reader too where both exist —
+      // a French moderator should not be shown the English title of a
+      // bilingual listing just because that field happened to be set first.
+      const title =
+        (language === "en"
+          ? listing.titleEn || listing.titleFr
+          : listing.titleFr || listing.titleEn) || copy.untitled;
+
+      return admin
         .messaging()
         .send({
           token,
           notification: {
-            title:
-              arrival === "resubmitted"
-                ? "Annonce corrigée à revoir"
-                : arrival === "edited"
-                  ? "Annonce modifiée à revoir"
-                  : "Nouvelle annonce à valider",
-            body,
+            title: copy.arrival[arrival] ?? copy.arrival.new,
+            body:
+              waiting > 1
+                ? copy.bodyMany(title, waiting)
+                : copy.bodyOne(title),
           },
           data: { type: "listingPendingReview", listingId },
         })
         .catch((error) =>
           logger.warn("Review push failed", error?.code ?? error),
-        ),
-    ),
+        );
+    }),
   );
 }
+
+// Kept beside the sender rather than in a shared bundle: these are the only
+// server-composed strings a reader ever sees, and two languages of four
+// lines each does not need an i18n framework on the backend. If a third
+// language or a second notification family arrives, this is the seam to
+// widen — not a reason to widen it now.
+const MODERATION_PUSH_COPY = {
+  fr: {
+    untitled: "Annonce",
+    arrival: {
+      new: "Nouvelle annonce à valider",
+      edited: "Annonce modifiée à revoir",
+      resubmitted: "Annonce corrigée à revoir",
+    },
+    bodyOne: (title) => `${title} attend votre validation.`,
+    bodyMany: (title, waiting) =>
+      `${title} · ${waiting} annonces en attente de validation.`,
+  },
+  en: {
+    untitled: "Listing",
+    arrival: {
+      new: "New listing to review",
+      edited: "Edited listing to review",
+      resubmitted: "Corrected listing to review",
+    },
+    bodyOne: (title) => `${title} is waiting for your review.`,
+    bodyMany: (title, waiting) =>
+      `${title} · ${waiting} listings waiting for review.`,
+  },
+};
 
 // One list of moderators, and the claim that actually gates them, kept in
 // step by the same write.

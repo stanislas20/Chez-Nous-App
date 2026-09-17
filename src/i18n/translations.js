@@ -2594,6 +2594,11 @@ export const translations = {
       "You need an account to message a seller. Sign up now?",
     chatListEmptyMessage: "You don't have any conversations yet.",
     chatListSignInPrompt: "Sign up or log in to see your messages.",
+    // The notifications screen used the line above, so a reader looking at
+    // an empty notification list was told to sign in to see their MESSAGES
+    // — a different screen, one tab away, which they had not asked about.
+    notificationsSignInPrompt:
+      "Sign up or log in to see your notifications.",
     chatInputPlaceholder: "Write a message...",
     chatOwnListingHint: "You can't message yourself about your own listing.",
     errorChatFailedTitle: "Something went wrong",
@@ -2631,6 +2636,11 @@ export const translations = {
     // Read receipts. Screen-reader labels only — the ticks themselves carry
     // no text, and a reader who cannot see them has no other way to know
     // whether the message landed.
+    // Chat chronology. Today/Yesterday are named rather than dated because
+    // that is how people refer to them, and a date separator that reads
+    // "Thursday 17 September" for this afternoon is oddly formal.
+    chatDateToday: "Today",
+    chatDateYesterday: "Yesterday",
     chatReceiptPending: "Sending",
     chatReceiptSent: "Sent",
     chatReceiptRead: "Read",
@@ -5774,6 +5784,8 @@ export const translations = {
     chatListEmptyMessage: "Vous n'avez pas encore de conversations.",
     chatListSignInPrompt:
       "Inscrivez-vous ou connectez-vous pour voir vos messages.",
+    notificationsSignInPrompt:
+      "Inscrivez-vous ou connectez-vous pour voir vos notifications.",
     chatInputPlaceholder: "Écrivez un message...",
     chatOwnListingHint:
       "Vous ne pouvez pas vous envoyer un message pour votre propre annonce.",
@@ -5810,6 +5822,8 @@ export const translations = {
     chatDelete: "Supprimer",
     chatBlockUser: "Bloquer l'utilisateur",
     chatUnblockUser: "Débloquer l'utilisateur",
+    chatDateToday: "Aujourd'hui",
+    chatDateYesterday: "Hier",
     chatReceiptPending: "Envoi en cours",
     chatReceiptSent: "Envoyé",
     chatReceiptRead: "Lu",

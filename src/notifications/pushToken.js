@@ -4,6 +4,7 @@ import {
   getInitialNotification,
   getMessaging,
   getToken,
+  hasPermission,
   onMessage,
   onNotificationOpenedApp,
   onTokenRefresh,
@@ -21,12 +22,29 @@ import { firestore } from "../config/firebase";
 import { openNotification } from "./openNotification";
 import { currentRoute } from "../navigation/navigationRef";
 
-function savePushToken(uid, token) {
-  return setDoc(
-    doc(firestore, "sellers", uid),
-    { pushToken: token },
-    { merge: true },
-  );
+// The last (account, token) pair this process actually wrote.
+//
+// Re-checking registration on every resume is what makes a permission
+// granted in Settings take effect without a restart — but a resume happens
+// many times a day, and re-writing an unchanged token on each one is a
+// Firestore write per app switch for no gain. The pair is remembered so the
+// write happens when something has actually changed and not otherwise.
+//
+// Deliberately per-process rather than persisted: after a reinstall or a
+// cleared cache the token genuinely may have changed, and one redundant
+// write on the first resume of a session is the right side to err on.
+let lastWritten = { uid: null, token: null };
+
+async function savePushToken(uid, token) {
+  if (lastWritten.uid === uid && lastWritten.token === token) return;
+  await setDoc(doc(firestore, "sellers", uid), { pushToken: token }, { merge: true });
+  lastWritten = { uid, token };
+}
+
+// Forget the cached write when a token is removed, so the next registration
+// for this handset is not mistaken for a redundant one.
+function forgetWrittenToken() {
+  lastWritten = { uid: null, token: null };
 }
 
 // Asks for permission and stores a token, answering the one question a
@@ -93,6 +111,11 @@ export async function detachPushToken(uid) {
       return { detached: false, reason: "not-this-device" };
     }
     await updateDoc(ref, { pushToken: deleteField() });
+    // The row is gone, so the memory of having written it is wrong. Without
+    // this, signing back in on the same handset within the same process
+    // would see an unchanged token, skip the write as redundant, and leave
+    // the account with no token at all.
+    forgetWrittenToken();
     return { detached: true, reason: null };
   } catch (error) {
     return { detached: false, reason: "write-failed", error };
@@ -185,6 +208,53 @@ export async function ensurePushToken(uid) {
     // what a build with no aps-environment entitlement looks like from in
     // here: the OS never issues an APNs token, so getToken can never
     // succeed however many times the reader visits Settings.
+    return PUSH_UNAVAILABLE;
+  }
+}
+
+// The same registration, for the case where nobody is being asked anything.
+//
+// A reader who declines the permission prompt at first run, then turns
+// notifications on weeks later in Android Settings, had no push until the
+// next cold start. Nothing was broken in a way anybody could see: permission
+// read as granted in Settings, the app looked normal, and messages simply
+// never arrived. It cost a false FAIL during release testing before it was
+// understood, which is a fair measure of how invisible it is in the field.
+//
+// The cause is that registration ran exactly once, from the sign-in path,
+// and a denial there was final for the session.
+//
+// This is the version safe to call on every resume:
+//
+//   * hasPermission READS the current setting. requestPermission would
+//     prompt, and prompting every time the app comes to the foreground is a
+//     worse bug than the one being fixed.
+//   * savePushToken skips a write when the pair is unchanged, so the common
+//     case — permission already granted, same token as five minutes ago —
+//     costs one local comparison and no Firestore write at all.
+export async function refreshPushRegistration(uid) {
+  if (!uid) return PUSH_UNAVAILABLE;
+
+  const messaging = getMessaging(getApp());
+
+  let status;
+  try {
+    status = await hasPermission(messaging);
+  } catch {
+    return PUSH_UNAVAILABLE;
+  }
+
+  const enabled =
+    status === AuthorizationStatus.AUTHORIZED ||
+    status === AuthorizationStatus.PROVISIONAL;
+  if (!enabled) return PUSH_DENIED;
+
+  try {
+    const token = await getToken(messaging);
+    if (!token) return PUSH_UNAVAILABLE;
+    await savePushToken(uid, token);
+    return PUSH_OK;
+  } catch {
     return PUSH_UNAVAILABLE;
   }
 }

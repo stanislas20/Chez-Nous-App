@@ -3,10 +3,12 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+import { AppState } from "react-native";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
 import {
   firebaseAuth,
   firestore,
@@ -27,12 +29,16 @@ import {
   registerForegroundMessageHandler,
   registerNotificationTapHandlers,
   registerPushToken,
+  refreshPushRegistration,
   ensureNotificationChannels,
+  PUSH_OK,
 } from "../notifications/pushToken";
+import { useI18n } from "../i18n/I18nContext";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  const { language } = useI18n();
   const [user, setUser] = useState(null);
   const [sellerProfile, setSellerProfile] = useState(null);
   const [advertiserProfile, setAdvertiserProfile] = useState(null);
@@ -80,10 +86,17 @@ export function AuthProvider({ children }) {
               // profile is written just after auth resolves, and this fires
               // once it lands.
               if (snapshot.exists() && !hasRegisteredPushToken) {
-                hasRegisteredPushToken = true;
+                // Latched on SUCCESS, not on attempt.
+                //
+                // Setting it before awaiting made a denied permission
+                // permanent for the session: the latch said "registered",
+                // the registration had actually failed, and nothing tried
+                // again. Only the unsubscribe returned by a successful
+                // registerPushToken proves a token was stored.
                 registerPushToken(nextUser.uid)
                   .then((unsub) => {
                     unsubscribeTokenRefresh = unsub;
+                    hasRegisteredPushToken = Boolean(unsub);
                   })
                   .catch(() => {});
               }
@@ -133,13 +146,71 @@ export function AuthProvider({ children }) {
       setIsLoading(false);
     });
 
+    // Coming back to the foreground is the only moment the app can notice a
+    // permission that was changed outside it.
+    //
+    // Android Settings does not tell an app its notification switch was
+    // flipped; there is no callback. The reader grants permission, returns
+    // to the app, and as far as the app is concerned nothing happened — so
+    // the token that was never registered stays never registered, and push
+    // silently does not work until the next cold start.
+    //
+    // Reading firebaseAuth.currentUser rather than the `user` state keeps
+    // this correct without re-subscribing on every sign-in: the listener is
+    // installed once, and asks who is signed in at the moment it fires.
+    //
+    // This does NOT prompt, and writes nothing when the token is unchanged,
+    // so it is safe on every single resume.
+    const appStateSubscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active") return;
+      const uid = firebaseAuth.currentUser?.uid;
+      if (!uid) return;
+      refreshPushRegistration(uid)
+        .then((result) => {
+          if (result === PUSH_OK) hasRegisteredPushToken = true;
+        })
+        .catch(() => {});
+    });
+
     return () => {
       unsubscribe();
       unsubscribeSellerProfile?.();
       unsubscribeTokenRefresh?.();
       unsubscribeForegroundMessages?.();
+      unsubscribeNotificationTaps?.();
+      appStateSubscription.remove();
     };
   }, []);
+
+  // The one place the reader's language becomes a fact the SERVER can read.
+  //
+  // It is chosen on the handset and stored in AsyncStorage, which is private
+  // to the device — so a Cloud Function composing a push had no way to know
+  // it, and every server-composed notification went out in French. That is
+  // why an English moderator was told "Nouvelle annonce à valider".
+  //
+  // updateDoc rather than setDoc({merge:true}), for the reason the snapshot
+  // handler above spells out: a merge write CREATES the document, and doing
+  // that here would give every advertiser a phantom seller profile
+  // containing nothing but a language. updateDoc rejects on a missing
+  // document, which is exactly the behaviour wanted — an account with no
+  // seller profile has no server-composed notifications to receive either.
+  const lastWrittenLanguage = useRef(null);
+  useEffect(() => {
+    if (!isFirebaseConfigured) return;
+    const uid = user?.uid;
+    if (!uid || !language) return;
+    // One write per (account, language), not one per render or per resume.
+    const key = `${uid}:${language}`;
+    if (lastWrittenLanguage.current === key) return;
+    lastWrittenLanguage.current = key;
+    updateDoc(doc(firestore, "sellers", uid), { language }).catch(() => {
+      // No seller profile, or offline. Neither is worth telling anybody
+      // about: the fallback is French, which is what the notification would
+      // have said anyway, and the next language change or sign-in retries.
+      lastWrittenLanguage.current = null;
+    });
+  }, [user?.uid, language]);
 
   const completeAdvertiserOnboarding = async ({ businessName }) => {
     const phone = user.email ? `+${user.email.split("@")[0]}` : "";

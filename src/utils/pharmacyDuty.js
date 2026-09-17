@@ -1,8 +1,34 @@
-const dutyDateFormatter = new Intl.DateTimeFormat('fr-FR', {
-  day: 'numeric',
-  month: 'long',
-  timeZone: 'Africa/Porto-Novo',
-});
+// The month name has to follow the reader, not the country.
+//
+// This formatter was pinned to fr-FR, so an English reader on a pharmacy
+// detail screen was shown "As of 6 septembre · call to confirm" — an English
+// sentence with a French month wedged into the middle of it. The label is
+// read by somebody deciding whether to drive across a city at night, which
+// is the wrong moment to make them parse two languages.
+//
+// The time zone stays Africa/Porto-Novo in both. That is not a display
+// preference: a duty window is a Bénin night, and rendering it in the
+// phone's own zone would show the wrong DAY to a reader in the diaspora,
+// which this app explicitly serves.
+//
+// Cached per language because Intl.DateTimeFormat construction is the
+// expensive half of formatting, and these labels render once per row in a
+// list of two hundred pharmacies.
+const dutyDateFormatters = new Map();
+
+function dutyDateFormatter(language) {
+  const locale = language === 'en' ? 'en-GB' : 'fr-FR';
+  let formatter = dutyDateFormatters.get(locale);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, {
+      day: 'numeric',
+      month: 'long',
+      timeZone: 'Africa/Porto-Novo',
+    });
+    dutyDateFormatters.set(locale, formatter);
+  }
+  return formatter;
+}
 
 // What "de garde" means, since the label has to say it in five words: ONPB
 // schedules a group of pharmacies to stay open THROUGH THE NIGHT for a dated
@@ -35,7 +61,7 @@ export function getDutyLabel(listing, language, t) {
   // labeled as such instead of implying it's still guaranteed valid.
   if (dutyUntilDate.getTime() < Date.now()) {
     return {
-      text: t('pharmacyLastKnownSchedule', { date: dutyDateFormatter.format(dutyUntilDate) }),
+      text: t('pharmacyLastKnownSchedule', { date: dutyDateFormatter(language).format(dutyUntilDate) }),
       isStale: true,
     };
   }
@@ -44,5 +70,5 @@ export function getDutyLabel(listing, language, t) {
   // takes the night every night through that date. Showing the clock time
   // here read as "closes tonight at 23:59", which is exactly backwards, so
   // this shows the date instead.
-  return { text: t('pharmacyOpenUntil', { date: dutyDateFormatter.format(dutyUntilDate) }), isStale: false };
+  return { text: t('pharmacyOpenUntil', { date: dutyDateFormatter(language).format(dutyUntilDate) }), isStale: false };
 }

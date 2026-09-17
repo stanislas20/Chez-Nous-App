@@ -84,7 +84,7 @@ export function NotificationsScreen() {
           color={colors.textMuted}
         />
         <Title>{t("notificationsEmptyTitle")}</Title>
-        <Subtitle>{t("chatListSignInPrompt")}</Subtitle>
+        <Subtitle>{t("notificationsSignInPrompt")}</Subtitle>
       </Container>
     );
   }

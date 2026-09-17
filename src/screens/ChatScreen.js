@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -226,7 +227,7 @@ function VoiceMessageBubble({ uri, mine, knownDuration }) {
 export function ChatScreen({ route, navigation }) {
   const { colors } = useTheme();
   const { conversationId, listingTitle, attachOnOpen } = route.params;
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { user } = useAuth();
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState(null);
@@ -329,6 +330,60 @@ export function ChatScreen({ route, navigation }) {
       return "read";
     }
     return "sent";
+  };
+
+  // ── Chronology ────────────────────────────────────────────────────────
+  //
+  // A conversation had no time on it anywhere. The list outside showed
+  // "3:27 AM"; inside, a thread running over four days was an undifferentiated
+  // column of bubbles, and there was no way to tell a reply sent a minute ago
+  // from one sent last Tuesday.
+  //
+  // Two devices, both platforms, same absence — so this is not a rendering
+  // accident, it was never built.
+  //
+  // Restraint matters as much as the information. A timestamp welded to every
+  // bubble turns a fast back-and-forth into a wall of repeated numbers, so a
+  // run of messages from one sender inside a few minutes carries ONE time, on
+  // its last line, and the day is announced once by a separator rather than
+  // repeated on each message.
+  const messageLocale = language === "en" ? "en-GB" : "fr-FR";
+
+  const timeFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(messageLocale, {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    [messageLocale],
+  );
+
+  const dayFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(messageLocale, {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      }),
+    [messageLocale],
+  );
+
+  // A run ends when the next NEWER message is from somebody else, or far
+  // enough away in time that the two were not part of one exchange.
+  const GROUP_WINDOW_MS = 5 * 60 * 1000;
+
+  const dayKeyOf = (date) =>
+    date ? `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}` : null;
+
+  const dateOf = (message) => message?.createdAt?.toDate?.() ?? null;
+
+  const separatorLabelFor = (date) => {
+    const today = new Date();
+    if (dayKeyOf(date) === dayKeyOf(today)) return t("chatDateToday");
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    if (dayKeyOf(date) === dayKeyOf(yesterday)) return t("chatDateYesterday");
+    return dayFormatter.format(date);
   };
 
   const iBlocked = Boolean(user && conversation?.blockedBy?.[user.uid]);
@@ -927,9 +982,49 @@ export function ChatScreen({ route, navigation }) {
           }
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ padding: spacing.md }}
-          renderItem={({ item }) => {
+          renderItem={({ item, index }) => {
             const isMine = item.senderId === user?.uid;
+
+            // The list is INVERTED: index 0 is the newest message and sits at
+            // the bottom, so index + 1 is the one visually ABOVE this a one,
+            // and index - 1 is the one below. Getting this backwards puts
+            // every date separator under the wrong day, which is the kind of
+            // wrong that still looks plausible.
+            const own = dateOf(item);
+            const older = dateOf(messages?.[index + 1]);
+            const newer = dateOf(messages?.[index - 1]);
+
+            // A separator introduces the first message of a day. Reading
+            // upward, that is the message whose older neighbour fell on a
+            // different day — or the very oldest message loaded, which always
+            // needs one. Rendered before the row so it lands above it.
+            const startsDay =
+              own && (!older || dayKeyOf(own) !== dayKeyOf(older));
+
+            // One time per run, on the run's last line. The run ends where
+            // the next newer message belongs to somebody else or arrives
+            // outside the grouping window — and always on the newest message,
+            // which has nothing after it.
+            const endsRun =
+              !messages?.[index - 1] ||
+              messages[index - 1].senderId !== item.senderId ||
+              !newer ||
+              !own ||
+              newer.getTime() - own.getTime() > GROUP_WINDOW_MS;
+
+            const showTime = Boolean(own && endsRun);
+
             return (
+              <>
+              {startsDay ? (
+                <DaySeparatorRow>
+                  <DaySeparatorPill>
+                    <DaySeparatorText>
+                      {separatorLabelFor(own)}
+                    </DaySeparatorText>
+                  </DaySeparatorPill>
+                </DaySeparatorRow>
+              ) : null}
               <BubbleRow mine={isMine}>
                 {/* Two different permissions on one bubble, and they were
                     previously collapsed into one.
@@ -984,8 +1079,16 @@ export function ChatScreen({ route, navigation }) {
                     padding back and reopen the letterboxing the image
                     bubble exists to avoid. Beside the bubble, aligned to its
                     bottom, it reads the same for text, photo and voice. */}
-                {isMine ? <ReadReceipt state={readStateFor(item)} /> : null}
+                {showTime || isMine ? (
+                  <MetaColumn>
+                    {showTime ? (
+                      <MetaTime>{timeFormatter.format(own)}</MetaTime>
+                    ) : null}
+                    {isMine ? <ReadReceipt state={readStateFor(item)} /> : null}
+                  </MetaColumn>
+                ) : null}
               </BubbleRow>
+              </>
             );
           }}
         />
@@ -1235,9 +1338,49 @@ const BubbleRow = styled.View`
 
 const ReceiptSlot = styled.View`
   width: 18px;
+  align-items: center;
+`;
+
+// Time and tick live BESIDE the bubble, never inside it.
+//
+// Inside would mean threading a timestamp through three different bubble
+// bodies — text, a full-bleed image with no padding, and the voice player's
+// fixed-width scrub track — and the image one has no room for it that is not
+// on top of the photograph. Beside the bubble, the same column serves all
+// three and none of their layouts had to change.
+const MetaColumn = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 3px;
   margin-left: 4px;
   margin-bottom: 2px;
+`;
+
+const MetaTime = styled.Text`
+  ${type.caption}
+  font-size: 11px;
+  color: ${(props) => props.theme.textMuted};
+`;
+
+const DaySeparatorRow = styled.View`
   align-items: center;
+  margin-vertical: ${spacing.sm}px;
+`;
+
+// A pill rather than the more usual rule-with-text-through-it: the thread
+// background is not a flat colour behind every message, and a hairline
+// crossing an image bubble's shoulder looked like a rendering fault.
+const DaySeparatorPill = styled.View`
+  padding-horizontal: ${spacing.sm}px;
+  padding-vertical: 3px;
+  border-radius: ${radius.lg}px;
+  background-color: ${(props) => props.theme.surfaceAlt};
+`;
+
+const DaySeparatorText = styled.Text`
+  ${type.caption}
+  font-size: 11px;
+  color: ${(props) => props.theme.textMuted};
 `;
 
 // The sender's own view of what happened to a message: stored, or seen.

@@ -1,4 +1,5 @@
 import styled from "styled-components/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { spacing } from "../theme/colors";
 import { type } from "../theme/typography";
@@ -23,13 +24,23 @@ export function OfflineBanner() {
   const connection = useConnectionState();
   const { colors } = useTheme();
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
 
   // UNKNOWN is not offline. It is the state before the first snapshot lands,
   // and showing the banner there would flash it on every cold start.
   if (connection !== CONNECTION.OFFLINE) return null;
 
+  // The bar is the first thing inside NavigationContainer, so it starts at
+  // y=0 — underneath the clock, the battery and the signal icons. On the
+  // test handset the sentence ran straight through the status bar and the
+  // half of it behind the icons was unreadable, which is a poor showing for
+  // the one line whose entire job is to be read.
+  //
+  // Padded rather than wrapped in a SafeAreaView: the inset belongs to this
+  // bar only, and a SafeAreaView here would also claim the bottom edge and
+  // push the navigator up by the home-indicator height on every screen.
   return (
-    <Bar>
+    <Bar style={{ paddingTop: insets.top + 4 }}>
       <Ionicons name="cloud-offline" size={14} color={colors.textInverse} />
       <BarText numberOfLines={1}>{t("connectionOffline")}</BarText>
     </Bar>

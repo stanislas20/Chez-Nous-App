@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
+import { AppState } from "react-native";
+import { doc, getDocFromServer, onSnapshot } from "firebase/firestore";
 import { firestore, isFirebaseConfigured } from "../config/firebase";
 
 // Whether the app can currently reach Firestore, asked of Firestore itself.
@@ -58,6 +59,34 @@ export const CONNECTION = {
   UNKNOWN: "unknown",
 };
 
+// ── Why the listener alone was not enough ───────────────────────────────
+//
+// It is correct, and on a cold start it is immediate: with no network, the
+// first snapshot resolves from cache, fromCache is true, and the banner is
+// up before the feed has finished drawing. That case was verified on a
+// physical device and it works.
+//
+// What it does not do is notice a connection that dies UNDER it. An
+// established WebChannel stream has to time out before the SDK concedes it
+// is offline, and that timeout is far longer than the few seconds a reader
+// waits before deciding the app is broken. On the device the banner never
+// appeared at all: the feed simply went on showing cached listings, silently,
+// which is the one behaviour the banner exists to prevent.
+//
+// So the listener stays as the fast, free signal — it is what flips the
+// state back the instant the network returns — and a probe supplies the
+// answer it is slow to give.
+//
+// Bounded on purpose:
+//   * foreground only — a backgrounded app has nobody to show a banner to
+//   * only while ONLINE — once offline, the listener handles recovery, so
+//     probing from that state would buy nothing and cost reads
+//   * two consecutive failures before declaring offline, so a single blip
+//     on a Bénin mobile connection does not raise a banner about a
+//     connection that is merely having a bad second
+const PROBE_INTERVAL_MS = 45000;
+const FAILURES_BEFORE_OFFLINE = 2;
+
 export function useConnectionState() {
   const [state, setState] = useState(CONNECTION.UNKNOWN);
 
@@ -80,6 +109,50 @@ export function useConnectionState() {
     );
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured) return undefined;
+    // Nothing to detect from a state that is already offline, and nothing to
+    // show while the app is not in front of anybody.
+    if (state !== CONNECTION.ONLINE) return undefined;
+
+    let cancelled = false;
+    let failures = 0;
+    let timer = null;
+
+    const probe = async () => {
+      if (cancelled || AppState.currentState !== "active") return;
+      try {
+        await getDocFromServer(doc(firestore, ...PROBE_PATH));
+        failures = 0;
+      } catch {
+        // getDocFromServer refuses to fall back to cache, so a rejection
+        // here means the server genuinely could not be reached — which is
+        // the question being asked.
+        failures += 1;
+        if (!cancelled && failures >= FAILURES_BEFORE_OFFLINE) {
+          setState(CONNECTION.OFFLINE);
+          return;
+        }
+      }
+      if (!cancelled) timer = setTimeout(probe, PROBE_INTERVAL_MS);
+    };
+
+    timer = setTimeout(probe, PROBE_INTERVAL_MS);
+
+    // Coming back to the foreground is the likeliest moment for the answer
+    // to have changed — the reader may have been in aeroplane mode, or
+    // walked out of range, while the app was away.
+    const appStateSubscription = AppState.addEventListener("change", (next) => {
+      if (next === "active" && !cancelled) probe();
+    });
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      appStateSubscription.remove();
+    };
+  }, [state]);
 
   return state;
 }

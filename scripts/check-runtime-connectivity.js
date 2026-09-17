@@ -47,12 +47,13 @@ const { stripComments } = require("./lib/stripComments");
 
 const root = path.join(__dirname, "..");
 const HOOK = "src/hooks/useConnectionState.js";
+const MONITOR = "src/hooks/connectivityMonitor.js";
 const BANNER = "src/components/OfflineBanner.js";
 
 const failures = [];
 const read = (rel) => fs.readFileSync(path.join(root, rel), "utf8");
 
-for (const rel of [HOOK, BANNER]) {
+for (const rel of [HOOK, MONITOR, BANNER]) {
   if (!fs.existsSync(path.join(root, rel))) {
     failures.push(`${rel} is missing — this check reads it`);
   }
@@ -63,6 +64,7 @@ if (failures.length) {
 }
 
 const hook = stripComments(read(HOOK));
+const monitor = stripComments(read(MONITOR));
 
 // 1. The listener is still there. It is the free signal and the fast
 //    recovery path; the probe was added beside it, not instead of it.
@@ -73,7 +75,11 @@ if (!/includeMetadataChanges: true/.test(hook)) {
       "always worked, breaks",
   );
 }
-if (!/snapshot\.metadata\.fromCache \? CONNECTION\.OFFLINE : CONNECTION\.ONLINE/.test(hook)) {
+if (
+  !/snapshot\.metadata\.fromCache[\s\S]{0,80}CONNECTION\.OFFLINE[\s\S]{0,40}CONNECTION\.ONLINE/.test(
+    hook,
+  )
+) {
   failures.push(
     "the listener no longer derives the connection state from fromCache",
   );
@@ -96,134 +102,121 @@ if (/[^m]\bgetDoc\(/.test(hook)) {
   );
 }
 
-// 2b. THE BOUND. This is the assertion the first version of this file did
-//     not make, and the reason a fix that looked right failed on a device.
+// 2b. THE BOUND, in the hook that owns the Firestore call.
 //
 //     getDocFromServer does not reject promptly with no network: the SDK
-//     retries internally and the promise can stay pending indefinitely. The
-//     old probe awaited it and counted rejections, so the failure counter
-//     never advanced and the banner never appeared — 200 seconds, verified
-//     on a handset. The timeout has to be OURS.
-if (!/function withTimeout\(/.test(hook)) {
+//     retries internally and the promise can stay pending indefinitely. RC2
+//     awaited it and counted rejections, so the counter never left zero and
+//     the banner never appeared — 200 seconds, verified on a handset.
+if (!/function withTimeout\(/.test(hook) || !/Promise\.race\(/.test(hook)) {
   failures.push(
-    "there is no withTimeout helper — the probe is once again relying on " +
-      "Firestore to reject in a timely way, which it does not do when the " +
-      "network is gone, and the banner never appears",
+    "the hook no longer races the Firestore read against a timer of its own " +
+      "— an unbounded read is the RC2 defect, and it cannot be seen in a " +
+      "static check of the probe alone",
   );
 }
-if (!/Promise\.race\(/.test(hook)) {
+if (!/withTimeout\(getDocFromServer\(/.test(hook)) {
   failures.push(
-    "nothing races the probe against a timer, so a probe that never settles " +
-      "stalls the whole detection chain",
+    "getDocFromServer is not wrapped in withTimeout when handed to the monitor",
   );
 }
-if (!/withTimeout\(\s*getDocFromServer\(/.test(hook)) {
-  failures.push(
-    "getDocFromServer is not wrapped in withTimeout — an unbounded read is " +
-      "exactly the defect this file exists to prevent recurring",
-  );
-}
-const timeoutMatch = hook.match(/const PROBE_TIMEOUT_MS = (\d+)/);
+const timeoutMatch = monitor.match(/const PROBE_TIMEOUT_MS = (\d+)/);
 if (!timeoutMatch) {
   failures.push("PROBE_TIMEOUT_MS is gone — the probe has no upper bound");
 } else if (Number(timeoutMatch[1]) > 15000) {
   failures.push(
     `PROBE_TIMEOUT_MS is ${timeoutMatch[1]}ms; a bound that generous stops ` +
-      `being a bound — the reader has decided the app is broken long before`,
+      `being a bound`,
   );
 }
 
-// 2c. A late answer must not be able to change a state that has moved on.
-if (!/mine !== epoch/.test(hook)) {
+// 2c. THE RC3 DEFECT. Every branch that declines to probe must leave the
+//     chain able to run again. A skipped probe that schedules nothing ends
+//     monitoring for the life of the screen — that is what failed on the
+//     device at T+60s with the app foregrounded the whole time.
+if (!/schedule\(SKIP_RESCHEDULE_MS/.test(monitor)) {
   failures.push(
-    "there is no epoch guard, so a Firestore promise settling after its " +
-      "timeout — possibly after the network returned — can still write a " +
-      "stale verdict over the current one",
+    "a skipped probe does not reschedule — this is the exact RC3 failure: " +
+      "one non-active observation ends monitoring permanently, and only a " +
+      "resume event that may never come can restart it",
   );
 }
 
-// 2d. One probe at a time. A resume during an in-flight probe must not
-//     start a second chain; that doubles timers and reads on every cycle.
-if (!/if \(inFlight\) return;/.test(hook)) {
+// 2d. Monitoring must cover UNKNOWN, not only ONLINE.
+//
+//     The listener's error handler sets UNKNOWN; UNKNOWN hides the banner
+//     because it is not OFFLINE. Gating the probe on ONLINE alone therefore
+//     switched the detector off in the one state that means "we do not
+//     know", leaving the app looking connected and no longer checking.
+if (/state !== CONNECTION\.ONLINE\) return undefined;/.test(hook)) {
   failures.push(
-    "nothing prevents overlapping probes — a foreground event during an " +
-      "in-flight probe starts a second chain and the timers multiply",
+    "the probe is gated on ONLINE alone, so a listener error into UNKNOWN " +
+      "silently disables monitoring while the banner stays hidden",
+  );
+}
+if (!/state === CONNECTION\.OFFLINE/.test(hook)) {
+  failures.push(
+    "the hook no longer idles the monitor when already OFFLINE — probing " +
+      "from there costs reads and the listener owns recovery",
   );
 }
 
-// 3. Bounded: foreground only, online only, and not on a single failure.
-if (!/AppState\.currentState !== "active"/.test(hook)) {
+// 2e. One scheduling owner, one pending timer, one probe.
+if (!/if \(inFlight\)/.test(monitor)) {
+  failures.push("nothing prevents overlapping probes");
+}
+if (!/clearPending\("superseded"\)/.test(monitor)) {
   failures.push(
-    "the probe runs regardless of whether the app is in the foreground — " +
-      "that is a Firestore read on a timer for every backgrounded install",
+    "schedule() does not replace the pending timer, so timers accumulate",
   );
 }
-if (!/if \(state !== CONNECTION\.ONLINE\) return undefined;/.test(hook)) {
+if (!/AppState\.currentState/.test(hook)) {
   failures.push(
-    "the probe is not gated on being ONLINE; once offline the listener " +
-      "already handles recovery, so probing from there costs reads for " +
-      "nothing",
+    "the hook no longer supplies the app state, so the monitor cannot tell " +
+      "whether anybody is looking at the banner",
   );
 }
-if (!/FAILURES_BEFORE_OFFLINE/.test(hook) || !/failures >= FAILURES_BEFORE_OFFLINE/.test(hook)) {
+
+// 2f. Deterministic coverage exists. This file is regex over source; the
+//     control-flow defects that reached a device twice are only catchable
+//     by driving the machine.
+if (!fs.existsSync(path.join(root, "scripts/check-connectivity-machine.js"))) {
   failures.push(
-    "a single failed probe flips the banner on — one bad second on a mobile " +
-      "connection is not an outage, and a flickering banner is one people " +
-      "learn to ignore",
+    "the deterministic state-machine harness is gone — static assertions " +
+      "alone have already let two control-flow defects through to a handset",
   );
 }
-const intervalMatch = hook.match(/const PROBE_INTERVAL_MS = (\d+)/);
+
+// 3. Bounded cadence and debounce.
+const intervalMatch = monitor.match(/const PROBE_INTERVAL_MS = (\d+)/);
 if (!intervalMatch) {
   failures.push("PROBE_INTERVAL_MS is gone — the probe cadence is unbounded");
 } else if (Number(intervalMatch[1]) < 15000) {
   failures.push(
-    `PROBE_INTERVAL_MS is ${intervalMatch[1]}ms; anything under 15s turns ` +
-      `connection detection into a meaningful share of the project's read ` +
-      `quota for every active user`,
+    `PROBE_INTERVAL_MS is ${intervalMatch[1]}ms; under 15s this becomes a ` +
+      `meaningful share of the read quota for every active user`,
   );
 }
+if (!/failures >= FAILURES_BEFORE_OFFLINE/.test(monitor)) {
+  failures.push("a single failed probe flips the banner on");
+}
 
-// 3b. Cleanup. A timer that outlives the screen keeps reading Firestore
-//     for an unmounted component.
-// Asserted on the TEARDOWN BLOCK, not the file. A mutation deleted the
-// teardown's clearTimeout and this still passed, because `schedule` calls
-// clearTimeout too — the string was present, the cleanup was not.
-const teardown = hook.slice(hook.search(/return \(\) => \{\s*cancelled = true;/));
-if (!teardown.trim()) {
+// 3b. Cleanup.
+if (!/monitor\.teardown\(\)/.test(hook)) {
   failures.push(
-    "the probe effect has no teardown that marks itself cancelled — the " +
-      "chain keeps running, and reading, after the component is gone",
+    "the effect does not tear the monitor down, so its timer keeps firing " +
+      "— and reading — after the component is gone",
   );
-} else {
-  const block = teardown.slice(0, teardown.indexOf("};") + 2);
-  if (!/clearTimeout\(timer\)/.test(block)) {
-    failures.push(
-      "the teardown does not clear the pending probe timer, so one more " +
-        "probe fires — and reads — after the screen is gone",
-    );
-  }
-  if (!/epoch \+= 1;/.test(block)) {
-    failures.push(
-      "the teardown does not bump the epoch, so a probe already in flight " +
-        "can still write its verdict into a torn-down effect",
-    );
-  }
 }
 if (!/appStateSubscription\.remove\(\)/.test(hook)) {
-  failures.push(
-    "the AppState listener is not removed on teardown, so listeners " +
-      "accumulate one per mount",
-  );
+  failures.push("the AppState listener is not removed on teardown");
 }
 
-// 3c. Recovery stays the LISTENER's job. If somebody ever makes the probe
-//     responsible for returning to ONLINE, the app can sit offline until
-//     the next poll even though the stream is already back.
-if (!/setState\(\s*snapshot\.metadata\.fromCache \? CONNECTION\.OFFLINE : CONNECTION\.ONLINE,?\s*\)/.test(hook)) {
+// 3c. Recovery stays the LISTENER's job.
+if (!/fromCache[\s\S]{0,80}CONNECTION\.ONLINE/.test(hook)) {
   failures.push(
-    "the snapshot listener no longer restores ONLINE directly from " +
-      "fromCache — recovery would then wait on a poll instead of happening " +
-      "the instant the stream re-establishes",
+    "the snapshot listener no longer restores ONLINE from fromCache — " +
+      "recovery would then wait on a poll",
   );
 }
 

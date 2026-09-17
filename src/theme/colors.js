@@ -20,6 +20,10 @@ export const lightColors = {
   flagRed: '#D64545',
   skyBlue: '#5BC0EB',
   skyGrey: '#B7C0C7',
+  // The read tick. Deliberately not skyBlue, which is the same value in both
+  // palettes and lands at roughly 2:1 on this background — legible as a
+  // decoration, not as a signal somebody is looking for.
+  readReceipt: '#1668C1',
   scheme: 'light',
 };
 
@@ -43,6 +47,9 @@ export const darkColors = {
   flagRed: '#D64545',
   skyBlue: '#5BC0EB',
   skyGrey: '#B7C0C7',
+  // Lighter than its light-mode counterpart, because here it sits on a near
+  // black ground rather than a near white one.
+  readReceipt: '#5BC0EB',
   scheme: 'dark',
 };
 

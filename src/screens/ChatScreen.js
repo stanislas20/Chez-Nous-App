@@ -292,6 +292,45 @@ export function ChatScreen({ route, navigation }) {
       sellerName: otherName ?? t("chatUnknownParticipant"),
     });
   };
+  // When the other participant last opened this conversation, in ms.
+  //
+  // Everything at or before this instant has been in front of them; anything
+  // after it has not. That is the whole read-receipt model — a comparison,
+  // not a flag stored per message.
+  //
+  // Null until they have ever opened the thread, which is the honest state
+  // for a conversation nobody has read yet, and is why the fallback below is
+  // -1 rather than 0: a message whose own timestamp has not resolved yet
+  // must not come out equal to an unread threshold and render as read.
+  const otherLastReadMillis =
+    otherUid && conversation?.lastReadAt?.[otherUid]?.toMillis
+      ? conversation.lastReadAt[otherUid].toMillis()
+      : null;
+
+  // Three states, and only two of them are ever shown as ticks.
+  //
+  // `createdAt` is a serverTimestamp, so it is null on the sender's own
+  // screen for the moment between the optimistic write and the server's
+  // acknowledgement. That message is in flight: it has not been stored, so
+  // claiming "sent" would be premature and claiming "read" would be false.
+  // It gets the pending clock instead.
+  //
+  // What is deliberately NOT here is a "delivered" state. Nothing in this
+  // app reports that a message reached the other handset — there is no
+  // delivery acknowledgement to read — so a second grey tick would be
+  // decoration that asserts something we have not observed. Two states that
+  // are true beat three where one is invented.
+  const readStateFor = (message) => {
+    const createdMillis = message.createdAt?.toMillis
+      ? message.createdAt.toMillis()
+      : null;
+    if (createdMillis === null) return "pending";
+    if (otherLastReadMillis !== null && createdMillis <= otherLastReadMillis) {
+      return "read";
+    }
+    return "sent";
+  };
+
   const iBlocked = Boolean(user && conversation?.blockedBy?.[user.uid]);
   const blockedByOther = Boolean(
     otherUid && conversation?.blockedBy?.[otherUid],
@@ -551,8 +590,21 @@ export function ChatScreen({ route, navigation }) {
     // No alert: a failed reset shows a stale badge, which is confusing
     // rather than unsafe. It is reported so a systematic failure is visible
     // in Crashlytics instead of only in everybody's badge count.
+    // lastReadAt rides along on the write that was already happening.
+    //
+    // It is what the OTHER participant's ticks are read from, and pairing it
+    // with the unread reset is deliberate: the two can never disagree about
+    // whether this conversation has been read, because they are one write.
+    // A separate write would have introduced a state where the badge is
+    // cleared and the sender still sees one tick, or the reverse.
+    //
+    // One field on one document, not a readAt stamped on every message.
+    // Opening a thread with four hundred messages in it costs the same
+    // single write as opening an empty one, and the sender's side needs no
+    // per-message fan-out to render — it compares timestamps.
     updateDoc(doc(firestore, "conversations", conversationId), {
       [`unreadCount.${user.uid}`]: 0,
+      [`lastReadAt.${user.uid}`]: serverTimestamp(),
     }).catch((error) => {
       reportNonFatal("chatUnreadReset", error, { where: "ChatScreen" });
     });
@@ -924,6 +976,15 @@ export function ChatScreen({ route, navigation }) {
                     <BubbleText mine={isMine}>{item.text}</BubbleText>
                   )}
                 </Bubble>
+                {/* Outside the bubble rather than inside it.
+
+                    An image message is `noPadding` and its MessageImage
+                    fills the bubble edge to edge, so a tick placed inside
+                    would either sit on top of the photograph or force
+                    padding back and reopen the letterboxing the image
+                    bubble exists to avoid. Beside the bubble, aligned to its
+                    bottom, it reads the same for text, photo and voice. */}
+                {isMine ? <ReadReceipt state={readStateFor(item)} /> : null}
               </BubbleRow>
             );
           }}
@@ -1168,8 +1229,59 @@ const CounterpartMetaLabel = styled.Text`
 const BubbleRow = styled.View`
   flex-direction: row;
   justify-content: ${(props) => (props.mine ? "flex-end" : "flex-start")};
+  align-items: flex-end;
   margin-bottom: ${spacing.sm}px;
 `;
+
+const ReceiptSlot = styled.View`
+  width: 18px;
+  margin-left: 4px;
+  margin-bottom: 2px;
+  align-items: center;
+`;
+
+// The sender's own view of what happened to a message: stored, or seen.
+//
+// Only ever rendered beside an outgoing bubble — a tick on a message someone
+// sent YOU would be telling you what you already know, and WhatsApp does not
+// draw one either.
+//
+// The slot keeps its width in every state so a message does not shift
+// sideways by a few pixels at the moment it is read, which is exactly when
+// the reader is looking at it.
+function ReadReceipt({ state }) {
+  const { colors } = useTheme();
+  const { t } = useI18n();
+
+  if (state === "pending") {
+    return (
+      <ReceiptSlot
+        accessibilityLabel={t("chatReceiptPending")}
+        accessible
+      >
+        <Ionicons name="time-outline" size={13} color={colors.textMuted} />
+      </ReceiptSlot>
+    );
+  }
+
+  const read = state === "read";
+  return (
+    <ReceiptSlot
+      accessibilityLabel={read ? t("chatReceiptRead") : t("chatReceiptSent")}
+      accessible
+    >
+      <Ionicons
+        // checkmark-done is the two-tick glyph; checkmark is the single.
+        // Colour is what separates read from sent, and the shape backs it
+        // up, because a receipt that relies on colour alone is unreadable
+        // to the readers most likely to be checking it.
+        name={read ? "checkmark-done" : "checkmark"}
+        size={14}
+        color={read ? colors.readReceipt : colors.textMuted}
+      />
+    </ReceiptSlot>
+  );
+}
 
 const Bubble = styled(Pressable)`
   max-width: 78%;

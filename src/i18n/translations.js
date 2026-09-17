@@ -2628,6 +2628,12 @@ export const translations = {
     chatDelete: "Delete",
     chatBlockUser: "Block user",
     chatUnblockUser: "Unblock user",
+    // Read receipts. Screen-reader labels only — the ticks themselves carry
+    // no text, and a reader who cannot see them has no other way to know
+    // whether the message landed.
+    chatReceiptPending: "Sending",
+    chatReceiptSent: "Sent",
+    chatReceiptRead: "Read",
     chatBlockConfirmTitle: "Block this user?",
     chatBlockConfirmMessage:
       "You won't be able to send or receive messages in this conversation until you unblock them.",
@@ -5804,6 +5810,9 @@ export const translations = {
     chatDelete: "Supprimer",
     chatBlockUser: "Bloquer l'utilisateur",
     chatUnblockUser: "Débloquer l'utilisateur",
+    chatReceiptPending: "Envoi en cours",
+    chatReceiptSent: "Envoyé",
+    chatReceiptRead: "Lu",
     chatBlockConfirmTitle: "Bloquer cet utilisateur ?",
     chatBlockConfirmMessage:
       "Vous ne pourrez plus envoyer ni recevoir de messages dans cette conversation tant que vous ne le débloquez pas.",

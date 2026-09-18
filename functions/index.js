@@ -1228,6 +1228,123 @@ exports.cleanupDeletedListingMedia = onDocumentDeleted(
   },
 );
 
+// ── Chat attachments, when a message is tombstoned ──────────────────────
+//
+// Deleting a message used to leave its photograph or voice note in the
+// bucket forever. Nothing referenced the file afterwards, so it could not be
+// found again without walking the whole bucket, and nothing ever did. That
+// orphan predates tombstoning — the old hard delete had the same hole — and
+// this is where it gets closed.
+//
+// A message stores only the download URL. Unlike a listing, which carries
+// its own `mediaPath`, there is no stored path to trust, so the path has to
+// be recovered from the URL and then PROVEN before anything is deleted.
+// "Recovered from a URL" is exactly the kind of input that turns a cleanup
+// job into a delete-anything primitive, so the proof is the point of this
+// function and the deletion is the easy part.
+//
+// Three things must hold, and all three come from data the SERVER has:
+//
+//   * the URL is a Firebase Storage download URL for THIS bucket
+//   * the decoded object path sits under conversations/{thisConversationId}/
+//   * the file name begins with the uid of the message's sender
+//
+// The last two are not decoration. Without the conversation check, a sender
+// could put another thread's attachment URL on their own message and delete
+// somebody else's photo by deleting their own text. Without the sender
+// check, either participant could delete the other's attachments — Storage
+// itself enforces the same `uid-` prefix on upload, so this mirrors the rule
+// that put the file there.
+//
+// Anything that fails a check is logged and left alone. A cleanup job that
+// is unsure must delete nothing.
+const STORAGE_URL_PREFIX = "https://firebasestorage.googleapis.com/v0/b/";
+
+function chatMediaPath(url, conversationId, senderId) {
+  if (typeof url !== "string" || !url.startsWith(STORAGE_URL_PREFIX)) return null;
+  // .../v0/b/<bucket>/o/<url-encoded path>?alt=media&token=...
+  const afterBucket = url.slice(STORAGE_URL_PREFIX.length);
+  const slash = afterBucket.indexOf("/o/");
+  if (slash === -1) return null;
+  const bucketName = afterBucket.slice(0, slash);
+  if (bucketName !== admin.storage().bucket().name) return null;
+
+  const encoded = afterBucket.slice(slash + 3).split("?")[0];
+  let objectPath;
+  try {
+    objectPath = decodeURIComponent(encoded);
+  } catch {
+    // A malformed escape sequence. Not a path we are willing to guess at.
+    return null;
+  }
+
+  // No traversal, and exactly the two segments the upload path has.
+  if (objectPath.includes("..")) return null;
+  const parts = objectPath.split("/");
+  if (parts.length !== 3) return null;
+  const [root, threadId, fileName] = parts;
+  if (root !== "conversations") return null;
+  if (threadId !== conversationId) return null;
+  if (!senderId || !fileName.startsWith(`${senderId}-`)) return null;
+  return objectPath;
+}
+
+exports.cleanupTombstonedMessageMedia = onDocumentUpdated(
+  "conversations/{conversationId}/messages/{messageId}",
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    if (!before || !after) return;
+
+    // The one transition this cares about. An edit, a read-receipt write, or
+    // a second update to an already-tombstoned message must all do nothing —
+    // which is also what makes a retried event harmless.
+    if (before.deleted === true || after.deleted !== true) return;
+
+    // The BEFORE document, because the tombstone has already stripped the
+    // URL from the after. This is also why the client cannot hand us a path:
+    // the only URL considered is the one that was on the message before the
+    // user touched it.
+    const { conversationId, messageId } = event.params;
+    const candidates = [before.imageUrl, before.audioUrl].filter(Boolean);
+    if (!candidates.length) return;
+
+    const paths = [];
+    for (const url of candidates) {
+      const path = chatMediaPath(url, conversationId, before.senderId);
+      if (path) {
+        paths.push(path);
+      } else {
+        logger.warn(
+          `Message ${conversationId}/${messageId}: attachment URL did not ` +
+            `resolve to a file this message owns; nothing deleted.`,
+        );
+      }
+    }
+    if (!paths.length) return;
+
+    const bucket = admin.storage().bucket();
+    const results = await Promise.allSettled(
+      paths.map((path) => bucket.file(path).delete({ ignoreNotFound: true })),
+    );
+    const failed = results.filter((r) => r.status === "rejected").length;
+    logger.info(
+      `Message ${conversationId}/${messageId} tombstoned: removed ${
+        paths.length - failed
+      }/${paths.length} attachment(s).`,
+    );
+    if (failed) {
+      // Logged, not thrown. The tombstone has already landed and the message
+      // is gone from both screens; a function retrying forever over a file
+      // is noise rather than something anybody can act on.
+      logger.warn(
+        `Message ${conversationId}/${messageId}: ${failed} attachment(s) ` +
+          `could not be removed and are now orphaned.`,
+      );
+    }
+  },
+);
+
 // Firestore caps a batched write at 500 operations.
 const FIRESTORE_BATCH_LIMIT = 500;
 

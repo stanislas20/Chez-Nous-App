@@ -12,15 +12,18 @@ import {
   Animated,
   AppState,
   FlatList,
+  Modal,
   PanResponder,
   Platform,
   Pressable,
+  Share,
 } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ImageLightbox } from "../components/ImageLightbox";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import * as Clipboard from "expo-clipboard";
 import { ensureCameraAccess } from "../utils/mediaAccess";
 import {
   RecordingPresets,
@@ -34,7 +37,7 @@ import {
 import {
   addDoc,
   collection,
-  deleteDoc,
+  deleteField,
   doc,
   getDocs,
   increment,
@@ -222,6 +225,93 @@ function VoiceMessageBubble({ uri, mine, knownDuration }) {
       </VoiceTrackColumn>
     </VoiceContainer>
   );
+}
+
+// ── What a message IS ──────────────────────────────────────────────────
+//
+// There is no `type` field on a message document and there never was: a
+// photo is a message carrying imageUrl, a voice note carries audioUrl, and
+// everything else is text. That worked while rendering was the only thing
+// asking, and it stops working once five actions each need a different
+// answer. So the question is asked in one place instead of re-derived at
+// every call site with a slightly different ternary.
+//
+// A tombstone is checked FIRST and reported as its own kind. Its payload
+// fields are gone, so without this it would answer "text" and offer Copy and
+// Edit on a message that no longer has anything to copy or edit.
+const MESSAGE_DELETED = "deleted";
+const MESSAGE_TEXT = "text";
+const MESSAGE_IMAGE = "image";
+const MESSAGE_AUDIO = "audio";
+
+function messageKind(message) {
+if (message?.deleted === true) return MESSAGE_DELETED;
+if (message?.imageUrl) return MESSAGE_IMAGE;
+if (message?.audioUrl) return MESSAGE_AUDIO;
+return MESSAGE_TEXT;
+}
+
+// The longest quote a reply carries. Long enough to recognise which message
+// is meant, short enough that it cannot become a second message body
+// smuggled past the composer's own limit — firestore.rules enforces the same
+// number, because this one is a courtesy and that one is the control.
+const REPLY_PREVIEW_MAX = 120;
+
+// Which actions a given message offers, to whoever is looking at it.
+//
+// Returned as data rather than rendered inline, because "can this be edited"
+// is a rule about the message and the viewer, and a rule that lives inside
+// JSX cannot be tested without a renderer. The sheet below maps this to rows;
+// scripts/check-message-actions.js drives it directly.
+//
+// The security note this file must not forget: this decides what is OFFERED,
+// never what is PERMITTED. Firestore rules refuse an edit or a tombstone from
+// anyone but the sender regardless of what these booleans say, which is the
+// property the rules tests assert against the real engine.
+// The immutable quote a reply carries.
+//
+// A snapshot rather than a pointer, so the quote renders with no second read
+// — at fifty messages a live lookup per reply is fifty reads on every open —
+// and so it survives the original being edited or deleted. A quote that
+// vanishes when the quoted message does takes the reply's meaning with it.
+//
+// Deliberately four fields. No download URL (it carries a Storage access
+// token), no display name (it goes stale and belongs to the profile), no
+// timestamp, nothing about the sender beyond their uid.
+function replySnapshot(message) {
+  const kind = messageKind(message);
+  return {
+    messageId: message.id,
+    senderId: message.senderId,
+    type: kind === MESSAGE_DELETED ? MESSAGE_TEXT : kind,
+    textPreview:
+      kind === MESSAGE_TEXT && typeof message.text === "string"
+        ? message.text.slice(0, REPLY_PREVIEW_MAX)
+        : null,
+  };
+}
+
+function actionsFor(message, viewerUid) {
+const kind = messageKind(message);
+const mine = Boolean(viewerUid) && message?.senderId === viewerUid;
+if (kind === MESSAGE_DELETED) {
+  // Nothing to quote, copy, share, edit or delete. The sheet does not open.
+  return { reply: false, copy: false, share: false, edit: false, remove: false };
+}
+const isText = kind === MESSAGE_TEXT;
+const hasText = isText && typeof message?.text === "string" && message.text.trim().length > 0;
+return {
+  reply: true,
+  // Text only, and only when there is text to put on the clipboard.
+  copy: hasText,
+  // Text only for this release. The sole shareable representation of a
+  // photo or a voice note is its Firebase download URL, which carries an
+  // access token — putting that into WhatsApp hands out a credential, so
+  // media Share is deliberately absent rather than half-implemented.
+  share: hasText,
+  edit: mine && hasText,
+  remove: mine,
+};
 }
 
 export function ChatScreen({ route, navigation }) {
@@ -669,7 +759,7 @@ export function ChatScreen({ route, navigation }) {
     // stayed on the conversation they were reading.
   }, [conversationId, user, latestIncomingId, isFocused, appActive]);
 
-  const updateLastMessage = async ({ messageType, preview }) => {
+  const updateLastMessage = async ({ messageId, messageType, preview }) => {
     const otherParticipant = conversation.participantIds.find(
       (id) => id !== user.uid,
     );
@@ -678,33 +768,244 @@ export function ChatScreen({ route, navigation }) {
       lastMessageType: messageType,
       lastMessageAt: serverTimestamp(),
       lastMessageSenderId: user.uid,
+      // New. Editing or deleting a message has to know whether it is the one
+      // the conversation list is showing, and until now nothing on the thread
+      // said which message that was.
+      lastMessageId: messageId ?? null,
       [`unreadCount.${otherParticipant}`]: increment(1),
     });
   };
 
+  // ── Keeping the conversation list honest ───────────────────────────────
+  //
+  // Editing or tombstoning the newest message has to be reflected on the
+  // thread document, or the inbox goes on showing text that no longer exists
+  // — which for a deleted message is the whole point of deleting it.
+  //
+  // The test is identity, not time. Comparing createdAt to lastMessageAt
+  // looks equivalent and is not: between reading the thread and writing the
+  // repair, the other person can send a message, and a timestamp comparison
+  // would then overwrite THEIR newer preview with the repair for an older
+  // one. lastMessageId makes the question exact.
+  //
+  // LEGACY THREADS: conversations whose newest message predates this field
+  // have no lastMessageId, and nothing is backfilled. For those the repair is
+  // SKIPPED rather than guessed — an inbox row that is briefly stale is a
+  // smaller fault than one that silently clobbers a newer message's preview,
+  // and it corrects itself the moment either person sends anything. Every
+  // message sent from this build carries the id, so the gap closes by use.
+  const repairPreviewFor = async (message, { text: nextText, deleted } = {}) => {
+    if (!message?.id || !conversation) return;
+    if (conversation.lastMessageId !== message.id) return;
+    try {
+      await updateDoc(doc(firestore, "conversations", conversationId), {
+        // Deliberately not touching lastMessageAt, lastMessageSenderId or
+        // unreadCount: the message is the same message, sent at the same
+        // moment, by the same person, and already counted. Only what the row
+        // SAYS changes.
+        lastMessage: deleted ? null : (nextText ?? null),
+        lastMessageType: deleted ? "deleted" : "text",
+      });
+    } catch (error) {
+      // The message itself is already edited or gone; a stale inbox row is
+      // worth reporting but not worth failing the action the user asked for.
+      reportNonFatal("chatRepairPreview", error, { where: "ChatScreen" });
+    }
+  };
+
+  // ── The long-press sheet ───────────────────────────────────────────────
+  //
+  // One piece of state, holding the message whose actions are open. Null is
+  // closed. The alternative — a boolean plus a separate "which message" —
+  // can disagree with itself, and an action sheet that is open against the
+  // wrong message deletes the wrong message.
+  const [actionMessage, setActionMessage] = useState(null);
+  // What the composer is doing: quoting something, or rewriting something.
+  // Mutually exclusive by construction, because both own the same text box.
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [editingMessage, setEditingMessage] = useState(null);
+
+  // A clipboard write is invisible, so Copy says so. Cleared on a timer that
+  // is cancelled on unmount, because a setState after the screen is gone is
+  // the classic way a toast outlives its screen.
+  const [toast, setToast] = useState(null);
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(null), 1800);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const closeActions = () => setActionMessage(null);
+
+  const openActions = (message) => {
+    // A tombstone has no actions, so it has no sheet. Opening an empty sheet
+    // on a long press reads as a bug rather than as "there is nothing here".
+    if (messageKind(message) === MESSAGE_DELETED) return;
+    setActionMessage(message);
+  };
+
+  // The sheet's rows, from the single source of truth for visibility. Built
+  // here rather than inline in JSX so the sheet renders a list and nothing
+  // decides eligibility twice.
+  const sheetActions = actionsFor(actionMessage, user?.uid);
+  const actionRows = [
+    sheetActions.reply && {
+      key: "reply",
+      icon: "arrow-undo-outline",
+      label: t("chatActionReply"),
+      onPress: () => handleReply(actionMessage),
+    },
+    sheetActions.copy && {
+      key: "copy",
+      icon: "copy-outline",
+      label: t("chatActionCopy"),
+      onPress: () => handleCopy(actionMessage),
+    },
+    sheetActions.share && {
+      key: "share",
+      icon: "share-outline",
+      label: t("chatActionShare"),
+      onPress: () => handleShare(actionMessage),
+    },
+    sheetActions.edit && {
+      key: "edit",
+      icon: "create-outline",
+      label: t("chatActionEdit"),
+      onPress: () => handleStartEdit(actionMessage),
+    },
+    sheetActions.remove && {
+      key: "delete",
+      icon: "trash-outline",
+      label: t("chatDelete"),
+      destructive: true,
+      onPress: () => handleDeleteMessage(actionMessage),
+    },
+  ].filter(Boolean);
+
+  const handleReply = (message) => {
+    closeActions();
+    // Quoting and editing both own the composer; starting one cancels the
+    // other rather than leaving the text box claimed by two things at once.
+    setEditingMessage(null);
+    setReplyingTo(message);
+  };
+
+  const handleCopy = async (message) => {
+    closeActions();
+    const value = typeof message?.text === "string" ? message.text : "";
+    if (!value) return;
+    try {
+      // The visible text and nothing else — no id, no sender, no timestamp.
+      await Clipboard.setStringAsync(value);
+      setToast(t("messageCopied"));
+    } catch (error) {
+      reportNonFatal("chatCopyMessage", error, { where: "ChatScreen" });
+    }
+  };
+
+  const handleShare = async (message) => {
+    closeActions();
+    const value = typeof message?.text === "string" ? message.text : "";
+    if (!value) return;
+    try {
+      // The message text alone. Not the document id, not the sender uid, and
+      // for media not the download URL — that carries a Storage access token,
+      // which is why Share is offered for text only in this release.
+      await Share.share({ message: value });
+    } catch {
+      // Dismissing the share sheet rejects on some platforms. Not an error.
+    }
+  };
+
+  const handleStartEdit = (message) => {
+    closeActions();
+    setReplyingTo(null);
+    setEditingMessage(message);
+    setText(typeof message?.text === "string" ? message.text : "");
+  };
+
+  const cancelEdit = () => {
+    setEditingMessage(null);
+    setText("");
+  };
+
+  const handleSaveEdit = async () => {
+    const message = editingMessage;
+    const next = text.trim();
+    if (!message || !next) return;
+    // Nothing changed: close, and do not spend a write stamping editedAt on
+    // a message whose text is identical.
+    if (next === message.text) {
+      cancelEdit();
+      return;
+    }
+    setEditingMessage(null);
+    setText("");
+    try {
+      // Same document, so the id, senderId, createdAt, replyTo, ordering and
+      // both read receipts are untouched. sendMessagePush is onDocumentCreated,
+      // so this fires no notification, and unreadCount is only ever
+      // incremented by updateLastMessage on a send — which is why editing
+      // cannot re-notify or re-unread anybody without new code to do it.
+      await updateDoc(
+        doc(firestore, "conversations", conversationId, "messages", message.id),
+        { text: next, editedAt: serverTimestamp() },
+      );
+      await repairPreviewFor(message, { text: next });
+    } catch (error) {
+      reportNonFatal("chatEditMessage", error, { where: "ChatScreen" });
+      Alert.alert(t("errorTitle"), t("messageEditFailed"));
+    }
+  };
+
   const handleDeleteMessage = (message) => {
+    closeActions();
     if (message.senderId !== user?.uid) return;
     Alert.alert(t("chatDeleteMessageTitle"), t("chatDeleteMessageConfirm"), [
       { text: t("cancel"), style: "cancel" },
       {
         text: t("chatDelete"),
         style: "destructive",
-        onPress: () => {
-          deleteDoc(
-            doc(
-              firestore,
-              "conversations",
-              conversationId,
-              "messages",
-              message.id,
-            ),
-          ).catch((error) => {
+        onPress: async () => {
+          try {
+            // A tombstone rather than a deleteDoc.
+            //
+            // Removing the document leaves a hole: replies quoting it still
+            // render from their snapshot, but the historical pages of this
+            // thread are read once with getDocs and never watched again, so a
+            // deleted older message stayed on screen until the thread was
+            // reopened. The tombstone updates in place, which the live window
+            // shows immediately and a reopened thread renders correctly.
+            //
+            // The payload fields go in the same write that sets the flag.
+            // Leaving them would mean a "deleted" message whose text is still
+            // readable by anything that queries the collection, which is not
+            // deletion, and firestore.rules refuses that shape anyway.
+            await updateDoc(
+              doc(firestore, "conversations", conversationId, "messages", message.id),
+              {
+                deleted: true,
+                deletedAt: serverTimestamp(),
+                text: deleteField(),
+                imageUrl: deleteField(),
+                audioUrl: deleteField(),
+                audioDuration: deleteField(),
+                editedAt: deleteField(),
+              },
+            );
+            // The attachment itself is removed by cleanupTombstonedMessageMedia
+            // in functions/index.js, which reads the URL off the BEFORE
+            // document and proves the path belongs to this conversation and
+            // this sender before deleting anything. The client never names a
+            // Storage path.
+            await repairPreviewFor(message, { deleted: true });
+          } catch (error) {
             // The message stays on everybody's screen. Saying so is the
             // difference between "it did not delete" and "it deleted and
             // came back".
             reportNonFatal("chatDeleteMessage", error, { where: "ChatScreen" });
             Alert.alert(t("errorTitle"), t("messageDeleteFailed"));
-          });
+          }
         },
       },
     ]);
@@ -716,15 +1017,22 @@ export function ChatScreen({ route, navigation }) {
     setText("");
     setIsSending(true);
     try {
-      await addDoc(
+      const quoted = replyingTo;
+      setReplyingTo(null);
+      const created = await addDoc(
         collection(firestore, "conversations", conversationId, "messages"),
         {
           senderId: user.uid,
           text: messageText,
           createdAt: serverTimestamp(),
+          ...(quoted ? { replyTo: replySnapshot(quoted) } : {}),
         },
       );
-      await updateLastMessage({ messageType: "text", preview: messageText });
+      await updateLastMessage({
+        messageId: created.id,
+        messageType: "text",
+        preview: messageText,
+      });
     } catch (error) {
       Alert.alert(t("errorChatFailedTitle"), t("errorChatFailed"));
     } finally {
@@ -763,15 +1071,22 @@ export function ChatScreen({ route, navigation }) {
       });
       const imageUrl = await getDownloadURL(storageRef);
 
-      await addDoc(
+      const quoted = replyingTo;
+      setReplyingTo(null);
+      const created = await addDoc(
         collection(firestore, "conversations", conversationId, "messages"),
         {
           senderId: user.uid,
           imageUrl,
           createdAt: serverTimestamp(),
+          ...(quoted ? { replyTo: replySnapshot(quoted) } : {}),
         },
       );
-      await updateLastMessage({ messageType: "image", preview: null });
+      await updateLastMessage({
+        messageId: created.id,
+        messageType: "image",
+        preview: null,
+      });
     } catch (error) {
       Alert.alert(t("errorChatFailedTitle"), t("errorUploadFailed"));
     } finally {
@@ -903,16 +1218,23 @@ export function ChatScreen({ route, navigation }) {
       });
       const audioUrl = await getDownloadURL(storageRef);
 
-      await addDoc(
+      const quoted = replyingTo;
+      setReplyingTo(null);
+      const created = await addDoc(
         collection(firestore, "conversations", conversationId, "messages"),
         {
           senderId: user.uid,
           audioUrl,
           audioDuration: duration,
           createdAt: serverTimestamp(),
+          ...(quoted ? { replyTo: replySnapshot(quoted) } : {}),
         },
       );
-      await updateLastMessage({ messageType: "audio", preview: null });
+      await updateLastMessage({
+        messageId: created.id,
+        messageType: "audio",
+        preview: null,
+      });
       setRecordedClip(null);
     } catch (error) {
       Alert.alert(t("errorChatFailedTitle"), t("errorUploadFailed"));
@@ -984,6 +1306,7 @@ export function ChatScreen({ route, navigation }) {
           contentContainerStyle={{ padding: spacing.md }}
           renderItem={({ item, index }) => {
             const isMine = item.senderId === user?.uid;
+            const itemKind = messageKind(item);
 
             // The list is INVERTED: index 0 is the newest message and sits at
             // the bottom, so index + 1 is the one visually ABOVE this a one,
@@ -1041,13 +1364,46 @@ export function ChatScreen({ route, navigation }) {
                       ? () => setLightboxUri(item.imageUrl)
                       : undefined
                   }
-                  onLongPress={
-                    isMine ? () => handleDeleteMessage(item) : undefined
-                  }
+                  onLongPress={() => openActions(item)}
                   delayLongPress={350}
-                  disabled={!isMine && !item.imageUrl}
+                  /* Previously `!isMine && !item.imageUrl`, which disabled a
+                     received text bubble outright — and a disabled Pressable
+                     swallows the long press as well as the tap, so Reply,
+                     Copy and Share could never reach a message somebody sent
+                     you.
+
+                     Every bubble is now pressable, and the two gestures are
+                     kept apart by what each one is given: onPress exists only
+                     where a tap already meant something (open the photo), so
+                     a received text bubble long-presses without gaining a tap
+                     action it never had. A tombstone is inert again — there
+                     is nothing to open and nothing to act on. */
+                  disabled={itemKind === MESSAGE_DELETED}
                 >
-                  {item.imageUrl ? (
+                  {/* The quote, above the content, from the snapshot stored on
+                      this message — never a lookup of the original, which may
+                      have been edited or deleted since. */}
+                  {item.replyTo ? (
+                    <ReplyQuote mine={isMine}>
+                      <ReplyQuoteWho mine={isMine} numberOfLines={1}>
+                        {item.replyTo.senderId === user?.uid
+                          ? t("chatReplyToYou")
+                          : (otherName ?? t("chatUnknownParticipant"))}
+                      </ReplyQuoteWho>
+                      <ReplyQuoteText mine={isMine} numberOfLines={2}>
+                        {item.replyTo.type === "image"
+                          ? t("chatReplyPhoto")
+                          : item.replyTo.type === "audio"
+                            ? t("chatReplyVoice")
+                            : (item.replyTo.textPreview ?? "")}
+                      </ReplyQuoteText>
+                    </ReplyQuote>
+                  ) : null}
+                  {itemKind === MESSAGE_DELETED ? (
+                    <DeletedText mine={isMine}>
+                      {t("chatMessageDeleted")}
+                    </DeletedText>
+                  ) : item.imageUrl ? (
                     <MessageImage
                       source={{ uri: item.imageUrl }}
                       resizeMode="contain"
@@ -1059,7 +1415,14 @@ export function ChatScreen({ route, navigation }) {
                       knownDuration={item.audioDuration}
                     />
                   ) : (
-                    <BubbleText mine={isMine}>{item.text}</BubbleText>
+                    <BubbleText mine={isMine}>
+                      {item.text}
+                      {item.editedAt ? (
+                        <EditedMark mine={isMine}>
+                          {`  ${t("chatMessageEdited")}`}
+                        </EditedMark>
+                      ) : null}
+                    </BubbleText>
                   )}
                 </Bubble>
                 {/* Outside the bubble rather than inside it.
@@ -1138,6 +1501,59 @@ export function ChatScreen({ route, navigation }) {
             ) : null}
           </BlockedBanner>
         ) : (
+          <>
+          {/* Quoting: a compact strip above the composer naming what is being
+              replied to, with an explicit way out. Above the InputRow rather
+              than inside it, so the composer's own layout — attach, grow,
+              send — is untouched. */}
+          {replyingTo ? (
+            <ComposerContextBar>
+              <ComposerContextRule />
+              <ComposerContextBody>
+                <ComposerContextWho numberOfLines={1}>
+                  {replyingTo.senderId === user?.uid
+                    ? t("chatReplyToYou")
+                    : (otherName ?? t("chatUnknownParticipant"))}
+                </ComposerContextWho>
+                <ComposerContextText numberOfLines={1}>
+                  {messageKind(replyingTo) === MESSAGE_IMAGE
+                    ? t("chatReplyPhoto")
+                    : messageKind(replyingTo) === MESSAGE_AUDIO
+                      ? t("chatReplyVoice")
+                      : (replyingTo.text ?? "")}
+                </ComposerContextText>
+              </ComposerContextBody>
+              <Pressable
+                onPress={() => setReplyingTo(null)}
+                hitSlop={10}
+                accessibilityLabel={t("cancel")}
+              >
+                <Ionicons name="close" size={18} color={colors.textMuted} />
+              </Pressable>
+            </ComposerContextBar>
+          ) : null}
+          {/* Editing: the same strip, saying so. Without it the composer is
+              pre-filled with old text and nothing explains why. */}
+          {editingMessage ? (
+            <ComposerContextBar>
+              <ComposerContextRule editing />
+              <ComposerContextBody>
+                <ComposerContextWho numberOfLines={1}>
+                  {t("chatEditingMessage")}
+                </ComposerContextWho>
+                <ComposerContextText numberOfLines={1}>
+                  {editingMessage.text ?? ""}
+                </ComposerContextText>
+              </ComposerContextBody>
+              <Pressable
+                onPress={cancelEdit}
+                hitSlop={10}
+                accessibilityLabel={t("cancel")}
+              >
+                <Ionicons name="close" size={18} color={colors.textMuted} />
+              </Pressable>
+            </ComposerContextBar>
+          ) : null}
           <InputRow>
             {pendingImage ? (
               /* Chosen but not sent. Deliberately the same shape as the
@@ -1266,9 +1682,16 @@ export function ChatScreen({ route, navigation }) {
                   maxLength={CHAT_MESSAGE_MAX}
                 />
                 {text.trim() ? (
-                  <SendButton onPress={handleSend} disabled={isSending}>
+                  <SendButton
+                    /* The same button saves an edit. A second one beside it
+                       would mean two send affordances on a row with space for
+                       one, and an edit IS the send for a message already on
+                       screen. */
+                    onPress={editingMessage ? handleSaveEdit : handleSend}
+                    disabled={isSending}
+                  >
                     <Ionicons
-                      name="send"
+                      name={editingMessage ? "checkmark" : "send"}
                       size={18}
                       color={colors.textInverse}
                     />
@@ -1288,8 +1711,52 @@ export function ChatScreen({ route, navigation }) {
               </>
             )}
           </InputRow>
+          </>
         )}
       </Container>
+      {/* ── The long-press sheet ──────────────────────────────────────
+          Rendered from actionsFor(), so what a row offers and what the
+          tests assert come from one function rather than two descriptions
+          of a single intention that can drift apart. */}
+      <Modal
+        visible={Boolean(actionMessage)}
+        transparent
+        animationType="fade"
+        onRequestClose={closeActions}
+      >
+        <SheetBackdrop onPress={closeActions}>
+          {/* A tap inside the sheet must not dismiss it: the backdrop is
+              the dismiss target, the sheet is not. */}
+          <ActionSheet onStartShouldSetResponder={() => true}>
+            <SheetGrabber />
+            {actionRows.map((row) => (
+              <ActionRow
+                key={row.key}
+                onPress={row.onPress}
+                accessibilityRole="button"
+                accessibilityLabel={row.label}
+              >
+                <Ionicons
+                  name={row.icon}
+                  size={20}
+                  color={row.destructive ? colors.error : colors.text}
+                />
+                <ActionLabel destructive={row.destructive}>
+                  {row.label}
+                </ActionLabel>
+              </ActionRow>
+            ))}
+          </ActionSheet>
+        </SheetBackdrop>
+      </Modal>
+      {/* Copy has to say something. A clipboard write is invisible, and a
+          silent action reads as one that did not happen. Local to this
+          screen rather than a new app-wide toast system. */}
+      {toast ? (
+        <ToastPill pointerEvents="none">
+          <ToastText>{toast}</ToastText>
+        </ToastPill>
+      ) : null}
       {/* One image at a time: a chat is a stream rather than a gallery, so
           there is no sensible "next photo" to page to — the message above
           might be a voice note. ImageLightbox takes an array and shows its
@@ -1471,6 +1938,142 @@ const Bubble = styled(Pressable)`
 const BubbleText = styled.Text`
   ${type.body}
   color: ${(props) => (props.mine ? props.theme.textInverse : props.theme.text)};
+`;
+
+// The quoted message, inside the bubble and above its content.
+//
+// A left rule and a wash rather than a box: the quote has to read as
+// subordinate to the message carrying it, and a second bordered card inside
+// a bubble reads as two messages.
+// ── The long-press sheet ───────────────────────────────────────────────
+const SheetBackdrop = styled(Pressable)`
+  flex: 1;
+  background-color: rgba(0, 0, 0, 0.45);
+  justify-content: flex-end;
+`;
+
+const ActionSheet = styled.View`
+  background-color: ${(props) => props.theme.surface};
+  border-top-left-radius: ${radius.xl}px;
+  border-top-right-radius: ${radius.xl}px;
+  padding-top: ${spacing.sm}px;
+  /* Room for the home indicator. The sheet is the bottom-most thing on
+     screen, so without this the last row sits under the gesture bar. */
+  padding-bottom: ${spacing.xl}px;
+`;
+
+const SheetGrabber = styled.View`
+  width: 38px;
+  height: 4px;
+  border-radius: 2px;
+  align-self: center;
+  margin-bottom: ${spacing.sm}px;
+  background-color: ${(props) => props.theme.border};
+`;
+
+const ActionRow = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.md}px;
+  padding: ${spacing.md}px ${spacing.lg}px;
+`;
+
+const ActionLabel = styled.Text`
+  ${type.body}
+  color: ${(props) => (props.destructive ? props.theme.error : props.theme.text)};
+`;
+
+// ── Quoting / editing, above the composer ──────────────────────────────
+const ComposerContextBar = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.sm}px;
+  padding: ${spacing.sm}px ${spacing.md}px;
+  background-color: ${(props) => props.theme.surfaceAlt};
+`;
+
+const ComposerContextRule = styled.View`
+  width: 3px;
+  align-self: stretch;
+  border-radius: 2px;
+  background-color: ${(props) =>
+    props.editing ? props.theme.textMuted : props.theme.primary};
+`;
+
+// min-width: 0 so a long quote ellipsises instead of pushing the X off the
+// right edge — the same flexbox trap the reviewer row hit.
+const ComposerContextBody = styled.View`
+  flex: 1;
+  min-width: 0;
+`;
+
+const ComposerContextWho = styled.Text`
+  ${type.caption}
+  font-weight: 600;
+  color: ${(props) => props.theme.primary};
+`;
+
+const ComposerContextText = styled.Text`
+  ${type.caption}
+  color: ${(props) => props.theme.textMuted};
+`;
+
+// ── Copy confirmation ──────────────────────────────────────────────────
+const ToastPill = styled.View`
+  position: absolute;
+  bottom: 96px;
+  align-self: center;
+  padding: ${spacing.sm}px ${spacing.lg}px;
+  border-radius: ${radius.xl}px;
+  background-color: rgba(0, 0, 0, 0.82);
+`;
+
+const ToastText = styled.Text`
+  ${type.caption}
+  color: #ffffff;
+`;
+
+const ReplyQuote = styled.View`
+  border-left-width: 3px;
+  border-left-color: ${(props) =>
+    props.mine ? "rgba(255,255,255,0.65)" : props.theme.primary};
+  background-color: ${(props) =>
+    props.mine ? "rgba(255,255,255,0.14)" : props.theme.surfaceAlt};
+  border-radius: 6px;
+  padding: 5px 8px;
+  margin-bottom: 5px;
+  /* An image bubble is noPadding, so the quote supplies its own inset or it
+     sits flush against the photograph's edge. */
+  margin-horizontal: ${(props) => (props.flush ? spacing.sm : 0)}px;
+`;
+
+const ReplyQuoteWho = styled.Text`
+  ${type.caption}
+  font-weight: 600;
+  color: ${(props) => (props.mine ? props.theme.textInverse : props.theme.primary)};
+`;
+
+const ReplyQuoteText = styled.Text`
+  ${type.caption}
+  color: ${(props) =>
+    props.mine ? "rgba(255,255,255,0.85)" : props.theme.textMuted};
+`;
+
+// A tombstone. Italic and muted, because it is the app speaking about a
+// message rather than the message itself.
+const DeletedText = styled.Text`
+  ${type.body}
+  font-style: italic;
+  color: ${(props) =>
+    props.mine ? "rgba(255,255,255,0.75)" : props.theme.textMuted};
+`;
+
+// Rendered inside BubbleText as a trailing span, so it wraps with the last
+// line instead of claiming a line of its own after a one-word message.
+const EditedMark = styled.Text`
+  ${type.caption}
+  color: ${(props) =>
+    props.mine ? "rgba(255,255,255,0.7)" : props.theme.textMuted};
 `;
 
 const MessageImage = styled.Image`

@@ -109,26 +109,55 @@ if (!bubble) {
     );
   }
 
-  // 3. Delete stays the sender's alone.
+  // 3. Delete stays the sender's alone — but the MECHANISM moved, so this
+  //    check moved with it.
+  //
+  //    Long press used to mean "delete", so gating the gesture on isMine was
+  //    the whole control and this file asserted exactly that. Long press now
+  //    opens an action sheet carrying Reply, Copy and Share, which a
+  //    recipient is entitled to use, so gating the GESTURE on isMine would
+  //    put those out of reach on every message somebody sends you — the same
+  //    over-broad suppression this file was written about.
+  //
+  //    Eligibility therefore moved inside: actionsFor() decides which rows a
+  //    message offers, and Firestore's update rule refuses an edit or a
+  //    tombstone from anyone but the sender whatever the sheet shows. The
+  //    property is unchanged and is asserted in two better places —
+  //    check-message-actions.js drives actionsFor directly, and rules.test.js
+  //    runs the refusal against the real engine. What belongs here is that
+  //    the sheet is what the gesture opens, and that the delete handler still
+  //    refuses a message the reader did not send.
   if (!bubble.props.onLongPress) {
     failures.push(
-      "the chat bubble has no onLongPress — a sender can no longer delete " +
-        "their own message",
+      "the chat message bubble has no onLongPress — the action sheet cannot " +
+        "be opened, so Reply, Copy, Share, Edit and Delete are unreachable",
     );
-  } else if (!/isMine/.test(onLongPress)) {
+  } else if (!/openActions/.test(onLongPress)) {
     failures.push(
-      "the chat bubble's onLongPress is not gated on isMine — the recipient " +
-        "can long-press somebody else's message into the delete prompt",
+      "the chat bubble's onLongPress does not open the action sheet — long " +
+        "press is the only way into these actions",
+    );
+  }
+  if (!/message\.senderId !== user\?\.uid/.test(source)) {
+    failures.push(
+      "handleDeleteMessage no longer refuses a message the reader did not " +
+        "send — the sheet already hides Delete there, but a guard that " +
+        "depends only on what was rendered is not a guard",
     );
   }
 
-  // 4. And `disabled` must not take the tap away again. `!isMine` on its own
-  //    is exactly what suppressed it before.
-  if (bubble.props.disabled && !/imageUrl/.test(disabled)) {
+  // 4. And `disabled` must not take the tap away again.
+  //
+  //    `!isMine` on its own is what suppressed it before, and the fix is no
+  //    longer "also consider imageUrl" but "do not consider who sent it at
+  //    all": every live bubble is pressable so a received message can be
+  //    long-pressed, and only a tombstone is inert.
+  if (bubble.props.disabled && /isMine/.test(disabled)) {
     failures.push(
-      `the chat bubble's disabled is \`${disabled}\` and does not consider ` +
-        `imageUrl — an image sent BY THE OTHER PARTICIPANT cannot be tapped, ` +
-        `which is the half of the defect that affected the recipient`,
+      "the chat bubble's disabled consults isMine — a disabled Pressable " +
+        "swallows the long press as well as the tap, so this takes the image " +
+        "viewer away from the recipient AND puts Reply, Copy and Share out " +
+        "of reach on every received message",
     );
   }
 }

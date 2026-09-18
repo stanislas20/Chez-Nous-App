@@ -1532,6 +1532,267 @@ async function main() {
     ),
   );
 
+  // ── Message long-press actions: edit, tombstone, replies ───────────────
+  //
+  // These are the rules that did not exist until this feature: messages had
+  // create and delete and no update at all. Everything below is an attempt to
+  // misuse the new update rule, because ChatScreen decides what is OFFERED
+  // and this decides what is POSSIBLE — and only one of those runs on the
+  // attacker's phone.
+  //
+  // ONE DOCUMENT PER CASE, and that is not tidiness. The first version of
+  // this block reused a handful of documents, and a mutation run exposed
+  // what that costs: the senderId attack SUCCEEDED against a weakened rule,
+  // rewrote the shared document's owner, and every later case against it
+  // then failed on ownership instead of on the property it names. Six tests
+  // went green while testing nothing. Fresh ids mean a case can only pass
+  // for its own reason.
+  const seedMessages = {};
+  const seedText = (id, sender, extra = {}) => {
+    seedMessages[id] = {
+      senderId: sender,
+      text: "original",
+      createdAt: Timestamp.fromDate(new Date("2026-01-01")),
+      ...extra,
+    };
+  };
+  seedText("edOwn", BUYER);
+  seedText("edSender", BUYER);
+  seedText("edCreated", BUYER);
+  seedText("edAttach", BUYER);
+  seedText("edLong", BUYER);
+  seedText("edTheirs", SELLER);
+  seedText("tsOwn", BUYER);
+  seedText("tsTheirs", SELLER);
+  seedText("tsKeepText", BUYER);
+  seedText("tsOutsider", BUYER);
+  seedText("edOutsider", BUYER);
+  seedText("edQuoted", BUYER, {
+    replyTo: { messageId: "m1", senderId: SELLER, type: "text", textPreview: "hi" },
+  });
+  seedMessages.tsPhoto = {
+    senderId: BUYER,
+    imageUrl: "https://example/x.jpg",
+    createdAt: Timestamp.fromDate(new Date("2026-01-01")),
+  };
+  seedMessages.edVoice = {
+    senderId: BUYER,
+    audioUrl: "https://example/x.m4a",
+    audioDuration: 3,
+    createdAt: Timestamp.fromDate(new Date("2026-01-01")),
+  };
+  for (const id of ["tombUndelete", "tombEdit", "tombRestore"]) {
+    seedMessages[id] = {
+      senderId: BUYER,
+      deleted: true,
+      deletedAt: Timestamp.fromDate(new Date("2026-01-02")),
+      createdAt: Timestamp.fromDate(new Date("2026-01-01")),
+    };
+  }
+
+  await env.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await Promise.all(
+      Object.entries(seedMessages).map(([id, data]) =>
+        setDoc(doc(db, `conversations/thread/messages/${id}`), data),
+      ),
+    );
+  });
+
+  const msg = (id) => doc(asBuyer, `conversations/thread/messages/${id}`);
+
+  // The happy paths first. Without these, a rule that simply forbade every
+  // update would pass every assertFails below and look like strictness.
+  await check(
+    "the sender edits their own text message",
+    assertSucceeds(updateDoc(msg("edOwn"), { text: "mended", editedAt: serverTimestamp() })),
+  );
+  await check(
+    "the sender tombstones their own photo message",
+    assertSucceeds(
+      updateDoc(msg("tsPhoto"), {
+        deleted: true,
+        deletedAt: serverTimestamp(),
+        imageUrl: deleteField(),
+      }),
+    ),
+  );
+  await check(
+    "the sender tombstones their own text message",
+    assertSucceeds(
+      updateDoc(msg("tsOwn"), {
+        deleted: true,
+        deletedAt: serverTimestamp(),
+        text: deleteField(),
+      }),
+    ),
+  );
+  await check(
+    "a reply carrying a well-formed snapshot is accepted",
+    assertSucceeds(
+      setDoc(doc(asBuyer, "conversations/thread/messages/r1"), {
+        senderId: BUYER,
+        text: "réponse",
+        createdAt: serverTimestamp(),
+        replyTo: { messageId: "m1", senderId: SELLER, type: "text", textPreview: "bonjour" },
+      }),
+    ),
+  );
+
+  // ── Attacks on EDIT ────────────────────────────────────────────────────
+  await check(
+    "nobody edits another participant's message",
+    assertFails(
+      updateDoc(doc(asSeller, "conversations/thread/messages/edOwn"), {
+        text: "put words in their mouth",
+        editedAt: serverTimestamp(),
+      }),
+    ),
+  );
+  await check(
+    "an edit cannot rewrite senderId",
+    assertFails(
+      updateDoc(msg("edSender"), { senderId: SELLER, text: "x", editedAt: serverTimestamp() }),
+    ),
+  );
+  await check(
+    "an edit cannot move createdAt, which is what orders the thread",
+    assertFails(
+      updateDoc(msg("edCreated"), {
+        createdAt: serverTimestamp(),
+        text: "x",
+        editedAt: serverTimestamp(),
+      }),
+    ),
+  );
+  await check(
+    "a text message cannot gain an attachment by editing",
+    assertFails(
+      updateDoc(msg("edAttach"), {
+        imageUrl: "https://example/evil.jpg",
+        editedAt: serverTimestamp(),
+      }),
+    ),
+  );
+  await check(
+    "an edit longer than 4000 characters is refused",
+    assertFails(
+      updateDoc(msg("edLong"), { text: "x".repeat(4001), editedAt: serverTimestamp() }),
+    ),
+  );
+  await check(
+    "a voice message cannot be converted into text",
+    assertFails(
+      updateDoc(msg("edVoice"), { text: "now I am text", editedAt: serverTimestamp() }),
+    ),
+  );
+  await check(
+    "replyTo cannot be changed after the fact",
+    assertFails(
+      updateDoc(msg("edQuoted"), {
+        replyTo: { messageId: "m1", senderId: SELLER, type: "text", textPreview: "something else" },
+      }),
+    ),
+  );
+  await check(
+    "an outsider cannot edit a message in a thread they are not in",
+    assertFails(
+      updateDoc(doc(asOutsider, "conversations/thread/messages/edOutsider"), {
+        text: "x",
+        editedAt: serverTimestamp(),
+      }),
+    ),
+  );
+
+  // ── Attacks on TOMBSTONE ───────────────────────────────────────────────
+  await check(
+    "nobody tombstones another participant's message",
+    assertFails(
+      updateDoc(doc(asSeller, "conversations/thread/messages/tsOutsider"), {
+        deleted: true,
+        deletedAt: serverTimestamp(),
+        text: deleteField(),
+      }),
+    ),
+  );
+  await check(
+    "a delete that leaves the text readable is not a delete",
+    assertFails(
+      updateDoc(msg("tsKeepText"), { deleted: true, deletedAt: serverTimestamp() }),
+    ),
+  );
+  await check(
+    "a tombstone cannot be un-deleted",
+    assertFails(updateDoc(msg("tombUndelete"), { deleted: false })),
+  );
+  await check(
+    "a tombstone cannot be edited",
+    assertFails(
+      updateDoc(msg("tombEdit"), { text: "back again", editedAt: serverTimestamp() }),
+    ),
+  );
+  await check(
+    "a tombstone cannot have its payload restored",
+    assertFails(
+      updateDoc(msg("tombRestore"), {
+        text: "the original text",
+        imageUrl: "https://example/x.jpg",
+      }),
+    ),
+  );
+
+  // ── Attacks on the REPLY snapshot ──────────────────────────────────────
+  await check(
+    "a reply cannot attribute its quote to somebody outside the thread",
+    assertFails(
+      setDoc(doc(asBuyer, "conversations/thread/messages/spoof"), {
+        senderId: BUYER,
+        text: "x",
+        createdAt: serverTimestamp(),
+        replyTo: { messageId: "m1", senderId: OUTSIDER, type: "text", textPreview: "hi" },
+      }),
+    ),
+  );
+  await check(
+    "a reply preview cannot exceed 120 characters",
+    assertFails(
+      setDoc(doc(asBuyer, "conversations/thread/messages/longquote"), {
+        senderId: BUYER,
+        text: "x",
+        createdAt: serverTimestamp(),
+        replyTo: { messageId: "m1", senderId: SELLER, type: "text", textPreview: "x".repeat(121) },
+      }),
+    ),
+  );
+  await check(
+    "a reply cannot smuggle extra keys — a download URL, for instance",
+    assertFails(
+      setDoc(doc(asBuyer, "conversations/thread/messages/extraquote"), {
+        senderId: BUYER,
+        text: "x",
+        createdAt: serverTimestamp(),
+        replyTo: {
+          messageId: "m1",
+          senderId: SELLER,
+          type: "text",
+          textPreview: "hi",
+          imageUrl: "https://firebasestorage/o/secret?token=leak",
+        },
+      }),
+    ),
+  );
+  await check(
+    "a reply type outside text/image/audio is refused",
+    assertFails(
+      setDoc(doc(asBuyer, "conversations/thread/messages/badtype"), {
+        senderId: BUYER,
+        text: "x",
+        createdAt: serverTimestamp(),
+        replyTo: { messageId: "m1", senderId: SELLER, type: "system", textPreview: "hi" },
+      }),
+    ),
+  );
+
   await env.cleanup();
 
   const failed = results.filter(([ok]) => !ok);

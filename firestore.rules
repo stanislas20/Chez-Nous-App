@@ -1011,8 +1011,109 @@ service cloud.firestore {
           // Either direction blocks. That matches what the app shows: the
           // composer disappears for both people, not just for the one who
           // pressed the button.
-          && !conversationBlocked(conversationId);
+          && !conversationBlocked(conversationId)
+          // A reply carries a snapshot of what it quotes, so the quote renders
+          // without a second read and survives the original being deleted. It
+          // is DISPLAY metadata: replyTo.senderId decides whether the quote
+          // says "You" or a name, and nothing else. It is never consulted for
+          // authorisation, here or in the client.
+          //
+          // It still has to be bounded and well-formed, because it is rendered
+          // in the other person's thread. Unbounded it is a second message
+          // body smuggled past the 4000-character limit; unshaped it is a way
+          // to put arbitrary keys into a document the recipient reads. And the
+          // quoted sender must be one of the two people here — not proof of
+          // anything, but it stops a quote being attributed to somebody who
+          // was never in the room.
+          && (!('replyTo' in request.resource.data) || (
+            request.resource.data.replyTo.keys()
+              .hasOnly(['messageId', 'senderId', 'type', 'textPreview'])
+            && request.resource.data.replyTo.keys()
+                 .hasAll(['messageId', 'senderId', 'type'])
+            && request.resource.data.replyTo.messageId is string
+            && request.resource.data.replyTo.messageId.size() > 0
+            && request.resource.data.replyTo.messageId.size() <= 200
+            && request.resource.data.replyTo.senderId in
+               get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds
+            && request.resource.data.replyTo.type in ['text', 'image', 'audio']
+            && (!('textPreview' in request.resource.data.replyTo)
+              || request.resource.data.replyTo.textPreview == null
+              || (request.resource.data.replyTo.textPreview is string
+                && request.resource.data.replyTo.textPreview.size() <= 120))
+          ));
 
+        // ── Editing and deleting your own message ────────────────────
+        //
+        // There was no update rule at all, which is why editing and
+        // tombstoning were impossible rather than merely unimplemented.
+        //
+        // The temptation is one permissive rule — a sender may update their
+        // own message — and it is wrong in a way the UI cannot catch, because
+        // the UI is not what a malicious client runs. With a blanket update a
+        // sender could rewrite a photo message into text, restore the payload
+        // of a message they had deleted, un-delete a tombstone, or repoint
+        // replyTo at somebody else's message after the fact. So update is two
+        // named transitions and nothing else is an update at all.
+        //
+        // Frozen across BOTH: who sent it, when, and what it quotes. replyTo
+        // is immutable after creation because it is the snapshot a reply
+        // renders from, and a mutable quote is a way to make somebody appear
+        // to have said something they did not.
+        function messageIdentityHeld() {
+          return request.resource.data.senderId == resource.data.senderId
+            && request.resource.data.createdAt == resource.data.createdAt
+            && request.resource.data.get('replyTo', null)
+               == resource.data.get('replyTo', null);
+        }
+
+        // A tombstone is final: an absorbing state with no edit, no
+        // un-delete, and no payload coming back.
+        function notDeleted() {
+          return resource.data.get('deleted', false) != true;
+        }
+
+        // EDIT. Text only, and it must already BE text: a message carrying
+        // imageUrl or audioUrl has no text to edit, and letting one gain a
+        // `text` field is the image -> text conversion this forbids.
+        function isTextEdit() {
+          return notDeleted()
+            && !('imageUrl' in resource.data)
+            && !('audioUrl' in resource.data)
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['text', 'editedAt'])
+            && request.resource.data.text is string
+            && request.resource.data.text.size() > 0
+            && request.resource.data.text.size() <= 4000
+            && request.resource.data.editedAt == request.time
+            // hasOnly() already bars these; stated positively so the type
+            // still cannot change if that list is ever widened.
+            && !('imageUrl' in request.resource.data)
+            && !('audioUrl' in request.resource.data)
+            && !('audioDuration' in request.resource.data);
+        }
+
+        // DELETE (tombstone). One direction only, with the payload gone in
+        // the same write. Requiring those fields to be ABSENT afterwards is
+        // what stops a client flagging a message deleted while leaving the
+        // text readable to anything that queries the collection.
+        function isTombstone() {
+          return notDeleted()
+            && request.resource.data.deleted == true
+            && request.resource.data.deletedAt == request.time
+            && !('text' in request.resource.data)
+            && !('imageUrl' in request.resource.data)
+            && !('audioUrl' in request.resource.data)
+            && !('audioDuration' in request.resource.data)
+            && !('editedAt' in request.resource.data)
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['deleted', 'deletedAt', 'text', 'imageUrl',
+                           'audioUrl', 'audioDuration', 'editedAt']);
+        }
+
+        allow update: if request.auth != null
+          && request.auth.uid == resource.data.senderId
+          && messageIdentityHeld()
+          && (isTextEdit() || isTombstone());
         allow delete: if request.auth != null && request.auth.uid == resource.data.senderId;
       }
     }

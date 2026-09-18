@@ -72,12 +72,18 @@ export function ChatListScreen({ navigation }) {
         }
         renderItem={({ item }) => {
           const unread = item.unreadCount?.[user.uid] ?? 0;
+          // "deleted" is written by the chat screen when the newest message is
+          // tombstoned. Without this case the inbox goes on showing the text of
+          // a message the sender has just deleted — the most visible place that
+          // failure could land, and the whole reason deleting it was asked for.
           const previewText =
-            item.lastMessageType === "image"
-              ? t("chatPhotoMessagePreview")
-              : item.lastMessageType === "audio"
-                ? t("chatVoiceMessagePreview")
-                : (item.lastMessage ?? "");
+            item.lastMessageType === "deleted"
+              ? t("chatListDeleted")
+              : item.lastMessageType === "image"
+                ? t("chatPhotoMessagePreview")
+                : item.lastMessageType === "audio"
+                  ? t("chatVoiceMessagePreview")
+                  : (item.lastMessage ?? "");
           return (
             <Row
               onPress={() =>

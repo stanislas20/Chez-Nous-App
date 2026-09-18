@@ -6,6 +6,7 @@ import {
   CONNECTION,
   PROBE_TIMEOUT_MS,
   createConnectivityMonitor,
+  isConnectivityFailure,
 } from "./connectivityMonitor";
 
 // Whether the app can currently reach Firestore, asked of Firestore itself.
@@ -53,7 +54,30 @@ import {
 // The document does not have to exist. A listener on a missing document still
 // resolves — with exists() false and fromCache telling the truth — so this
 // needs no seeding and no write.
-const PROBE_PATH = ["sellerStats", "__connection_probe__"];
+// The id is NOT decoration, and it is not free to choose.
+//
+// This was `__connection_probe__`, and Firestore rejects any identifier
+// matching the reserved __...__ pattern outright:
+//
+//   Resource id "__connection_probe__" is invalid because it is reserved.
+//
+// That poisoned BOTH halves of the detector — the listener errored into
+// UNKNOWN on every launch, and the probe threw invalid-argument every time —
+// so connection detection had never worked in any build. It survived three
+// release candidates because a listener that errors looks exactly like a
+// listener with nothing to say, and the probe that would have exposed it was
+// not running yet for unrelated reasons.
+//
+// The replacement was checked against the real backend before being chosen,
+// unauthenticated, exactly as the app reads it:
+//
+//   getDocFromServer("connection-probe") -> RESOLVED exists()=false fromCache=false
+//   onSnapshot(...)                      -> fromCache=true, then fromCache=false
+//
+// So the document does NOT have to exist. A valid reference to a missing
+// document resolves normally and carries the fromCache metadata this is all
+// built on, which is why no sentinel has been written into production.
+const PROBE_PATH = ["sellerStats", "connection-probe"];
 
 export { CONNECTION };
 
@@ -90,7 +114,14 @@ const probeLog = (message) => {
 function withTimeout(promise, ms) {
   let timer = null;
   const timeout = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error("probe-timeout")), ms);
+    timer = setTimeout(() => {
+      const error = new Error("probe-timeout");
+      // Tagged, because the classifier below must be able to tell OUR
+      // timeout — which is real evidence of unreachability — from a
+      // Firestore error object, which may be evidence of nothing of the kind.
+      error.isProbeTimeout = true;
+      reject(error);
+    }, ms);
   });
   return Promise.race([promise, timeout]).finally(() => {
     if (timer) clearTimeout(timer);
@@ -150,6 +181,7 @@ export function useConnectionState() {
     const monitor = createConnectivityMonitor({
       runProbe: () =>
         withTimeout(getDocFromServer(doc(firestore, ...PROBE_PATH)), PROBE_TIMEOUT_MS),
+      isConnectivityFailure,
       getAppState: () => AppState.currentState,
       setTimeoutFn: setTimeout,
       clearTimeoutFn: clearTimeout,

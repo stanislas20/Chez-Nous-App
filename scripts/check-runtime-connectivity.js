@@ -102,6 +102,89 @@ if (/[^m]\bgetDoc\(/.test(hook)) {
   );
 }
 
+// 2a. THE SENTINEL ID. The check that would have caught RC4 before a build.
+//
+//     The probe document was `__connection_probe__`. Firestore rejects any
+//     identifier matching the reserved __...__ pattern outright:
+//
+//       Resource id "__connection_probe__" is invalid because it is reserved.
+//
+//     That poisoned the listener AND the probe, on every launch, online or
+//     offline — so connectivity detection had never once worked, in any
+//     build, and three release candidates went out before a device proved
+//     it. The cost of catching it here instead is one regex.
+const probePath = hook.match(/const PROBE_PATH = \[([^\]]+)\]/);
+if (!probePath) {
+  failures.push("PROBE_PATH is gone — the connectivity sentinel has no home");
+} else {
+  const parts = [...probePath[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+  if (parts.length < 2) {
+    failures.push(
+      "PROBE_PATH is not a literal collection/document pair, so the document " +
+        "id cannot be checked for validity here",
+    );
+  }
+  for (const segment of parts) {
+    if (/^__.*__$/.test(segment)) {
+      failures.push(
+        `PROBE_PATH segment "${segment}" matches Firestore's reserved ` +
+          `__...__ pattern. Firestore rejects it with invalid-argument, which ` +
+          `breaks the listener AND the probe on every launch — this is the ` +
+          `RC4 defect, and it is invisible until a device runs it`,
+      );
+    }
+    if (/[/]/.test(segment)) {
+      failures.push(`PROBE_PATH segment "${segment}" contains a slash`);
+    }
+  }
+  // The monitor must not be pointed at business data, whose lifecycle can
+  // change underneath it.
+  if (/listings|sellers\/|pharmac|moderation/i.test(probePath[1])) {
+    failures.push(
+      "the connectivity sentinel points at business data — its existence and " +
+        "readability would then change as ordinary data changes",
+    );
+  }
+}
+
+// 2a-ii. Not every Firestore error means the network is gone.
+//
+//     RC4 counted invalid-argument as a connectivity failure and produced a
+//     permanent "No connection" banner on a device that was online. The
+//     classifier must be an ALLOWLIST: an unrecognised error keeps
+//     monitoring alive rather than manufacturing an outage.
+if (!/CONNECTIVITY_FAILURE_CODES = new Set\(/.test(monitor)) {
+  failures.push(
+    "there is no allowlist of connectivity error codes — every rejection " +
+      "counts as being offline again, which is how a configuration bug " +
+      "became a permanent false offline banner",
+  );
+}
+// The CALL SITE, not the definition. A previous version of this assertion
+// matched `export function isConnectivityFailure(error)` and therefore
+// passed while the call had been deleted — the same blind spot that has now
+// cost this suite three separate mutants.
+if (!/if \(isConnectivityFailure\(error\)\) \{/.test(monitor)) {
+  failures.push(
+    "the probe does not call isConnectivityFailure before counting the " +
+      "error as a connectivity failure — every rejection is an outage again",
+  );
+}
+if (!/deterministic/.test(monitor)) {
+  failures.push(
+    "there is no separate path for a deterministic (non-network) error, so " +
+      "such an error either counts as an outage or stops monitoring",
+  );
+}
+for (const code of ["invalid-argument", "permission-denied"]) {
+  if (new RegExp(`"${code}"`).test(monitor.slice(monitor.search(/CONNECTIVITY_FAILURE_CODES = new Set\(/), monitor.search(/\]\);/)))) {
+    failures.push(
+      `"${code}" is listed as a connectivity failure — it is a deterministic ` +
+        `local fault and must never be reported to the reader as an outage`,
+    );
+  }
+}
+
 // 2b. THE BOUND, in the hook that owns the Firestore call.
 //
 //     getDocFromServer does not reject promptly with no network: the SDK

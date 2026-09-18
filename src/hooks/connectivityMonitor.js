@@ -29,8 +29,41 @@ export const FAILURES_BEFORE_OFFLINE = 2;
 // whether a resume event ever arrives.
 export const SKIP_RESCHEDULE_MS = PROBE_INTERVAL_MS;
 
+// Which failures are evidence that the device cannot reach the network.
+//
+// An ALLOWLIST, deliberately. The RC4 build treated every rejection as a
+// connectivity failure, so a misconfigured document id — a deterministic,
+// permanent, entirely local mistake — produced two "failures" in thirteen
+// seconds and a permanent "No connection" banner on a device that was online
+// the whole time. Reading that banner, the fault looked like the network.
+//
+// A denylist would have the same shape of bug waiting in it: the next
+// unanticipated code would once again be read as an outage. With an
+// allowlist, an unrecognised error keeps monitoring alive and changes
+// nothing, which is the failure direction that cannot mislead anybody.
+export const CONNECTIVITY_FAILURE_CODES = new Set([
+  "unavailable", // the ordinary "cannot reach the backend"
+  "deadline-exceeded",
+  "resource-exhausted",
+  "aborted",
+  "internal",
+  "cancelled",
+]);
+
+export function isConnectivityFailure(error) {
+  // Our own bounded timeout: the server did not answer in eight seconds.
+  if (error?.isProbeTimeout) return true;
+  const code = error?.code;
+  if (typeof code !== "string") return false;
+  return CONNECTIVITY_FAILURE_CODES.has(code.replace(/^firestore\//, ""));
+}
+
 export function createConnectivityMonitor({
   runProbe, // () => Promise<void>   rejects or hangs on failure
+  // (error) => boolean. Only TRUE counts toward going offline. Everything
+  // else keeps monitoring alive and changes nothing — see the note on the
+  // non-connectivity branch in probe().
+  isConnectivityFailure = () => true,
   getAppState, // () => "active" | "background" | ...
   setTimeoutFn,
   clearTimeoutFn,
@@ -106,12 +139,24 @@ export function createConnectivityMonitor({
     log(`probe started (epoch=${mine}, trigger=${trigger}, failures=${failures})`);
 
     let failed = false;
+    let deterministic = false;
     try {
       await runProbe();
       log(`probe resolved (epoch=${mine})`);
     } catch (error) {
-      failed = true;
-      log(`probe failed (epoch=${mine}): ${error?.message ?? "error"}`);
+      if (isConnectivityFailure(error)) {
+        failed = true;
+        log(`probe failed (epoch=${mine}): ${error?.message ?? "error"}`);
+      } else {
+        deterministic = true;
+        // Code only — never the message, which can carry document ids or
+        // other contents.
+        log(
+          `probe error NOT connectivity (epoch=${mine}, code=${
+            error?.code ?? "none"
+          }) — failure count unchanged`,
+        );
+      }
     } finally {
       inFlight = false;
     }
@@ -127,6 +172,17 @@ export function createConnectivityMonitor({
     }
     if (!monitoring) {
       log(`result discarded: monitoring off (epoch=${mine})`);
+      return;
+    }
+
+    if (deterministic) {
+      // A configuration or authorisation fault says nothing about the
+      // network. Counting it produced a permanent "No connection" banner on
+      // an online device once already, so it is recorded, the counter is
+      // left alone, and monitoring carries on at the normal cadence — the
+      // condition may be permanent, but it must never masquerade as an
+      // outage.
+      schedule(PROBE_INTERVAL_MS, "non-connectivity error");
       return;
     }
 

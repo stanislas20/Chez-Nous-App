@@ -26,10 +26,11 @@ const sandbox = { module: { exports: {} }, exports: {} };
 new Function(
   "module",
   "exports",
-  `${source}\nmodule.exports = { createConnectivityMonitor, CONNECTION, PROBE_INTERVAL_MS, PROBE_RETRY_MS, FAILURES_BEFORE_OFFLINE, SKIP_RESCHEDULE_MS };`,
+  `${source}\nmodule.exports = { createConnectivityMonitor, isConnectivityFailure, CONNECTION, PROBE_INTERVAL_MS, PROBE_RETRY_MS, FAILURES_BEFORE_OFFLINE, SKIP_RESCHEDULE_MS };`,
 )(sandbox.module, sandbox.exports);
 const {
   createConnectivityMonitor,
+  isConnectivityFailure,
   PROBE_INTERVAL_MS,
   PROBE_RETRY_MS,
   SKIP_RESCHEDULE_MS,
@@ -87,6 +88,7 @@ function harness({ appState = () => "active", outcomes = [] } = {}) {
   const pendingResolvers = [];
 
   const monitor = createConnectivityMonitor({
+    isConnectivityFailure,
     runProbe: () => {
       probeCalls += 1;
       concurrent += 1;
@@ -95,8 +97,18 @@ function harness({ appState = () => "active", outcomes = [] } = {}) {
       return new Promise((resolve, reject) => {
         const settle = () => {
           concurrent -= 1;
-          if (outcome === "ok") resolve();
-          else reject(new Error(outcome));
+          if (outcome === "ok") return resolve();
+          if (outcome === "timeout") {
+            const e = new Error("probe-timeout");
+            e.isProbeTimeout = true;
+            return reject(e);
+          }
+          if (typeof outcome === "object" && outcome.code) {
+            const e = new Error("firestore");
+            e.code = outcome.code;
+            return reject(e);
+          }
+          return reject(new Error(String(outcome)));
         };
         if (outcome === "hang") {
           // Never settles on its own — the caller keeps the handle so a test
@@ -144,7 +156,7 @@ function harness({ appState = () => "active", outcomes = [] } = {}) {
 
   // B. two failures commit OFFLINE, and not before
   {
-    const h = harness({ outcomes: ["fail", "fail"] });
+    const h = harness({ outcomes: ["timeout", "timeout"] });
     h.monitor.start("test");
     await h.clock.advance(PROBE_INTERVAL_MS);
     check("B", !h.isOffline(), "one failure must not flip OFFLINE");
@@ -156,7 +168,7 @@ function harness({ appState = () => "active", outcomes = [] } = {}) {
 
   // C. failure then success resets the counter
   {
-    const h = harness({ outcomes: ["fail", "ok", "fail"] });
+    const h = harness({ outcomes: ["timeout", "ok", "timeout"] });
     h.monitor.start("test");
     await h.clock.advance(PROBE_INTERVAL_MS); // fail -> failures 1
     await h.clock.advance(PROBE_RETRY_MS); // ok -> reset
@@ -207,7 +219,7 @@ function harness({ appState = () => "active", outcomes = [] } = {}) {
   // recorded here as knowingly untestable rather than quietly assumed to be
   // covered.
   {
-    const h = harness({ outcomes: ["hang", "fail", "fail"] });
+    const h = harness({ outcomes: ["hang", "timeout", "timeout"] });
     h.monitor.start("test");
     await h.clock.advance(PROBE_INTERVAL_MS);
     // The first probe is still hanging; force the machine on via resume-free
@@ -224,7 +236,7 @@ function harness({ appState = () => "active", outcomes = [] } = {}) {
 
   // G. teardown invalidates pending work
   {
-    const h = harness({ outcomes: ["fail", "fail"] });
+    const h = harness({ outcomes: ["timeout", "timeout"] });
     h.monitor.start("test");
     await h.clock.advance(PROBE_INTERVAL_MS);
     h.monitor.teardown();
@@ -257,6 +269,103 @@ function harness({ appState = () => "active", outcomes = [] } = {}) {
     await h.clock.advance(PROBE_INTERVAL_MS * 3);
     check("I", h.probeCalls() === 0, "probes continued after stop");
     h.monitor.teardown();
+  }
+
+  // ── The RC4 defect: not every Firestore error means "offline" ─────────
+  //
+  // A reserved document id made every probe reject with invalid-argument.
+  // The monitor counted those as connectivity failures, reached two in
+  // thirteen seconds, and showed "No connection" on a device that was online
+  // — a deterministic local misconfiguration wearing the costume of an
+  // outage. These cases exist so that can never be true again.
+
+  // J. invalid-argument must not count toward OFFLINE
+  {
+    const h = harness({ outcomes: [{ code: "invalid-argument" }, { code: "invalid-argument" }] });
+    h.monitor.start("test");
+    await h.clock.advance(PROBE_INTERVAL_MS);
+    await h.clock.advance(PROBE_INTERVAL_MS);
+    check(
+      "J",
+      !h.isOffline(),
+      "invalid-argument was counted as connectivity failure — this is the " +
+        "exact RC4 false-OFFLINE, a configuration bug reported as an outage",
+    );
+    check("J", h.clock.pending() === 1, "monitoring did not stay scheduled after a non-connectivity error");
+    h.monitor.teardown();
+  }
+
+  // K. permission-denied must not count toward OFFLINE
+  {
+    const h = harness({ outcomes: [{ code: "permission-denied" }, { code: "permission-denied" }] });
+    h.monitor.start("test");
+    await h.clock.advance(PROBE_INTERVAL_MS);
+    await h.clock.advance(PROBE_INTERVAL_MS);
+    check("K", !h.isOffline(), "permission-denied was treated as being offline");
+    check("K", h.clock.pending() === 1, "monitoring stopped after permission-denied");
+    h.monitor.teardown();
+  }
+
+  // L. a genuine unavailable DOES count, and two of them go OFFLINE
+  {
+    const h = harness({ outcomes: [{ code: "unavailable" }, { code: "unavailable" }] });
+    h.monitor.start("test");
+    await h.clock.advance(PROBE_INTERVAL_MS);
+    check("L", !h.isOffline(), "one unavailable should not be enough");
+    await h.clock.advance(PROBE_RETRY_MS);
+    check("L", h.isOffline(), "two genuine connectivity failures did not reach OFFLINE");
+    h.monitor.teardown();
+  }
+
+  // M. a non-connectivity error does not poison a later genuine outage
+  {
+    const h = harness({ outcomes: [{ code: "invalid-argument" }, "timeout", "timeout"] });
+    h.monitor.start("test");
+    await h.clock.advance(PROBE_INTERVAL_MS); // ignored
+    await h.clock.advance(PROBE_INTERVAL_MS); // timeout -> failure 1
+    check("M", !h.isOffline(), "one genuine failure after an ignored error should not flip");
+    await h.clock.advance(PROBE_RETRY_MS); // timeout -> failure 2
+    check("M", h.isOffline(), "genuine failures stopped counting after a non-connectivity error");
+    h.monitor.teardown();
+  }
+
+  // O. a non-connectivity error must not RESET a genuine failure either.
+  //
+  //     Treating it as a success is the other way to get this wrong: the
+  //     counter goes back to zero, and on a flaky connection that also
+  //     produces the odd deterministic error, two real failures can never
+  //     accumulate and OFFLINE is never reached. Cases J-M all pass with
+  //     that bug present, which is why this one exists.
+  {
+    const h = harness({ outcomes: ["timeout", { code: "invalid-argument" }, "timeout"] });
+    h.monitor.start("test");
+    await h.clock.advance(PROBE_INTERVAL_MS); // timeout -> failures 1
+    await h.clock.advance(PROBE_RETRY_MS); // invalid-argument -> ignored, counter untouched
+    check("O", !h.isOffline(), "an ignored error should not itself flip OFFLINE");
+    await h.clock.advance(PROBE_INTERVAL_MS); // timeout -> failures 2 -> OFFLINE
+    check(
+      "O",
+      h.isOffline(),
+      "a non-connectivity error RESET the genuine failure counter — two real " +
+        "failures can then never accumulate on a connection that also emits " +
+        "deterministic errors",
+    );
+    h.monitor.teardown();
+  }
+
+  // N. the classifier itself
+  {
+    const timeout = Object.assign(new Error("probe-timeout"), { isProbeTimeout: true });
+    check("N", isConnectivityFailure(timeout), "our own timeout must count as connectivity");
+    check("N", isConnectivityFailure({ code: "unavailable" }), "unavailable must count");
+    check("N", isConnectivityFailure({ code: "deadline-exceeded" }), "deadline-exceeded must count");
+    check("N", !isConnectivityFailure({ code: "invalid-argument" }), "invalid-argument must NOT count");
+    check("N", !isConnectivityFailure({ code: "permission-denied" }), "permission-denied must NOT count");
+    check("N", !isConnectivityFailure({ code: "failed-precondition" }), "failed-precondition must NOT count");
+    check("N", !isConnectivityFailure({ code: "unauthenticated" }), "unauthenticated must NOT count");
+    // An unrecognised shape must not be able to manufacture an outage.
+    check("N", !isConnectivityFailure(new Error("who knows")), "an unclassifiable error must not count as offline");
+    check("N", !isConnectivityFailure(undefined), "undefined must not count as offline");
   }
 
   if (failures.length === 0) {

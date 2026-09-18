@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { firestore, isFirebaseConfigured } from "../config/firebase";
 
-// Who wrote each review.
+// The public face and name behind a uid.
 //
-// A rating document carries raterId, ratedId, stars and a comment — and
-// nothing about the person. So the reviews list could show a score and a
-// sentence but never a name or a face, which reads as anonymous feedback
-// about somebody you are deciding whether to trust.
+// Three screens need the same thing and none of them can read it directly.
+// A rating carries raterId and nothing about the person. A conversation
+// carries participantIds and a denormalised name, but no picture. So a
+// review was anonymous feedback about somebody you are deciding whether to
+// trust, and a thread was a letter from an initial.
 //
 // ── Where the face comes from ───────────────────────────────────────────
 //
@@ -41,29 +42,44 @@ import { firestore, isFirebaseConfigured } from "../config/firebase";
 //
 // ── The cap ─────────────────────────────────────────────────────────────
 //
-// useRatings caps the list at REVIEW_PAGE, so the caller passes at most 25
-// ids today. That is the caller's bound, not this hook's, and a bound that
-// lives somewhere else is one refactor away from being gone. This hook
-// therefore refuses to read more than MAX_LOOKUPS no matter what it is
-// handed.
-const MAX_LOOKUPS = 25;
+// Both callers are already bounded — useRatings caps a profile's reviews at
+// REVIEW_PAGE (25) and useConversations caps the inbox at CONVERSATIONS_CAP
+// (50). Those are the CALLERS' bounds though, and a bound that lives in
+// another file is one refactor from being gone, so this hook refuses to read
+// more than MAX_LOOKUPS whatever it is handed. It is set to cover the larger
+// of the two.
+const MAX_LOOKUPS = 50;
 
-export function useReviewerProfiles(raterIds) {
+// ── The cache is MODULE scope, deliberately ─────────────────────────────
+//
+// Per-hook state was enough when only the reviews list used this. It is not
+// enough now: the same person is the counterpart of a conversation row, the
+// header of the thread you open from it, and the author of a review on their
+// profile. A per-instance cache re-reads that one uid on each of those
+// screens, and again every time you navigate back.
+//
+// One Map, for the life of the process. A uid is fetched once and every
+// screen afterwards reads it for free — which is what makes opening a thread
+// from the inbox cost nothing at all.
+//
+// It is never invalidated, and that is a real trade: a profile picture
+// changed during a session shows the old one until the app restarts. The
+// alternative is a listener per uid, which is the unbounded thing this hook
+// exists to avoid, and a stale avatar for one session is a small price.
+const profileCache = new Map();
+
+export function usePublicProfiles(uids) {
   const [profiles, setProfiles] = useState({});
 
-  // Resolved ids, kept across snapshots. The ratings listener re-fires on
-  // every star change and every new review; without this, each of those
-  // re-read every face on the screen.
-  //
   // A miss is cached too, as null. A person with no projection yet is a
-  // permanent, cheap "no picture" — retrying them on every snapshot would
-  // be an unbounded read loop against the one case guaranteed to fail.
-  const resolved = useRef(new Map());
+  // permanent, cheap "no picture" — retrying them on every snapshot would be
+  // an unbounded read loop against the one case guaranteed to fail.
+  const resolved = useRef(profileCache);
 
   // The caller builds this array inline, so it is a new identity on every
   // render and useless as a dependency. The ids themselves are the input.
-  const key = Array.isArray(raterIds)
-    ? [...new Set(raterIds.filter(Boolean))].sort().join(",")
+  const key = Array.isArray(uids)
+    ? [...new Set(uids.filter(Boolean))].sort().join(",")
     : "";
 
   useEffect(() => {
@@ -72,6 +88,24 @@ export function useReviewerProfiles(raterIds) {
     let active = true;
     const wanted = key.split(",").slice(0, MAX_LOOKUPS);
     const missing = wanted.filter((uid) => !resolved.current.has(uid));
+
+    // Publish what is already known BEFORE fetching anything, and before the
+    // early return below.
+    //
+    // This line is what a module-level cache costs. With per-instance state
+    // every mount started empty and filled itself, so the only way to get a
+    // face on screen was to fetch one. Now a uid another screen already
+    // looked up is sitting in the Map — and without this the effect saw
+    // nothing missing, returned immediately, never called setProfiles, and
+    // the component rendered initials for somebody whose photo it was
+    // holding. A cache that makes the second visit WORSE than the first.
+    const known = Object.fromEntries(
+      wanted
+        .filter((uid) => resolved.current.has(uid))
+        .map((uid) => [uid, resolved.current.get(uid)]),
+    );
+    if (Object.keys(known).length) setProfiles(known);
+
     if (missing.length === 0) return undefined;
 
     (async () => {
@@ -107,7 +141,11 @@ export function useReviewerProfiles(raterIds) {
         resolved.current.set(uid, value);
       }
 
-      setProfiles(Object.fromEntries(resolved.current));
+      setProfiles(
+        Object.fromEntries(
+          wanted.map((uid) => [uid, resolved.current.get(uid) ?? null]),
+        ),
+      );
     })();
 
     return () => {

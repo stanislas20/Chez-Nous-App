@@ -25,7 +25,7 @@ const fs = require("fs");
 const path = require("path");
 
 const root = path.join(__dirname, "..");
-const HOOK = path.join(root, "src", "hooks", "useReviewerProfiles.js");
+const HOOK = path.join(root, "src", "hooks", "usePublicProfiles.js");
 
 const source = fs
   .readFileSync(HOOK, "utf8")
@@ -99,13 +99,13 @@ function makeRuntime({ docs = {}, throwFor = [] } = {}) {
     "getDoc",
     "firestore",
     "isFirebaseConfigured",
-    `${source}\nmodule.exports = { useReviewerProfiles };`,
+    `${source}\nmodule.exports = { usePublicProfiles };`,
   )(sandbox.module, useState, useEffect, useRef, doc, getDoc, {}, true);
 
-  const { useReviewerProfiles } = sandbox.module.exports;
+  const { usePublicProfiles } = sandbox.module.exports;
 
   return {
-    render: (ids) => useReviewerProfiles(ids),
+    render: (ids) => usePublicProfiles(ids),
     profiles: () => stateValue,
     reads,
     readsOf: (collection) =>
@@ -284,11 +284,11 @@ function makeRuntime({ docs = {}, throwFor = [] } = {}) {
           "screen",
       );
     }
-    if (!/<ReviewerPhoto/.test(screen) || !/<ReviewerInitialCircle/.test(screen)) {
+    if (!/<PublicAvatar/.test(screen)) {
       failures.push(
-        "J: the card lost either its photo branch or its initial branch. " +
-          "Both are required: most accounts have a picture, and the ones " +
-          "that do not must still show a letter rather than a hole",
+        "J: the review card no longer renders PublicAvatar — that component " +
+          "is what falls back to an initial when a photoUrl is present but " +
+          "fails to load, which otherwise draws an empty circle forever",
       );
     }
     // The name must never render as the literal "undefined", which is what
@@ -307,8 +307,8 @@ function makeRuntime({ docs = {}, throwFor = [] } = {}) {
           "is readable only by its owner, so this fails for every visitor",
       );
     }
-    if (!/useReviewerProfiles\(/.test(screen)) {
-      failures.push("M: the screen no longer calls useReviewerProfiles");
+    if (!/usePublicProfiles\(/.test(screen)) {
+      failures.push("M: the screen no longer calls usePublicProfiles");
     }
   }
 

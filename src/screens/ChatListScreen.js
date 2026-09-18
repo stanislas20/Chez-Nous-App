@@ -8,6 +8,8 @@ import { fontFamily, type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
 import { useConversations } from "../hooks/useConversations";
+import { usePublicProfiles } from "../hooks/usePublicProfiles";
+import { PublicAvatar } from "../components/PublicAvatar";
 import { openAccountGate } from "../utils/openAccountGate";
 import { TabSafeAreaView } from "../components/TabSafeAreaView";
 
@@ -39,6 +41,21 @@ export function ChatListScreen({ navigation }) {
   const { language, t } = useI18n();
   const { user } = useAuth();
   const conversations = useConversations(user?.uid);
+
+  // The counterpart of every visible thread, resolved once for the list.
+  //
+  // useConversations caps the inbox at 50, so this asks for at most 50 ids
+  // and usually fewer — the hook de-duplicates, so somebody you have three
+  // threads with is one lookup, and its cache is module-level, so a uid
+  // already seen in a thread header or on a review costs nothing at all.
+  //
+  // Deliberately NOT inside renderItem. FlatList recycles rows, so resolving
+  // there would be a read per scroll rather than a read per person.
+  const otherUidOf = (conversation) =>
+    conversation?.participantIds?.find((id) => id !== user?.uid) ?? null;
+  const counterpartProfiles = usePublicProfiles(
+    (conversations ?? []).map(otherUidOf).filter(Boolean),
+  );
 
   if (!user) {
     return (
@@ -93,23 +110,42 @@ export function ChatListScreen({ navigation }) {
                 })
               }
             >
-              {item.listingThumbnail ? (
-                <Thumbnail
-                  source={{ uri: item.listingThumbnail }}
-                  resizeMode="cover"
-                />
-              ) : (
-                <ThumbnailFallback
-                  colors={[EMERALD, GOLD]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <ThumbnailFallbackLabel>
-                    {(item.listingTitle ?? "").trim().charAt(0).toUpperCase() ||
-                      "?"}
-                  </ThumbnailFallbackLabel>
-                </ThumbnailFallback>
-              )}
+              {/* The listing this thread is about, with the person it is with on
+                  the corner.
+              
+                  Both, rather than one: the row's title is the listing, so replacing
+                  its photograph with a face would leave a marketplace inbox where
+                  nothing shows what is being discussed. The avatar answers the other
+                  question — who this is — which an initial was answering badly. */}
+              <ThumbnailStack>
+                {item.listingThumbnail ? (
+                  <Thumbnail
+                    source={{ uri: item.listingThumbnail }}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <ThumbnailFallback
+                    colors={[EMERALD, GOLD]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <ThumbnailFallbackLabel>
+                      {(item.listingTitle ?? "").trim().charAt(0).toUpperCase() ||
+                        "?"}
+                    </ThumbnailFallbackLabel>
+                  </ThumbnailFallback>
+                )}
+                <CounterpartBadge>
+                  <PublicAvatar
+                    photoUrl={counterpartProfiles[otherUidOf(item)]?.photoUrl}
+                    name={
+                      item.participantNames?.[otherUidOf(item)] ??
+                      counterpartProfiles[otherUidOf(item)]?.displayName
+                    }
+                    size={26}
+                  />
+                </CounterpartBadge>
+              </ThumbnailStack>
               <RowBody>
                 <RowTitle numberOfLines={1}>{item.listingTitle}</RowTitle>
                 <RowMessage numberOfLines={1} unread={unread > 0}>
@@ -174,6 +210,25 @@ const Row = styled(Pressable)`
   padding: ${spacing.sm}px;
   margin-bottom: ${spacing.sm}px;
   ${shadow.card}
+`;
+
+// The listing photograph with the counterpart's face on its corner. The
+// stack is only as big as the thumbnail; the badge hangs off it, so the row's
+// layout and its left gutter are unchanged.
+const ThumbnailStack = styled.View`
+  position: relative;
+`;
+
+const CounterpartBadge = styled.View`
+  position: absolute;
+  right: -5px;
+  bottom: -3px;
+  /* A ring in the row's own background, so the avatar reads as sitting ON
+     the thumbnail rather than being clipped by it. */
+  border-width: 2px;
+  border-color: ${(props) => props.theme.surface};
+  border-radius: 15px;
+  overflow: hidden;
 `;
 
 const Thumbnail = styled.Image`

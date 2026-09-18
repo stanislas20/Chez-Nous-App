@@ -21,6 +21,7 @@ import {
 import { useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ImageLightbox } from "../components/ImageLightbox";
+import { PublicAvatar } from "../components/PublicAvatar";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as Clipboard from "expo-clipboard";
@@ -1253,11 +1254,19 @@ export function ChatScreen({ route, navigation }) {
             matter, and only one of them can be rated. */}
         {otherUid ? (
           <CounterpartBar onPress={openOtherProfile}>
-            <CounterpartAvatar>
-              <CounterpartInitial>
-                {(otherName ?? "?").trim().charAt(0).toUpperCase() || "?"}
-              </CounterpartInitial>
-            </CounterpartAvatar>
+            {/* The OTHER participant, never the reader: otherUid is the
+                participant that is not user.uid, and otherStats is the public
+                projection for exactly that uid.
+            
+                This costs no read. useSellerStats(otherUid) was already
+                listening here for the rating shown under the name, and photoUrl
+                rides on the same document — so the header gained a face without
+                gaining a query. */}
+            <PublicAvatar
+              photoUrl={otherStats?.photoUrl}
+              name={otherName ?? otherStats?.displayName}
+              size={44}
+            />
             <CounterpartCol>
               <CounterpartName numberOfLines={1}>
                 {otherName ?? t("chatUnknownParticipant")}

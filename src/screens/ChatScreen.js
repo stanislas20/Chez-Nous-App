@@ -382,6 +382,13 @@ export function ChatScreen({ route, navigation }) {
     navigation.navigate("SellerProfile", {
       sellerId: otherUid,
       sellerName: otherName ?? t("chatUnknownParticipant"),
+      // An instant-render hint, nothing more. This screen already holds the
+      // other participant's public projection, so handing it over saves the
+      // profile a frame of showing an initial while its own subscription
+      // arrives. SellerProfileScreen does NOT depend on it: it falls back to
+      // stats?.photoUrl, which is what makes a profile opened from anywhere
+      // else correct too.
+      sellerPhotoUrl: otherStats?.photoUrl ?? null,
     });
   };
   // When the other participant last opened this conversation, in ms.

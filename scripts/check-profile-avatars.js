@@ -81,13 +81,16 @@ function renderAvatar({ photoUrl, name }) {
   )(sandbox.module, React, useState, useEffect, styled, { bold: "b" });
 
   const { PublicAvatar } = sandbox.module.exports;
-  const render = () => {
-    const out = PublicAvatar({ photoUrl, name });
+  const render = (extra = {}) => {
+    const out = PublicAvatar({ photoUrl, name, ...extra });
     const isPhoto = Boolean(out?.props?.source);
     return {
       isPhoto,
       initial: isPhoto ? null : out?.props?.children?.props?.children,
       onError: out?.props?.onError,
+      // Shape and letter size, as actually handed to the styled components.
+      corner: out?.props?.corner,
+      letter: isPhoto ? null : out?.props?.children?.props?.letter,
     };
   };
   const first = render();
@@ -170,6 +173,34 @@ check(
   );
 }
 
+// K. Shape and letter default to a circle scaled to the box, and BOTH are
+//    overridable. The defaults are what the inbox, the chat header and the
+//    review rows render; the overrides are what keeps the 156px profile
+//    header a rounded square with a small letter. Breaking either default
+//    squares off every small avatar in the app, which is why it is driven
+//    here rather than left to the one caller that passes them.
+{
+  const circle = renderAvatar({ photoUrl: null, name: "Agossou" });
+  check(
+    "K",
+    circle.corner === 34 / 2,
+    `default corner was ${circle.corner}; with no radius passed every avatar ` +
+      `must stay a circle (size / 2)`,
+  );
+  check(
+    "K",
+    circle.letter === Math.round(34 * 0.42),
+    `default letter was ${circle.letter}; it must stay scaled to the box`,
+  );
+  const square = renderAvatar({ photoUrl: null, name: "Agossou" }).rerender({
+    size: 156,
+    radius: 22,
+    initialSize: 24,
+  });
+  check("K", square.corner === 22, `an explicit radius was ignored (${square.corner})`);
+  check("K", square.letter === 24, `an explicit initialSize was ignored (${square.letter})`);
+}
+
 // ── Receiver selection ─────────────────────────────────────────────────
 //
 // The predicate itself, driven. Both screens use the same shape, so this is
@@ -209,6 +240,49 @@ check(
     "G",
     !/photoUrl=\{(myStats|userStats|stats)\?\.photoUrl\}/.test(chat),
     "the chat header appears to use the reader's own stats for the avatar",
+  );
+}
+
+// ── The seller profile HEADER ──────────────────────────────────────────
+//
+// This one shipped broken and nothing caught it, which is the argument for
+// the block. openOtherProfile navigates with sellerId and sellerName only, so
+// a header that reads its photo from the route alone falls to an initial for
+// every profile opened from a conversation — and on a profile with no
+// reviews that initial is the only avatar on screen, so the whole screen
+// reads as "pictures are not working" while the review cards are correct.
+{
+  const profile = stripComments(read(PROFILE));
+
+  check(
+    "N",
+    /photoUrl=\{sellerPhotoUrl \?\? stats\?\.photoUrl\}/.test(profile),
+    "the profile header no longer falls back to the live public projection. " +
+      "The route parameter is optional and usually absent, so a header that " +
+      "depends on it alone shows an initial for somebody whose photograph " +
+      "the screen is already subscribed to",
+  );
+  // The fallback must come from the subscription the screen ALREADY has.
+  check(
+    "N",
+    (profile.match(/useSellerStats\(/g) ?? []).length === 1,
+    "SellerProfileScreen holds more than one sellerStats subscription — the " +
+      "header must reuse the one the rating line already opened, not add a read",
+  );
+  check(
+    "N",
+    /<PublicAvatar/.test(profile.slice(profile.indexOf("<Header>"), profile.indexOf("<SellerName"))),
+    "the header avatar is not PublicAvatar, so it has no image-error " +
+      "fallback and a dead photoUrl leaves an empty square",
+  );
+  // The header is NOT the small circle used by the inbox and the reviews.
+  const header = profile.slice(profile.indexOf("<HeaderAvatar>"), profile.indexOf("</HeaderAvatar>"));
+  check("N", /size=\{PHOTO_SIZE\}/.test(header), "the header avatar lost its large size");
+  check(
+    "N",
+    /radius=\{radius\.xl\}/.test(header) && /initialSize=\{24\}/.test(header),
+    "the header lost its rounded-square shape or its small initial and now " +
+      "renders as the inbox/review circle — a visual change, not a fix",
   );
 }
 

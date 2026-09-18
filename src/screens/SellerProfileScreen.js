@@ -104,8 +104,6 @@ export function SellerProfileScreen({ route, navigation }) {
       })
     : null;
 
-  const initial = sellerName ? sellerName.trim().charAt(0).toUpperCase() : "?";
-
   const openRating = () => {
     // Pre-filled when editing, so someone revising a review starts from
     // what they said rather than from blank.
@@ -208,16 +206,32 @@ export function SellerProfileScreen({ route, navigation }) {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <Header>
-            {sellerPhotoUrl ? (
-              <AvatarPhoto
-                source={{ uri: sellerPhotoUrl }}
-                resizeMode="cover"
+            {/* The photo came only from the route, and the route does not always
+                carry one.
+            
+                openOtherProfile in ChatScreen navigates with sellerId and
+                sellerName and nothing else, so every profile opened from a
+                conversation fell back to its initial — including people whose
+                picture the app was already holding. On a profile with no reviews
+                that initial is the ONLY avatar on screen, which is why this read
+                as "reviews have no pictures" while the review cards were correct.
+            
+                stats is useSellerStats(sellerId), already subscribed above for the
+                rating line, and photoUrl rides on that same document — so this is
+                a second SOURCE, not a second read. The route value stays first only
+                so a caller that already has the photo renders it on the first frame
+                rather than flashing an initial while the projection arrives. */}
+            <HeaderAvatar>
+              <PublicAvatar
+                photoUrl={sellerPhotoUrl ?? stats?.photoUrl}
+                name={sellerName ?? stats?.displayName}
+                size={PHOTO_SIZE}
+                /* A rounded square with a small letter: the header's own look,
+                   not the circle the inbox rows and review cards use. */
+                radius={radius.xl}
+                initialSize={24}
               />
-            ) : (
-              <Avatar>
-                <AvatarLabel>{initial}</AvatarLabel>
-              </Avatar>
-            )}
+            </HeaderAvatar>
             <SellerName numberOfLines={2}>{sellerName}</SellerName>
 
             {sellerVerified ? (
@@ -588,12 +602,14 @@ const ContactLabel = styled.Text`
   color: ${(props) => (props.primary ? props.theme.textInverse : props.theme.text)};
 `;
 
-const AvatarPhoto = styled.Image`
-  width: ${PHOTO_SIZE}px;
-  height: ${PHOTO_SIZE}px;
-  border-radius: ${radius.xl}px;
-  background-color: ${(props) => props.theme.surfaceAlt};
+// Spacing lived on the initials variant only: `Avatar` carried
+// margin-bottom and `AvatarPhoto` carried none, so the header shifted by
+// spacing.sm depending on whether the seller had a picture. One wrapper now
+// owns it, so both states sit in the same place.
+const HeaderAvatar = styled.View`
+  margin-bottom: ${spacing.sm}px;
 `;
+
 
 // Three equal columns, no rules between them — the numbers are far enough
 // apart to read as separate figures, and dividers made a five-item stack
@@ -733,21 +749,7 @@ const Header = styled.View`
   padding: ${spacing.lg}px ${spacing.md}px ${spacing.md}px;
 `;
 
-const Avatar = styled.View`
-  width: ${PHOTO_SIZE}px;
-  height: ${PHOTO_SIZE}px;
-  border-radius: ${radius.xl}px;
-  background-color: ${EMERALD};
-  align-items: center;
-  justify-content: center;
-  margin-bottom: ${spacing.sm}px;
-`;
 
-const AvatarLabel = styled.Text`
-  font-family: ${fontFamily.bold};
-  font-size: 24px;
-  color: #ffffff;
-`;
 
 const SellerName = styled.Text`
   font-family: ${fontFamily.bold};

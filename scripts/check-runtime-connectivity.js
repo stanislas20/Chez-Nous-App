@@ -1,43 +1,43 @@
 #!/usr/bin/env node
 //
 // The offline banner told the truth on a cold start and said nothing the rest
-// of the time.
+// of the time — and then, for three release candidates, said nothing ever.
 //
-// Verified on a physical device, twice, in the two different states:
+// ── What actually happened ──────────────────────────────────────────────
 //
-//   launched with no network   → "No connection — showing what was already
-//                                 loaded." Correct, and immediate.
-//   network dropped while the
-//   app was already open       → nothing. The feed went on serving cached
-//                                 listings, the verified-business carousel
-//                                 even rotated, and a pull-to-refresh
-//                                 changed nothing. Silence, for over a
-//                                 minute, which is the one behaviour the
-//                                 banner exists to prevent.
+// The first reading of the symptom was wrong, and it is worth keeping
+// because it cost two builds. The theory was that an ESTABLISHED WebChannel
+// stream has to time out before the SDK concedes it is offline, and that
+// this timeout is far longer than the few seconds a reader waits before
+// deciding the app is broken. So a polling probe was added beside the
+// listener, and then a timeout, a retry, a failure counter, an epoch guard,
+// an in-flight guard and an error classifier to make the probe safe.
 //
-// The cause is not a bug in the listener. Watching a probe document with
-// includeMetadataChanges reports `fromCache` correctly, and on a cold start
-// the first snapshot resolves from cache immediately — which is why that case
-// always worked. But an ESTABLISHED WebChannel stream has to time out before
-// the SDK concedes it is offline, and that timeout is far longer than the few
-// seconds a reader waits before deciding the app is broken.
+// The listener was not slow. It was DEAD. The sentinel document was
+// `__connection_probe__`, and Firestore rejects any identifier matching the
+// reserved __...__ pattern outright:
 //
-// So the listener stays — it is free, and it is what flips the state back the
-// instant the network returns — and a probe supplies the answer it is slow to
-// give. What this file defends is that the probe stays BOUNDED, because an
-// unbounded one is a Firestore read on a timer for every user forever:
+//   Resource id "__connection_probe__" is invalid because it is reserved.
 //
-//   * foreground only        — nobody is looking at a backgrounded banner
-//   * only while ONLINE      — once offline the listener handles recovery
-//   * two failures to commit — one blip on a mobile connection is not an
-//                              outage, and a banner that flickers teaches
-//                              people to ignore it
+// That error poisoned the listener on every launch, in every build, online
+// or offline. Connectivity detection had never once worked. All of the
+// machinery was an elaborate workaround for a one-word mistake, and an
+// instrumented build on a handset is what finally said so:
 //
-// It also defends the banner's own top inset. The bar is the first thing
-// inside NavigationContainer, so it starts at y=0 — underneath the clock and
-// the battery. On the test handset the sentence ran straight through the
-// status bar and the half behind the icons was unreadable, which is a poor
-// showing for the one line whose whole job is to be read.
+//   network lost -> listener reported offline in 34s, then 22s
+//   network back -> listener reported online  in 17s, then 12s
+//   probes that FAILED, across both cycles:    zero
+//
+// So the probe is gone and the listener does the work alone. What this file
+// defends is that the mistake cannot come back and the workaround cannot
+// come back with it — plus the banner's own top inset, because the bar is
+// the first thing inside NavigationContainer and starts at y=0, underneath
+// the clock and the battery.
+//
+// Behaviour is NOT asserted here. This file is regex over source, and regex
+// over source is exactly what was green through all three broken builds:
+// the defects were control flow and a document id. The state transitions
+// belong to check-connectivity-listener.js, which drives the real hook.
 //
 // Run: node scripts/check-runtime-connectivity.js
 
@@ -47,13 +47,13 @@ const { stripComments } = require("./lib/stripComments");
 
 const root = path.join(__dirname, "..");
 const HOOK = "src/hooks/useConnectionState.js";
-const MONITOR = "src/hooks/connectivityMonitor.js";
 const BANNER = "src/components/OfflineBanner.js";
+const HARNESS = "scripts/check-connectivity-listener.js";
 
 const failures = [];
 const read = (rel) => fs.readFileSync(path.join(root, rel), "utf8");
 
-for (const rel of [HOOK, MONITOR, BANNER]) {
+for (const rel of [HOOK, BANNER]) {
   if (!fs.existsSync(path.join(root, rel))) {
     failures.push(`${rel} is missing — this check reads it`);
   }
@@ -64,15 +64,54 @@ if (failures.length) {
 }
 
 const hook = stripComments(read(HOOK));
-const monitor = stripComments(read(MONITOR));
 
-// 1. The listener is still there. It is the free signal and the fast
-//    recovery path; the probe was added beside it, not instead of it.
+// 1. THE SENTINEL ID. The one check that would have caught RC4 before a
+//    build, and the reason this file exists in its current form.
+const sentinel = hook.match(/const SENTINEL_PATH = \[([^\]]+)\]/);
+if (!sentinel) {
+  failures.push("SENTINEL_PATH is gone — the connectivity sentinel has no home");
+} else {
+  const parts = [...sentinel[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+  if (parts.length < 2) {
+    failures.push(
+      "SENTINEL_PATH is not a literal collection/document pair, so the " +
+        "document id cannot be checked for validity here",
+    );
+  }
+  if (parts.length % 2 !== 0) {
+    failures.push(
+      `SENTINEL_PATH has ${parts.length} segments; a document reference needs ` +
+        `an even number and doc() throws on an odd one`,
+    );
+  }
+  for (const segment of parts) {
+    if (/^__.*__$/.test(segment)) {
+      failures.push(
+        `SENTINEL_PATH segment "${segment}" matches Firestore's reserved ` +
+          `__...__ pattern. Firestore rejects it with invalid-argument, which ` +
+          `kills the listener on every launch — this is the RC1–RC4 defect, ` +
+          `and it is invisible until a device runs it`,
+      );
+    }
+    if (/[/]/.test(segment)) {
+      failures.push(`SENTINEL_PATH segment "${segment}" contains a slash`);
+    }
+  }
+  // Not business data, whose lifecycle and readability change underneath it.
+  if (/listings|sellers\/|pharmac|moderation/i.test(sentinel[1])) {
+    failures.push(
+      "the connectivity sentinel points at business data — its existence and " +
+        "readability would then change as ordinary data changes",
+    );
+  }
+}
+
+// 2. The listener reads metadata, and reads it from the right thing.
 if (!/includeMetadataChanges: true/.test(hook)) {
   failures.push(
-    "the probe listener no longer asks for metadata changes — fromCache is " +
-      "then never re-reported and the cold-start offline case, the one that " +
-      "always worked, breaks",
+    "the listener no longer asks for metadata changes — Firestore then " +
+      "delivers nothing when only fromCache changed, so the detector freezes " +
+      "at whatever its first snapshot said and never moves again",
   );
 }
 if (
@@ -81,229 +120,92 @@ if (
   )
 ) {
   failures.push(
-    "the listener no longer derives the connection state from fromCache",
+    "the listener no longer derives the connection state from fromCache, or " +
+      "derives it backwards",
+  );
+}
+// exists() is false by design here and says nothing about the network.
+if (/\.exists\(\)/.test(hook)) {
+  failures.push(
+    "the hook consults snapshot.exists() — the sentinel document deliberately " +
+      "does not exist, so existence would report a permanent outage for " +
+      "everybody",
   );
 }
 
-// 2. The probe exists and uses a server-only read. getDoc would fall back to
-//    cache and resolve happily while offline, which answers a different
-//    question.
-if (!/getDocFromServer\(/.test(hook)) {
+// 3. A listener error is not an outage.
+//
+//    RC4 treated one as if it were and produced a permanent "No connection"
+//    banner on a device that was online. The causes are deterministic and
+//    local — a bad path, a rules change, a missing sign-in — and the request
+//    reached the server in order to be refused.
+if (!/CONNECTION\.UNKNOWN\);?\s*\},?\s*\);/.test(hook)) {
   failures.push(
-    "nothing performs a server-only read, so runtime connection loss is " +
-      "still only noticed whenever the SDK's own stream happens to time out " +
-      "— the defect this file is named after",
+    "the listener's error handler does not settle on UNKNOWN — a local " +
+      "configuration fault is reported to the reader as 'no connection', " +
+      "sending them to check their wifi over a bug in the app",
   );
 }
-if (/[^m]\bgetDoc\(/.test(hook)) {
+if (/error[\s\S]{0,120}CONNECTION\.OFFLINE/.test(hook)) {
   failures.push(
-    "the probe uses getDoc, which falls back to the local cache and " +
-      "therefore succeeds while offline — it cannot detect what it is for",
+    "an error path reaches CONNECTION.OFFLINE — that is the RC4 false-offline",
   );
 }
 
-// 2a. THE SENTINEL ID. The check that would have caught RC4 before a build.
+// 4. THE POLLING DOES NOT COME BACK.
 //
-//     The probe document was `__connection_probe__`. Firestore rejects any
-//     identifier matching the reserved __...__ pattern outright:
-//
-//       Resource id "__connection_probe__" is invalid because it is reserved.
-//
-//     That poisoned the listener AND the probe, on every launch, online or
-//     offline — so connectivity detection had never once worked, in any
-//     build, and three release candidates went out before a device proved
-//     it. The cost of catching it here instead is one regex.
-const probePath = hook.match(/const PROBE_PATH = \[([^\]]+)\]/);
-if (!probePath) {
-  failures.push("PROBE_PATH is gone — the connectivity sentinel has no home");
-} else {
-  const parts = [...probePath[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
-  if (parts.length < 2) {
+//    Every item below was real code in RC4 and every one of them existed
+//    only to prop up a listener that was broken for an unrelated reason.
+//    Re-adding any of them means a Firestore read on a timer for every
+//    foregrounded user, forever, to answer a question the stream answers
+//    for free.
+const banned = [
+  ["getDocFromServer", "a polling read against Firestore"],
+  ["setTimeout", "a probe timer"],
+  ["setInterval", "a probe interval"],
+  ["inFlight", "the overlapping-probe guard"],
+  ["epoch", "the stale-probe epoch guard"],
+  ["FAILURES_BEFORE_OFFLINE", "the failure counter"],
+  ["PROBE_INTERVAL_MS", "the probe cadence"],
+  ["PROBE_TIMEOUT_MS", "the probe bound"],
+  ["isConnectivityFailure", "the probe's error classifier"],
+  ["AppState", "the foreground gate, which only the probe needed"],
+];
+for (const [needle, what] of banned) {
+  if (new RegExp(needle).test(hook)) {
     failures.push(
-      "PROBE_PATH is not a literal collection/document pair, so the document " +
-        "id cannot be checked for validity here",
-    );
-  }
-  for (const segment of parts) {
-    if (/^__.*__$/.test(segment)) {
-      failures.push(
-        `PROBE_PATH segment "${segment}" matches Firestore's reserved ` +
-          `__...__ pattern. Firestore rejects it with invalid-argument, which ` +
-          `breaks the listener AND the probe on every launch — this is the ` +
-          `RC4 defect, and it is invisible until a device runs it`,
-      );
-    }
-    if (/[/]/.test(segment)) {
-      failures.push(`PROBE_PATH segment "${segment}" contains a slash`);
-    }
-  }
-  // The monitor must not be pointed at business data, whose lifecycle can
-  // change underneath it.
-  if (/listings|sellers\/|pharmac|moderation/i.test(probePath[1])) {
-    failures.push(
-      "the connectivity sentinel points at business data — its existence and " +
-        "readability would then change as ordinary data changes",
+      `${needle} is back in the hook — ${what} returns, and with it ~2 ` +
+        `Firestore reads per minute per active user for a signal the ` +
+        `listener already delivers free`,
     );
   }
 }
-
-// 2a-ii. Not every Firestore error means the network is gone.
-//
-//     RC4 counted invalid-argument as a connectivity failure and produced a
-//     permanent "No connection" banner on a device that was online. The
-//     classifier must be an ALLOWLIST: an unrecognised error keeps
-//     monitoring alive rather than manufacturing an outage.
-if (!/CONNECTIVITY_FAILURE_CODES = new Set\(/.test(monitor)) {
+if (fs.existsSync(path.join(root, "src/hooks/connectivityMonitor.js"))) {
   failures.push(
-    "there is no allowlist of connectivity error codes — every rejection " +
-      "counts as being offline again, which is how a configuration bug " +
-      "became a permanent false offline banner",
+    "src/hooks/connectivityMonitor.js exists again — the probe state machine " +
+      "was removed because the device proved it never caused a single " +
+      "OFFLINE transition",
   );
 }
-// The CALL SITE, not the definition. A previous version of this assertion
-// matched `export function isConnectivityFailure(error)` and therefore
-// passed while the call had been deleted — the same blind spot that has now
-// cost this suite three separate mutants.
-if (!/if \(isConnectivityFailure\(error\)\) \{/.test(monitor)) {
+// Temporary diagnostics shipped once. They must not ship twice.
+if (/console\.(log|warn|info)/.test(hook)) {
   failures.push(
-    "the probe does not call isConnectivityFailure before counting the " +
-      "error as a connectivity failure — every rejection is an outage again",
-  );
-}
-if (!/deterministic/.test(monitor)) {
-  failures.push(
-    "there is no separate path for a deterministic (non-network) error, so " +
-      "such an error either counts as an outage or stops monitoring",
-  );
-}
-for (const code of ["invalid-argument", "permission-denied"]) {
-  if (new RegExp(`"${code}"`).test(monitor.slice(monitor.search(/CONNECTIVITY_FAILURE_CODES = new Set\(/), monitor.search(/\]\);/)))) {
-    failures.push(
-      `"${code}" is listed as a connectivity failure — it is a deterministic ` +
-        `local fault and must never be reported to the reader as an outage`,
-    );
-  }
-}
-
-// 2b. THE BOUND, in the hook that owns the Firestore call.
-//
-//     getDocFromServer does not reject promptly with no network: the SDK
-//     retries internally and the promise can stay pending indefinitely. RC2
-//     awaited it and counted rejections, so the counter never left zero and
-//     the banner never appeared — 200 seconds, verified on a handset.
-if (!/function withTimeout\(/.test(hook) || !/Promise\.race\(/.test(hook)) {
-  failures.push(
-    "the hook no longer races the Firestore read against a timer of its own " +
-      "— an unbounded read is the RC2 defect, and it cannot be seen in a " +
-      "static check of the probe alone",
-  );
-}
-if (!/withTimeout\(getDocFromServer\(/.test(hook)) {
-  failures.push(
-    "getDocFromServer is not wrapped in withTimeout when handed to the monitor",
-  );
-}
-const timeoutMatch = monitor.match(/const PROBE_TIMEOUT_MS = (\d+)/);
-if (!timeoutMatch) {
-  failures.push("PROBE_TIMEOUT_MS is gone — the probe has no upper bound");
-} else if (Number(timeoutMatch[1]) > 15000) {
-  failures.push(
-    `PROBE_TIMEOUT_MS is ${timeoutMatch[1]}ms; a bound that generous stops ` +
-      `being a bound`,
+    "diagnostic logging is back in the hook — the [ConnectivityProbe] traces " +
+      "were built to find the reserved-id defect and removed once it was found",
   );
 }
 
-// 2c. THE RC3 DEFECT. Every branch that declines to probe must leave the
-//     chain able to run again. A skipped probe that schedules nothing ends
-//     monitoring for the life of the screen — that is what failed on the
-//     device at T+60s with the app foregrounded the whole time.
-if (!/schedule\(SKIP_RESCHEDULE_MS/.test(monitor)) {
+// 5. Deterministic coverage exists. This file cannot see control flow, and
+//    control-flow defects reached a handset twice.
+if (!fs.existsSync(path.join(root, HARNESS))) {
   failures.push(
-    "a skipped probe does not reschedule — this is the exact RC3 failure: " +
-      "one non-active observation ends monitoring permanently, and only a " +
-      "resume event that may never come can restart it",
+    `${HARNESS} is gone — static assertions alone have already let three ` +
+      `broken builds through, because a regex cannot tell a working state ` +
+      `machine from a dead one`,
   );
 }
 
-// 2d. Monitoring must cover UNKNOWN, not only ONLINE.
-//
-//     The listener's error handler sets UNKNOWN; UNKNOWN hides the banner
-//     because it is not OFFLINE. Gating the probe on ONLINE alone therefore
-//     switched the detector off in the one state that means "we do not
-//     know", leaving the app looking connected and no longer checking.
-if (/state !== CONNECTION\.ONLINE\) return undefined;/.test(hook)) {
-  failures.push(
-    "the probe is gated on ONLINE alone, so a listener error into UNKNOWN " +
-      "silently disables monitoring while the banner stays hidden",
-  );
-}
-if (!/state === CONNECTION\.OFFLINE/.test(hook)) {
-  failures.push(
-    "the hook no longer idles the monitor when already OFFLINE — probing " +
-      "from there costs reads and the listener owns recovery",
-  );
-}
-
-// 2e. One scheduling owner, one pending timer, one probe.
-if (!/if \(inFlight\)/.test(monitor)) {
-  failures.push("nothing prevents overlapping probes");
-}
-if (!/clearPending\("superseded"\)/.test(monitor)) {
-  failures.push(
-    "schedule() does not replace the pending timer, so timers accumulate",
-  );
-}
-if (!/AppState\.currentState/.test(hook)) {
-  failures.push(
-    "the hook no longer supplies the app state, so the monitor cannot tell " +
-      "whether anybody is looking at the banner",
-  );
-}
-
-// 2f. Deterministic coverage exists. This file is regex over source; the
-//     control-flow defects that reached a device twice are only catchable
-//     by driving the machine.
-if (!fs.existsSync(path.join(root, "scripts/check-connectivity-machine.js"))) {
-  failures.push(
-    "the deterministic state-machine harness is gone — static assertions " +
-      "alone have already let two control-flow defects through to a handset",
-  );
-}
-
-// 3. Bounded cadence and debounce.
-const intervalMatch = monitor.match(/const PROBE_INTERVAL_MS = (\d+)/);
-if (!intervalMatch) {
-  failures.push("PROBE_INTERVAL_MS is gone — the probe cadence is unbounded");
-} else if (Number(intervalMatch[1]) < 15000) {
-  failures.push(
-    `PROBE_INTERVAL_MS is ${intervalMatch[1]}ms; under 15s this becomes a ` +
-      `meaningful share of the read quota for every active user`,
-  );
-}
-if (!/failures >= FAILURES_BEFORE_OFFLINE/.test(monitor)) {
-  failures.push("a single failed probe flips the banner on");
-}
-
-// 3b. Cleanup.
-if (!/monitor\.teardown\(\)/.test(hook)) {
-  failures.push(
-    "the effect does not tear the monitor down, so its timer keeps firing " +
-      "— and reading — after the component is gone",
-  );
-}
-if (!/appStateSubscription\.remove\(\)/.test(hook)) {
-  failures.push("the AppState listener is not removed on teardown");
-}
-
-// 3c. Recovery stays the LISTENER's job.
-if (!/fromCache[\s\S]{0,80}CONNECTION\.ONLINE/.test(hook)) {
-  failures.push(
-    "the snapshot listener no longer restores ONLINE from fromCache — " +
-      "recovery would then wait on a poll",
-  );
-}
-
-// 4. The banner clears the status bar.
+// 6. The banner clears the status bar.
 const banner = stripComments(read(BANNER));
 if (!/useSafeAreaInsets\(\)/.test(banner)) {
   failures.push(
@@ -328,14 +230,16 @@ if (/SafeAreaView/.test(banner)) {
 if (!/connection !== CONNECTION\.OFFLINE/.test(banner)) {
   failures.push(
     "the banner no longer renders only on OFFLINE — showing it for UNKNOWN " +
-      "flashes 'no connection' during every launch",
+      "flashes 'no connection' during every launch, and now also on every " +
+      "listener error",
   );
 }
 
 if (failures.length === 0) {
   console.log(
-    "clean: connection loss is noticed while the app is open, the probe stays " +
-      "bounded, and the banner clears the status bar",
+    "clean: the sentinel is an id Firestore accepts, the listener reads " +
+      "metadata alone, an error says UNKNOWN rather than offline, and the " +
+      "polling has not come back",
   );
 }
 for (const f of failures) console.log(`FAIL ${f}`);

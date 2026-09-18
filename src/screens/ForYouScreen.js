@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Dimensions,
   Easing,
   FlatList,
   Image,
@@ -36,7 +37,10 @@ import {
   MARKETPLACE_FEED_CATEGORIES,
 } from "../data/categories";
 import { SearchBar } from "../components/SearchBar";
-import { ListingCard } from "../components/ListingCard";
+import {
+  FLUSH_CARD_WIDTH_RATIO,
+  ListingCard,
+} from "../components/ListingCard";
 import { ScreenFooter } from "../components/ScreenFooter";
 import { AdCard } from "../components/AdCard";
 import { PhoneCallButtons } from "../components/PhoneCallButtons";
@@ -489,7 +493,21 @@ function TrendingCard({ listing, navigation, cardWidth }) {
 // enough to look like a mistake rather than a distinction — two rails one
 // above the other, same square photo, same shape, twenty pixels apart. The
 // cards say the same kind of thing, so they are the same size.
-const RAIL_CARD_WIDTH = 168;
+//
+// That size is now the GRID card's size, rather than a number of its own.
+// A listing in "Deals ending soon" and the same listing on a seller's
+// profile were 168 and ~190 wide, which is the same mistake one level up:
+// two square photographs of the same thing, a few pixels apart, for no
+// reason a reader could name.
+//
+// Read once at module scope rather than through useWindowDimensions,
+// because these feed styled-component definitions that are evaluated once.
+// The cost is that a rotation or an unfolded screen keeps the width the app
+// launched with — acceptable for a rail of square photos, and the same
+// assumption the flat 168 already made.
+const RAIL_CARD_WIDTH = Math.round(
+  Dimensions.get("window").width * FLUSH_CARD_WIDTH_RATIO,
+);
 const REC_CARD_WIDTH = RAIL_CARD_WIDTH;
 // Company names here are legal names — "Marché Central SARL / KOUNAGBE
 // Francis", not "Zara". At 156px on a single line almost every real one was
@@ -2603,10 +2621,15 @@ export function ForYouScreen({ navigation, route }) {
               <ListingCard
                 listing={item.listing}
                 flush
-                // gridItems mixes listings with ad slots, so this is "the
-                // feed has exactly one card", which is the case the empty
-                // half-row looked broken in.
-                full={gridItems.length === 1}
+                // Deliberately never `full` — the same rule as Local and the
+                // seller profile, so one listing is one size everywhere.
+                //
+                // This fired only when the whole feed came to a single card,
+                // which is rare enough that the inconsistency was invisible
+                // here and obvious on Local. Rare is the argument for
+                // dropping it, not for keeping it: a size that appears once
+                // in a hundred sessions is a size nobody has designed
+                // around.
               />
             )
           }

@@ -90,9 +90,11 @@ const categoryRailStyle = {
 // the two-per-row grid is built by hand: each section's listings are cut
 // into pairs and one pair is rendered per row.
 //
-// A trailing odd card needs no filler. ListingCard is width: 47% and the row
-// is space-between, so a lone card sits on the left at its own width, which
-// is exactly what FlatList's columnWrapperStyle did with an odd last row.
+// A trailing odd card needs no filler. ListingCard is 49.6% wide here — the
+// `flush` variant; the 47% this comment used to quote is the rounded one the
+// screen stopped using — and the row is space-between, so a lone card sits on
+// the left at its own width, which is exactly what FlatList's
+// columnWrapperStyle did with an odd last row.
 const GRID_COLUMNS = 2;
 
 // How much of a category is shown before it defers to the next one.
@@ -887,18 +889,26 @@ export function LocalScreen({ navigation }) {
             />
           </StickyHeading>
         )}
-        renderItem={({ item: row, section }) => (
+        renderItem={({ item: row }) => (
           <GridRow style={rowStyle}>
             {row.map((listing) => (
               <ListingCard
                 key={listing.id}
                 listing={listing}
                 flush
-                // A section holding exactly one listing gives it the whole
-                // row. `total` is the section's real count before the
-                // preview cap, so a category with one listing qualifies and
-                // the first row of a capped forty-listing section does not.
-                full={section.total === 1}
+                // Deliberately never `full`.
+                //
+                // A section holding exactly one listing used to take the
+                // whole row, on the reasoning that a lone half-width card
+                // left an empty half-row that looked broken. On a screen
+                // that is mostly one- and two-listing categories it does
+                // something worse: the same listing is a 16:9 banner here
+                // and a square on a seller's profile, so the grid changes
+                // size as you scroll and nothing lines up with anything.
+                //
+                // The empty half-row is the smaller price, and it is one
+                // the seller profile has always paid without looking
+                // broken.
                 isFavorite={favoriteIds.has(listing.id)}
                 onToggleFavorite={() => toggleFavorite(listing.id)}
               />

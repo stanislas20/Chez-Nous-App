@@ -239,8 +239,24 @@ function ListingCardBase({
   );
 }
 
+// How much of the row a `flush` card takes. Two of them plus the 2px gutter
+// fill the grid, which is where the odd-looking 0.496 comes from.
+//
+// Exported because the horizontal rails on Pour vous cannot use a
+// percentage — their parent is the scroll content, not the screen — so they
+// multiply this by the window width instead. It was written down twice
+// before, as "49.6%" here and a flat 168px there, and the two drifted: the
+// same listing was 190px in the grid and 168px in the rail directly above
+// it. One number, one place.
+export const FLUSH_CARD_WIDTH_RATIO = 0.496;
+
 const Card = styled(Animated.createAnimatedComponent(Pressable))`
-  width: ${(props) => (props.full ? "100%" : props.flush ? "49.6%" : "47%")};
+  width: ${(props) =>
+    props.full
+      ? "100%"
+      : props.flush
+        ? `${FLUSH_CARD_WIDTH_RATIO * 100}%`
+        : "47%"};
   border-radius: ${(props) => (props.flush ? 0 : radius.xl)}px;
   margin-bottom: ${(props) => (props.flush ? 2 : spacing.lg)}px;
   background-color: ${(props) => props.theme.surface};

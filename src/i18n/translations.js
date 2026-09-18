@@ -2855,6 +2855,9 @@ export const translations = {
     ratingRemoved: "Your review has been deleted.",
     ratingNeedStars: "Choose a rating from 1 to 5 stars.",
     ratingYou: "You",
+    // Shown while a reviewer's public profile is still loading, and for
+    // an account that has none — never a blank line where a name goes.
+    ratingAnonymous: "Chez-Nous member",
     profileFollowAction: "Follow",
     profileFollowingAction: "Following",
     profileStatFollowingOne: "Following",
@@ -6043,6 +6046,7 @@ export const translations = {
     ratingRemoved: "Votre avis a été supprimé.",
     ratingNeedStars: "Choisissez une note de 1 à 5 étoiles.",
     ratingYou: "Vous",
+    ratingAnonymous: "Membre Chez-Nous",
     profileFollowAction: "Suivre",
     profileFollowingAction: "Abonné",
     profileStatFollowingOne: "Abonnement",

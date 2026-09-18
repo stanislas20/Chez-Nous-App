@@ -29,6 +29,7 @@ import {
   submitRating,
   removeRating,
 } from "../hooks/useRatings";
+import { useReviewerProfiles } from "../hooks/useReviewerProfiles";
 import { useFollow } from "../hooks/useFollow";
 import { formatCount, statLabelKey } from "../utils/formatCount";
 import { useAuth } from "../auth/AuthContext";
@@ -56,6 +57,20 @@ const beninFlagWash = [BENIN_GREEN, BENIN_YELLOW, BENIN_RED];
 // lose its ends to the crop, which is the accepted cost of a consistent
 // avatar; the fix for that is a tighter crop before uploading.
 const PHOTO_SIZE = 156;
+
+// The letter shown when a reviewer has no picture.
+//
+// Separate from the header's `initial` because the inputs differ: the header
+// always has a name (it was routed with one), while a reviewer's name is
+// looked up and may not have arrived, or may never exist. Every one of those
+// is "?" rather than an empty circle or the string "undefined".
+//
+// trim() before charAt matters: a display name saved with a leading space
+// produced a blank circle that looked like a rendering bug.
+function reviewerInitial(displayName) {
+  const trimmed = String(displayName ?? "").trim();
+  return trimmed ? trimmed.charAt(0).toUpperCase() : "?";
+}
 
 // Two pixels, so the grid runs to the edges and the photographs get the
 // width — the Marketplace layout, matching Local and Pour vous. Everything
@@ -141,6 +156,11 @@ export function SellerProfileScreen({ route, navigation }) {
   };
   const stats = useSellerStats(sellerId);
   const ratings = useRatings(sellerId);
+  // Bounded by useRatings' own REVIEW_PAGE cap, and again inside the hook:
+  // a list that grows past the cap must not quietly become a read per row.
+  const reviewerProfiles = useReviewerProfiles(
+    ratings?.map((item) => item.raterId) ?? [],
+  );
   const {
     canRate,
     isReady: ratingReady,
@@ -391,19 +411,50 @@ export function SellerProfileScreen({ route, navigation }) {
             {ratings?.length ? (
               ratings.map((item) => (
                 <ReviewCard key={item.id}>
-                  <ReviewStars>
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <Ionicons
-                        key={n}
-                        name={n <= item.stars ? "star" : "star-outline"}
-                        size={13}
-                        color="#D9A441"
+                  {/* Who wrote it. A review used to be a score and a
+                      sentence with nobody attached, which reads as
+                      anonymous feedback about somebody you are deciding
+                      whether to trust. */}
+                  <ReviewerRow>
+                    {reviewerProfiles[item.raterId]?.photoUrl ? (
+                      <ReviewerPhoto
+                        source={{
+                          uri: reviewerProfiles[item.raterId].photoUrl,
+                        }}
+                        resizeMode="cover"
                       />
-                    ))}
-                    {item.raterId === user?.uid ? (
-                      <ReviewMine>{t("ratingYou")}</ReviewMine>
-                    ) : null}
-                  </ReviewStars>
+                    ) : (
+                      // The fallback is never a blank circle: a rater with
+                      // no projection yet, or a lookup that failed, still
+                      // gets the initial the screen showed before.
+                      <ReviewerInitialCircle>
+                        <ReviewerInitial>
+                          {reviewerInitial(
+                            reviewerProfiles[item.raterId]?.displayName,
+                          )}
+                        </ReviewerInitial>
+                      </ReviewerInitialCircle>
+                    )}
+                    <ReviewerMeta>
+                      <ReviewerName numberOfLines={1}>
+                        {reviewerProfiles[item.raterId]?.displayName ??
+                          t("ratingAnonymous")}
+                      </ReviewerName>
+                      <ReviewStars>
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Ionicons
+                            key={n}
+                            name={n <= item.stars ? "star" : "star-outline"}
+                            size={13}
+                            color="#D9A441"
+                          />
+                        ))}
+                        {item.raterId === user?.uid ? (
+                          <ReviewMine>{t("ratingYou")}</ReviewMine>
+                        ) : null}
+                      </ReviewStars>
+                    </ReviewerMeta>
+                  </ReviewerRow>
                   {item.comment ? (
                     <ReviewComment>{item.comment}</ReviewComment>
                   ) : null}
@@ -889,6 +940,57 @@ const ReviewCard = styled.View`
   background-color: ${(props) => props.theme.surface};
   border-width: 1px;
   border-color: ${(props) => props.theme.border};
+`;
+
+// The reviewer's face and name, above their stars.
+//
+// REVIEWER_PHOTO_SIZE is its own constant rather than PHOTO_SIZE: the
+// header avatar is the subject of the screen and is deliberately large,
+// while this one sits in a list and must not outweigh the words next to it.
+const REVIEWER_PHOTO_SIZE = 34;
+
+const ReviewerRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.sm}px;
+`;
+
+const ReviewerPhoto = styled.Image`
+  width: ${REVIEWER_PHOTO_SIZE}px;
+  height: ${REVIEWER_PHOTO_SIZE}px;
+  border-radius: ${REVIEWER_PHOTO_SIZE / 2}px;
+  background-color: ${(props) => props.theme.surfaceAlt};
+`;
+
+const ReviewerInitialCircle = styled.View`
+  width: ${REVIEWER_PHOTO_SIZE}px;
+  height: ${REVIEWER_PHOTO_SIZE}px;
+  border-radius: ${REVIEWER_PHOTO_SIZE / 2}px;
+  background-color: ${EMERALD};
+  align-items: center;
+  justify-content: center;
+`;
+
+const ReviewerInitial = styled.Text`
+  font-family: ${fontFamily.bold};
+  font-size: 14px;
+  color: #ffffff;
+`;
+
+// flex: 1 and minWidth: 0 together, because neither alone is enough: a long
+// name in a row would otherwise push the stars off the right edge instead
+// of ellipsising, which is the classic flexbox overflow and only shows up
+// with a real name rather than a test one.
+const ReviewerMeta = styled.View`
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+`;
+
+const ReviewerName = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 13px;
+  color: ${(props) => props.theme.text};
 `;
 
 const ReviewStars = styled.View`

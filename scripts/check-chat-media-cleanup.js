@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 //
-// The path a tombstone is allowed to delete.
+// What a deleted message is allowed to take with it.
 //
-// Deleting a chat message used to leave its photograph in the bucket
-// forever — the old hard delete had no cleanup at all — so tombstoning adds
-// one. The risk it introduces is larger than the bug it fixes: the function
+// Two things outlive a deleted message unless something removes them: its
+// photograph in the bucket, and the COPY of its text sitting inside any
+// reply that quoted it. The trigger handles both, and the risk it carries is
+// larger than the bugs it fixes: the function
 // recovers a Storage path from a URL that was written by a client, and a
 // cleanup job driven by attacker-controlled input is a delete-anything
 // primitive unless every step is proven.
@@ -199,23 +200,36 @@ for (const [group, label, value, cid, sender, why] of REFUSALS) {
 {
   const { stripComments } = require("./lib/stripComments");
   const bare = stripComments(source);
-  const start = bare.indexOf("exports.cleanupTombstonedMessageMedia");
+  const start = bare.indexOf("exports.cleanupDeletedMessageMedia");
   if (start === -1) {
-    failures.push("H: cleanupTombstonedMessageMedia is gone");
+    failures.push("H: cleanupDeletedMessageMedia is gone");
   } else {
-    const body = bare.slice(start, start + 4000);
-    if (!/before\.deleted === true \|\| after\.deleted !== true/.test(body)) {
+    const body = bare.slice(start, start + 6000);
+
+    // The trigger type is the whole design. onDocumentUpdated was the
+    // tombstone version and had to gate on a false->true transition; a
+    // deletion trigger gets the document itself and needs no gate.
+    if (!/onDocumentDeleted\(/.test(bare.slice(start, start + 200))) {
       failures.push(
-        "H: the trigger no longer gates on the not-deleted -> deleted " +
-          "transition. Without it an ordinary edit, or a retried event on an " +
-          "already-tombstoned message, would try to delete the attachment again",
+        "H: cleanup is no longer a deletion trigger. An update trigger on " +
+          "messages would also mean the sanitization write below re-enters " +
+          "it, which is the recursion this design avoids by not existing",
       );
     }
-    if (!/before\.imageUrl, before\.audioUrl/.test(body)) {
+    // Nothing may watch messages for updates, or sanitization loops.
+    const updateTriggers = (bare.match(/onDocumentUpdated\(\s*\n?\s*"conversations\/\{conversationId\}\/messages/g) ?? []).length;
+    if (updateTriggers > 0) {
       failures.push(
-        "H: the trigger reads the URL from somewhere other than the BEFORE " +
-          "document — the tombstone has already stripped it from the after, " +
-          "and anything else means trusting a path the client supplied",
+        `H: ${updateTriggers} onDocumentUpdated trigger(s) still watch ` +
+          `messages — the quote sanitization writes to a message, so this is ` +
+          `an invocation loop`,
+      );
+    }
+    if (!/event\.data\?\.data\(\)/.test(body)) {
+      failures.push(
+        "H: the trigger no longer reads the deleted document snapshot, which " +
+          "is the only remaining source of the attachment URL once the " +
+          "document is gone",
       );
     }
     if (!/ignoreNotFound: true/.test(body)) {
@@ -224,19 +238,76 @@ for (const [group, label, value, cid, sender, why] of REFUSALS) {
           "already gone would fail the function forever",
       );
     }
-    // Indexed into `bare`, like `start` is. Slicing the ORIGINAL source at a
-    // stripped-source offset lands somewhere else entirely, which is how the
-    // first version of this line reported a missing trigger that was present.
-    if (!/onDocumentUpdated\(/.test(bare.slice(start, start + 200))) {
-      failures.push("H: the cleanup is no longer an update trigger");
+    if (!/ORPHANED ATTACHMENT/.test(body)) {
+      failures.push(
+        "H: a failed or unresolvable attachment is no longer logged as an " +
+          "orphan. A physical delete leaves no document to find the file " +
+          "from later, so this log line is the only record it exists",
+      );
     }
+
+    // ── Quote sanitization ─────────────────────────────────────────────
+    if (!/where\("replyTo\.messageId", "==", messageId\)/.test(body)) {
+      failures.push(
+        "I: the trigger no longer finds replies quoting the deleted message. " +
+          "A reply stores a COPY of the text, so deleting the original alone " +
+          "leaves its words inside somebody else's document",
+      );
+    }
+    if (!/type: "unavailable"/.test(body)) {
+      failures.push("I: the sanitized quote no longer uses the server-only type");
+    }
+    // The whole map is rewritten. A merge would leave textPreview in place,
+    // which is the one field the operation exists to remove.
+    if (!/batch\.update\(docSnap\.ref, \{\s*replyTo: \{/.test(body)) {
+      failures.push(
+        "I: the sanitized quote is no longer written as a whole replyTo map. " +
+          "Merging into it leaves textPreview untouched — the deleted text " +
+          "would survive the sanitization meant to remove it",
+      );
+    }
+    if (/textPreview/.test(body.slice(body.indexOf("batch.update")))) {
+      failures.push(
+        "I: the sanitized quote still names textPreview. It must be DROPPED " +
+          "from the document, not blanked or copied",
+      );
+    }
+    if (!/batch\.commit\(\)/.test(body)) {
+      failures.push("I: sanitization is never committed");
+    }
+    if (!/quoting\.empty/.test(body)) {
+      failures.push(
+        "I: the zero-matching-replies case is not handled, so an ordinary " +
+          "delete commits an empty batch",
+      );
+    }
+    if (!/limit\(SANITIZE_BATCH_LIMIT\)/.test(body)) {
+      failures.push(
+        "I: the sanitization query is unbounded — Firestore caps a batch at " +
+          "500 writes, so an unbounded match set throws rather than sanitizing",
+      );
+    }
+  }
+}
+
+// ── Push cannot fire from any of this ──────────────────────────────────
+{
+  const { stripComments } = require("./lib/stripComments");
+  const bare = stripComments(source);
+  const push = bare.slice(bare.indexOf("exports.sendMessagePush"), bare.indexOf("exports.sendMessagePush") + 120);
+  if (!/onDocumentCreated\(/.test(push)) {
+    failures.push(
+      "J: sendMessagePush is no longer create-only. Deleting a message, " +
+        "repairing the preview and sanitizing a quote are all deletes and " +
+        "updates — none of which may notify anybody",
+    );
   }
 }
 
 if (failures.length === 0) {
   console.log(
-    "clean: only this conversation's own attachment, uploaded by this sender, " +
-      "can be removed by a tombstone — everything else resolves to nothing",
+    "clean: a deleted message takes its own attachment and every copy of " +
+      "its text with it, and can reach nothing else",
   );
 }
 for (const f of failures) console.log(`FAIL ${f}`);

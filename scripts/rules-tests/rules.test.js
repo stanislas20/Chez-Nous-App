@@ -1793,6 +1793,95 @@ async function main() {
     ),
   );
 
+  // ── True deletion, and what the client still may not do ────────────────
+  //
+  // Deleting is now a physical document removal. The delete rule was already
+  // correct and is unchanged; what these prove is that it is SUFFICIENT, and
+  // that moving quote sanitization to the server did not open a client path
+  // to the same writes.
+  await env.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await Promise.all([
+      setDoc(doc(db, "conversations/thread/messages/delMine"), {
+        senderId: BUYER, text: "mine", createdAt: Timestamp.fromDate(new Date("2026-01-01")),
+      }),
+      setDoc(doc(db, "conversations/thread/messages/delTheirs"), {
+        senderId: SELLER, text: "theirs", createdAt: Timestamp.fromDate(new Date("2026-01-01")),
+      }),
+      setDoc(doc(db, "conversations/thread/messages/delOutsider"), {
+        senderId: BUYER, text: "mine", createdAt: Timestamp.fromDate(new Date("2026-01-01")),
+      }),
+      // A reply belonging to the OTHER participant, quoting one of mine.
+      setDoc(doc(db, "conversations/thread/messages/theirReply"), {
+        senderId: SELLER,
+        text: "réponse",
+        createdAt: Timestamp.fromDate(new Date("2026-01-02")),
+        replyTo: { messageId: "delMine", senderId: BUYER, type: "text", textPreview: "mine" },
+      }),
+    ]);
+  });
+
+  await check(
+    "the sender deletes their own message outright",
+    assertSucceeds(deleteDoc(doc(asBuyer, "conversations/thread/messages/delMine"))),
+  );
+  await check(
+    "the recipient cannot delete the sender's message",
+    assertFails(deleteDoc(doc(asBuyer, "conversations/thread/messages/delTheirs"))),
+  );
+  await check(
+    "a participant cannot delete the other's message",
+    assertFails(deleteDoc(doc(asSeller, "conversations/thread/messages/delOutsider"))),
+  );
+  await check(
+    "an outsider cannot delete a message in a thread they are not in",
+    assertFails(deleteDoc(doc(asOutsider, "conversations/thread/messages/delTheirs"))),
+  );
+
+  // ── Quote sanitization is SERVER-ONLY ──────────────────────────────────
+  //
+  // The whole reason sanitization lives in a Cloud Function is that no
+  // client may write another participant's message. These prove the boundary
+  // is still shut, and that the sanitized state cannot be forged.
+  await check(
+    "a participant cannot sanitize somebody else's reply",
+    assertFails(
+      updateDoc(doc(asBuyer, "conversations/thread/messages/theirReply"), {
+        replyTo: { messageId: "delMine", senderId: BUYER, type: "unavailable" },
+      }),
+    ),
+  );
+  await check(
+    "not even the reply's own author may rewrite its quote",
+    assertFails(
+      updateDoc(doc(asSeller, "conversations/thread/messages/theirReply"), {
+        replyTo: { messageId: "delMine", senderId: BUYER, type: "unavailable" },
+      }),
+    ),
+  );
+  await check(
+    "a client cannot CREATE a message already in the sanitized state",
+    assertFails(
+      setDoc(doc(asBuyer, "conversations/thread/messages/forged"), {
+        senderId: BUYER,
+        text: "x",
+        createdAt: serverTimestamp(),
+        replyTo: { messageId: "m1", senderId: SELLER, type: "unavailable" },
+      }),
+    ),
+  );
+  await check(
+    "a client cannot forge the sanitized state with a textPreview attached",
+    assertFails(
+      setDoc(doc(asBuyer, "conversations/thread/messages/forged2"), {
+        senderId: BUYER,
+        text: "x",
+        createdAt: serverTimestamp(),
+        replyTo: { messageId: "m1", senderId: SELLER, type: "unavailable", textPreview: "leak" },
+      }),
+    ),
+  );
+
   await env.cleanup();
 
   const failed = results.filter(([ok]) => !ok);

@@ -38,8 +38,9 @@ import {
 import {
   addDoc,
   collection,
-  deleteField,
+  deleteDoc,
   doc,
+  getCountFromServer,
   getDocs,
   increment,
   limit,
@@ -49,6 +50,7 @@ import {
   serverTimestamp,
   startAfter,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 import styled from "styled-components/native";
@@ -326,6 +328,13 @@ export function ChatScreen({ route, navigation }) {
   const [liveMessages, setLiveMessages] = useState(null);
   // Pages fetched behind it, once each, never re-read.
   const [olderMessages, setOlderMessages] = useState([]);
+  // Mirrored into a ref so the focus reconciler can read what is loaded
+  // without taking olderMessages as a dependency — which would rebuild the
+  // callback on every page load and re-fire the effect that uses it.
+  const olderMessagesRef = useRef([]);
+  useEffect(() => {
+    olderMessagesRef.current = olderMessages;
+  }, [olderMessages]);
   const oldestLoadedRef = useRef(null);
   const [hasEarlier, setHasEarlier] = useState(true);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
@@ -784,39 +793,150 @@ export function ChatScreen({ route, navigation }) {
     });
   };
 
+  // ── Historical pages, reconciled on focus ──────────────────────────────
+  //
+  // The live window looks after itself: a deleted document simply stops
+  // appearing in the snapshot. Older pages cannot, because they are read once
+  // with getDocs and never watched again — so a message the other person
+  // deletes while you are scrolled back stays on your screen until the thread
+  // is remounted. For a delete feature whose whole promise is that the
+  // content is gone, "until you reopen it" is not good enough.
+  //
+  // A listener per loaded page would fix it and is the wrong price: five
+  // pages back is five permanent listeners on a screen people leave open.
+  //
+  // So it is reconciled when the conversation comes back to the foreground,
+  // over exactly the range already loaded, and the common case is made cheap
+  // by asking a question with a one-read answer first:
+  //
+  //   count(loaded range)  ==  what we hold   ->  nothing was deleted, stop
+  //   count differs                           ->  re-read the range, drop
+  //                                               whatever no longer exists
+  //
+  // New messages cannot land inside a historical range — they are newer than
+  // every document in it — so a count that has fallen can only mean deletion.
+  // That makes one aggregation read a sufficient test.
+  //
+  // READ COST. Nothing deleted: ONE read per focus, whatever the range holds,
+  // because getCountFromServer bills one read per 1000 documents counted.
+  // After a deletion: that one, plus one per surviving document in the loaded
+  // range — so for P loaded pages of MESSAGE_PAGE, at most 1 + P*50, and only
+  // on the focus that follows a deletion.
+  const reconcileOlderMessages = useCallback(async () => {
+    const loaded = olderMessagesRef.current;
+    if (!loaded.length) return;
+
+    const times = loaded
+      .map((m) => m.createdAt)
+      .filter((t) => typeof t?.toMillis === "function");
+    // A page still carrying an unresolved serverTimestamp cannot be bounded,
+    // and will be resolved by the time focus comes round again.
+    if (times.length !== loaded.length) return;
+
+    const oldest = times.reduce((a, b) => (a.toMillis() <= b.toMillis() ? a : b));
+    const newest = times.reduce((a, b) => (a.toMillis() >= b.toMillis() ? a : b));
+    const range = [
+      where("createdAt", ">=", oldest),
+      where("createdAt", "<=", newest),
+    ];
+
+    try {
+      const counted = await getCountFromServer(query(messagesRef(), ...range));
+      if (counted.data().count === loaded.length) return;
+
+      const snapshot = await getDocs(
+        query(messagesRef(), ...range, orderBy("createdAt", "desc")),
+      );
+      const alive = new Set(snapshot.docs.map((d) => d.id));
+      setOlderMessages((current) => current.filter((m) => alive.has(m.id)));
+    } catch (error) {
+      // A failed reconcile leaves the stale copy on screen rather than
+      // clearing the thread. Reported, and retried on the next focus.
+      reportNonFatal("chatReconcileOlder", error, { where: "ChatScreen" });
+    }
+  }, [conversationId]);
+
+  // On focus and on return from the background — the two moments a reader
+  // comes back to a thread they had scrolled back through.
+  useEffect(() => {
+    if (!isFocused || !appActive) return;
+    reconcileOlderMessages();
+  }, [isFocused, appActive, reconcileOlderMessages]);
+
   // ── Keeping the conversation list honest ───────────────────────────────
   //
-  // Editing or tombstoning the newest message has to be reflected on the
-  // thread document, or the inbox goes on showing text that no longer exists
-  // — which for a deleted message is the whole point of deleting it.
+  // Editing or deleting the newest message has to be reflected on the thread
+  // document, or the inbox goes on showing text that no longer exists — which
+  // for a deleted message is the whole point of deleting it.
   //
   // The test is identity, not time. Comparing createdAt to lastMessageAt
-  // looks equivalent and is not: between reading the thread and writing the
-  // repair, the other person can send a message, and a timestamp comparison
-  // would then overwrite THEIR newer preview with the repair for an older
-  // one. lastMessageId makes the question exact.
+  // looks equivalent and races: between reading the thread and writing the
+  // repair the other person can send, and a timestamp comparison would then
+  // overwrite THEIR newer preview with the repair for an older message.
   //
-  // LEGACY THREADS: conversations whose newest message predates this field
-  // have no lastMessageId, and nothing is backfilled. For those the repair is
-  // SKIPPED rather than guessed — an inbox row that is briefly stale is a
-  // smaller fault than one that silently clobbers a newer message's preview,
-  // and it corrects itself the moment either person sends anything. Every
-  // message sent from this build carries the id, so the gap closes by use.
-  const repairPreviewFor = async (message, { text: nextText, deleted } = {}) => {
+  // LEGACY THREADS: conversations whose newest message predates lastMessageId
+  // have none, and nothing is backfilled. For those the repair is SKIPPED
+  // rather than guessed — a briefly stale inbox row is a smaller fault than
+  // one that clobbers a newer message's preview, and it corrects itself the
+  // moment either person sends anything.
+  const messagesRef = () =>
+    collection(firestore, "conversations", conversationId, "messages");
+
+  const previewFieldsFor = (docSnap) => {
+    const m = docSnap.data();
+    return {
+      lastMessage: m.text ?? null,
+      lastMessageType: m.imageUrl ? "image" : m.audioUrl ? "audio" : "text",
+      lastMessageId: docSnap.id,
+      lastMessageSenderId: m.senderId ?? null,
+      lastMessageAt: m.createdAt ?? null,
+    };
+  };
+
+  // An edit only changes what the row SAYS. Same message, same moment, same
+  // sender, already counted — so lastMessageAt, lastMessageSenderId and
+  // unreadCount are deliberately untouched.
+  const repairPreviewAfterEdit = async (message, nextText) => {
     if (!message?.id || !conversation) return;
     if (conversation.lastMessageId !== message.id) return;
     try {
       await updateDoc(doc(firestore, "conversations", conversationId), {
-        // Deliberately not touching lastMessageAt, lastMessageSenderId or
-        // unreadCount: the message is the same message, sent at the same
-        // moment, by the same person, and already counted. Only what the row
-        // SAYS changes.
-        lastMessage: deleted ? null : (nextText ?? null),
-        lastMessageType: deleted ? "deleted" : "text",
+        lastMessage: nextText ?? null,
+        lastMessageType: "text",
       });
     } catch (error) {
-      // The message itself is already edited or gone; a stale inbox row is
-      // worth reporting but not worth failing the action the user asked for.
+      reportNonFatal("chatRepairPreview", error, { where: "ChatScreen" });
+    }
+  };
+
+  // A delete is different: the message is gone, so the row has to move to
+  // whatever is now newest. One bounded read — limit(1) — and only when the
+  // deleted message was the one on display.
+  const repairPreviewAfterDelete = async (message) => {
+    if (!message?.id || !conversation) return;
+    if (conversation.lastMessageId !== message.id) return;
+    try {
+      const newest = await getDocs(
+        query(messagesRef(), orderBy("createdAt", "desc"), limit(1)),
+      );
+      const convRef = doc(firestore, "conversations", conversationId);
+      if (newest.empty) {
+        // The thread still exists and still belongs in the inbox, so
+        // lastMessageAt is left alone: zeroing it would drop the row to the
+        // bottom of a list ordered by it, which is a different event from
+        // "the last message was deleted".
+        await updateDoc(convRef, {
+          lastMessage: null,
+          lastMessageType: null,
+          lastMessageId: null,
+        });
+        return;
+      }
+      // If somebody sent between the delete and this read, limit(1) returns
+      // THEIR message and the row correctly shows it. That is the race the
+      // identity check above cannot cover, and it resolves the right way.
+      await updateDoc(convRef, previewFieldsFor(newest.docs[0]));
+    } catch (error) {
       reportNonFatal("chatRepairPreview", error, { where: "ChatScreen" });
     }
   };
@@ -959,7 +1079,7 @@ export function ChatScreen({ route, navigation }) {
         doc(firestore, "conversations", conversationId, "messages", message.id),
         { text: next, editedAt: serverTimestamp() },
       );
-      await repairPreviewFor(message, { text: next });
+      await repairPreviewAfterEdit(message, next);
     } catch (error) {
       reportNonFatal("chatEditMessage", error, { where: "ChatScreen" });
       Alert.alert(t("errorTitle"), t("messageEditFailed"));
@@ -976,37 +1096,31 @@ export function ChatScreen({ route, navigation }) {
         style: "destructive",
         onPress: async () => {
           try {
-            // A tombstone rather than a deleteDoc.
+            // A physical delete, not a tombstone.
             //
-            // Removing the document leaves a hole: replies quoting it still
-            // render from their snapshot, but the historical pages of this
-            // thread are read once with getDocs and never watched again, so a
-            // deleted older message stayed on screen until the thread was
-            // reopened. The tombstone updates in place, which the live window
-            // shows immediately and a reopened thread renders correctly.
+            // Tombstoning left "Message deleted" in the thread forever, which
+            // is a different product than the one asked for: deleting should
+            // close the gap as though the message had never been there.
             //
-            // The payload fields go in the same write that sets the flag.
-            // Leaving them would mean a "deleted" message whose text is still
-            // readable by anything that queries the collection, which is not
-            // deletion, and firestore.rules refuses that shape anyway.
-            await updateDoc(
+            // What the document going away does NOT do by itself is reach the
+            // two places a copy of it can survive — an already-loaded
+            // historical page on either device, and the quote inside somebody
+            // else's reply. The first is handled below and on focus; the
+            // second is handled by cleanupDeletedMessageMedia on the server,
+            // because a client cannot be relied on to perform a second write.
+            await deleteDoc(
               doc(firestore, "conversations", conversationId, "messages", message.id),
-              {
-                deleted: true,
-                deletedAt: serverTimestamp(),
-                text: deleteField(),
-                imageUrl: deleteField(),
-                audioUrl: deleteField(),
-                audioDuration: deleteField(),
-                editedAt: deleteField(),
-              },
             );
-            // The attachment itself is removed by cleanupTombstonedMessageMedia
-            // in functions/index.js, which reads the URL off the BEFORE
-            // document and proves the path belongs to this conversation and
-            // this sender before deleting anything. The client never names a
-            // Storage path.
-            await repairPreviewFor(message, { deleted: true });
+
+            // The live listener drops it from liveMessages on its own. An
+            // older page does not: it was read once with getDocs and is never
+            // watched again, so without this the sender goes on seeing their
+            // own deleted message until the thread is remounted.
+            setOlderMessages((current) =>
+              current.filter((m) => m.id !== message.id),
+            );
+
+            await repairPreviewAfterDelete(message);
           } catch (error) {
             // The message stays on everybody's screen. Saying so is the
             // difference between "it did not delete" and "it deleted and
@@ -1406,12 +1520,24 @@ export function ChatScreen({ route, navigation }) {
                           ? t("chatReplyToYou")
                           : (otherName ?? t("chatUnknownParticipant"))}
                       </ReplyQuoteWho>
-                      <ReplyQuoteText mine={isMine} numberOfLines={2}>
-                        {item.replyTo.type === "image"
-                          ? t("chatReplyPhoto")
-                          : item.replyTo.type === "audio"
-                            ? t("chatReplyVoice")
-                            : (item.replyTo.textPreview ?? "")}
+                      <ReplyQuoteText
+                        mine={isMine}
+                        numberOfLines={2}
+                        /* "unavailable" is written only by cleanupDeletedMessageMedia,
+                           with the Admin SDK, when the quoted message is deleted. The
+                           create rule restricts replyTo.type to text/image/audio, so no
+                           client can put a message into this state — and textPreview is
+                           DROPPED from the document rather than blanked, so there is no
+                           quoted text left to render even if this branch were missed. */
+                        unavailable={item.replyTo.type === "unavailable"}
+                      >
+                        {item.replyTo.type === "unavailable"
+                          ? t("chatReplyUnavailable")
+                          : item.replyTo.type === "image"
+                            ? t("chatReplyPhoto")
+                            : item.replyTo.type === "audio"
+                              ? t("chatReplyVoice")
+                              : (item.replyTo.textPreview ?? "")}
                       </ReplyQuoteText>
                     </ReplyQuote>
                   ) : null}
@@ -2071,6 +2197,7 @@ const ReplyQuoteWho = styled.Text`
 
 const ReplyQuoteText = styled.Text`
   ${type.caption}
+  font-style: ${(props) => (props.unavailable ? "italic" : "normal")};
   color: ${(props) =>
     props.mine ? "rgba(255,255,255,0.85)" : props.theme.textMuted};
 `;

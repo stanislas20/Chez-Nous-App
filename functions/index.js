@@ -1289,59 +1289,120 @@ function chatMediaPath(url, conversationId, senderId) {
   return objectPath;
 }
 
-exports.cleanupTombstonedMessageMedia = onDocumentUpdated(
+// Firestore caps a batched write at 500 operations, and this trigger uses
+// one for quote sanitization below.
+const SANITIZE_BATCH_LIMIT = 400;
+
+exports.cleanupDeletedMessageMedia = onDocumentDeleted(
   "conversations/{conversationId}/messages/{messageId}",
   async (event) => {
-    const before = event.data?.before?.data();
-    const after = event.data?.after?.data();
-    if (!before || !after) return;
-
-    // The one transition this cares about. An edit, a read-receipt write, or
-    // a second update to an already-tombstoned message must all do nothing —
-    // which is also what makes a retried event harmless.
-    if (before.deleted === true || after.deleted !== true) return;
-
-    // The BEFORE document, because the tombstone has already stripped the
-    // URL from the after. This is also why the client cannot hand us a path:
-    // the only URL considered is the one that was on the message before the
-    // user touched it.
+    const gone = event.data?.data();
+    if (!gone) return;
     const { conversationId, messageId } = event.params;
-    const candidates = [before.imageUrl, before.audioUrl].filter(Boolean);
-    if (!candidates.length) return;
 
+    // ── 1. The attachment ────────────────────────────────────────────────
+    //
+    // The deleted snapshot carries the whole document, so imageUrl and
+    // audioUrl are simply present — no before/after comparison and no
+    // transition gate, which is what the tombstone version needed and what
+    // made it fire on every edit only to return early.
+    const candidates = [gone.imageUrl, gone.audioUrl].filter(Boolean);
     const paths = [];
     for (const url of candidates) {
-      const path = chatMediaPath(url, conversationId, before.senderId);
+      const path = chatMediaPath(url, conversationId, gone.senderId);
       if (path) {
         paths.push(path);
       } else {
-        logger.warn(
-          `Message ${conversationId}/${messageId}: attachment URL did not ` +
-            `resolve to a file this message owns; nothing deleted.`,
+        // Named loudly, because a physical delete leaves no document behind
+        // to find the file from later. An orphan here is unreferenced by
+        // anything and only this line says it exists.
+        logger.error(
+          `ORPHANED ATTACHMENT: message ${conversationId}/${messageId} was ` +
+            `deleted and its attachment URL did not resolve to a file this ` +
+            `message owns, so nothing was removed. The object is now ` +
+            `unreferenced and must be found by hand.`,
         );
       }
     }
-    if (!paths.length) return;
-
-    const bucket = admin.storage().bucket();
-    const results = await Promise.allSettled(
-      paths.map((path) => bucket.file(path).delete({ ignoreNotFound: true })),
-    );
-    const failed = results.filter((r) => r.status === "rejected").length;
-    logger.info(
-      `Message ${conversationId}/${messageId} tombstoned: removed ${
-        paths.length - failed
-      }/${paths.length} attachment(s).`,
-    );
-    if (failed) {
-      // Logged, not thrown. The tombstone has already landed and the message
-      // is gone from both screens; a function retrying forever over a file
-      // is noise rather than something anybody can act on.
-      logger.warn(
-        `Message ${conversationId}/${messageId}: ${failed} attachment(s) ` +
-          `could not be removed and are now orphaned.`,
+    if (paths.length) {
+      const bucket = admin.storage().bucket();
+      const results = await Promise.allSettled(
+        paths.map((path) => bucket.file(path).delete({ ignoreNotFound: true })),
       );
+      const failed = results
+        .map((r, i) => (r.status === "rejected" ? paths[i] : null))
+        .filter(Boolean);
+      logger.info(
+        `Message ${conversationId}/${messageId} deleted: removed ${
+          paths.length - failed.length
+        }/${paths.length} attachment(s).`,
+      );
+      for (const path of failed) {
+        logger.error(
+          `ORPHANED ATTACHMENT: ${path} could not be removed after its ` +
+            `message was deleted. Unreferenced; remove by hand.`,
+        );
+      }
     }
+
+    // ── 2. Quotes of this message, in other people's documents ───────────
+    //
+    // A reply stores a COPY of what it quotes. Deleting the original alone
+    // therefore leaves its text sitting inside somebody else's message —
+    // which is not deletion, and is exactly what the feature exists to
+    // prevent.
+    //
+    // This runs here rather than on the client for one reason: the client
+    // cannot be made to do it. Letting a sender write another participant's
+    // message would need the update rule relaxed, and even then the sanitize
+    // is a SECOND write that an app which is killed, offline, or simply
+    // hostile never performs — leaving the deleted text in place forever. A
+    // guarantee that depends on the deleting party volunteering a follow-up
+    // write is not a guarantee. On the deletion event it cannot be skipped.
+    //
+    // textPreview is DROPPED rather than blanked, so the quoted words are
+    // gone from the document rather than replaced in it.
+    let quoting;
+    try {
+      quoting = await admin
+        .firestore()
+        .collection(`conversations/${conversationId}/messages`)
+        .where("replyTo.messageId", "==", messageId)
+        .limit(SANITIZE_BATCH_LIMIT)
+        .get();
+    } catch (error) {
+      logger.error(
+        `Message ${conversationId}/${messageId}: could not look up replies ` +
+          `quoting it, so their copies of its text remain. ${error}`,
+      );
+      return;
+    }
+    if (quoting.empty) return;
+
+    const batch = admin.firestore().batch();
+    for (const docSnap of quoting.docs) {
+      // Rewriting the whole map, not merging into it: a merge would leave
+      // textPreview untouched, which is the entire thing being removed.
+      //
+      // Idempotent by construction — a retried event writes byte-identical
+      // data over an already-sanitized quote. type "unavailable" is
+      // server-only: firestore.rules restricts replyTo.type to
+      // text/image/audio on CREATE, so no client can forge this state, and
+      // no client can write replyTo at all after creation.
+      batch.update(docSnap.ref, {
+        replyTo: {
+          messageId,
+          senderId: gone.senderId ?? null,
+          type: "unavailable",
+        },
+      });
+    }
+    await batch.commit();
+    logger.info(
+      `Message ${conversationId}/${messageId} deleted: sanitized ${
+        quoting.size
+      } quote(s) of it.`,
+    );
   },
 );
 

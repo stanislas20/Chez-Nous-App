@@ -214,20 +214,91 @@ for (const [label, message] of [
         "Reply, Copy and Share unreachable on a received message",
     );
   }
-  // Deleting must be a tombstone, not a document removal.
-  if (/deleteDoc\(/.test(bare)) {
+  // Deleting is now a physical document removal, not a tombstone.
+  //
+  // The tombstone left "Message deleted" in the thread forever. What a
+  // removal does NOT do by itself is reach the two places a copy survives —
+  // an already-loaded historical page, and the quote inside somebody else's
+  // reply — so both are asserted below rather than assumed.
+  if (!/await deleteDoc\(/.test(bare)) {
     failures.push(
-      "H: deleteDoc is back in ChatScreen — a removed document leaves a hole " +
-        "in the historical pages, which are read once with getDocs and never " +
-        "watched again, so it stays on screen until the thread is reopened",
+      "H: the delete no longer removes the document. A tombstone leaves a " +
+        "row, a timestamp and a placeholder in the conversation, which is " +
+        "the behaviour this replaced",
     );
   }
-  for (const field of ["deleted: true", "deletedAt", "editedAt"]) {
-    if (!bare.includes(field)) {
-      failures.push(`H: the tombstone/edit field \`${field}\` is gone`);
-    }
+  if (/deleted: true/.test(bare)) {
+    failures.push(
+      "H: ChatScreen still writes a tombstone. New deletions must remove the " +
+        "document; only the RENDERER keeps a tombstone branch, for threads " +
+        "tombstoned before this change",
+    );
+  }
+  // Sender's own historical copy, dropped immediately.
+  if (!/setOlderMessages\(\(current\) =>\s*\n?\s*current\.filter\(\(m\) => m\.id !== message\.id\)/.test(bare)) {
+    failures.push(
+      "H: deleting does not drop the message from olderMessages. Historical " +
+        "pages are read once with getDocs and never watched, so the sender " +
+        "would go on seeing their own deleted message until the thread is " +
+        "remounted",
+    );
+  }
+  // The other participant's copy, reconciled when they come back.
+  if (!/getCountFromServer\(/.test(bare)) {
+    failures.push(
+      "H: the historical reconcile no longer counts first. Re-reading the " +
+        "whole loaded range on every focus costs a read per loaded message " +
+        "when nothing has been deleted, which is the common case",
+    );
+  }
+  // Scoped to the reconcile effect. `!isFocused || !appActive` also guards
+  // the read-receipt effect, so a whole-file match passes while the
+  // reconciler's own guard has been deleted.
+  if (!/if \(!isFocused \|\| !appActive\) return;\s*\n\s*reconcileOlderMessages\(\);/.test(bare)) {
+    failures.push(
+      "H: nothing reconciles historical pages on focus — the other " +
+        "participant would keep a deleted message on screen for as long as " +
+        "the thread stays mounted",
+    );
+  }
+  // Backward compatibility: threads tombstoned before this change.
+  // The RENDER branch, not merely the constant — which actionsFor and
+  // messageKind also reference, so a whole-file match proves nothing.
+  if (!/itemKind === MESSAGE_DELETED \? \(/.test(bare)) {
+    failures.push(
+      "H: the renderer dropped its tombstone branch. Messages tombstoned " +
+        "before true delete still exist in production and would render as " +
+        "an empty bubble",
+    );
+  }
+  if (!bare.includes("editedAt")) {
+    failures.push("H: the edit field `editedAt` is gone");
   }
   // Preview repair must key on identity, never on a timestamp.
+  if (!/getDocs\(\s*\n?\s*query\(messagesRef\(\), orderBy\("createdAt", "desc"\), limit\(1\)\)/.test(bare)) {
+    failures.push(
+      "I: deleting the latest message no longer moves the preview to the " +
+        "newest remaining one with a bounded limit(1) read — the inbox would " +
+        "go on showing text that no longer exists",
+    );
+  }
+  if (!/lastMessageId: null/.test(bare)) {
+    failures.push(
+      "I: deleting the only message does not clear lastMessageId, so the " +
+        "inbox keeps pointing at a document that is gone",
+    );
+  }
+  // BOTH repair paths, counted. A single match passes while the other has
+  // been switched to a timestamp comparison, which is the race this exists
+  // to prevent.
+  if ((bare.match(/conversation\.lastMessageId !== message\.id/g) ?? []).length !== 2) {
+    failures.push(
+      "I: the edit and delete preview repairs do not both key on " +
+        "lastMessageId identity. Comparing createdAt to lastMessageAt races: " +
+        "the other person can send between the read and the write, and the " +
+        "repair then overwrites their newer preview",
+    );
+  }
   if (!/conversation\.lastMessageId !== message\.id/.test(bare)) {
     failures.push(
       "I: preview repair no longer compares lastMessageId. Comparing " +

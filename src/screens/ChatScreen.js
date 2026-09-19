@@ -317,6 +317,95 @@ return {
 };
 }
 
+// ── Reconciling the historical pages ───────────────────────────────────
+//
+// The bounds of what is currently loaded. Null when there is nothing to
+// check, or when any page still carries an unresolved serverTimestamp — a
+// range that cannot be stated cannot be verified, and it resolves before the
+// next focus anyway.
+function reconcileWindow(loaded) {
+  if (!loaded.length) return null;
+  const times = loaded.map((m) => m.createdAt);
+  if (times.some((t) => typeof t?.toMillis !== "function")) return null;
+  let oldest = times[0];
+  let newest = times[0];
+  for (const t of times) {
+    if (t.toMillis() < oldest.toMillis()) oldest = t;
+    if (t.toMillis() > newest.toMillis()) newest = t;
+  }
+  return { oldest, newest, lo: oldest.toMillis(), hi: newest.toMillis() };
+}
+
+// Whether a message survives a reconciliation result.
+//
+// The subtle half of the fix. `alive` lists the ids the server still has
+// INSIDE the window that was checked — and by the time it arrives, the user
+// may have loaded another page, whose messages are older than that window and
+// therefore absent from `alive` through no fault of their own. Filtering on
+// `alive.has(id)` alone deletes the page they just pulled in, which looks
+// exactly like losing data.
+//
+// So the window is part of the predicate: only a message that was inside the
+// range this result speaks for may be judged by it.
+function survivesReconcile(message, lo, hi, alive) {
+  const at = message?.createdAt?.toMillis?.();
+  // Unresolved timestamp: not placeable in any window, so never removed by one.
+  if (typeof at !== "number") return true;
+  if (at < lo || at > hi) return true;
+  return alive.has(message.id);
+}
+
+// One cycle. Returns a word for what it did, which is what the tests read.
+//
+// The in-flight guard is a ref rather than state: `appActive` comes from an
+// AppState listener and `isFocused` from navigation, two independent sources
+// that can flip in separate commits for one real transition — resuming the
+// app onto this screen. Without the guard that is two effect runs and two
+// count queries, and with a stale predicate it was also two filters racing.
+// Reset in `finally`, so a thrown request cannot leave the screen unable to
+// reconcile for the rest of its life.
+async function reconcileLoadedHistory({
+  loaded,
+  inFlightRef,
+  collectionRef,
+  api,
+  applySurvivors,
+  onError,
+}) {
+  if (inFlightRef.current) return "busy";
+  const window = reconcileWindow(loaded);
+  if (!window) return "nothing-to-do";
+
+  inFlightRef.current = true;
+  try {
+    const { query, where, orderBy, getCountFromServer, getDocs } = api;
+    const range = [
+      where("createdAt", ">=", window.oldest),
+      where("createdAt", "<=", window.newest),
+    ];
+    // The cheap question first. A new message cannot land inside a historical
+    // range — it is newer than every document in one — so a count that has
+    // fallen can only mean a deletion, and an unchanged count means there is
+    // nothing to re-read. One read per focus, whatever the range holds.
+    const counted = await getCountFromServer(query(collectionRef, ...range));
+    if (counted.data().count === loaded.length) return "unchanged";
+
+    const snapshot = await getDocs(
+      query(collectionRef, ...range, orderBy("createdAt", "desc")),
+    );
+    const alive = new Set(snapshot.docs.map((d) => d.id));
+    applySurvivors(window.lo, window.hi, alive);
+    return "reconciled";
+  } catch (error) {
+    // A failed reconcile leaves the stale copy on screen rather than clearing
+    // the thread. Reported, and retried on the next focus.
+    onError(error);
+    return "failed";
+  } finally {
+    inFlightRef.current = false;
+  }
+}
+
 export function ChatScreen({ route, navigation }) {
   const { colors } = useTheme();
   const { conversationId, listingTitle, attachOnOpen } = route.params;
@@ -822,42 +911,36 @@ export function ChatScreen({ route, navigation }) {
   // After a deletion: that one, plus one per surviving document in the loaded
   // range — so for P loaded pages of MESSAGE_PAGE, at most 1 + P*50, and only
   // on the focus that follows a deletion.
-  const reconcileOlderMessages = useCallback(async () => {
-    const loaded = olderMessagesRef.current;
-    if (!loaded.length) return;
+  // One cycle at a time. See reconcileLoadedHistory for why this is a ref.
+  const reconcileInFlightRef = useRef(false);
 
-    const times = loaded
-      .map((m) => m.createdAt)
-      .filter((t) => typeof t?.toMillis === "function");
-    // A page still carrying an unresolved serverTimestamp cannot be bounded,
-    // and will be resolved by the time focus comes round again.
-    if (times.length !== loaded.length) return;
-
-    const oldest = times.reduce((a, b) => (a.toMillis() <= b.toMillis() ? a : b));
-    const newest = times.reduce((a, b) => (a.toMillis() >= b.toMillis() ? a : b));
-    const range = [
-      where("createdAt", ">=", oldest),
-      where("createdAt", "<=", newest),
-    ];
-
-    try {
-      const counted = await getCountFromServer(query(messagesRef(), ...range));
-      if (counted.data().count === loaded.length) return;
-
-      const snapshot = await getDocs(
-        query(messagesRef(), ...range, orderBy("createdAt", "desc")),
-      );
-      const alive = new Set(snapshot.docs.map((d) => d.id));
-      setOlderMessages((current) => current.filter((m) => alive.has(m.id)));
-    } catch (error) {
-      // A failed reconcile leaves the stale copy on screen rather than
-      // clearing the thread. Reported, and retried on the next focus.
-      reportNonFatal("chatReconcileOlder", error, { where: "ChatScreen" });
-    }
-  }, [conversationId]);
+  const reconcileOlderMessages = useCallback(
+    () =>
+      reconcileLoadedHistory({
+        loaded: olderMessagesRef.current,
+        inFlightRef: reconcileInFlightRef,
+        collectionRef: collection(
+          firestore,
+          "conversations",
+          conversationId,
+          "messages",
+        ),
+        api: { query, where, orderBy, getCountFromServer, getDocs },
+        applySurvivors: (lo, hi, alive) =>
+          setOlderMessages((current) =>
+            current.filter((m) => survivesReconcile(m, lo, hi, alive)),
+          ),
+        onError: (error) =>
+          reportNonFatal("chatReconcileOlder", error, { where: "ChatScreen" }),
+      }),
+    [conversationId],
+  );
 
   // On focus and on return from the background — the two moments a reader
-  // comes back to a thread they had scrolled back through.
+  // comes back to a thread they had scrolled back through. Nothing else may
+  // trigger a cycle: sending, editing, loading another page and ordinary
+  // rerenders all leave these two booleans alone, and the callback is stable
+  // across renders so the effect does not re-fire on its own.
   useEffect(() => {
     if (!isFocused || !appActive) return;
     reconcileOlderMessages();

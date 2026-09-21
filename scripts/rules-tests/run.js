@@ -18,6 +18,9 @@ const { spawnSync } = require("child_process");
 const SUITES = [
   "scripts/rules-tests/moderation.test.js",
   "scripts/rules-tests/rules.test.js",
+  // Who may write whose entry in a conversation's per-person maps —
+  // including the one the purge trigger reads to decide a thread may go.
+  "scripts/rules-tests/personalMaps.test.js",
   "scripts/rules-tests/storage.test.js",
   "scripts/rules-tests/pagination.test.js",
   // Measures rather than gates: every failure it reports is a known

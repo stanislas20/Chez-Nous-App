@@ -971,11 +971,57 @@ service cloud.firestore {
       // Frozen: who is in it, who is who, and what it is about. Left open:
       // the last-message preview, the unread counters and blockedBy, which
       // are the four things the app writes on every send and every open.
+      //
+      // THE PERSONAL MAPS. archivedBy, favoritedBy, deletedBy and blockedBy
+      // are maps of uid -> value on a document BOTH people can write, and
+      // each entry is one person's decision about their own copy of the
+      // thread. Nothing above stopped either participant writing the
+      // other's entry: archiving somebody else's inbox, un-blocking
+      // yourself on their behalf, or setting their deletedBy cutoff — which,
+      // once both entries are present, is what tells the server the
+      // conversation may be purged. Blocking makes it a safety question
+      // rather than a tidiness one.
+      //
+      // Each is therefore pinned to the caller's own key, and left alone
+      // when the write does not touch it.
+      //
+      // unreadCount is deliberately NOT in this list. The SENDER increments
+      // the RECIPIENT's counter on every message — ChatScreen writes
+      // unreadCount.<otherParticipant> — so the same restriction there would
+      // reject every send in the app.
+      // Written out per field rather than through one helper taking the
+      // field name. A helper reads better and made the whole statement
+      // raise an evaluation error instead of returning false — which denies,
+      // so it looked like it worked, and would have gone in as a rule that
+      // throws on inputs nobody had tried yet.
+      function mapDiff(before, after) {
+        return after.diff(before).affectedKeys();
+      }
+      function personalMapsOk() {
+        return mapDiff(
+                 resource.data.get('archivedBy', {}),
+                 request.resource.data.get('archivedBy', {})
+               ).hasOnly([request.auth.uid])
+          && mapDiff(
+               resource.data.get('favoritedBy', {}),
+               request.resource.data.get('favoritedBy', {})
+             ).hasOnly([request.auth.uid])
+          && mapDiff(
+               resource.data.get('deletedBy', {}),
+               request.resource.data.get('deletedBy', {})
+             ).hasOnly([request.auth.uid])
+          && mapDiff(
+               resource.data.get('blockedBy', {}),
+               request.resource.data.get('blockedBy', {})
+             ).hasOnly([request.auth.uid]);
+      }
+
       allow update: if request.auth != null
         && request.auth.uid in resource.data.participantIds
         && !request.resource.data.diff(resource.data).affectedKeys()
              .hasAny(['participantIds', 'buyerId', 'sellerId', 'listingId',
-                      'createdAt']);
+                      'createdAt'])
+        && personalMapsOk();
 
       match /messages/{messageId} {
         allow read: if request.auth != null

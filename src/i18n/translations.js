@@ -2655,6 +2655,10 @@ export const translations = {
     chatListAddFavorite: "Add to Favorites",
     chatListRemoveFavorite: "Remove from Favorites",
     chatListActionFailed: "That didn't go through. Please try again.",
+    chatListDeleteChat: "Delete chat",
+    chatListDeleteConfirmTitle: "Delete this chat?",
+    chatListDeleteConfirmMessage:
+      "It will be removed from your list only. The other person keeps their copy, and the chat comes back if they message you again.",
     chatBlockUser: "Block user",
     chatUnblockUser: "Unblock user",
     // Read receipts. Screen-reader labels only — the ticks themselves carry
@@ -5871,6 +5875,10 @@ export const translations = {
     chatListAddFavorite: "Ajouter aux favoris",
     chatListRemoveFavorite: "Retirer des favoris",
     chatListActionFailed: "L'opération n'a pas abouti. Veuillez réessayer.",
+    chatListDeleteChat: "Supprimer la discussion",
+    chatListDeleteConfirmTitle: "Supprimer cette discussion\u00a0?",
+    chatListDeleteConfirmMessage:
+      "Elle sera retir\u00e9e de votre liste uniquement. Votre interlocuteur conserve la sienne, et la discussion r\u00e9appara\u00eetra s'il vous \u00e9crit \u00e0 nouveau.",
     chatBlockUser: "Bloquer l'utilisateur",
     chatUnblockUser: "Débloquer l'utilisateur",
     chatDateToday: "Aujourd'hui",

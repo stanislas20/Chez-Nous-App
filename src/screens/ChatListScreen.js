@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { Alert, FlatList, Modal, Pressable } from "react-native";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
@@ -98,6 +98,59 @@ export function ChatListScreen({ navigation }) {
     [user, closeRow, t],
   );
 
+  // "Delete chat" removes the thread from MY inbox and leaves the other
+  // person's untouched — the same thing the button does in WhatsApp, and the
+  // only thing it can honestly do here: the messages are one shared
+  // subcollection, so erasing them would erase their copy too.
+  //
+  // A TIMESTAMP rather than a bool, because a deleted chat has to come back
+  // when the conversation does. Hiding on a flag would mean a message sent
+  // after the delete landed in a thread the recipient could no longer see —
+  // silently, which is the failure mode this codebase keeps having to fix.
+  const deletedCutoffOf = (conversation) =>
+    user ? (conversation?.deletedBy?.[user.uid] ?? null) : null;
+
+  const isHiddenByDelete = (conversation) => {
+    const cutoff = deletedCutoffOf(conversation);
+    if (!cutoff) return false;
+    // A serverTimestamp() that has not resolved yet: the delete just happened
+    // locally, so nothing can be newer than it.
+    if (typeof cutoff.toMillis !== "function") return true;
+    const last = conversation?.lastMessageAt;
+    if (typeof last?.toMillis !== "function") return true;
+    return last.toMillis() <= cutoff.toMillis();
+  };
+
+  const deleteForMe = useCallback(
+    (conversation) => {
+      setMenuFor(null);
+      Alert.alert(
+        t("chatListDeleteConfirmTitle"),
+        t("chatListDeleteConfirmMessage"),
+        [
+          { text: t("cancel"), style: "cancel" },
+          {
+            text: t("chatListDeleteChat"),
+            style: "destructive",
+            onPress: () => {
+              if (!user || !conversation?.id) return;
+              closeRow(conversation.id);
+              updateDoc(doc(firestore, "conversations", conversation.id), {
+                [`deletedBy.${user.uid}`]: serverTimestamp(),
+              }).catch((error) => {
+                reportNonFatal("chatListDeleteChat", error, {
+                  where: "ChatListScreen",
+                });
+                Alert.alert(t("errorTitle"), t("chatListActionFailed"));
+              });
+            },
+          },
+        ],
+      );
+    },
+    [user, closeRow, t],
+  );
+
   const openContactInfo = useCallback(
     (conversation) => {
       const otherUid = otherUidOf(conversation);
@@ -162,7 +215,10 @@ export function ChatListScreen({ navigation }) {
   // The inbox hides archived threads; the archive shows only those. The count
   // is of the whole subscription, not of what is rendered, so the banner keeps
   // telling the truth while the archive itself is open.
-  const all = conversations ?? [];
+  // A deleted thread is gone from both the inbox and the archive until it
+  // comes back, so this filter runs before the archive split rather than
+  // inside one side of it.
+  const all = (conversations ?? []).filter((c) => !isHiddenByDelete(c));
   const archivedCount = all.filter((c) => flagOf(c, "archivedBy")).length;
   const visible = all.filter(
     (c) => flagOf(c, "archivedBy") === showArchived,
@@ -408,6 +464,11 @@ export function ChatListScreen({ navigation }) {
                   ? t("chatUnblockUser")
                   : t("chatBlockUser")}
               </SheetLabel>
+            </SheetItem>
+
+            <SheetItem destructive onPress={() => deleteForMe(menuFor)}>
+              <Ionicons name="trash-outline" size={20} color="#B3261E" />
+              <SheetLabel destructive>{t("chatListDeleteChat")}</SheetLabel>
             </SheetItem>
 
             <SheetCancel onPress={() => setMenuFor(null)}>

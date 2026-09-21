@@ -1397,7 +1397,26 @@ exports.cleanupDeletedMessageMedia = onDocumentDeleted(
         },
       });
     }
-    await batch.commit();
+    // A quote can be deleted between the read above and this write — both
+    // participants deleting at once, or the whole conversation being purged
+    // because neither of them kept it. batch.update() on a document that has
+    // since gone fails the WHOLE batch with NOT_FOUND, and an unguarded
+    // commit turns that ordinary race into a function error.
+    //
+    // Nothing is lost when it happens: a quote that no longer exists cannot
+    // still be holding the deleted text. So this is reported at info and the
+    // invocation succeeds, because a stream of spurious errors here is what
+    // would bury a real ORPHANED ATTACHMENT line.
+    try {
+      await batch.commit();
+    } catch (error) {
+      logger.info(
+        `Message ${conversationId}/${messageId}: ${quoting.size} quote(s) ` +
+          `could not be sanitized, most likely deleted concurrently. ` +
+          `${error?.code ?? error}`,
+      );
+      return;
+    }
     logger.info(
       `Message ${conversationId}/${messageId} deleted: sanitized ${
         quoting.size
@@ -2006,6 +2025,129 @@ exports.onCounterMarkerCreated = onDocumentCreated(
       // number in the market.
       logger.warn(
         `counter ${kind} not applied to ${listingId}`,
+        error?.code ?? error,
+      );
+    }
+  },
+);
+
+// ── Reclaiming a conversation nobody keeps ─────────────────────────────
+//
+// "Delete chat" in the inbox is per-viewer: it writes deletedBy.<uid> and
+// hides the thread from that person's list. It deliberately destroys
+// nothing, because the conversation document and its messages are ONE copy
+// shared by two people — deleting them when one side pressed delete would
+// erase the other side's history without asking.
+//
+// So the storage is only reclaimable at the moment BOTH participants have
+// deleted it. Then nobody can see the thread, nobody can bring it back by
+// opening it, and every byte it occupies is unreachable. That is what this
+// purges.
+//
+// THE TRAP: deletedBy is a tombstone, not a state. A chat that both people
+// deleted comes BACK for both of them the moment either one sends a new
+// message — the inbox compares lastMessageAt against each viewer's cutoff
+// rather than testing the key's presence. Purging on `deletedBy covers
+// everyone` alone would therefore delete a live conversation the first time
+// anything touched the document after a revival: the unread counter, the
+// preview, a read receipt. The condition has to be the same one the inbox
+// renders with, per participant, or the server and the screen disagree about
+// whether a thread exists.
+const PURGE_PAGE = 300;
+
+function everyoneDeleted(conversation) {
+  const participants = conversation?.participantIds;
+  if (!Array.isArray(participants) || participants.length === 0) return false;
+  const deletedBy = conversation.deletedBy ?? {};
+  const lastMessageAt = conversation.lastMessageAt;
+  return participants.every((uid) => {
+    const cutoff = deletedBy[uid];
+    if (!cutoff || typeof cutoff.toMillis !== "function") return false;
+    // No messages at all, or an unresolved write: nothing can post-date the
+    // deletion, so the thread is hidden for this participant.
+    if (typeof lastMessageAt?.toMillis !== "function") return true;
+    return lastMessageAt.toMillis() <= cutoff.toMillis();
+  });
+}
+
+exports.purgeFullyDeletedConversation = onDocumentUpdated(
+  "conversations/{conversationId}",
+  async (event) => {
+    const after = event.data?.after?.data();
+    if (!after || !everyoneDeleted(after)) return;
+    // Only the transition INTO that state does the work. Without this the
+    // same purge is attempted again by every write that lands while the
+    // condition already holds.
+    const before = event.data?.before?.data();
+    if (before && everyoneDeleted(before)) return;
+
+    const { conversationId } = event.params;
+    const db = admin.firestore();
+    const bucket = admin.storage().bucket();
+    const messages = db.collection(`conversations/${conversationId}/messages`);
+
+    let removedDocs = 0;
+    let removedFiles = 0;
+    try {
+      // Paged rather than recursive: a thread is unbounded, and a single
+      // batch caps at 500 writes.
+      for (;;) {
+        const page = await messages.limit(PURGE_PAGE).get();
+        if (page.empty) break;
+
+        // The attachments go first. A message document deleted before its
+        // file leaves nothing behind pointing at the file.
+        const paths = [];
+        for (const snapshot of page.docs) {
+          const data = snapshot.data() ?? {};
+          for (const url of [data.imageUrl, data.audioUrl].filter(Boolean)) {
+            const path = chatMediaPath(url, conversationId, data.senderId);
+            if (path) paths.push(path);
+            else
+              logger.error(
+                `ORPHANED ATTACHMENT: message ${conversationId}/` +
+                  `${snapshot.id} was purged and its attachment URL did not ` +
+                  `resolve to a file this message owns. Unreferenced; remove ` +
+                  `by hand.`,
+              );
+          }
+        }
+        if (paths.length) {
+          const results = await Promise.allSettled(
+            paths.map((path) =>
+              bucket.file(path).delete({ ignoreNotFound: true }),
+            ),
+          );
+          results.forEach((result, index) => {
+            if (result.status === "rejected")
+              logger.error(
+                `ORPHANED ATTACHMENT: ${paths[index]} survived the purge of ` +
+                  `conversation ${conversationId}. Unreferenced; remove by hand.`,
+              );
+            else removedFiles += 1;
+          });
+        }
+
+        const batch = db.batch();
+        page.docs.forEach((snapshot) => batch.delete(snapshot.ref));
+        await batch.commit();
+        removedDocs += page.size;
+        if (page.size < PURGE_PAGE) break;
+      }
+
+      // Last, so that a failure above leaves the conversation document in
+      // place and the thread still reachable by this trigger on the next
+      // write, rather than stranding an unreferenced subcollection.
+      await db.doc(`conversations/${conversationId}`).delete();
+      logger.info(
+        `Conversation ${conversationId} purged: both participants had ` +
+          `deleted it. Removed ${removedDocs} message(s) and ` +
+          `${removedFiles} attachment(s).`,
+      );
+    } catch (error) {
+      logger.error(
+        `Conversation ${conversationId}: purge failed after ${removedDocs} ` +
+          `message(s) and ${removedFiles} attachment(s).`,
         error?.code ?? error,
       );
     }

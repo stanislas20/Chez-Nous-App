@@ -185,6 +185,21 @@ export function SellerProfileScreen({ route, navigation }) {
           ),
           sellerId,
         ),
+        // Android puts this in Intent.EXTRA_SUBJECT, which is the SUBJECT
+        // LINE when the share sheet hands off to an email app. Without it a
+        // shared profile goes out as an empty-subject mail carrying a bare
+        // link, which is what a spam filter is built to catch — the message
+        // is sent, and the person it was sent to never sees it.
+        //
+        // Ignored by the chat apps, which take the message and nothing else.
+        title: t("shareProfileSubject", { name: sellerName ?? "" }),
+      },
+      {
+        // iOS takes the mail subject from the OPTIONS argument, not from
+        // content.title — that one is Android's Intent.EXTRA_SUBJECT. Both
+        // are set because the same share sheet has to produce a subject on
+        // either platform, and they are read from different places.
+        subject: t("shareProfileSubject", { name: sellerName ?? "" }),
       });
     } catch {
       // dismissed the share sheet — nothing to do

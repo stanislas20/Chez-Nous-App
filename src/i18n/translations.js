@@ -801,6 +801,7 @@ export const translations = {
     eventDistanceAway: "{km} km",
     eventLike: "Like",
     eventLiked: "Liked",
+    shareProfileSubject: "{name} on Chez-Nous",
     profileLinkUnavailable: "This profile is no longer available.",
     listingLinkUnavailable:
       "This listing is no longer available. It may have been sold or taken down.",
@@ -4000,6 +4001,7 @@ export const translations = {
     eventDistanceAway: "{km} km",
     eventLike: "J’aime",
     eventLiked: "Aimé",
+    shareProfileSubject: "Profil {name} sur Chez-Nous",
     profileLinkUnavailable:
       "Ce profil n'est plus disponible.",
     listingLinkUnavailable:

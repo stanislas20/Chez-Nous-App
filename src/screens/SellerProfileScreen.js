@@ -19,6 +19,7 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
+import { ImageLightbox } from "../components/ImageLightbox";
 import { withProfileLink } from "../utils/profileLink";
 import { ListingCard } from "../components/ListingCard";
 import { useSellerListings } from "../hooks/useSellerListings";
@@ -152,6 +153,10 @@ export function SellerProfileScreen({ route, navigation }) {
     isReady: ratingReady,
     myRating,
   } = useMyRating(sellerId, user?.uid);
+  // The photo being looked at full-screen, or null. One piece of state for
+  // the header portrait and every reviewer avatar, because only one can be
+  // open at a time and the viewer is the same viewer.
+  const [photoUri, setPhotoUri] = useState(null);
   const [rateOpen, setRateOpen] = useState(false);
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState("");
@@ -230,6 +235,15 @@ export function SellerProfileScreen({ route, navigation }) {
                 a second SOURCE, not a second read. The route value stays first only
                 so a caller that already has the photo renders it on the first frame
                 rather than flashing an initial while the projection arrives. */}
+            {/* Tappable only when there is a photograph. An initial in a
+                coloured square has nothing to enlarge, and a control that
+                opens an empty viewer is worse than no control. */}
+            <Pressable
+              disabled={!(sellerPhotoUrl ?? stats?.photoUrl)}
+              onPress={() => setPhotoUri(sellerPhotoUrl ?? stats?.photoUrl)}
+              accessibilityRole="imagebutton"
+              accessibilityLabel={sellerName ?? undefined}
+            >
             <HeaderAvatar>
               <PublicAvatar
                 photoUrl={sellerPhotoUrl ?? stats?.photoUrl}
@@ -241,6 +255,7 @@ export function SellerProfileScreen({ route, navigation }) {
                 initialSize={24}
               />
             </HeaderAvatar>
+            </Pressable>
             <SellerName numberOfLines={2}>{sellerName}</SellerName>
 
             {sellerVerified ? (
@@ -431,11 +446,23 @@ export function SellerProfileScreen({ route, navigation }) {
                         Before, a photoUrl pointing at a removed object
                         rendered an empty circle forever, because an Image
                         whose source 404s draws nothing at all. */}
-                    <PublicAvatar
-                      photoUrl={reviewerProfiles[item.raterId]?.photoUrl}
-                      name={reviewerProfiles[item.raterId]?.displayName}
-                      size={REVIEWER_PHOTO_SIZE}
-                    />
+                    <Pressable
+                      disabled={!reviewerProfiles[item.raterId]?.photoUrl}
+                      onPress={() =>
+                        setPhotoUri(reviewerProfiles[item.raterId]?.photoUrl)
+                      }
+                      accessibilityRole="imagebutton"
+                      accessibilityLabel={
+                        reviewerProfiles[item.raterId]?.displayName ?? undefined
+                      }
+                      hitSlop={6}
+                    >
+                      <PublicAvatar
+                        photoUrl={reviewerProfiles[item.raterId]?.photoUrl}
+                        name={reviewerProfiles[item.raterId]?.displayName}
+                        size={REVIEWER_PHOTO_SIZE}
+                      />
+                    </Pressable>
                     <ReviewerMeta>
                       <ReviewerName numberOfLines={1}>
                         {reviewerProfiles[item.raterId]?.displayName ??
@@ -567,6 +594,18 @@ export function SellerProfileScreen({ route, navigation }) {
         </SheetBackdrop>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* The same viewer the chat uses for a photograph: pinch to zoom, drag
+          to pan, double-tap to reset. Mounted once for the whole screen and
+          only while something is open, so the gesture handlers it installs
+          do not sit over the list the rest of the time. */}
+      {photoUri ? (
+        <ImageLightbox
+          visible
+          media={[{ uri: photoUri, isVideo: false }]}
+          onClose={() => setPhotoUri(null)}
+        />
+      ) : null}
     </Container>
   );
 }

@@ -19,6 +19,7 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
+import { withProfileLink } from "../utils/profileLink";
 import { ListingCard } from "../components/ListingCard";
 import { useSellerListings } from "../hooks/useSellerListings";
 import { buildLinkUrl } from "../data/restaurantLinks";
@@ -163,13 +164,21 @@ export function SellerProfileScreen({ route, navigation }) {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: t(
-          sellerVerified
-            ? "shareCompanyProfileMessage"
-            : "shareSellerProfileMessage",
-          {
-            name: sellerName ?? "",
-          },
+        // The sentence alone told somebody a name and gave them no way to
+        // reach the person. withProfileLink appends the address of the page
+        // that renders this profile for anybody, app or no app — and falls
+        // back to the bare sentence when there is no uid to build one from,
+        // rather than sharing a link that 404s.
+        message: withProfileLink(
+          t(
+            sellerVerified
+              ? "shareCompanyProfileMessage"
+              : "shareSellerProfileMessage",
+            {
+              name: sellerName ?? "",
+            },
+          ),
+          sellerId,
         ),
       });
     } catch {

@@ -73,6 +73,7 @@ const linking = {
   config: {
     screens: {
       ListingLink: "l/:id",
+      ProfileLink: "s/:id",
     },
   },
 };

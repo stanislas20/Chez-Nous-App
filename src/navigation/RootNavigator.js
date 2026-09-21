@@ -11,6 +11,7 @@ import { AdvertiseStack } from "./AdvertiseStack";
 import { CategoryListingsScreen } from "../screens/CategoryListingsScreen";
 import { ProductDetailScreen } from "../screens/ProductDetailScreen";
 import { ListingLinkScreen } from "../screens/ListingLinkScreen";
+import { ProfileLinkScreen } from "../screens/ProfileLinkScreen";
 import { JobDetailScreen } from "../screens/JobDetailScreen";
 import { JobApplicationsScreen } from "../screens/JobApplicationsScreen";
 import { SellerProfileScreen } from "../screens/SellerProfileScreen";
@@ -116,6 +117,7 @@ export function RootNavigator() {
           {/* Where a shared link lands: it holds an id, reads the listing
               and replaces itself with the right detail screen. */}
           <Stack.Screen name="ListingLink" component={ListingLinkScreen} />
+          <Stack.Screen name="ProfileLink" component={ProfileLinkScreen} />
           <Stack.Screen name="Advertise" component={AdvertiseStack} />
           <Stack.Screen
             name="More"

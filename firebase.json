@@ -15,6 +15,10 @@
       {
         "source": "/l/**",
         "function": "listingPage"
+      },
+      {
+        "source": "/s/**",
+        "function": "profilePage"
       }
     ]
   },

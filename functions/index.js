@@ -36,6 +36,7 @@ exports.sendPaperReminders =
 // The page a shared listing links to. Required after initializeApp above,
 // like the two before it, because it reads Firestore on the first request.
 exports.listingPage = require("./listingPage").listingPage;
+exports.profilePage = require("./profilePage").profilePage;
 // Google Places, called from a server that can hold a key — the app used
 // to call it directly with a key EXPO_PUBLIC_ had inlined into the bundle.
 exports.placesProxy = require("./placesProxy").placesProxy;

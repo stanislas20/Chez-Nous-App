@@ -1161,10 +1161,42 @@ service cloud.firestore {
                            'audioUrl', 'audioDuration', 'editedAt']);
         }
 
+        // A voice note being marked as heard, by the person who heard it.
+        //
+        // This is the ONE case where somebody other than the sender may
+        // write a message document, and it exists because the claim cannot
+        // be made by anybody else: only the listener knows they listened.
+        // Doing it from the sender's side would mean inventing the fact.
+        //
+        // Everything about the write is pinned. It may touch listenedBy and
+        // nothing else; within listenedBy it may touch the caller's own key
+        // and nothing else; the value must be request.time, so a client
+        // cannot back-date or forward-date when it listened; the caller must
+        // be a participant; and the message must actually carry audio, so
+        // this cannot be used to write a field onto somebody's text message.
+        //
+        // The sender is excluded on purpose. A receipt from the person who
+        // sent it would say nothing, and allowing it would let a sender
+        // manufacture a "they heard it" mark on their own message.
+        function isListenReceipt() {
+          return request.auth.uid != resource.data.senderId
+            && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds
+            && resource.data.audioUrl is string
+            && request.resource.data.diff(resource.data)
+                 .affectedKeys().hasOnly(['listenedBy'])
+            && request.resource.data.get('listenedBy', {})
+                 .diff(resource.data.get('listenedBy', {}))
+                 .affectedKeys().hasOnly([request.auth.uid])
+            && request.resource.data.listenedBy[request.auth.uid] == request.time;
+        }
+
         allow update: if request.auth != null
-          && request.auth.uid == resource.data.senderId
-          && messageIdentityHeld()
-          && (isTextEdit() || isTombstone());
+          && (
+            (request.auth.uid == resource.data.senderId
+              && messageIdentityHeld()
+              && (isTextEdit() || isTombstone()))
+            || isListenReceipt()
+          );
         allow delete: if request.auth != null && request.auth.uid == resource.data.senderId;
       }
     }

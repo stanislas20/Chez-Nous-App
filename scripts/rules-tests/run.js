@@ -21,6 +21,8 @@ const SUITES = [
   // Who may write whose entry in a conversation's per-person maps —
   // including the one the purge trigger reads to decide a thread may go.
   "scripts/rules-tests/personalMaps.test.js",
+  // The one write a non-sender may make to somebody else's message.
+  "scripts/rules-tests/listenReceipt.test.js",
   "scripts/rules-tests/storage.test.js",
   "scripts/rules-tests/pagination.test.js",
   // Measures rather than gates: every failure it reports is a known

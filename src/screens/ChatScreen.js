@@ -483,6 +483,32 @@ export function ChatScreen({ route, navigation }) {
     };
   }, [playedKey]);
 
+  // Telling the SENDER their clip was heard.
+  //
+  // Separate from the local colour below, and it has to be: the local flag
+  // is a fact about this phone, while this is a claim about the listener
+  // made to somebody else. firestore.rules only accepts it from the person
+  // who actually listened — never from the sender, never onto a text
+  // message, and never with a client-chosen time.
+  //
+  // Fire-and-forget. A receipt that does not land leaves the sender seeing
+  // the clip as unheard, which is where they already were; interrupting the
+  // listener with an alert would be noise about somebody else's screen.
+  const markListened = useCallback(
+    (message) => {
+      if (!user || !message?.id || !message.audioUrl) return;
+      if (message.senderId === user.uid) return;
+      if (message.listenedBy?.[user.uid]) return;
+      updateDoc(
+        doc(firestore, "conversations", conversationId, "messages", message.id),
+        { [`listenedBy.${user.uid}`]: serverTimestamp() },
+      ).catch((error) => {
+        reportNonFatal("chatListenReceipt", error, { where: "ChatScreen" });
+      });
+    },
+    [user, conversationId],
+  );
+
   const markAudioPlayed = useCallback(
     (messageId) => {
       setPlayedAudio((previous) => {
@@ -1725,8 +1751,20 @@ export function ChatScreen({ route, navigation }) {
                       uri={item.audioUrl}
                       mine={isMine}
                       knownDuration={item.audioDuration}
-                      played={playedAudio.has(item.id)}
-                      onPlayed={() => markAudioPlayed(item.id)}
+                      /* One colour, two readings, and both say "this clip
+                         has been heard": on a clip you received it means
+                         you heard it, held on this device; on one you sent
+                         it means THEY heard it, which only the server can
+                         say. */
+                      played={
+                        isMine
+                          ? Boolean(otherUid && item.listenedBy?.[otherUid])
+                          : playedAudio.has(item.id)
+                      }
+                      onPlayed={() => {
+                        markAudioPlayed(item.id);
+                        markListened(item);
+                      }}
                     />
                   ) : (
                     <BubbleText mine={isMine}>

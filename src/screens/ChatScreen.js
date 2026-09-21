@@ -62,6 +62,7 @@ import { downscalePickedAssets } from "../utils/downscalePhoto";
 import { CHAT_MESSAGE_MAX } from "../data/listingLimits";
 import { PRIVATE_UPLOAD_CACHE } from "../utils/uploadContentType";
 import { useAuth } from "../auth/AuthContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { firestore, storage } from "../config/firebase";
 import { useSellerStats } from "../hooks/useSellerStats";
 import { reportNonFatal } from "../utils/reportError";
@@ -134,7 +135,7 @@ function isAtEnd(status, effectiveDuration) {
   return Boolean(status.didJustFinish);
 }
 
-function VoiceMessageBubble({ uri, mine, knownDuration }) {
+function VoiceMessageBubble({ uri, mine, knownDuration, played, onPlayed }) {
   const { colors } = useTheme();
   const player = useAudioPlayer(uri);
   const status = useAudioPlayerStatus(player);
@@ -198,6 +199,30 @@ function VoiceMessageBubble({ uri, mine, knownDuration }) {
     }),
   ).current;
 
+  // Heard, once the clip has actually reached its end — not on the first
+  // tap of play. Somebody who starts a voice note and stops it two seconds
+  // in has not listened to it, and marking it read there would make the
+  // colour say something untrue about what they know.
+  //
+  // isAtEnd stays true once it is true, so this fires again on every status
+  // tick until the screen records it; the guard is `played` rather than a
+  // ref so a clip already marked on a previous visit never re-reports.
+  // Marked on the first press of play, not on reaching the end.
+  //
+  // Waiting for the end is the more truthful claim, and it was what this did
+  // first — but it reads as broken: a clip stopped a second early, or
+  // scrubbed past its last moment, stays looking untouched, and the person
+  // who just listened to it sees nothing change. The colour here answers
+  // "which of these have I already dealt with", and starting one is enough
+  // to answer that.
+  //
+  // status.playing rather than the press handler, so a clip started by any
+  // route — the play button, a scrub that resumes — counts the same.
+  useEffect(() => {
+    if (played || !onPlayed) return;
+    if (status.playing) onPlayed();
+  }, [played, onPlayed, status.playing]);
+
   const progress =
     effectiveDuration > 0
       ? Math.min(1, status.currentTime / effectiveDuration)
@@ -213,14 +238,33 @@ function VoiceMessageBubble({ uri, mine, knownDuration }) {
         <Ionicons
           name={status.playing ? "pause" : "play"}
           size={20}
-          color={mine ? colors.textInverse : colors.primary}
+          /* Heard clips take the accent. On a sent bubble the control is
+             white on emerald and on a received one it is emerald on the
+             surface, so the played state is one colour that has to read
+             against both grounds — accent does, muted grey would look
+             disabled rather than finished. */
+          color={
+            played
+              ? colors.accent
+              : mine
+                ? colors.textInverse
+                : colors.primary
+          }
         />
       </Pressable>
       <VoiceTrackColumn>
         <ScrubTrack {...panResponder.panHandlers}>
           <ScrubTrackBg mine={mine} />
-          <ScrubTrackFill mine={mine} style={{ width: `${progress * 100}%` }} />
-          <ScrubThumb mine={mine} style={{ left: `${progress * 100}%` }} />
+          <ScrubTrackFill
+            mine={mine}
+            played={played}
+            style={{ width: `${progress * 100}%` }}
+          />
+          <ScrubThumb
+            mine={mine}
+            played={played}
+            style={{ left: `${progress * 100}%` }}
+          />
         </ScrubTrack>
         <VoiceDuration mine={mine}>
           {formatDuration(displaySeconds)}
@@ -409,6 +453,49 @@ async function reconcileLoadedHistory({
 export function ChatScreen({ route, navigation }) {
   const { colors } = useTheme();
   const { conversationId, listingTitle, attachOnOpen } = route.params;
+
+  // Which voice notes this device has heard to the end.
+  //
+  // Held by the SCREEN, not by the bubble: FlatList recycles rows, so a
+  // colour kept inside VoiceMessageBubble would reset the moment the clip
+  // scrolled out of view and the row was handed to another message.
+  //
+  // Per device, and deliberately so. It says "you have heard this", which is
+  // a fact about this phone — telling the SENDER their clip was heard is a
+  // different feature and cannot be done from here, because it would mean
+  // the listener writing the sender's message document.
+  const playedKey = `chat:played:${conversationId}`;
+  const [playedAudio, setPlayedAudio] = useState(() => new Set());
+
+  useEffect(() => {
+    let cancelled = false;
+    AsyncStorage.getItem(playedKey)
+      .then((raw) => {
+        if (cancelled || !raw) return;
+        const ids = JSON.parse(raw);
+        if (Array.isArray(ids)) setPlayedAudio(new Set(ids));
+      })
+      // Storage that cannot be read is a colour that does not appear. The
+      // conversation still works, so this is never allowed to throw.
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [playedKey]);
+
+  const markAudioPlayed = useCallback(
+    (messageId) => {
+      setPlayedAudio((previous) => {
+        if (!messageId || previous.has(messageId)) return previous;
+        const next = new Set(previous).add(messageId);
+        AsyncStorage.setItem(playedKey, JSON.stringify([...next])).catch(
+          () => {},
+        );
+        return next;
+      });
+    },
+    [playedKey],
+  );
   const { t, language } = useI18n();
   const { user } = useAuth();
   const [conversation, setConversation] = useState(null);
@@ -1638,6 +1725,8 @@ export function ChatScreen({ route, navigation }) {
                       uri={item.audioUrl}
                       mine={isMine}
                       knownDuration={item.audioDuration}
+                      played={playedAudio.has(item.id)}
+                      onPlayed={() => markAudioPlayed(item.id)}
                     />
                   ) : (
                     <BubbleText mine={isMine}>
@@ -2341,7 +2430,12 @@ const ScrubTrackFill = styled.View`
   left: 0;
   height: 3px;
   border-radius: 2px;
-  background-color: ${(props) => (props.mine ? props.theme.textInverse : props.theme.primary)};
+  background-color: ${(props) =>
+    props.played
+      ? props.theme.accent
+      : props.mine
+        ? props.theme.textInverse
+        : props.theme.primary};
 `;
 
 const ScrubThumb = styled.View`
@@ -2350,7 +2444,12 @@ const ScrubThumb = styled.View`
   height: 10px;
   border-radius: 5px;
   margin-left: -5px;
-  background-color: ${(props) => (props.mine ? props.theme.textInverse : props.theme.primary)};
+  background-color: ${(props) =>
+    props.played
+      ? props.theme.accent
+      : props.mine
+        ? props.theme.textInverse
+        : props.theme.primary};
 `;
 
 const VoiceDuration = styled.Text`

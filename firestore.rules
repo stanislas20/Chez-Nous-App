@@ -990,10 +990,15 @@ service cloud.firestore {
       // unreadCount.<otherParticipant> — so the same restriction there would
       // reject every send in the app.
       // Written out per field rather than through one helper taking the
-      // field name. A helper reads better and made the whole statement
-      // raise an evaluation error instead of returning false — which denies,
-      // so it looked like it worked, and would have gone in as a rule that
-      // throws on inputs nobody had tried yet.
+      // field name, which reads better but is not worth the indirection for
+      // four fixed fields.
+      //
+      // Denials of a conversation update log an "evaluation error" in the
+      // emulator. That is NOT this rule: the same line appears on a denial
+      // with none of this present, and no permitted write produces one. It
+      // was nearly taken as a reason to hold the fix back, and the thing
+      // that misled was the count — six writes that used to be allowed are
+      // now denied, so six more of an existing log line appear.
       function mapDiff(before, after) {
         return after.diff(before).affectedKeys();
       }

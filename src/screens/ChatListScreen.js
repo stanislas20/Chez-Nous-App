@@ -1,7 +1,12 @@
-import { FlatList, Pressable } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import { Alert, FlatList, Modal, Pressable } from "react-native";
+import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
+import { doc, updateDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styled from "styled-components/native";
+import { firestore } from "../config/firebase";
+import { reportNonFatal } from "../utils/reportError";
 import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
@@ -57,6 +62,85 @@ export function ChatListScreen({ navigation }) {
     (conversations ?? []).map(otherUidOf).filter(Boolean),
   );
 
+  // The thread whose "More" sheet is open, and whether the inbox is currently
+  // showing the archive instead of the inbox proper.
+  const [menuFor, setMenuFor] = useState(null);
+  const [showArchived, setShowArchived] = useState(false);
+
+  // One open row at a time, and every action closes the row it came from.
+  // Without this a row stays swiped open behind a modal, and comes back to a
+  // list that has since re-sorted underneath it.
+  const swipeRefs = useRef(new Map());
+  const closeRow = useCallback((id) => {
+    swipeRefs.current.get(id)?.close?.();
+  }, []);
+
+  // Three per-viewer flags, all maps of uid -> bool on the conversation.
+  //
+  // A map rather than a field because the document is shared: archiving a
+  // thread is MY decision about MY inbox, and the person on the other end
+  // must not see their copy disappear. Unsetting writes false rather than
+  // deleting the key, matching how blockedBy already behaves.
+  const flagOf = (conversation, name) =>
+    Boolean(user && conversation?.[name]?.[user.uid]);
+
+  const writeFlag = useCallback(
+    (conversation, name, value, failureKey) => {
+      if (!user || !conversation?.id) return;
+      closeRow(conversation.id);
+      updateDoc(doc(firestore, "conversations", conversation.id), {
+        [`${name}.${user.uid}`]: value,
+      }).catch((error) => {
+        reportNonFatal(failureKey, error, { where: "ChatListScreen" });
+        Alert.alert(t("errorTitle"), t("chatListActionFailed"));
+      });
+    },
+    [user, closeRow, t],
+  );
+
+  const openContactInfo = useCallback(
+    (conversation) => {
+      const otherUid = otherUidOf(conversation);
+      if (!otherUid) return;
+      closeRow(conversation.id);
+      setMenuFor(null);
+      navigation.navigate("SellerProfile", {
+        sellerId: otherUid,
+        sellerName:
+          conversation.participantNames?.[otherUid] ??
+          counterpartProfiles[otherUid]?.displayName ??
+          t("chatUnknownParticipant"),
+        sellerPhotoUrl: counterpartProfiles[otherUid]?.photoUrl ?? null,
+      });
+    },
+    [navigation, counterpartProfiles, closeRow, t],
+  );
+
+  // Blocking is the one action here that is not a private preference: it
+  // changes what the server will accept from the other person, so it asks
+  // first and says who it is about.
+  const toggleBlock = useCallback(
+    (conversation) => {
+      const otherUid = otherUidOf(conversation);
+      const alreadyBlocked = flagOf(conversation, "blockedBy");
+      setMenuFor(null);
+      if (alreadyBlocked) {
+        writeFlag(conversation, "blockedBy", false, "chatListUnblock");
+        return;
+      }
+      Alert.alert(t("chatBlockConfirmTitle"), t("chatBlockConfirmMessage"), [
+        { text: t("cancel"), style: "cancel" },
+        {
+          text: t("chatBlockUser"),
+          style: "destructive",
+          onPress: () =>
+            writeFlag(conversation, "blockedBy", true, "chatListBlock"),
+        },
+      ]);
+    },
+    [writeFlag, t],
+  );
+
   if (!user) {
     return (
       <Container edges={["left", "right"]}>
@@ -75,16 +159,49 @@ export function ChatListScreen({ navigation }) {
     );
   }
 
+  // The inbox hides archived threads; the archive shows only those. The count
+  // is of the whole subscription, not of what is rendered, so the banner keeps
+  // telling the truth while the archive itself is open.
+  const all = conversations ?? [];
+  const archivedCount = all.filter((c) => flagOf(c, "archivedBy")).length;
+  const visible = all.filter(
+    (c) => flagOf(c, "archivedBy") === showArchived,
+  );
+
   return (
     <Container edges={["left", "right"]}>
       <FlatList
-        data={conversations ?? []}
+        data={visible}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={listContentStyle}
+        /* The archive is a filter on this same list rather than a route: the
+           subscription, the counterpart lookups and the unread badges are
+           already here, and a second screen would duplicate all three to show
+           the same rows. */
+        ListHeaderComponent={
+          archivedCount > 0 || showArchived ? (
+            <ArchiveBanner onPress={() => setShowArchived((on) => !on)}>
+              <Ionicons
+                name={showArchived ? "chevron-back" : "archive-outline"}
+                size={18}
+                color={colors.primary}
+              />
+              <ArchiveBannerLabel>
+                {showArchived
+                  ? t("chatListBackToInbox")
+                  : `${t("chatListArchived")} (${archivedCount})`}
+              </ArchiveBannerLabel>
+            </ArchiveBanner>
+          ) : null
+        }
         ListEmptyComponent={
           conversations !== null ? (
-            <EmptyMessage>{t("chatListEmptyMessage")}</EmptyMessage>
+            <EmptyMessage>
+              {showArchived
+                ? t("chatListArchiveEmpty")
+                : t("chatListEmptyMessage")}
+            </EmptyMessage>
           ) : null
         }
         renderItem={({ item }) => {
@@ -101,7 +218,62 @@ export function ChatListScreen({ navigation }) {
                 : item.lastMessageType === "audio"
                   ? t("chatVoiceMessagePreview")
                   : (item.lastMessage ?? "");
+          const archived = flagOf(item, "archivedBy");
           return (
+            <SwipeSlot>
+              <ReanimatedSwipeable
+                ref={(instance) => {
+                  if (instance) swipeRefs.current.set(item.id, instance);
+                  else swipeRefs.current.delete(item.id);
+                }}
+                friction={2}
+                rightThreshold={40}
+                /* No overshoot: the two buttons are a fixed-width tray, and
+                   letting the row drag past them exposes bare background
+                   underneath the shadow. */
+                overshootRight={false}
+                renderRightActions={() => (
+                  <SwipeTray>
+                    <SwipeAction
+                      tone="neutral"
+                      onPress={() => setMenuFor(item)}
+                      accessibilityLabel={t("chatListMore")}
+                    >
+                      <Ionicons
+                        name="ellipsis-horizontal"
+                        size={20}
+                        color="#ffffff"
+                      />
+                      <SwipeActionLabel>{t("chatListMore")}</SwipeActionLabel>
+                    </SwipeAction>
+                    <SwipeAction
+                      tone="accent"
+                      onPress={() =>
+                        writeFlag(
+                          item,
+                          "archivedBy",
+                          !archived,
+                          "chatListArchive",
+                        )
+                      }
+                      accessibilityLabel={
+                        archived ? t("chatListUnarchive") : t("chatListArchive")
+                      }
+                    >
+                      <Ionicons
+                        name={archived ? "arrow-undo-outline" : "archive-outline"}
+                        size={20}
+                        color="#ffffff"
+                      />
+                      <SwipeActionLabel>
+                        {archived
+                          ? t("chatListUnarchive")
+                          : t("chatListArchive")}
+                      </SwipeActionLabel>
+                    </SwipeAction>
+                  </SwipeTray>
+                )}
+              >
             <Row
               onPress={() =>
                 navigation.navigate("Chat", {
@@ -163,9 +335,87 @@ export function ChatListScreen({ navigation }) {
                 ) : null}
               </RowMeta>
             </Row>
+              </ReanimatedSwipeable>
+            </SwipeSlot>
           );
         }}
       />
+
+      {/* "More", rendered from the same Modal + sheet shape the chat screen
+          already uses for a long-pressed message, so the two menus in the
+          messaging flow look and behave like one another. */}
+      <Modal
+        visible={menuFor !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuFor(null)}
+      >
+        <SheetBackdrop onPress={() => setMenuFor(null)}>
+          <ActionSheet onStartShouldSetResponder={() => true}>
+            <SheetItem onPress={() => openContactInfo(menuFor)}>
+              <Ionicons
+                name="person-circle-outline"
+                size={20}
+                color={colors.text}
+              />
+              <SheetLabel>{t("chatListContactInfo")}</SheetLabel>
+            </SheetItem>
+
+            <SheetItem
+              onPress={() => {
+                const on = flagOf(menuFor, "favoritedBy");
+                setMenuFor(null);
+                writeFlag(menuFor, "favoritedBy", !on, "chatListFavorite");
+              }}
+            >
+              <Ionicons
+                name={
+                  flagOf(menuFor, "favoritedBy") ? "star" : "star-outline"
+                }
+                size={20}
+                color={colors.text}
+              />
+              <SheetLabel>
+                {flagOf(menuFor, "favoritedBy")
+                  ? t("chatListRemoveFavorite")
+                  : t("chatListAddFavorite")}
+              </SheetLabel>
+            </SheetItem>
+
+            <SheetItem
+              onPress={() => {
+                const on = flagOf(menuFor, "archivedBy");
+                setMenuFor(null);
+                writeFlag(menuFor, "archivedBy", !on, "chatListArchive");
+              }}
+            >
+              <Ionicons
+                name="archive-outline"
+                size={20}
+                color={colors.text}
+              />
+              <SheetLabel>
+                {flagOf(menuFor, "archivedBy")
+                  ? t("chatListUnarchive")
+                  : t("chatListArchive")}
+              </SheetLabel>
+            </SheetItem>
+
+            <SheetItem destructive onPress={() => toggleBlock(menuFor)}>
+              <Ionicons name="ban-outline" size={20} color="#B3261E" />
+              <SheetLabel destructive>
+                {flagOf(menuFor, "blockedBy")
+                  ? t("chatUnblockUser")
+                  : t("chatBlockUser")}
+              </SheetLabel>
+            </SheetItem>
+
+            <SheetCancel onPress={() => setMenuFor(null)}>
+              <SheetCancelLabel>{t("cancel")}</SheetCancelLabel>
+            </SheetCancel>
+          </ActionSheet>
+        </SheetBackdrop>
+      </Modal>
     </Container>
   );
 }
@@ -208,8 +458,90 @@ const Row = styled(Pressable)`
   background-color: ${(props) => props.theme.surface};
   border-radius: ${radius.md}px;
   padding: ${spacing.sm}px;
-  margin-bottom: ${spacing.sm}px;
   ${shadow.card}
+`;
+
+// The row's bottom margin moved out here when the row gained a swipe tray
+// behind it. Left on the row, the tray inherited the gap as extra height and
+// stood a row's-worth taller than the card it belongs to.
+const SwipeSlot = styled.View`
+  margin-bottom: ${spacing.sm}px;
+`;
+
+const SwipeTray = styled.View`
+  flex-direction: row;
+  align-items: stretch;
+  border-radius: ${radius.md}px;
+  overflow: hidden;
+  margin-left: ${spacing.xs}px;
+`;
+
+const SwipeAction = styled(Pressable)`
+  width: 78px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background-color: ${(props) =>
+    props.tone === "accent" ? EMERALD : props.theme.textMuted};
+`;
+
+const SwipeActionLabel = styled.Text`
+  font-family: ${fontFamily.medium};
+  font-size: 11px;
+  color: #ffffff;
+`;
+
+const ArchiveBanner = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.sm}px;
+  padding-vertical: ${spacing.sm}px;
+  padding-horizontal: ${spacing.xs}px;
+  margin-bottom: ${spacing.sm}px;
+`;
+
+const ArchiveBannerLabel = styled.Text`
+  ${type.body}
+  font-family: ${fontFamily.medium};
+  color: ${(props) => props.theme.primary};
+`;
+
+const SheetBackdrop = styled(Pressable)`
+  flex: 1;
+  justify-content: flex-end;
+  background-color: rgba(0, 0, 0, 0.4);
+`;
+
+const ActionSheet = styled.View`
+  background-color: ${(props) => props.theme.surface};
+  border-top-left-radius: ${radius.lg}px;
+  border-top-right-radius: ${radius.lg}px;
+  padding: ${spacing.sm}px;
+`;
+
+const SheetItem = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: ${spacing.md}px;
+  padding-vertical: ${spacing.md}px;
+  padding-horizontal: ${spacing.md}px;
+`;
+
+const SheetLabel = styled.Text`
+  ${type.body}
+  color: ${(props) => (props.destructive ? "#B3261E" : props.theme.text)};
+`;
+
+const SheetCancel = styled(Pressable)`
+  align-items: center;
+  padding-vertical: ${spacing.md}px;
+  margin-top: ${spacing.xs}px;
+`;
+
+const SheetCancelLabel = styled.Text`
+  ${type.body}
+  font-family: ${fontFamily.medium};
+  color: ${(props) => props.theme.textMuted};
 `;
 
 // The listing photograph with the counterpart's face on its corner. The

@@ -5,6 +5,9 @@
   "build": {
     "preview-release": {
       "distribution": "internal",
+      "env": {
+        "APS_ENVIRONMENT": "production"
+      },
       "android": {
         "buildType": "apk",
         "credentialsSource": "remote"

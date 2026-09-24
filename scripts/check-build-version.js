@@ -48,10 +48,29 @@ const eas = JSON.parse(
   fs.readFileSync(path.join(__dirname, "..", "eas.json"), "utf8"),
 );
 
-// versionCode 1 is burned: it is what every validation APK carried and what
-// is installed on both test devices right now. Anything intended to replace
-// them has to exceed it.
-const FLOOR = 2;
+// A floor PER PLATFORM, because the platforms have stopped moving together.
+//
+// This file first required both numbers to be identical, so that "which build
+// is this?" had one answer. That assumption died the first time a fix was
+// needed on one platform only: the iOS App Check identity mismatch is an iOS
+// defect, iOS Build 2 is installed and therefore spent, and Android has never
+// produced a versionCode 2 at all — its device still runs 1. Holding them
+// equal would mean manufacturing an Android build whose sole difference from
+// the last one is a number nobody reads.
+//
+// So the rule is now what it should always have been: each platform's number
+// must exceed what is already installed on that platform's device.
+//
+//   Android  device carries versionCode 1   → floor 2
+//   iOS      device carries buildNumber 2   → floor 3  (Build 2 is spent)
+//
+// These floors are facts about the test devices and go up as builds are
+// consumed. A snapshot cannot prove monotonicity — that needs history, not a
+// file — so proving "past what is already out there" is the most this check
+// can honestly do, and it is the part that actually prevents an artefact that
+// cannot be installed over its predecessor.
+const ANDROID_FLOOR = 2;
+const IOS_FLOOR = 3;
 
 let failures = 0;
 const fail = (message) => {
@@ -64,10 +83,11 @@ const buildNumber = app?.ios?.buildNumber;
 
 if (!Number.isInteger(versionCode)) {
   fail(`android.versionCode must be an integer, got ${JSON.stringify(versionCode)}`);
-} else if (versionCode < FLOOR) {
+} else if (versionCode < ANDROID_FLOOR) {
   fail(
-    `android.versionCode is ${versionCode}; ${FLOOR} or higher is required — ` +
-      `1 is installed on the test devices and cannot be upgraded over`,
+    `android.versionCode is ${versionCode}; ${ANDROID_FLOOR} or higher is ` +
+      `required — 1 is installed on the Android test device and cannot be ` +
+      `upgraded over`,
   );
 }
 
@@ -76,24 +96,17 @@ if (typeof buildNumber !== "string" || !/^[0-9]+$/.test(buildNumber)) {
     `ios.buildNumber must be a string of digits, got ${JSON.stringify(buildNumber)} — ` +
       `unset means every iOS build claims the same version to App Store Connect`,
   );
-} else if (Number(buildNumber) < FLOOR) {
-  fail(`ios.buildNumber is ${buildNumber}; ${FLOOR} or higher is required`);
-}
-
-// One number for both platforms, so "which build is this?" has one answer.
-// Nothing technical forces it; the value is that a tester on either phone
-// reports a number that means the same thing.
-if (
-  Number.isInteger(versionCode) &&
-  typeof buildNumber === "string" &&
-  /^[0-9]+$/.test(buildNumber) &&
-  Number(buildNumber) !== versionCode
-) {
+} else if (Number(buildNumber) < IOS_FLOOR) {
   fail(
-    `android.versionCode (${versionCode}) and ios.buildNumber (${buildNumber}) ` +
-      `disagree — they are meant to be the same build number`,
+    `ios.buildNumber is ${buildNumber}; ${IOS_FLOOR} or higher is required — ` +
+      `build ${IOS_FLOOR - 1} is installed on the iPhone and App Store ` +
+      `Connect refuses a repeated build number`,
   );
 }
+
+// The two numbers are NOT required to match. See the floors above: they
+// diverged the moment a platform needed a fix the other did not, and forcing
+// them level would produce builds whose only change is the number.
 
 // The number only governs the build if EAS is reading it from here.
 if (eas?.cli?.appVersionSource !== "local") {
@@ -112,6 +125,7 @@ if (typeof app?.version !== "string") {
 
 if (failures) process.exit(1);
 console.log(
-  `clean: version ${app.version}, build ${versionCode} on both platforms, ` +
-    `read from app.json`,
+  `clean: version ${app.version}, android versionCode ${versionCode} ` +
+    `(floor ${ANDROID_FLOOR}), ios buildNumber ${buildNumber} ` +
+    `(floor ${IOS_FLOOR}), read from app.json`,
 );

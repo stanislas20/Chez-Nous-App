@@ -12,6 +12,28 @@ import {
   connectFunctionsEmulator,
 } from 'firebase/functions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+
+// One project, one key, one bucket — and one app id PER PLATFORM.
+//
+// Everything else in this config really is shared. The app id is not, and
+// getting that wrong is invisible until it is expensive.
+//
+// App Check attestation is minted NATIVELY: App Attest on iOS, Play Integrity
+// on Android. The native side always attests as the platform's own Firebase
+// app, the one in GoogleService-Info.plist or google-services.json. The JS
+// SDK — which owns Firestore, Storage and Functions here — attaches that
+// token to requests it makes under whatever app id it was configured with.
+// When the two disagree, the token is perfectly valid and belongs to a
+// different app, so Firebase classifies the request INVALID.
+//
+// That is what shipped. A single EXPO_PUBLIC_FIREBASE_APP_ID holding the
+// ANDROID id was used on both platforms. Android matched and verified. iOS
+// attested as the iOS app, identified as the Android app, and every Storage
+// request from the standalone iOS build was counted invalid — 3 more invalid
+// for one photo and one voice note, with zero of them reaching "verified".
+const androidAppId = process.env.EXPO_PUBLIC_FIREBASE_APP_ID;
+const iosAppId = process.env.EXPO_PUBLIC_FIREBASE_IOS_APP_ID;
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -19,7 +41,7 @@ const firebaseConfig = {
   projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  appId: Platform.OS === 'ios' ? iosAppId : androidAppId,
 };
 
 export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
@@ -42,6 +64,26 @@ if (!isFirebaseConfigured && !__DEV__) {
       "EXPO_PUBLIC_FIREBASE_PROJECT_ID are missing from this build. A " +
       "release built without them cannot sign anybody in, load a listing " +
       "or deliver a message.",
+  );
+}
+
+// No silent fallback to the Android id on iOS.
+//
+// A fallback is precisely what the previous state amounted to, and its
+// failure mode is that there is no failure mode to see: uploads succeed,
+// reads succeed, nothing logs, and the only symptom is a counter in a console
+// nobody is watching. It stays invisible right up until App Check enforcement
+// is switched on, and then every request from every iPhone is rejected at
+// once — which is the worst possible moment to discover it.
+//
+// Same shape as the check above: __DEV__ is false in a release bundle, so a
+// laptop without the variable still boots and a shipped build cannot.
+if (Platform.OS === 'ios' && !iosAppId && !__DEV__) {
+  throw new Error(
+    "EXPO_PUBLIC_FIREBASE_IOS_APP_ID is missing from this iOS build. " +
+      "The Firebase JS SDK would identify as the Android app while App " +
+      "Attest mints tokens for the iOS app, making every App Check token " +
+      "invalid — silently, until enforcement is enabled.",
   );
 }
 

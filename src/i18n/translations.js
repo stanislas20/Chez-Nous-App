@@ -1210,6 +1210,8 @@ export const translations = {
     sellTitleHint_tyres: "e.g. Michelin Energy XM2+ 195/65 R15 — new",
     errorTyreSize:
       "Enter the full tyre size — width, sidewall and rim — or buyers cannot find it.",
+    sellBrandOther: "Other",
+    sellFieldBrandOtherPlaceholder: "Type the make",
     sellFieldPartType: "What are you publishing?",
     sellPartTypeVehicle: "A vehicle",
     sellPartTypeTyre: "Tyres",
@@ -1222,7 +1224,7 @@ export const translations = {
       "Read the three numbers off the sidewall. This is the whole of how a buyer finds you.",
     sellFieldTyreBrand: "Brand",
     sellFieldTyreBrandPlaceholder: "Michelin, Bridgestone…",
-    sellFieldTyreModel: "Model",
+    sellFieldTyreModel: "Tyre model / pattern (optional)",
     sellFieldTyreModelPlaceholder: "Energy XM2+…",
     sellFieldTyreCondition: "New or used?",
     sellFieldTyreDot: "DOT year",
@@ -1754,7 +1756,7 @@ export const translations = {
     sellFieldBatteryCategory: "What is it for?",
     sellFieldBatteryBrand: "Brand",
     sellFieldBatteryBrandPlaceholder: "Bosch, Varta, Fulmen…",
-    sellFieldBatteryModel: "Model",
+    sellFieldBatteryModel: "Battery model / reference (optional)",
     sellFieldBatteryModelPlaceholder: "S4 005…",
     sellFieldBatteryAh: "Capacity (Ah)",
     sellBatteryAhHint:
@@ -4411,6 +4413,8 @@ export const translations = {
     sellTitleHint_tyres: "ex. Michelin Energy XM2+ 195/65 R15 — neuf",
     errorTyreSize:
       "Indiquez la dimension complète du pneu — largeur, flanc et jante — sinon les acheteurs ne peuvent pas la trouver.",
+    sellBrandOther: "Autre",
+    sellFieldBrandOtherPlaceholder: "Saisissez la marque",
     sellFieldPartType: "Que publiez-vous ?",
     sellPartTypeVehicle: "Un véhicule",
     sellPartTypeTyre: "Des pneus",
@@ -4423,7 +4427,7 @@ export const translations = {
       "Relevez les trois nombres sur le flanc. C’est ainsi et uniquement ainsi qu’un acheteur vous trouve.",
     sellFieldTyreBrand: "Marque",
     sellFieldTyreBrandPlaceholder: "Michelin, Bridgestone…",
-    sellFieldTyreModel: "Modèle",
+    sellFieldTyreModel: "Modèle / gamme du pneu (facultatif)",
     sellFieldTyreModelPlaceholder: "Energy XM2+…",
     sellFieldTyreCondition: "Neuf ou occasion ?",
     sellFieldTyreDot: "Année DOT",
@@ -4958,7 +4962,7 @@ export const translations = {
     sellFieldBatteryCategory: "Pour quel usage ?",
     sellFieldBatteryBrand: "Marque",
     sellFieldBatteryBrandPlaceholder: "Bosch, Varta, Fulmen…",
-    sellFieldBatteryModel: "Modèle",
+    sellFieldBatteryModel: "Modèle / référence de la batterie (facultatif)",
     sellFieldBatteryModelPlaceholder: "S4 005…",
     sellFieldBatteryAh: "Capacité (Ah)",
     sellBatteryAhHint:

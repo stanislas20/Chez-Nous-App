@@ -463,6 +463,10 @@ const TRADE_DESC_HINT_KEYS = {
 // a tyre seller for a gearbox and a number of doors produced listings whose
 // every answer was "—". The pick is first because it decides the rest of the
 // form.
+// A sentinel for the marque picker, never written to a listing. See the
+// brand state for why it exists.
+const BRAND_OTHER = "__brandOther__";
+
 const PART_TYPES = [
   {
     key: "vehicle",
@@ -828,7 +832,33 @@ export function CreateListingScreen({ route, navigation }) {
   const [vehiclePurpose, setVehiclePurpose] = useState(
     seed("vehiclePurpose", route.params?.vehiclePurpose ?? null),
   );
-  const [brand, setBrand] = useState(seed("brand", null));
+  // The marque, with a way out of the list.
+  //
+  // vehicleBrands is 24 names — the marques actually on the road here — and a
+  // chip list with no escape hatch is a wall for everyone else. A Peugeot 504
+  // is not exotic in Bénin and there was no way to publish one: the seller
+  // either abandoned the listing or filed it under a marque it is not, which
+  // is worse, because the search index then believes it.
+  //
+  // BRAND_OTHER is a sentinel for the picker only. It is never stored: the
+  // payload takes the typed text, so a listing's `brand` stays a plain string
+  // and every existing listing, card, filter and search token keeps working
+  // untouched.
+  const seededBrand = seed("brand", null);
+  const seededBrandIsListed =
+    typeof seededBrand === "string" && vehicleBrands.includes(seededBrand);
+  const [brand, setBrand] = useState(
+    // An existing listing whose marque is not in the list reopens on "Other"
+    // with its own name filled in, rather than reopening with no marque at
+    // all and quietly losing it on the next save.
+    seededBrand && !seededBrandIsListed ? BRAND_OTHER : seededBrand,
+  );
+  const [brandOther, setBrandOther] = useState(
+    seededBrand && !seededBrandIsListed ? seededBrand : "",
+  );
+  // What the listing actually carries. Everything downstream — validation,
+  // payload, search tokens — reads this and never the sentinel.
+  const brandValue = brand === BRAND_OTHER ? brandOther.trim() : brand;
   const [model, setModel] = useState(seedText("model", ""));
   // A tyre is not a car, and the vehicle form asks a car's questions —
   // mileage, gearbox, number of doors. Same category (its own description is
@@ -1912,7 +1942,7 @@ export function CreateListingScreen({ route, navigation }) {
       // Papers decide whether a sale can legally complete, so this is as
       // required as the make: an unanswered carte grise used to publish as
       // a warning badge the seller never chose.
-      if (!vehicleDeal || !brand || !String(year).trim() || !documents) {
+      if (!vehicleDeal || !brandValue || !String(year).trim() || !documents) {
         Alert.alert(t("sellFormTitle"), t("errorRequiredFields"));
         return;
       }
@@ -2672,7 +2702,7 @@ export function CreateListingScreen({ route, navigation }) {
         ...(isVehicle && !isPartOffer
           ? {
               vehicleDeal,
-              brand,
+              brand: brandValue,
               model: model.trim() || null,
               year: Number(year) || null,
               mileage: Number(mileage) || null,
@@ -3140,14 +3170,19 @@ export function CreateListingScreen({ route, navigation }) {
     // rental previews as a flat total, which is not what will publish.
     realEstateDeal: isRealEstate ? realEstateDeal : null,
     commercialType: isRealEstate ? commercialType : null,
-    vehicleDeal: isVehicle ? vehicleDeal : null,
-    brand: isVehicle ? brand : null,
-    model: isVehicle ? model.trim() || null : null,
-    year: isVehicle ? Number(year) || null : null,
-    mileage: isVehicle ? Number(mileage) || null : null,
-    sellerKind: isVehicle ? sellerKind : null,
-    documents: isVehicle ? documents : null,
-    hasDocuments: isVehicle ? documents === "yes" : false,
+    // !isPartOffer, matching the submit payload exactly. Gated on isVehicle
+    // alone, a seller who filled in a car and then switched to Tyres or
+    // Battery saw their old marque, model and mileage still sitting on the
+    // preview card — the one thing on the screen that claims to show what
+    // will be published.
+    vehicleDeal: isVehicle && !isPartOffer ? vehicleDeal : null,
+    brand: isVehicle && !isPartOffer ? brandValue : null,
+    model: isVehicle && !isPartOffer ? model.trim() || null : null,
+    year: isVehicle && !isPartOffer ? Number(year) || null : null,
+    mileage: isVehicle && !isPartOffer ? Number(mileage) || null : null,
+    sellerKind: isVehicle && !isPartOffer ? sellerKind : null,
+    documents: isVehicle && !isPartOffer ? documents : null,
+    hasDocuments: isVehicle && !isPartOffer ? documents === "yes" : false,
     capacity: isRealEstate ? Number(capacity) || null : null,
     media: assets.map((asset) => ({
       mediaType: asset.type === "video" ? "video" : "image",
@@ -7555,7 +7590,13 @@ export function CreateListingScreen({ route, navigation }) {
                 </>
               ) : null}
 
-              {isVehicle && !isTyreOffer ? (
+              {/* !isPartOffer, not !isTyreOffer. This block asks whether the
+                  seller is selling or renting. It was excluded for a tyre and
+                  left in place for a battery, so publishing a battery asked
+                  whether you were renting it out — and whatever was answered
+                  was written onto the listing. Both parts are goods with one
+                  verb; only a vehicle can be rented. */}
+              {isVehicle && !isPartOffer ? (
                 <>
                   {/* Asked first, because the answer decides which deals
                       even exist. Previously all five were listed under one
@@ -7681,16 +7722,52 @@ export function CreateListingScreen({ route, navigation }) {
                       <ScrollChip
                         key={option}
                         selected={brand === option}
-                        onPress={() =>
-                          setBrand(brand === option ? null : option)
-                        }
+                        onPress={() => {
+                          setBrand(brand === option ? null : option);
+                          // Leaving Other drops what was typed under it, so a
+                          // marque the seller abandoned cannot be revived by
+                          // the payload later.
+                          setBrandOther("");
+                        }}
                       >
                         <ScrollChipLabel selected={brand === option}>
                           {option}
                         </ScrollChipLabel>
                       </ScrollChip>
                     ))}
+                    {/* Last, and after the 24 real marques on purpose: the
+                        list covers what is actually on the road here, and
+                        this is for everything else rather than a shortcut
+                        past reading it. */}
+                    <ScrollChip
+                      selected={brand === BRAND_OTHER}
+                      onPress={() =>
+                        setBrand(brand === BRAND_OTHER ? null : BRAND_OTHER)
+                      }
+                    >
+                      <ScrollChipLabel selected={brand === BRAND_OTHER}>
+                        {t("sellBrandOther")}
+                      </ScrollChipLabel>
+                    </ScrollChip>
                   </ChipWrap>
+
+                  {brand === BRAND_OTHER ? (
+                    <InputRow>
+                      <Ionicons
+                        name="car-outline"
+                        size={20}
+                        color={colors.textMuted}
+                      />
+                      <Input
+                        value={brandOther}
+                        onChangeText={setBrandOther}
+                        placeholder={t("sellFieldBrandOtherPlaceholder")}
+                        placeholderTextColor={colors.textMuted}
+                        maxLength={40}
+                        autoCapitalize="words"
+                      />
+                    </InputRow>
+                  ) : null}
 
                   {/* The catalogue for the chosen marque. Typing stays
                       available underneath: 290 models is thorough, not

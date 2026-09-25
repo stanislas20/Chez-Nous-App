@@ -1,7 +1,7 @@
 // The city guess, which was wrong in a way nobody could argue with.
 //
-// Every listing stores one of 61 named Bénin cities, so a GPS fix has to be
-// resolved to one of them. Taking the nearest unconditionally always
+// Every listing stores one of the 77 named Bénin communes, so a GPS fix has
+// to be resolved to one of them. Taking the nearest unconditionally always
 // produces an answer, however absurd — a default simulator fix in Cupertino
 // came back as Tanguiéta, 12 000 km away, and then overwrote whatever the
 // seller had chosen. This pins both halves: the radius, and the refusal.
@@ -12,11 +12,23 @@ const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 
+// cities.js and cityCoordinates.js are now DERIVED from the canonical roll in
+// src/data/benin/communes.js — 77 communes with their p-codes, departments and
+// COD-AB centroids — rather than being literal lists. Stripping their imports
+// would leave `communeNames` undefined, so the canonical module is prepended
+// instead. The two files keep the shapes this check has always asserted: an
+// array of names and an object keyed by the name a listing stores.
+const CANONICAL = fs
+  .readFileSync(path.join(__dirname, "..", "src/data/benin/communes.js"), "utf8")
+  .replace(/^export /gm, "");
+
 function load(relative, expose) {
-  const source = fs
+  const own = fs
     .readFileSync(path.join(__dirname, "..", relative), "utf8")
     .replace(/^import .*$/gm, "")
     .replace(/^export /gm, "");
+  const needsCanonical = /communeNames|\bcommunes\b|legacyPlaces/.test(own);
+  const source = needsCanonical ? `${CANONICAL}\n${own}` : own;
   const context = {};
   vm.createContext(context);
   vm.runInContext(

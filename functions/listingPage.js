@@ -286,7 +286,9 @@ exports.listingPage = onRequest(
   ).trim();
   const price = priceText(listing);
   const image = coverImage(listing);
-  const where = [listing.quartier, listing.city].filter(Boolean).join(" · ");
+  const where = [listing.quartier, listing.arrondissement, listing.city]
+    .filter(Boolean)
+    .join(" · ");
 
   // The preview card gets the price and the place, because that is what
   // decides whether somebody opens the link at all. The description follows

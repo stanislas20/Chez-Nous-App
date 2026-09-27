@@ -86,6 +86,21 @@ const FIXTURES = [
     },
   },
   {
+    // A property published through the Phase 3 location hierarchy. The
+    // arrondissement is a place word like the other two, and it has to
+    // tokenise the same on both sides — the backend writes the tokens a
+    // listing is found by, the client writes them on publish, and a field
+    // added to one copy and not the other silently splits the index.
+    name: "a property with an arrondissement",
+    listing: {
+      titleFr: "Villa 4 chambres à louer",
+      categoryKey: "realEstate",
+      city: "Cotonou",
+      arrondissement: "12ème Arrondissement",
+      quartier: "Cadjèhoun",
+    },
+  },
+  {
     name: "a restaurant",
     listing: {
       titleFr: "Chez Maman Bénin",
@@ -217,7 +232,12 @@ for (const { name, listing } of FIXTURES) {
 
   // And the place group must never be squeezed out by a long title, which is
   // the specific regression that produced the re-audit's P1-A.
-  const placeWords = [listing?.city, listing?.quartier, listing?.area].filter(
+  const placeWords = [
+    listing?.city,
+    listing?.quartier,
+    listing?.arrondissement,
+    listing?.area,
+  ].filter(
     (v) => typeof v === "string" && v,
   );
   if (placeWords.length && groups.place.length === 0) {

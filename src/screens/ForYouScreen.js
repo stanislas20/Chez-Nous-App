@@ -7,6 +7,7 @@ import {
   Easing,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Linking,
   Modal,
   PanResponder,
@@ -2643,6 +2644,7 @@ export function ForYouScreen({ navigation, route }) {
         transparent
         onRequestClose={() => setJobCitySheetOpen(false)}
       >
+        <SheetLift behavior="padding">
         <JobSheetBackdrop onPress={() => setJobCitySheetOpen(false)}>
           <JobSheet onStartShouldSetResponder={() => true}>
             <JobSheetHandle />
@@ -2696,6 +2698,7 @@ export function ForYouScreen({ navigation, route }) {
             </JobSheetScroll>
           </JobSheet>
         </JobSheetBackdrop>
+        </SheetLift>
       </Modal>
 
       <Modal
@@ -2743,6 +2746,7 @@ export function ForYouScreen({ navigation, route }) {
         transparent
         onRequestClose={() => setCityPickerVisible(false)}
       >
+        <SheetLift behavior="padding">
         <ModalBackdrop onPress={() => setCityPickerVisible(false)}>
           <ModalSheet onStartShouldSetResponder={() => true}>
             <ModalHeaderRow>
@@ -2776,6 +2780,10 @@ export function ForYouScreen({ navigation, route }) {
             ) : null}
             <FlatList
               data={filteredCities}
+              // The search field above holds the keyboard; without this the
+              // first tap on a city is swallowed dismissing it and the
+              // reader has to tap twice. Every other sheet sets it.
+              keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               keyExtractor={(city) => city}
               renderItem={({ item: city }) => (
@@ -2801,6 +2809,7 @@ export function ForYouScreen({ navigation, route }) {
             />
           </ModalSheet>
         </ModalBackdrop>
+        </SheetLift>
       </Modal>
     </Container>
   );
@@ -4277,6 +4286,20 @@ const CatCount = styled.Text`
   font-size: 11.5px;
   color: ${(props) => (props.muted ? props.theme.textMuted : props.accent)};
 `;
+// A Modal is its own window, and the app runs adjustPan (app.json,
+// softwareKeyboardLayoutMode "pan"), so the Android window never resizes and
+// the pan applies to the activity behind this sheet rather than to the sheet.
+// Without a lift of its own the keyboard covers the search box and the list it
+// is filtering. "padding" on both platforms, as the papers, fleet and tyres
+// screens already do — "height" measures a box adjustPan never changed.
+//
+// The anchor stays on JobSheetBackdrop, which this only wraps: the backdrop is the
+// Pressable that dismisses the sheet, and turning it into a
+// KeyboardAvoidingView would silently drop that.
+const SheetLift = styled(KeyboardAvoidingView)`
+  flex: 1;
+`;
+
 const JobSheetBackdrop = styled(Pressable)`
   flex: 1;
   justify-content: flex-end;

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Image, Linking, Modal, Pressable, ScrollView } from "react-native";
+import { Image, KeyboardAvoidingView, Linking, Modal, Pressable, ScrollView } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -471,6 +471,7 @@ export function TourismScreen({ navigation, route }) {
         transparent
         onRequestClose={() => setOriginSheetOpen(false)}
       >
+        <SheetLift behavior="padding">
         <SheetBackdrop onPress={() => setOriginSheetOpen(false)}>
           <Sheet onStartShouldSetResponder={() => true}>
             <SheetTitle>{t("tourismOriginTitle")}</SheetTitle>
@@ -513,6 +514,7 @@ export function TourismScreen({ navigation, route }) {
             </SheetList>
           </Sheet>
         </SheetBackdrop>
+        </SheetLift>
       </Modal>
     </Container>
   );
@@ -943,6 +945,32 @@ const Footer = styled.Text`
   ${type.caption}
   color: ${(props) => props.theme.textMuted};
   margin-top: ${spacing.md}px;
+`;
+
+// A Modal is its own window, and the app runs adjustPan (app.json,
+// softwareKeyboardLayoutMode "pan"), so the Android window never resizes and
+// the pan applies to the activity behind this sheet rather than to the sheet.
+// Without a lift of its own the keyboard covers the search box and the list it
+// is filtering. "padding" on both platforms, as the papers, fleet and tyres
+// screens already do — "height" measures a box adjustPan never changed.
+//
+// The anchor stays on SheetBackdrop, which this only wraps: the backdrop is the
+// Pressable that dismisses the sheet, and turning it into a
+// KeyboardAvoidingView would silently drop that.
+
+
+// A Modal is its own window, and the app runs adjustPan (app.json,
+// softwareKeyboardLayoutMode "pan"), so the Android window never resizes and
+// the pan applies to the activity behind this sheet rather than to the sheet.
+// Without a lift of its own the keyboard covers the search box and the list it
+// is filtering. "padding" on both platforms, as the papers, fleet and tyres
+// screens already do — "height" measures a box adjustPan never changed.
+//
+// The anchor stays on SheetBackdrop, which this only wraps: the backdrop is the
+// Pressable that dismisses the sheet, and turning it into a
+// KeyboardAvoidingView would silently drop that.
+const SheetLift = styled(KeyboardAvoidingView)`
+  flex: 1;
 `;
 
 const SheetBackdrop = styled(Pressable)`

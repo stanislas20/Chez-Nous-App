@@ -110,6 +110,10 @@ function sourceStrings(listing) {
     // Where it is.
     listing.city,
     listing.quartier,
+    // Property listings carry the arrondissement between the two. Names
+    // only — arrondissementId and localityId are derived keys, not words
+    // anybody types into a search box.
+    listing.arrondissement,
     listing.area,
   ];
   return ordered.filter((value) => typeof value === "string" && value);
@@ -249,7 +253,7 @@ function titleStrings(listing) {
 }
 
 function placeStrings(listing) {
-  return [listing?.city, listing?.quartier, listing?.area];
+  return [listing?.city, listing?.quartier, listing?.arrondissement, listing?.area];
 }
 
 function tokensOf(values, allowed, max) {

@@ -1106,10 +1106,16 @@ export function TyresScreen({ navigation }) {
         >
           {/* A Modal sits outside the screen's KeyboardAvoidingView, so the
               sheet needs its own — without it the keyboard covers the very
-              grid the search box is filtering. */}
-          <SheetKeyboard
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-          >
+              grid the search box is filtering.
+
+              "padding" on both platforms. Guarded by Platform.OS it was
+              Android that got nothing, and Android is the platform that
+              needs it: the app runs adjustPan (app.json), so the window
+              never resizes, and a Modal is its own window — the pan applies
+              to the activity behind it and this sheet never moved. The
+              screen-level Flex above keeps its conditional, because that one
+              is not in a Modal and the pan does reach it. */}
+          <SheetKeyboard behavior="padding">
             <Backdrop onPress={() => setVehicleOpen(false)}>
               <Pressable onPress={() => {}}>
                 <Sheet style={{ paddingBottom: spacing.md + insets.bottom }}>

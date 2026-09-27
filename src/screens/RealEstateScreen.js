@@ -1278,7 +1278,14 @@ export function buildPropertyView(listing, language, t) {
       : null,
     isVerifiedLister:
       listing.listerKind === "agency" && !!listing.sellerVerified,
-    place: [listing.quartier, listing.city].filter(Boolean).join(", "),
+    // Quartier, arrondissement, commune — "Cadjèhoun, 12ème Arrondissement,
+    // Cotonou". The middle term is what tells two Koussoucoingou apart, and
+    // it is simply absent on every listing published before the hierarchy
+    // existed, so filter(Boolean) leaves those reading exactly as they did.
+    // Names only: the canonical ids are stored for matching, never shown.
+    place: [listing.quartier, listing.arrondissement, listing.city]
+      .filter(Boolean)
+      .join(", "),
     withCar: !!listing.withCar,
     withCarNote: listing.withCarNote || null,
     // Driver or not, on the card rather than only on the detail: it is the

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Modal,
   Pressable,
   RefreshControl,
@@ -941,6 +942,7 @@ export function LocalScreen({ navigation }) {
         transparent
         onRequestClose={() => setLocationSheetOpen(false)}
       >
+        <SheetLift behavior="padding">
         <SheetBackdrop onPress={() => setLocationSheetOpen(false)}>
           <Sheet onStartShouldSetResponder={() => true}>
             <SheetHandle />
@@ -1005,6 +1007,7 @@ export function LocalScreen({ navigation }) {
             </SheetScroll>
           </Sheet>
         </SheetBackdrop>
+        </SheetLift>
       </Modal>
 
       <Modal
@@ -1442,6 +1445,20 @@ const EmptyText = styled.Text`
   ${type.body}
   color: ${(props) => props.theme.textMuted};
   text-align: center;
+`;
+
+// A Modal is its own window, and the app runs adjustPan (app.json,
+// softwareKeyboardLayoutMode "pan"), so the Android window never resizes and
+// the pan applies to the activity behind this sheet rather than to the sheet.
+// Without a lift of its own the keyboard covers the search box and the list it
+// is filtering. "padding" on both platforms, as the papers, fleet and tyres
+// screens already do — "height" measures a box adjustPan never changed.
+//
+// The anchor stays on SheetBackdrop, which this only wraps: the backdrop is the
+// Pressable that dismisses the sheet, and turning it into a
+// KeyboardAvoidingView would silently drop that.
+const SheetLift = styled(KeyboardAvoidingView)`
+  flex: 1;
 `;
 
 const SheetBackdrop = styled(Pressable)`

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FlatList, Image, Modal, Pressable } from "react-native";
+import { FlatList, Image, KeyboardAvoidingView, Modal, Pressable } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -1053,6 +1053,7 @@ export function VehicleListScreen({ navigation, route }) {
         animationType="slide"
         onRequestClose={closeSheet}
       >
+        <SheetLift behavior="padding">
         <SheetBackdrop onPress={closeSheet}>
           <Sheet
             onStartShouldSetResponder={() => true}
@@ -1106,6 +1107,7 @@ export function VehicleListScreen({ navigation, route }) {
             </SheetList>
           </Sheet>
         </SheetBackdrop>
+        </SheetLift>
       </Modal>
     </Container>
   );
@@ -1840,6 +1842,20 @@ const SafetyText = styled.Text`
   font-size: 11.5px;
   line-height: 17px;
   color: #6b5a2e;
+`;
+
+// A Modal is its own window, and the app runs adjustPan (app.json,
+// softwareKeyboardLayoutMode "pan"), so the Android window never resizes and
+// the pan applies to the activity behind this sheet rather than to the sheet.
+// Without a lift of its own the keyboard covers the search box and the list it
+// is filtering. "padding" on both platforms, as the papers, fleet and tyres
+// screens already do — "height" measures a box adjustPan never changed.
+//
+// The anchor stays on SheetBackdrop, which this only wraps: the backdrop is the
+// Pressable that dismisses the sheet, and turning it into a
+// KeyboardAvoidingView would silently drop that.
+const SheetLift = styled(KeyboardAvoidingView)`
+  flex: 1;
 `;
 
 const SheetBackdrop = styled(Pressable)`

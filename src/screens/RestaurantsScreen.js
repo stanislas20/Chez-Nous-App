@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
   Linking,
   Modal,
   Pressable,
@@ -1634,7 +1635,18 @@ const EmptyCopy = styled.Text`
   color: ${(props) => props.theme.textMuted};
 `;
 
-const SheetRoot = styled.View`
+// The sheet's own lift. A Modal is its own window and the app runs adjustPan
+// (app.json, softwareKeyboardLayoutMode "pan"), so the Android window never
+// resizes and the pan applies to the activity behind this sheet — the
+// keyboard would otherwise cover the search box and the list it filters.
+// "padding" on both platforms, as the papers, fleet and tyres screens do.
+//
+// Safe to convert here, unlike the pressable backdrops elsewhere: dismissal
+// is a separate absolutely-positioned SheetDismissArea, so nothing is lost by
+// this no longer being a plain View.
+const SheetRoot = styled(KeyboardAvoidingView).attrs(() => ({
+  behavior: "padding",
+}))`
   flex: 1;
   justify-content: flex-end;
 `;

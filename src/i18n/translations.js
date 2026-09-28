@@ -157,7 +157,7 @@ export const translations = {
       "Say what a day includes — how many kilometres, who pays for fuel, whether a driver comes with it, and what it costs past the limit. That is what people compare.",
     sellTitleHint_realEstate: "e.g. 2-bedroom flat, Cotonou",
     sellTitleHint_electronics: "e.g. iPhone 12 Pro 128 GB",
-    sellTitleHint_fashion: "e.g. Wax dress, size M",
+    sellTitleHint_fashion: "e.g. Wax dress, long sleeves",
     sellTitleHint_homeGarden: "e.g. Standing fan, barely used",
     sellTitleHint_furniture: "e.g. 3-seater leather sofa",
     sellTitleHint_babyKids: "e.g. Baby stroller with car seat",
@@ -275,6 +275,17 @@ export const translations = {
     sellFieldSportsKind: "What kind of item is it?",
     sellFieldSportsSize: "Size",
     sellFieldSportsSizePlaceholder: "e.g. 42, M, 10 yrs",
+    sellFieldBabySubtype: "Clothing or shoes?",
+    sellFieldFashionKind: "What kind of item?",
+    sellFieldFashionSizes: "Available sizes",
+    sellFieldFashionSizesHint:
+      "Pick every size you have. Buyers see them on the listing, so one listing can cover your whole rail.",
+    sellFieldSizeSystemEu: "EU sizing",
+    sellFieldFashionSizeOther: "Other",
+    sellFieldFashionCustomSizes: "Your own sizes",
+    sellFieldFashionCustomSizesPlaceholder: "e.g. 49, made to measure — separate with commas",
+    errorFashionCustomSizes:
+      "Write the size you have, or unpick Other.",
     sellSportsSizeHint:
       "The first thing buyers ask about clothing and footwear — saving you the message.",
     sellFormHeadlineSports: "List your sports or outdoor gear",
@@ -3368,7 +3379,7 @@ export const translations = {
       "Dites ce que la journée comprend : combien de kilomètres, qui paie le carburant, si un chauffeur vient avec, et le tarif au-delà. C'est ce que les gens comparent.",
     sellTitleHint_realEstate: "ex. Appartement 2 chambres, Cotonou",
     sellTitleHint_electronics: "ex. iPhone 12 Pro 128 Go",
-    sellTitleHint_fashion: "ex. Robe en wax, taille M",
+    sellTitleHint_fashion: "ex. Robe en wax, manches longues",
     sellTitleHint_homeGarden: "ex. Ventilateur sur pied, peu servi",
     sellTitleHint_furniture: "ex. Canapé 3 places en cuir",
     sellTitleHint_babyKids: "ex. Poussette avec siège auto",
@@ -3489,6 +3500,17 @@ export const translations = {
     sellFieldSportsKind: "De quel type d’article s’agit-il ?",
     sellFieldSportsSize: "Taille",
     sellFieldSportsSizePlaceholder: "ex. 42, M, 10 ans",
+    sellFieldBabySubtype: "Vêtements ou chaussures ?",
+    sellFieldFashionKind: "Quel type d’article ?",
+    sellFieldFashionSizes: "Tailles disponibles",
+    sellFieldFashionSizesHint:
+      "Cochez toutes les tailles que vous avez. Les acheteurs les voient sur l’annonce : une seule annonce suffit pour tout votre stock.",
+    sellFieldSizeSystemEu: "Pointures EU",
+    sellFieldFashionSizeOther: "Autre",
+    sellFieldFashionCustomSizes: "Vos propres tailles",
+    sellFieldFashionCustomSizesPlaceholder: "ex. 49, sur mesure — séparez par des virgules",
+    errorFashionCustomSizes:
+      "Écrivez la taille que vous avez, ou décochez Autre.",
     sellSportsSizeHint:
       "La première question des acheteurs pour un vêtement ou une chaussure — autant y répondre tout de suite.",
     sellFormHeadlineSports: "Proposez votre matériel de sport ou de plein air",

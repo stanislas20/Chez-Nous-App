@@ -51,6 +51,12 @@ import { storage, firestore } from "../config/firebase";
 import { categories } from "../data/categories";
 import { communityTypes, getCommunityTypeLabel } from "../data/communityTypes";
 import {
+  BABY_AGE_SIZES,
+  babyItemSubtypes,
+  getBabyItemSubtypeLabel,
+  babySizeOptions,
+  formatBabySize,
+  getBabySizeSystem,
   babyKinds,
   getBabyDetailKind,
   getBabyKindLabel,
@@ -191,6 +197,12 @@ import {
 import { CountryPickerSheet } from "../components/CountryPickerSheet";
 import { useCategoryListingsMulti } from "../hooks/useCategoryListings";
 import {
+  fashionKinds,
+  fashionSizeOptions,
+  getFashionKindLabel,
+  getFashionSizeSystem,
+} from "../data/fashionKinds";
+import {
   arrondissementsForCommune,
   getArrondissement,
   getLocality,
@@ -303,6 +315,11 @@ import { SearchBar } from "../components/SearchBar";
 import { ListingCard } from "../components/ListingCard";
 
 const EMERALD = "#0B6E4F";
+// The two categories that ask for sizes, in their own category colours —
+// the same values categories.js gives babyKids and fashion, so a size chip
+// looks like it belongs to the section it sits in.
+const BABY_PINK = "#E8768F";
+const FASHION_PINK = "#C4478A";
 const FLAG_GREEN = "#008751";
 const FLAG_YELLOW = "#FCD116";
 const FLAG_RED = "#E8112D";
@@ -331,6 +348,26 @@ function isPickerCardFull(index, total) {
 function getPickerCardWidth(index, total) {
   return isPickerCardFull(index, total) ? "100%" : "47.5%";
 }
+
+// How wide a size cell is, by what it has to hold.
+//
+// Content-sized pills fixed the height problem and created an alignment one:
+// "XS" and "XXXL" are different widths, so every row started and ended in a
+// different place and the block read as ragged rather than as a grid.
+//
+// Fixed shares per row fix that, and the share has to differ by content —
+// squeezing "12–18 months" into a cell built for "42" would clip it, and
+// giving "42" a cell built for "12–18 months" wastes two thirds of a row.
+//
+// The percentages leave room for the 6px gaps at BOTH ends of the range this
+// app runs on: on a 360dp phone a 6px gap is ~1.7% of the row, so five 18%
+// cells plus four gaps come to ~96.7% and still fit. Widening them to the
+// arithmetic ideal would wrap a column away on the narrowest screens.
+const SIZE_CELL = {
+  numeric: "18%", // 35–48, 16–34 — five per row
+  compact: "23%", // XS … XXXL — four per row
+  wide: "31.5%", // 0–3 months … 10–12 years — three per row
+};
 
 // The title and description hints are the form's only worked examples, and
 // a single generic pair ("ex. iPhone 12…", "Décrivez votre article") was
@@ -482,6 +519,15 @@ const BRAND_OTHER = "__brandOther__";
 // document only ever carries a real string, and a canonical id is stored
 // beside it only when one genuinely applies.
 const PICK_OTHER = "__pickOther__";
+
+// "My size is not on the list."
+//
+// Third of its kind, and the same rule as BRAND_OTHER and PICK_OTHER: a
+// picker sentinel that must never reach a listing. Shared by Fashion and
+// Baby & Kids because it means the same thing in both, and the text the
+// seller types is what gets stored — in fashionCustomSizes or
+// babyCustomSizes, never this.
+const SIZE_OTHER = "__sizeOther__";
 
 // What the two location pickers should show when an existing listing is
 // reopened for editing.
@@ -896,8 +942,53 @@ export function CreateListingScreen({ route, navigation }) {
   );
   const [sportsKind, setSportsKind] = useState(seed("sportsKind", null));
   const [sportsSize, setSportsSize] = useState(seedText("sportsSize", ""));
+  // Fashion: the kind of item, and the sizes of it the seller actually has.
+  //
+  // Two arrays rather than one, because they answer different questions. A
+  // canonical size came off the roll and can one day be filtered on;
+  // a custom one is whatever the seller typed and can only ever be read.
+  // Merging them would lose that, and merging them is also how the OTHER
+  // sentinel ends up in a document.
+  const [fashionKind, setFashionKind] = useState(seed("fashionKind", null));
+  const [fashionSizes, setFashionSizes] = useState(() => {
+    const stored = seed("fashionSizes", null);
+    return Array.isArray(stored) ? stored : [];
+  });
+  // One comma-separated field rather than a repeater: "49, sur mesure" is two
+  // values and one tap. A row of add/remove inputs is a lot of chrome for a
+  // case most sellers never reach.
+  const [fashionCustomSizes, setFashionCustomSizes] = useState(() => {
+    const stored = seed("fashionCustomSizes", null);
+    return Array.isArray(stored) ? stored.join(", ") : "";
+  });
+  const [fashionSizeOtherPicked, setFashionSizeOtherPicked] = useState(() => {
+    const stored = seed("fashionCustomSizes", null);
+    return Array.isArray(stored) && stored.length > 0;
+  });
   const [babyKind, setBabyKind] = useState(seed("babyKind", null));
   const [babyDetail, setBabyDetail] = useState(seedText("babyDetail", ""));
+  // Baby & Kids clothing, structured.
+  //
+  // The kind key stays "clothing" — old listings carry it and renaming it
+  // would orphan them — and the subtype underneath says whether that means a
+  // garment (age bands) or a shoe (EU numbers). babyDetail is NOT removed:
+  // every listing published before this has its size in there and nothing
+  // may drop it.
+  const [babyItemSubtype, setBabyItemSubtype] = useState(
+    seed("babyItemSubtype", null),
+  );
+  const [babySizes, setBabySizes] = useState(() => {
+    const stored = seed("babySizes", null);
+    return Array.isArray(stored) ? stored : [];
+  });
+  const [babyCustomSizes, setBabyCustomSizes] = useState(() => {
+    const stored = seed("babyCustomSizes", null);
+    return Array.isArray(stored) ? stored.join(", ") : "";
+  });
+  const [babySizeOtherPicked, setBabySizeOtherPicked] = useState(() => {
+    const stored = seed("babyCustomSizes", null);
+    return Array.isArray(stored) && stored.length > 0;
+  });
   // Preset when the seller arrived from a route that already knows which
   // one they mean — the Immobilier screen's publish bar carries whichever
   // tab they were reading. Same mechanism as vehiclePurpose below.
@@ -1402,6 +1493,38 @@ export function CreateListingScreen({ route, navigation }) {
   const isBabyKids = selectedCategory === "babyKids";
   // Renting and selling are different transactions sharing one category —
   // the deal type decides the price unit and which fields apply.
+  // ── Baby & Kids sizing ────────────────────────────────────────────────
+  const babySizeSystem = getBabySizeSystem(babyItemSubtype);
+  const babySizeChoices = babySizeOptions(babyItemSubtype);
+  const babyHasSizes = babySizeChoices.length > 0;
+  const babyCustomSizeList = babyCustomSizes
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  // The old free-text box, shown only while no subtype has been chosen —
+  // which is every listing published before this and every seller who has
+  // not answered yet. Choosing a subtype replaces it with the chips; it is
+  // never cleared, so reopening an old listing still shows what was typed.
+  const babyUsesLegacyDetail = !babyItemSubtype;
+
+  const isFashion = selectedCategory === "fashion";
+
+  // ── Fashion sizing ────────────────────────────────────────────────────
+  //
+  // The kind decides the scale, and whether there is one at all: a bag is
+  // never asked, a shirt is asked in letters, a shoe in EU numbers. Same
+  // shape as getBabyDetailKind, which already keeps the form from showing an
+  // empty field nobody can answer.
+  const fashionSizeSystem = isFashion ? getFashionSizeSystem(fashionKind) : null;
+  const fashionSizeChoices = isFashion ? fashionSizeOptions(fashionKind) : [];
+  const fashionHasSizes = fashionSizeChoices.length > 0;
+  // Split on commas, trimmed, blanks dropped. "49, sur mesure" is two values;
+  // "49," is one. Nothing is stored for an empty field.
+  const fashionCustomSizeList = fashionCustomSizes
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
   const isRealEstate = selectedCategory === "realEstate";
 
   // ── Property location: commune -> arrondissement -> quartier/village ──
@@ -1488,6 +1611,101 @@ export function CreateListingScreen({ route, navigation }) {
       </SelectorRow>
     </>
   );
+
+  // Changing the kind invalidates the sizes under it.
+  //
+  // The scales do not survive the move: "M" means nothing on a shoe, "41"
+  // means nothing on a shirt, and a bag has no size at all. Without this the
+  // old answers stay in state, invisible because the chips for them are no
+  // longer rendered, and publish anyway. Keyed on the previous value so that
+  // editing a listing does not wipe what seeding just restored.
+  // Clothing and shoes do not share a scale: "2-3y" means nothing on a shoe
+  // and "24" means nothing on a babygro. Switching between them has to drop
+  // the old answers, which are otherwise invisible and still publishable.
+  // One size grid, two categories.
+  //
+  // Fashion and Baby & Kids ask the same question — "which of these do you
+  // have?" — over different option lists, so the grid is written once.
+  // Multi-select: a boutique with one shirt in M, L and XL posts ONE listing
+  // and ticks three chips, instead of three near-identical listings.
+  //
+  // "Other" is the last chip rather than a separate control, because it is
+  // one of the answers to the same question.
+  const renderSizeGrid = ({
+    options,
+    labelOf,
+    selected,
+    onToggle,
+    otherPicked,
+    onToggleOther,
+    accent,
+    systemNote,
+    layout,
+  }) => {
+    const width = SIZE_CELL[layout];
+    return (
+    <>
+      {/* The scale, named once above the chips rather than repeated inside
+          every one of them: "EU" fifteen times is fourteen words of noise,
+          and the stored value was always the bare number anyway. */}
+      {systemNote ? <FieldNote>{systemNote}</FieldNote> : null}
+      <SizeChipWrap>
+        {options.map((value) => {
+          const active = selected.includes(value);
+          return (
+            <SizeChip
+              key={value}
+              width={width}
+              accent={accent}
+              selected={active}
+              onPress={() => onToggle(value)}
+            >
+              <SizeChipLabel accent={accent} selected={active}>
+                {labelOf(value)}
+              </SizeChipLabel>
+            </SizeChip>
+          );
+        })}
+        {/* Same cell as every other size, so it closes the grid instead of
+            hanging off the end of it. */}
+        <SizeChip
+          key={SIZE_OTHER}
+          width={width}
+          accent={accent}
+          selected={otherPicked}
+          onPress={onToggleOther}
+        >
+          <SizeChipLabel accent={accent} selected={otherPicked}>
+            {t("sellFieldFashionSizeOther")}
+          </SizeChipLabel>
+        </SizeChip>
+      </SizeChipWrap>
+    </>
+    );
+  };
+
+  const toggleInList = (list, value) =>
+    list.includes(value)
+      ? list.filter((item) => item !== value)
+      : [...list, value];
+
+  const previousBabySubtype = useRef(babyItemSubtype);
+  useEffect(() => {
+    if (previousBabySubtype.current === babyItemSubtype) return;
+    previousBabySubtype.current = babyItemSubtype;
+    setBabySizes([]);
+    setBabyCustomSizes("");
+    setBabySizeOtherPicked(false);
+  }, [babyItemSubtype]);
+
+  const previousFashionKind = useRef(fashionKind);
+  useEffect(() => {
+    if (previousFashionKind.current === fashionKind) return;
+    previousFashionKind.current = fashionKind;
+    setFashionSizes([]);
+    setFashionCustomSizes("");
+    setFashionSizeOtherPicked(false);
+  }, [fashionKind]);
 
   const previousArrondissementId = useRef(arrondissementId);
   useEffect(() => {
@@ -2077,6 +2295,18 @@ export function CreateListingScreen({ route, navigation }) {
     // published with no arrondissement and no quartier at all, exactly as it
     // could before — but saying "it is not in the list" and then naming
     // nothing would store an empty answer that looks like an answer.
+    // "Other" with nothing written is the question dodged. Choosing sizes
+    // stays entirely optional — a Fashion or Baby listing may publish with
+    // none at all, exactly as before — but ticking Other and naming nothing
+    // would store an empty answer that reads like an answer.
+    if (isFashion && fashionSizeOtherPicked && !fashionCustomSizeList.length) {
+      Alert.alert(t("sellFormTitle"), t("errorFashionCustomSizes"));
+      return;
+    }
+    if (isBabyKids && babySizeOtherPicked && !babyCustomSizeList.length) {
+      Alert.alert(t("sellFormTitle"), t("errorFashionCustomSizes"));
+      return;
+    }
     if (isRealEstate && arrondissementIsCustom && !arrondissementOther.trim()) {
       Alert.alert(t("sellFormTitle"), t("errorArrondissementOther"));
       return;
@@ -2664,11 +2894,36 @@ export function CreateListingScreen({ route, navigation }) {
               ),
             }
           : {}),
+        ...(isFashion
+          ? {
+              fashionKind,
+              // Only a sized kind carries a scale. A bag that was briefly a
+              // shirt must not keep "letter" and a list of sizes nobody can
+              // see — the reset clears the state, and this clears the write.
+              fashionSizeSystem: fashionHasSizes ? fashionSizeSystem : null,
+              fashionSizes: fashionHasSizes ? fashionSizes : [],
+              fashionCustomSizes: fashionHasSizes ? fashionCustomSizeList : [],
+            }
+          : {}),
         ...(isSports
           ? { sportsKind, sportsSize: sportsSize.trim() || null }
           : {}),
         ...(isBabyKids
-          ? { babyKind, babyDetail: babyDetail.trim() || null }
+          ? {
+              babyKind,
+              // Kept, always. Every listing published before the structured
+              // fields existed has its size in here, and a reader that only
+              // knows this key must keep working.
+              babyDetail: babyDetail.trim() || null,
+              // Null rather than absent when there is no subtype, so a
+              // listing edited back to "unanswered" does not keep a stale one.
+              babyItemSubtype: babyItemSubtype ?? null,
+              babySizeSystem: babyItemSubtype ? babySizeSystem : null,
+              // Canonical keys only. SIZE_OTHER is a picker state and is
+              // resolved to text before this line; it cannot appear here.
+              babySizes: babyItemSubtype ? babySizes : [],
+              babyCustomSizes: babyItemSubtype ? babyCustomSizeList : [],
+            }
           : {}),
         ...(isRestaurant
           ? {
@@ -3449,6 +3704,17 @@ export function CreateListingScreen({ route, navigation }) {
     documents: isVehicle && !isPartOffer ? documents : null,
     hasDocuments: isVehicle && !isPartOffer ? documents === "yes" : false,
     capacity: isRealEstate ? Number(capacity) || null : null,
+    // The preview is the one thing claiming to show the result, so it
+    // carries the same sizes the submit payload will.
+    fashionKind: isFashion ? fashionKind : null,
+    fashionSizeSystem: isFashion && fashionHasSizes ? fashionSizeSystem : null,
+    fashionSizes: isFashion && fashionHasSizes ? fashionSizes : [],
+    fashionCustomSizes:
+      isFashion && fashionHasSizes ? fashionCustomSizeList : [],
+    babyItemSubtype: isBabyKids ? (babyItemSubtype ?? null) : null,
+    babySizeSystem: isBabyKids && babyItemSubtype ? babySizeSystem : null,
+    babySizes: isBabyKids && babyItemSubtype ? babySizes : [],
+    babyCustomSizes: isBabyKids && babyItemSubtype ? babyCustomSizeList : [],
     // The preview is the one thing on this screen claiming to show the
     // result, so it carries the same location the submit payload will.
     quartier: isRealEstate ? localityValue : null,
@@ -5308,9 +5574,110 @@ export function CreateListingScreen({ route, navigation }) {
                 })}
               </PickerGrid>
 
-              {/* Label and example follow the kind: clothing is sized,
-                  a toy carries a recommended age. */}
-              {getBabyDetailKind(babyKind) ? (
+              {/* "Clothing & shoes" is two products with two scales. The
+                  kind key stays as it is — old listings carry it — and the
+                  subtype underneath decides whether the sizes are age bands
+                  or EU numbers. */}
+              {getBabyDetailKind(babyKind) === "size" ? (
+                <>
+                  <Label>{t("sellFieldBabySubtype")}</Label>
+                  <PickerGrid>
+                    {babyItemSubtypes.map((option, index) => {
+                      const active = babyItemSubtype === option.key;
+                      return (
+                        <PickerCard
+                          key={option.key}
+                          width={getPickerCardWidth(index, babyItemSubtypes.length)}
+                          full={isPickerCardFull(index, babyItemSubtypes.length)}
+                          selected={active}
+                          accent={BABY_PINK}
+                          tint={sectorTint(BABY_PINK, 0.09)}
+                          onPress={() =>
+                            setBabyItemSubtype(active ? null : option.key)
+                          }
+                        >
+                          <CategoryIconWrap
+                            small
+                            tint={sectorTint(BABY_PINK, active ? 0.22 : 0.12)}
+                          >
+                            <Ionicons
+                              name={option.icon}
+                              size={17}
+                              color={BABY_PINK}
+                            />
+                          </CategoryIconWrap>
+                          <PickerCardLabel
+                            full={isPickerCardFull(index, babyItemSubtypes.length)}
+                            selected={active}
+                            numberOfLines={2}
+                          >
+                            {getBabyItemSubtypeLabel(option.key, language)}
+                          </PickerCardLabel>
+                        </PickerCard>
+                      );
+                    })}
+                  </PickerGrid>
+                </>
+              ) : null}
+
+              {babyHasSizes ? (
+                <>
+                  <Label>{t("sellFieldFashionSizes")}</Label>
+                  {renderSizeGrid({
+                    options: babySizeChoices,
+                    // Age bands carry their own words; shoe numbers do not
+                    // need "EU" stamped on each one.
+                    labelOf: (value) =>
+                      babySizeSystem === "eu"
+                        ? value
+                        : formatBabySize(value, babySizeSystem, language),
+                    systemNote:
+                      babySizeSystem === "eu"
+                        ? t("sellFieldSizeSystemEu")
+                        : null,
+                    // Numbers pack five to a row; age ranges need three.
+                    layout: babySizeSystem === "eu" ? "numeric" : "wide",
+                    selected: babySizes,
+                    onToggle: (value) =>
+                      setBabySizes((prev) => toggleInList(prev, value)),
+                    otherPicked: babySizeOtherPicked,
+                    onToggleOther: () => {
+                      const next = !babySizeOtherPicked;
+                      setBabySizeOtherPicked(next);
+                      if (!next) setBabyCustomSizes("");
+                    },
+                    accent: BABY_PINK,
+                  })}
+                  <FieldNote>{t("sellFieldFashionSizesHint")}</FieldNote>
+                  {babySizeOtherPicked ? (
+                    <>
+                      <Label>{t("sellFieldFashionCustomSizes")}</Label>
+                      <InputRow>
+                        <Ionicons
+                          name="resize-outline"
+                          size={20}
+                          color={colors.textMuted}
+                        />
+                        <Input
+                          value={babyCustomSizes}
+                          onChangeText={setBabyCustomSizes}
+                          placeholder={t(
+                            "sellFieldFashionCustomSizesPlaceholder",
+                          )}
+                          placeholderTextColor={colors.textMuted}
+                        />
+                      </InputRow>
+                    </>
+                  ) : null}
+                </>
+              ) : null}
+
+              {/* The original free-text box. Shown for a toy's recommended
+                  age, and for clothing only until a subtype is chosen — which
+                  is the state every listing published before this is in, so
+                  reopening one still shows exactly what its seller typed. */}
+              {getBabyDetailKind(babyKind) &&
+              (getBabyDetailKind(babyKind) === "age" || babyUsesLegacyDetail) ? (
                 <>
                   <Label>
                     {t(
@@ -5337,6 +5704,101 @@ export function CreateListingScreen({ route, navigation }) {
                     />
                   </InputRow>
                   <FieldNote>{t("sellBabyDetailHint")}</FieldNote>
+                </>
+              ) : null}
+            </>
+          ) : null}
+
+          {/* Fashion, which until now had no branch at all: a dress, a
+              shoe and a pagne all went through the generic goods form, and
+              the only Fashion-aware line in the app told the seller to put
+              the size in the title. The kind decides whether there is a size
+              question and on what scale — a bag is asked nothing. */}
+          {isFashion ? (
+            <>
+              <Label>{t("sellFieldFashionKind")}</Label>
+              <PickerGrid>
+                {fashionKinds.map((option, index) => {
+                  const active = fashionKind === option.key;
+                  return (
+                    <PickerCard
+                      key={option.key}
+                      width={getPickerCardWidth(index, fashionKinds.length)}
+                      full={isPickerCardFull(index, fashionKinds.length)}
+                      selected={active}
+                      accent={option.color}
+                      tint={sectorTint(option.color, 0.09)}
+                      onPress={() =>
+                        setFashionKind(active ? null : option.key)
+                      }
+                    >
+                      <CategoryIconWrap
+                        small
+                        tint={sectorTint(option.color, active ? 0.22 : 0.12)}
+                      >
+                        <Ionicons
+                          name={option.icon}
+                          size={17}
+                          color={option.color}
+                        />
+                      </CategoryIconWrap>
+                      <PickerCardLabel
+                        full={isPickerCardFull(index, fashionKinds.length)}
+                        selected={active}
+                        numberOfLines={2}
+                      >
+                        {getFashionKindLabel(option.key, language)}
+                      </PickerCardLabel>
+                    </PickerCard>
+                  );
+                })}
+              </PickerGrid>
+
+              {fashionHasSizes ? (
+                <>
+                  <Label>{t("sellFieldFashionSizes")}</Label>
+                  {renderSizeGrid({
+                    options: fashionSizeChoices,
+                    // Letter sizes are already their own label; EU numbers
+                    // are shown bare under the caption below.
+                    labelOf: (value) => value,
+                    systemNote:
+                      fashionSizeSystem === "eu"
+                        ? t("sellFieldSizeSystemEu")
+                        : null,
+                    layout: fashionSizeSystem === "eu" ? "numeric" : "compact",
+                    selected: fashionSizes,
+                    onToggle: (value) =>
+                      setFashionSizes((prev) => toggleInList(prev, value)),
+                    otherPicked: fashionSizeOtherPicked,
+                    onToggleOther: () => {
+                      const next = !fashionSizeOtherPicked;
+                      setFashionSizeOtherPicked(next);
+                      if (!next) setFashionCustomSizes("");
+                    },
+                    accent: FASHION_PINK,
+                  })}
+                  <FieldNote>{t("sellFieldFashionSizesHint")}</FieldNote>
+                  {fashionSizeOtherPicked ? (
+                    <>
+                      <Label>{t("sellFieldFashionCustomSizes")}</Label>
+                      <InputRow>
+                        <Ionicons
+                          name="resize-outline"
+                          size={20}
+                          color={colors.textMuted}
+                        />
+                        <Input
+                          value={fashionCustomSizes}
+                          onChangeText={setFashionCustomSizes}
+                          placeholder={t(
+                            "sellFieldFashionCustomSizesPlaceholder",
+                          )}
+                          placeholderTextColor={colors.textMuted}
+                        />
+                      </InputRow>
+                    </>
+                  ) : null}
                 </>
               ) : null}
             </>
@@ -9437,6 +9899,50 @@ const PickerGrid = styled.View`
   flex-direction: row;
   flex-wrap: wrap;
   gap: ${spacing.sm}px;
+`;
+
+// Sizes are not categories, and the card built for categories is the wrong
+// object for them.
+//
+// PickerCard is an icon, a two-line label and a fixed share of the row —
+// right for "Traditional & Pagne", absurd for "42". Rendering the EU scale
+// through it produced eight rows of half-width cards for fifteen two-digit
+// numbers, taller than the whole rest of the form and pushing price and
+// location off the screen.
+//
+// So: content-sized pills that wrap. "XS" takes the room "XS" needs and
+// "12–18 months" takes the room it needs, which is why there is no width
+// prop here — equal widths would waste most of a row on the short ones and
+// clip the long ones. Five-ish numeric sizes land per row on a normal phone
+// without any column count being hard-coded.
+const SizeChipWrap = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+`;
+
+// 44px high: the tap target stays comfortable even though the pill is short.
+const SizeChip = styled(Pressable)`
+  width: ${(props) => props.width};
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding-horizontal: 4px;
+  border-radius: ${radius.pill}px;
+  border-width: 1.5px;
+  border-color: ${(props) =>
+    props.selected ? props.accent : props.theme.border};
+  background-color: ${(props) =>
+    props.selected ? sectorTint(props.accent, 0.12) : props.theme.surface};
+`;
+
+const SizeChipLabel = styled.Text`
+  font-family: ${(props) =>
+    props.selected ? fontFamily.semiBold : fontFamily.regular};
+  font-size: 14px;
+  text-align: center;
+  color: ${(props) => (props.selected ? props.accent : props.theme.text)};
 `;
 
 // A full-width card centres its contents. Left-aligned, the icon and label

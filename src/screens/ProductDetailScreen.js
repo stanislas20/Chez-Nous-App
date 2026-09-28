@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { formatFashionSize } from "../data/fashionKinds";
+import { formatBabySize } from "../data/babyKinds";
 import {
   Alert,
   FlatList,
@@ -269,6 +271,23 @@ export function ProductDetailScreen({ route, navigation }) {
   const title = language === "en" ? listing.titleEn : listing.titleFr;
   const description =
     language === "en" ? listing.descriptionEn : listing.descriptionFr;
+  // Structured sizes, canonical first then whatever the seller typed.
+  //
+  // Both categories store the same two shapes, so one line renders both:
+  // "M, L, XL" for a shirt, "EU 40, EU 41" for shoes, "2–3 years" for a
+  // babygro — the age bands are stored as keys and read back in the reader's
+  // own language, which is why this cannot be a plain join.
+  const structuredSizes = [
+    ...(listing.fashionSizes ?? []).map((value) =>
+      formatFashionSize(value, listing.fashionSizeSystem),
+    ),
+    ...(listing.babySizes ?? []).map((value) =>
+      formatBabySize(value, listing.babySizeSystem, language),
+    ),
+    ...(listing.fashionCustomSizes ?? []),
+    ...(listing.babyCustomSizes ?? []),
+  ];
+  const sizeLine = structuredSizes.length ? structuredSizes.join(", ") : null;
   // Everything the detail screen shows, minus what this platform cannot
   // decode — see the note on canDraw in utils/listingImage. A .heic cover
   // drew as a blank hero with the page counter over it, on every listing
@@ -1227,7 +1246,7 @@ export function ProductDetailScreen({ route, navigation }) {
             </AmenityWrap>
           ) : null}
 
-          {listing.sportsSize || listing.babyDetail ? (
+          {sizeLine || listing.sportsSize || listing.babyDetail ? (
             <SpecGrid>
               <SpecItem>
                 <Ionicons
@@ -1235,7 +1254,13 @@ export function ProductDetailScreen({ route, navigation }) {
                   size={15}
                   color={colors.primary}
                 />
-                <SpecText>{listing.sportsSize ?? listing.babyDetail}</SpecText>
+                {/* Structured sizes first, then the free-text ones. The
+                    fallbacks are not dead code: sportsSize is still free
+                    text, and every Baby listing published before the
+                    structured fields existed has its size in babyDetail. */}
+                <SpecText>
+                  {sizeLine ?? (listing.sportsSize || listing.babyDetail)}
+                </SpecText>
               </SpecItem>
             </SpecGrid>
           ) : null}

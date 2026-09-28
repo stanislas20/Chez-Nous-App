@@ -49,6 +49,7 @@ import { radius, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { fontFamily, type } from "../theme/typography";
 import { listingPrice, listingPriceText } from "../utils/listingPrice";
+import { listingLocation } from "../utils/listingLocation";
 import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
 import { firestore } from "../config/firebase";
@@ -903,7 +904,8 @@ export function ProductDetailScreen({ route, navigation }) {
                 size={13}
                 color={colors.textMuted}
               />
-              <MetaLabel>{listing.city}</MetaLabel>
+              {/* Most specific stored location first; missing levels collapse safely. */}
+              <MetaLabel>{listingLocation(listing) ?? listing.city}</MetaLabel>
             </MetaItem>
             {listing.status === "approved" ? (
               <>

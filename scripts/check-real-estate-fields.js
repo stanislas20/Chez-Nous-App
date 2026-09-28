@@ -73,6 +73,15 @@ const written = new Set(
   // written, not read defensively: a property screen asking whether its
   // cover is a video is asking a question the form answers.
   "mediaType",
+  // The Benin location hierarchy. These sat in the property spread when
+  // property was the only category offering them; they are listing-level
+  // now, beside `city` and `quartier`, because every category that a buyer
+  // has to travel to collect from gets the same ladder. Written for the
+  // categories in PRECISE_LOCALITY_CATEGORIES and explicitly nulled for the
+  // rest — either way the form writes them, so a screen may read them.
+  // scripts/check-listing-location.js is what pins that down.
+  "communeCode", "arrondissement", "arrondissementId",
+  "localityId", "localityType",
 ].forEach((key) => written.add(key));
 
 if (written.size < 8) {

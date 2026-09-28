@@ -48,7 +48,10 @@ import { useI18n } from "../i18n/I18nContext";
 import { useAuth } from "../auth/AuthContext";
 import { useCurrentLocation } from "../hooks/useCurrentLocation";
 import { storage, firestore } from "../config/firebase";
-import { categories } from "../data/categories";
+import {
+  categories,
+  PRECISE_LOCALITY_CATEGORIES,
+} from "../data/categories";
 import { communityTypes, getCommunityTypeLabel } from "../data/communityTypes";
 import {
   BABY_AGE_SIZES,
@@ -1527,7 +1530,20 @@ export function CreateListingScreen({ route, navigation }) {
 
   const isRealEstate = selectedCategory === "realEstate";
 
-  // ── Property location: commune -> arrondissement -> quartier/village ──
+  // Whether this category offers the two levels below the commune.
+  //
+  // One concept, asked in one place, read everywhere the hierarchy is
+  // rendered, validated, previewed or written. The alternative — a
+  // category test at each of those sites — is how the levels end up
+  // rendered for a category whose payload then drops them.
+  //
+  // Membership lives in src/data/categories.js, next to the categories
+  // themselves, because it is a fact about a category and not about this
+  // screen.
+  const supportsPreciseLocality =
+    PRECISE_LOCALITY_CATEGORIES.has(selectedCategory);
+
+  // ── Listing location: commune -> arrondissement -> quartier/village ──
   //
   // The commune is the one the seller already chose at the top of the form;
   // this resolves it to a p-code so the two lower levels hang off a stable
@@ -1609,6 +1625,107 @@ export function CreateListingScreen({ route, navigation }) {
         </SelectorText>
         <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
       </SelectorRow>
+    </>
+  );
+
+  // The two levels below the commune, as one element for the same reason
+  // communeField is one: property renders them inside its own location
+  // section, everything else renders them at the usual site, and a second
+  // copy of eighty lines of JSX is a second copy to forget to fix.
+  //
+  // Rendered only where supportsPreciseLocality says so, and always
+  // directly under the commune — the ladder reads top-down or it does not
+  // read at all.
+  const localityFields = (
+    <>
+      <Label>{t("sellFieldArrondissement")}</Label>
+      <SelectorRow
+        disabled={!communeCode}
+        dimmed={!communeCode}
+        onPress={() => setArrondissementSheetOpen(true)}
+      >
+        <Ionicons
+          name="map-outline"
+          size={17}
+          color={colors.textMuted}
+        />
+        <SelectorText muted={!arrondissementValue}>
+          {arrondissementValue ??
+            (communeCode
+              ? t("sellFieldArrondissementPlaceholder")
+              : t("sellPickCommuneFirst"))}
+        </SelectorText>
+        <Ionicons
+          name="chevron-forward"
+          size={16}
+          color={colors.textMuted}
+        />
+      </SelectorRow>
+      {/* The roll is from 2013 and the country has not stopped
+          building. A place it never listed must not be a reason
+          somebody cannot publish. */}
+      {arrondissementIsCustom ? (
+        <InputRow>
+          <Ionicons
+            name="create-outline"
+            size={20}
+            color={colors.textMuted}
+          />
+          <Input
+            value={arrondissementOther}
+            onChangeText={setArrondissementOther}
+            placeholder={t("sellFieldArrondissementOtherPlaceholder")}
+            placeholderTextColor={colors.textMuted}
+          />
+        </InputRow>
+      ) : null}
+
+      <Label>{t("sellFieldLocality")}</Label>
+      {/* Never a heading with nothing under it. Under a canonical
+          arrondissement this is the picker; before one is chosen it
+          is the same row, inert, saying what to do first; and under a
+          "not listed" arrondissement there is no roll to offer, so
+          the row is dropped and the text field below is the whole
+          answer. */}
+      {!arrondissementIsCustom ? (
+        <SelectorRow
+          disabled={!canonicalArrondissement}
+          dimmed={!canonicalArrondissement}
+          onPress={() => setLocalitySheetOpen(true)}
+        >
+          <Ionicons
+            name="home-outline"
+            size={17}
+            color={colors.textMuted}
+          />
+          <SelectorText muted={!localityValue}>
+            {localityValue ??
+              (canonicalArrondissement
+                ? t("sellFieldLocalityPlaceholder")
+                : t("sellPickArrondissementFirst"))}
+          </SelectorText>
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={colors.textMuted}
+          />
+        </SelectorRow>
+      ) : null}
+      {localityIsCustom ? (
+        <InputRow>
+          <Ionicons
+            name="map-outline"
+            size={20}
+            color={colors.textMuted}
+          />
+          <Input
+            value={localityOther}
+            onChangeText={setLocalityOther}
+            placeholder={t("sellFieldQuartierPlaceholder")}
+            placeholderTextColor={colors.textMuted}
+          />
+        </InputRow>
+      ) : null}
     </>
   );
 
@@ -2291,10 +2408,14 @@ export function CreateListingScreen({ route, navigation }) {
       return;
     }
     // "Not listed" with nothing typed is the question dodged. Choosing a
-    // place from the roll stays entirely optional — a property may be
-    // published with no arrondissement and no quartier at all, exactly as it
-    // could before — but saying "it is not in the list" and then naming
-    // nothing would store an empty answer that looks like an answer.
+    // place from the roll stays entirely optional — any listing may be
+    // published with no arrondissement and no quartier at all, exactly as a
+    // property could before — but saying "it is not in the list" and then
+    // naming nothing would store an empty answer that looks like an answer.
+    //
+    // Note what this does NOT do: it never requires an arrondissement or a
+    // quartier. It fires only once the seller has actively chosen "not
+    // listed", which is a claim, and a claim has to be completed.
     // "Other" with nothing written is the question dodged. Choosing sizes
     // stays entirely optional — a Fashion or Baby listing may publish with
     // none at all, exactly as before — but ticking Other and naming nothing
@@ -2307,11 +2428,19 @@ export function CreateListingScreen({ route, navigation }) {
       Alert.alert(t("sellFormTitle"), t("errorFashionCustomSizes"));
       return;
     }
-    if (isRealEstate && arrondissementIsCustom && !arrondissementOther.trim()) {
+    if (
+      supportsPreciseLocality &&
+      arrondissementIsCustom &&
+      !arrondissementOther.trim()
+    ) {
       Alert.alert(t("sellFormTitle"), t("errorArrondissementOther"));
       return;
     }
-    if (isRealEstate && localityId === PICK_OTHER && !localityOther.trim()) {
+    if (
+      supportsPreciseLocality &&
+      localityId === PICK_OTHER &&
+      !localityOther.trim()
+    ) {
       Alert.alert(t("sellFormTitle"), t("errorLocalityOther"));
       return;
     }
@@ -2795,6 +2924,57 @@ export function CreateListingScreen({ route, navigation }) {
                   ),
                 }),
         city: selectedCity,
+        // The commune's p-code, stored rather than re-derived.
+        //
+        // `city` is a display string, and a display string is the wrong
+        // thing to query on: it carries accents, it has spelling variants
+        // a stored listing may hold, and a rename would strand every
+        // document written before it. The p-code does not move. Nothing
+        // reads it yet — it is written now so that when a commune filter
+        // exists it has a stable key to match, instead of needing a
+        // migration to acquire one.
+        communeCode: supportsPreciseLocality ? communeCode : null,
+        // STILL `quartier`, and still the human-readable name.
+        //
+        // It is what RealEstateScreen filters on, what the card and the
+        // detail print, and what searchTokens indexes — and thousands of
+        // documents already carry it. Renaming it would orphan every one
+        // of them, so the hierarchy is added ALONGSIDE: this key keeps
+        // meaning exactly what it has always meant, the quartier or
+        // village as a person would say it, whether it came from the roll
+        // or the seller typed it.
+        //
+        // Listing-level, not inside the property spread where these six
+        // began. They were never property attributes — a bedroom count is
+        // one, an address is not — and filing them there is what made a
+        // pushchair in Godomèy indistinguishable from one in Akpakpa.
+        //
+        // Cleared rather than omitted for a category that does not offer
+        // the ladder. An edit is an updateDoc: a key left out keeps
+        // whatever the document already held, so a seller who filled the
+        // hierarchy under Fashion and then switched the listing to
+        // Services would leave a quartier behind that no form can now see
+        // or correct. Writing null is what makes the category and the
+        // stored location agree.
+        quartier: supportsPreciseLocality ? localityValue : null,
+        arrondissement: supportsPreciseLocality ? arrondissementValue : null,
+        // The canonical ids, and null is meaningful: it is what
+        // distinguishes a place from INStaD's roll from one the seller
+        // typed. No id is ever invented for a custom value, and the id
+        // never replaces the name — it sits beside it, so a reader that
+        // knows nothing about the hierarchy still shows the right words.
+        arrondissementId: supportsPreciseLocality
+          ? (canonicalArrondissement?.id ?? null)
+          : null,
+        localityId: supportsPreciseLocality
+          ? (canonicalLocality?.id ?? null)
+          : null,
+        // Only Cotonou's units are documented as quartiers de ville;
+        // elsewhere the cahiers do not say, so this is null rather than a
+        // guess. See src/data/benin/localities.js.
+        localityType: supportsPreciseLocality
+          ? (canonicalLocality?.type ?? null)
+          : null,
         latitude: coordsForCity?.latitude ?? null,
         longitude: coordsForCity?.longitude ?? null,
         // Category-specific fields. Each spread is empty unless that
@@ -3121,28 +3301,6 @@ export function CreateListingScreen({ route, navigation }) {
               avanceMonths: avanceMonths === "" ? null : Number(avanceMonths),
               landDocument,
               listerKind,
-              // STILL `quartier`, and still the human-readable name.
-              //
-              // It is what RealEstateScreen filters on, what the card and the
-              // detail print, and what searchTokens indexes — and thousands of
-              // documents already carry it. Renaming it would orphan every one
-              // of them, so the hierarchy is added ALONGSIDE: this key keeps
-              // meaning exactly what it has always meant, the quartier or
-              // village as a person would say it, whether it came from the
-              // roll or the seller typed it.
-              quartier: localityValue,
-              arrondissement: arrondissementValue,
-              // The canonical ids, and null is meaningful: it is what
-              // distinguishes a place from INStaD's roll from one the seller
-              // typed. No id is ever invented for a custom value, and the id
-              // never replaces the name — it sits beside it, so a reader that
-              // knows nothing about the hierarchy still shows the right words.
-              arrondissementId: canonicalArrondissement?.id ?? null,
-              localityId: canonicalLocality?.id ?? null,
-              // Only Cotonou's units are documented as quartiers de ville;
-              // elsewhere the cahiers do not say, so this is null rather than
-              // a guess. See src/data/benin/localities.js.
-              localityType: canonicalLocality?.type ?? null,
               isLotti,
               // Optional, and public when given. Property is the category
               // people actually phone about, but a private landlord's
@@ -3717,8 +3875,9 @@ export function CreateListingScreen({ route, navigation }) {
     babyCustomSizes: isBabyKids && babyItemSubtype ? babyCustomSizeList : [],
     // The preview is the one thing on this screen claiming to show the
     // result, so it carries the same location the submit payload will.
-    quartier: isRealEstate ? localityValue : null,
-    arrondissement: isRealEstate ? arrondissementValue : null,
+    quartier: supportsPreciseLocality ? localityValue : null,
+    arrondissement: supportsPreciseLocality ? arrondissementValue : null,
+    communeCode: supportsPreciseLocality ? communeCode : null,
     media: assets.map((asset) => ({
       mediaType: asset.type === "video" ? "video" : "image",
       mediaUrl: asset.uri,
@@ -4605,95 +4764,7 @@ export function CreateListingScreen({ route, navigation }) {
                   becomes impossible to finish. */}
               <Label>{t("sellSectionPropertyLocation")}</Label>
               {communeField}
-
-              <Label>{t("sellFieldArrondissement")}</Label>
-              <SelectorRow
-                disabled={!communeCode}
-                dimmed={!communeCode}
-                onPress={() => setArrondissementSheetOpen(true)}
-              >
-                <Ionicons
-                  name="map-outline"
-                  size={17}
-                  color={colors.textMuted}
-                />
-                <SelectorText muted={!arrondissementValue}>
-                  {arrondissementValue ??
-                    (communeCode
-                      ? t("sellFieldArrondissementPlaceholder")
-                      : t("sellPickCommuneFirst"))}
-                </SelectorText>
-                <Ionicons
-                  name="chevron-forward"
-                  size={16}
-                  color={colors.textMuted}
-                />
-              </SelectorRow>
-              {/* The roll is from 2013 and the country has not stopped
-                  building. A place it never listed must not be a reason
-                  somebody cannot publish. */}
-              {arrondissementIsCustom ? (
-                <InputRow>
-                  <Ionicons
-                    name="create-outline"
-                    size={20}
-                    color={colors.textMuted}
-                  />
-                  <Input
-                    value={arrondissementOther}
-                    onChangeText={setArrondissementOther}
-                    placeholder={t("sellFieldArrondissementOtherPlaceholder")}
-                    placeholderTextColor={colors.textMuted}
-                  />
-                </InputRow>
-              ) : null}
-
-              <Label>{t("sellFieldLocality")}</Label>
-              {/* Never a heading with nothing under it. Under a canonical
-                  arrondissement this is the picker; before one is chosen it
-                  is the same row, inert, saying what to do first; and under a
-                  "not listed" arrondissement there is no roll to offer, so
-                  the row is dropped and the text field below is the whole
-                  answer. */}
-              {!arrondissementIsCustom ? (
-                <SelectorRow
-                  disabled={!canonicalArrondissement}
-                  dimmed={!canonicalArrondissement}
-                  onPress={() => setLocalitySheetOpen(true)}
-                >
-                  <Ionicons
-                    name="home-outline"
-                    size={17}
-                    color={colors.textMuted}
-                  />
-                  <SelectorText muted={!localityValue}>
-                    {localityValue ??
-                      (canonicalArrondissement
-                        ? t("sellFieldLocalityPlaceholder")
-                        : t("sellPickArrondissementFirst"))}
-                  </SelectorText>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={colors.textMuted}
-                  />
-                </SelectorRow>
-              ) : null}
-              {localityIsCustom ? (
-                <InputRow>
-                  <Ionicons
-                    name="map-outline"
-                    size={20}
-                    color={colors.textMuted}
-                  />
-                  <Input
-                    value={localityOther}
-                    onChangeText={setLocalityOther}
-                    placeholder={t("sellFieldQuartierPlaceholder")}
-                    placeholderTextColor={colors.textMuted}
-                  />
-                </InputRow>
-              ) : null}
+              {localityFields}
 
               {realEstateDeal ? (
                 <>
@@ -8931,8 +9002,17 @@ export function CreateListingScreen({ route, navigation }) {
           )}
 
           {/* Property asks this at the top of its own location section,
-              with the two levels below it. Everything else asks it here. */}
-          {!isRealEstate ? communeField : null}
+              with the two levels below it. Everything else asks it here —
+              and the categories that offer the hierarchy get the same
+              ladder, in the same order, immediately under the commune.
+              Never both sites: the fragment is rendered once or not at
+              all, so "Emplacement" cannot appear twice on one form. */}
+          {!isRealEstate ? (
+            <>
+              {communeField}
+              {supportsPreciseLocality ? localityFields : null}
+            </>
+          ) : null}
 
           <Label>{t("sellFieldDescription")}</Label>
           <TextAreaRow invalid={isInvalid("description")}>

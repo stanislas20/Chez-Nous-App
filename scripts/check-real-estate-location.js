@@ -143,27 +143,51 @@ if (!/<SelectorText muted=\{!localityValue\}>/.test(raw))
 // `quartier` is what RealEstateScreen filters on, what the card prints and
 // what searchTokens indexes, and thousands of documents already carry it.
 // Replacing it with an id would orphan every one of them.
-const payloadStart = form.indexOf("              realEstateDeal,");
-const payloadEnd = form.slice(payloadStart).search(/^ {12}\}/m);
-const payload = form.slice(payloadStart, payloadStart + payloadEnd);
-if (!/quartier: localityValue,/.test(payload))
-  fail("the payload no longer writes the quartier as a human-readable name");
-if (!/arrondissement: arrondissementValue,/.test(payload))
-  fail("the payload does not carry the arrondissement name");
-for (const field of ["arrondissementId", "localityId", "localityType"]) {
-  if (!new RegExp(`${field}: `).test(payload))
-    fail(`the payload does not carry ${field}`);
+// These six are LISTING-level, beside `city`, not inside the property
+// spread where they began. A property is not the only thing somebody has to
+// travel to collect, and filing an address among the bedroom counts is what
+// kept every other category at commune resolution. So this asserts both
+// halves: the fields are written with the shared gate, AND they are no
+// longer inside the real-estate block — putting one back there would give
+// property a second, closer copy that silently wins for property and leaves
+// every other category writing nothing.
+const rePayloadStart = form.indexOf("              realEstateDeal,");
+const rePayloadEnd = form.slice(rePayloadStart).search(/^ {12}\}/m);
+const rePayload = form.slice(rePayloadStart, rePayloadStart + rePayloadEnd);
+// Whitespace-insensitive: prettier wraps the longer ternaries over three
+// lines, and where the line breaks fall is not what this is about.
+const flat = form.replace(/\s+/g, " ");
+const LISTING_LOCATION = [
+  ["the quartier as a human-readable name",
+   "quartier: supportsPreciseLocality ? localityValue : null,"],
+  ["the arrondissement name",
+   "arrondissement: supportsPreciseLocality ? arrondissementValue : null,"],
+  // Canonical vs custom IS the id being null, so the id may only ever come
+  // from a canonical record. Reading it from the picker state would store
+  // the sentinel, and inventing one for a typed value would make a place
+  // the seller typed indistinguishable from one on the roll.
+  ["arrondissementId, taken from the canonical record only",
+   "arrondissementId: supportsPreciseLocality ? (canonicalArrondissement?.id ?? null) : null,"],
+  ["localityId, taken from the canonical record only",
+   "localityId: supportsPreciseLocality ? (canonicalLocality?.id ?? null) : null,"],
+  ["localityType, taken from the canonical record only",
+   "localityType: supportsPreciseLocality ? (canonicalLocality?.type ?? null) : null,"],
+  // The p-code. `city` is a display string and the wrong thing to query on;
+  // this is written now so a commune filter never needs a migration to get
+  // a stable key.
+  ["communeCode, the commune p-code",
+   "communeCode: supportsPreciseLocality ? communeCode : null,"],
+];
+for (const [what, expression] of LISTING_LOCATION) {
+  if (!flat.includes(expression))
+    fail(`the payload does not carry ${what} \u2014 expected exactly: ${expression}`);
+  const key = expression.slice(0, expression.indexOf(":"));
+  if (new RegExp(`\\b${key}:`).test(rePayload))
+    fail(
+      `${key} is written inside the real-estate spread \u2014 it is a listing ` +
+        `field, and a copy in there is one only property would ever get`,
+    );
 }
-// Canonical vs custom IS the id being null, so the id may only ever come
-// from a canonical record. Reading it from the picker state would store the
-// sentinel, and inventing one for a typed value would make a custom place
-// indistinguishable from the roll.
-if (!/arrondissementId: canonicalArrondissement\?\.id \?\? null,/.test(payload))
-  fail("arrondissementId is not taken from the canonical record only");
-if (!/localityId: canonicalLocality\?\.id \?\? null,/.test(payload))
-  fail("localityId is not taken from the canonical record only");
-if (!/localityType: canonicalLocality\?\.type \?\? null,/.test(payload))
-  fail("localityType is not taken from the canonical record only");
 
 // ── 7. Editing restores all three generations of document ──────────────
 if (!/function seedPropertyLocation\(editing\)/.test(form))
@@ -229,45 +253,114 @@ for (let i = branchOpen; i < rawLines.length; i += 1) {
 }
 if (branchClose === -1) fail("could not find the end of the real-estate branch");
 
+// The two lower levels are now ONE element, declared once and rendered at
+// whichever site the category uses — property inside its own location
+// section, everything else at the generic site. So "inside the real-estate
+// branch" is no longer the thing to measure: what must hold is that the
+// fields exist in exactly one place, and that the element is rendered
+// directly under the commune wherever it appears.
+const declStart = lineOf("  const localityFields = (");
+let declEnd = -1;
+if (declStart === -1) {
+  fail("the arrondissement/quartier element is gone");
+} else {
+  for (let i = declStart; i < rawLines.length; i += 1) {
+    if (rawLines[i] === "  );") { declEnd = i + 1; break; }
+  }
+  if (declEnd === -1) fail("could not find the end of the localityFields element");
+}
+
 const heading = lineOf('<Label>{t("sellSectionPropertyLocation")}</Label>');
-const commune = lineOf("{communeField}");
 const arrondissement = lineOf('<Label>{t("sellFieldArrondissement")}</Label>');
 const locality = lineOf('<Label>{t("sellFieldLocality")}</Label>');
+if (heading === -1) fail("the property location heading is not rendered at all");
 for (const [name, line] of [
-  ["the section heading", heading],
-  ["the commune field", commune],
   ["the arrondissement field", arrondissement],
   ["the quartier/village field", locality],
 ]) {
   if (line === -1) { fail(`${name} is not rendered at all`); continue; }
-  if (branchOpen !== -1 && branchClose !== -1 && !(line > branchOpen && line < branchClose))
+  if (declStart !== -1 && declEnd !== -1 && !(line > declStart && line < declEnd))
     fail(
-      `${name} is at line ${line}, outside the real-estate branch ` +
-        `(${branchOpen}-${branchClose}) — it would render for another category`,
+      `${name} is at line ${line}, outside the localityFields element ` +
+        `(${declStart}-${declEnd}) — a second copy of it is a second copy to ` +
+        `forget to fix`,
     );
 }
+// One copy, not two. Duplicating the JSX is exactly what the element exists
+// to prevent, and a duplicate renders fine while only one of them is fixed.
+for (const [name, key] of [
+  ["arrondissement", "sellFieldArrondissement"],
+  ["quartier/village", "sellFieldLocality"],
+]) {
+  const copies = (raw.match(new RegExp(`<Label>\\{t\\("${key}"\\)\\}</Label>`, "g")) ?? []).length;
+  if (copies !== 1)
+    fail(`${copies} ${name} field(s) in the form; the element must be rendered, not copied`);
+}
 
-// The order is the hierarchy, and it is the whole point of the section:
-// commune, then arrondissement, then quartier/village.
-if (!(commune < arrondissement && arrondissement < locality))
+// The order is the hierarchy, and it is the whole point: commune, then
+// arrondissement, then quartier/village.
+if (!(arrondissement < locality))
   fail(
-    `the three levels are out of order (commune ${commune}, arrondissement ` +
-      `${arrondissement}, quartier ${locality}) — each only means something ` +
-      `inside the one above it`,
+    `the two lower levels are out of order (arrondissement ${arrondissement}, ` +
+      `quartier ${locality}) — a quartier only means something inside an ` +
+      `arrondissement`,
   );
 
-// And adjacent. They were separated by price, deposit and avance, which is
-// what made "Arrondissement" read as a question about nothing. Nothing may
-// come between them except their own controls.
-const between = rawLines.slice(commune, locality - 1).join("\n");
+// Nothing between them but their own controls. They were once separated by
+// price, deposit and avance, which is what made "Arrondissement" read as a
+// question about nothing.
+const between = rawLines.slice(arrondissement, locality - 1).join("\n");
 const strayLabels = [...between.matchAll(/<Label>\{t\("([^"]+)"\)\}<\/Label>/g)]
   .map((m) => m[1])
   .filter((k) => !/^sellField(Arrondissement|Locality|Location)$/.test(k));
 if (strayLabels.length)
   fail(
-    `unrelated field(s) sit between the three location levels: ` +
+    `unrelated field(s) sit between the location levels: ` +
       `${strayLabels.join(", ")} — they must read as one ladder`,
   );
+
+// Every render of the commune is immediately followed by the two levels
+// below it, or the ladder is split across the form again. Measured at every
+// site rather than at the first one found: the bug this replaces is a
+// second site nobody looked at.
+const communeRenders = [];
+rawLines.forEach((line, i) => {
+  if (line.trim() === "{communeField}") communeRenders.push(i + 1);
+});
+if (communeRenders.length !== 2)
+  fail(
+    `${communeRenders.length} commune render site(s); expected 2 — property ` +
+      `inside its own location section, everything else at the generic site`,
+  );
+for (const line of communeRenders) {
+  const next = (rawLines[line] ?? "").trim();
+  if (
+    next !== "{localityFields}" &&
+    next !== "{supportsPreciseLocality ? localityFields : null}"
+  )
+    fail(
+      `the commune render at line ${line} is not followed by the levels below ` +
+        `it (next line is ${JSON.stringify(next)}) — splitting the ladder is ` +
+        `what made the hierarchy unreadable`,
+    );
+}
+// Property renders them unconditionally. It is in the category set, and must
+// not be left depending on the set being right.
+const reCommune = communeRenders.find(
+  (line) =>
+    branchOpen !== -1 && branchClose !== -1 && line > branchOpen && line < branchClose,
+);
+if (reCommune === undefined)
+  fail("the property branch no longer renders the commune inside its own location section");
+else {
+  if (heading !== -1 && !(heading < reCommune))
+    fail(
+      `the property location heading (${heading}) does not come before its ` +
+        `commune field (${reCommune})`,
+    );
+  if ((rawLines[reCommune] ?? "").trim() !== "{localityFields}")
+    fail("the property branch does not render the two lower levels unconditionally");
+}
 
 // The commune is required to publish, so its only copy may not hide behind
 // the rent-or-sale choice the rest of the property form waits for.
@@ -282,7 +375,10 @@ if (dealGate !== -1 && locality > dealGate)
 const communeControls = (raw.match(/<Label>\{t\("sellFieldLocation"\)\}<\/Label>/g) ?? []).length;
 if (communeControls !== 1)
   fail(`${communeControls} commune selectors in the form; there must be exactly one`);
-if (!/\{!isRealEstate \? communeField : null\}/.test(raw))
+// Property renders the commune inside its own location section, so the
+// generic site must skip it — or "Emplacement" appears twice on a property
+// form, once answered and once not, both writing the same state.
+if (!/\{!isRealEstate \? \(/.test(raw))
   fail("the commune control is not suppressed at its generic site for property listings");
 
 // A heading with nothing under it is what prompted this: before an

@@ -86,3 +86,48 @@ export const DIRECTORY_CATEGORIES = ["pharmacyOnDuty", "jobs", "restaurants"];
 export const MARKETPLACE_FEED_CATEGORIES = categories
   .map((item) => item.key)
   .filter((key) => !DIRECTORY_CATEGORIES.includes(key));
+
+// Which categories ask for Bénin's administrative hierarchy below the
+// commune: commune -> arrondissement -> quartier/village.
+//
+// Property had it first, because a flat in Godomey and a flat in Calavi
+// centre are the same commune, an hour apart, and half the price. But the
+// argument was never about property: it is about anything a buyer has to
+// travel to and collect by hand. A pushchair, a fridge, a wardrobe — the
+// question "is this on my side of Cotonou?" decides the sale, and
+// "Cotonou" cannot answer it.
+//
+// So this is the list of categories where a seller is OFFERED the two
+// extra levels. It is not a list of categories that require them: both
+// levels are optional everywhere, property included.
+//
+// Deliberately absent, and each for its own reason rather than by
+// oversight:
+//
+//   restaurants, services, events — these already ask where they are, in
+//     their own free-text fields (`area` for the first two, `eventQuartier`
+//     for the third). Offering the hierarchy as well would put two "where
+//     exactly?" questions on one form, and the answer would land in
+//     whichever field the seller happened to fill. Reconciling those three
+//     fields is a decision of its own, not a side-effect of this list.
+//   vehicles, agriculture, community — plausible, but nobody has asked,
+//     and a vehicle is driven to the buyer rather than collected from a
+//     quartier. Adding a key here is all it would take.
+//   jobs — a job is advertised by commune. A quartier names the employer's
+//     actual premises, which is more than a job ad should disclose.
+//   pharmacyOnDuty — the roster is written by the ONPB importer, not by a
+//     seller filling in this form. There is nobody to ask.
+//
+// scripts/check-listing-location.js pins this membership, in both
+// directions, so a category joins or leaves by decision rather than by
+// somebody editing an array in passing.
+export const PRECISE_LOCALITY_CATEGORIES = new Set([
+  "realEstate",
+  "fashion",
+  "babyKids",
+  "electronics",
+  "homeGarden",
+  "furniture",
+  "sports",
+  "other",
+]);

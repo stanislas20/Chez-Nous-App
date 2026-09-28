@@ -1344,7 +1344,24 @@ export function CreateListingScreen({ route, navigation }) {
   const [closeTime, setCloseTime] = useState(seedText("closeTime", ""));
   // One optional field per channel, kept flat rather than nested so a
   // listing document stays queryable.
-  const [links, setLinks] = useState(seed("links", {}));
+  //
+  // Seeded FIELD BY FIELD, because flat is exactly what is stored. This
+  // used to read seed("links", {}) — a key no write path has ever
+  // produced, in this file or anywhere else, at any point in the history.
+  // So it always fell back to {}, every input opened blank on an edit, and
+  // the payload below then wrote all five back as null: changing a
+  // restaurant's title silently deleted its WhatsApp, website, Facebook,
+  // Instagram and TikTok, with nothing on screen to notice.
+  //
+  // Driven off restaurantLinkKinds rather than a second list of channels,
+  // so a channel added there cannot be added to the form and forgotten
+  // here — which is the same mistake one layer up. Same shape the UI
+  // already expects: { whatsapp, website, facebook, instagram, tiktok }.
+  const [links, setLinks] = useState(() =>
+    Object.fromEntries(
+      restaurantLinkKinds.map((kind) => [kind.key, seedText(kind.key, "")]),
+    ),
+  );
   // Optional, one item per line. The detail screen has always had these
   // three sections but only the sample postings could fill them — a real
   // employer had no field to write them in, so the sections silently

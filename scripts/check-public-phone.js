@@ -449,14 +449,25 @@ async function project(world, fns, { before, after, uid = "c1" }) {
     eq("12 an individual gets no public company record", pub, undefined);
   }
 
-  // ── 13. Listing contact semantics are untouched ─────────────────────
+  // ── 13. The listing's own contact values stay authoritative ─────────
+  //
+  // This section used to forbid the publish form mentioning publicPhone at
+  // all, on the grounds that listing inheritance was a later phase. That
+  // phase has since landed, and the form now offers a company its profile
+  // details as an authoring convenience. The old assertion still passed —
+  // by luck, because the form reaches the profile through a helper rather
+  // than by naming the field — which is a check passing for the wrong
+  // reason, and worth replacing rather than leaving.
+  //
+  // What must still hold is narrower and more important: the listing keeps
+  // writing its OWN flat phone, and nothing in the form reaches for the
+  // sign-in number.
   const form = stripComments(read("src/screens/CreateListingScreen.js"));
   if (!/phone: phone\.trim\(\)/.test(form))
     fail("the publish form no longer writes its own listing phone");
-  if (/publicPhone/.test(form))
-    fail("the publish form has started reading publicPhone — listing inheritance belongs to a later phase");
-  if (/contactMode/.test(form))
-    fail("contactMode has appeared — that belongs to a later phase");
+  if (/sellerProfile\??\.\??phone\b/.test(form))
+    fail("the publish form reads sellerProfile.phone — that is the sign-in identity and no listing may carry it");
+  // scripts/check-profile-contact.js owns the rest of that boundary.
 
   if (failures) process.exit(1);
   console.log(

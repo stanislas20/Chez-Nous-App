@@ -70,6 +70,10 @@ import {
   openingDays,
 } from "../data/openingDays";
 import { getLinkKindLabel, restaurantLinkKinds } from "../data/restaurantLinks";
+import {
+  hasProfileContact,
+  profileContactDefaults,
+} from "../utils/profileContact";
 import { TabSafeAreaView } from "../components/TabSafeAreaView";
 import {
   getCuisineLabel,
@@ -1362,6 +1366,24 @@ export function CreateListingScreen({ route, navigation }) {
       restaurantLinkKinds.map((kind) => [kind.key, seedText(kind.key, "")]),
     ),
   );
+  // How this listing's contact details were first filled in — authoring
+  // metadata, nothing more.
+  //
+  // ABSENT MEANS "custom", which is what every listing written before this
+  // existed effectively is, so no migration and no backfill.
+  //
+  // It records the ORIGIN, not a current equality. A seller who takes their
+  // profile details and then corrects one number is still a seller who used
+  // their profile details, and the edit screen should keep saying so.
+  // Deriving this by comparing the six values against the profile would
+  // also be wrong in the other direction: a profile edited afterwards would
+  // silently reclassify every listing that copied from it.
+  //
+  // NEVER read when a listing is displayed. ProductDetail resolves contact
+  // from the stored flat fields alone; this decides nothing a buyer sees.
+  const [contactSource, setContactSource] = useState(
+    seed("contactSource", "custom"),
+  );
   // Optional, one item per line. The detail screen has always had these
   // three sections but only the sample postings could fill them — a real
   // employer had no field to write them in, so the sections silently
@@ -1892,6 +1914,43 @@ export function CreateListingScreen({ route, navigation }) {
   const isTyreOffer = isVehicle && partType === "tyre";
   const isBatteryOffer = isVehicle && partType === "battery";
   const isPartOffer = isTyreOffer || isBatteryOffer;
+
+  // ── Profile contact defaults ───────────────────────────────────
+  //
+  // A garage that has already written its WhatsApp and its Instagram on its
+  // company profile should not write them again on every tyre listing.
+  //
+  // Three conditions, and each is a decision:
+  //
+  //   COMPANY ONLY. An individual has no public profile contact to inherit,
+  //   and offering the control would be the first step towards publishing a
+  //   private seller's number — which restaurantLinks.js argues against and
+  //   this app has never done.
+  //
+  //   THE FOUR TYPES THAT ALREADY ASK. This adds no contact field to any
+  //   category. A listing that did not collect a phone yesterday does not
+  //   collect one today.
+  //
+  //   SOMETHING TO OFFER. A company that has configured nothing gets no
+  //   control, rather than one that fills the form with blanks.
+  //
+  // NOT gated on verification. Verification grants a badge and a place in
+  // the public carousel; it says nothing about whether a business owns its
+  // own phone number.
+  const profileContact = profileContactDefaults(sellerProfile);
+  const canUseProfileContact =
+    sellerProfile?.accountType === "company" &&
+    (isRestaurant || isServices || isPartOffer) &&
+    hasProfileContact(sellerProfile);
+
+  // The ONLY path by which profile values reach a listing, and it runs only
+  // from a tap. Nothing copies on mount, on category change, or on opening
+  // an existing listing to edit.
+  const applyProfileContact = () => {
+    setPhone(profileContact.phone);
+    setLinks((prev) => ({ ...prev, ...profileContact.links }));
+    setContactSource("profile");
+  };
 
   // The tyre questions appear for a service when the seller's own words are
   // about tyres — asked of a hairdresser they would be noise, and guessing
@@ -3267,6 +3326,14 @@ export function CreateListingScreen({ route, navigation }) {
               facebook: links.facebook?.trim() || null,
               instagram: links.instagram?.trim() || null,
               tiktok: links.tiktok?.trim() || null,
+              // Authoring metadata, written beside the values it describes
+              // so it cannot drift away from them. Absent on every listing
+              // written before this, and absent reads as "custom", which is
+              // what those listings are — no migration.
+              //
+              // Nothing reads this to decide what a buyer sees. The six
+              // fields above are the public values and remain so.
+              contactSource,
             }
           : {}),
         ...(isRealEstate
@@ -4682,6 +4749,55 @@ export function CreateListingScreen({ route, navigation }) {
                 </HoursField>
               </HoursRow>
               <FieldNote>{t("sellOpenHoursHint")}</FieldNote>
+
+              {/* The one control that copies anything from the profile.
+                  Unticked by default, and nothing is copied until it is
+                  tapped — a business that has filled in its profile has
+                  still said nothing about THIS listing.
+
+                  It fills the VISIBLE fields below rather than storing a
+                  mode that resolves later. That is the whole reason to
+                  prefer it: the inputs are the preview, so what will be
+                  public is on screen before publishing, and any of it can
+                  be edited or cleared.
+
+                  Unticking does not wipe what was filled in — that would
+                  throw away edits the seller made afterwards. It records
+                  that these are the seller's own details now. */}
+              {canUseProfileContact ? (
+                <NegotiableRow
+                  onPress={() =>
+                    contactSource === "profile"
+                      ? setContactSource("custom")
+                      : applyProfileContact()
+                  }
+                >
+                  <Checkbox checked={contactSource === "profile"}>
+                    {contactSource === "profile" ? (
+                      <Ionicons name="checkmark" size={13} color="#ffffff" />
+                    ) : null}
+                  </Checkbox>
+                  <NegotiableLabel>
+                    {t("sellUseProfileContact")}
+                  </NegotiableLabel>
+                </NegotiableRow>
+              ) : null}
+              {/* Only on an existing listing, and only when these details
+                  came from the profile. Opening an edit never refreshes
+                  them by itself: a number changed on the profile last month
+                  must not silently rewrite a listing that has been live
+                  since. This is the explicit way to take the new one, one
+                  listing at a time. */}
+              {editing && canUseProfileContact && contactSource === "profile" ? (
+                <>
+                  <FieldNote>{t("sellContactFromProfile")}</FieldNote>
+                  <Pressable onPress={applyProfileContact}>
+                    <ProfileRefreshLabel>
+                      {t("sellUpdateFromProfile")}
+                    </ProfileRefreshLabel>
+                  </Pressable>
+                </>
+              ) : null}
 
               <Label>{t("sellFieldLinks")}</Label>
               <FieldNote>{t("sellLinksHint")}</FieldNote>
@@ -10136,6 +10252,18 @@ const Checkbox = styled.View`
 const NegotiableLabel = styled.Text`
   ${type.body}
   color: ${(props) => props.theme.text};
+`;
+
+// The "take my profile details again" action. A link rather than a button:
+// it is a small correction on a screen that already has one primary action,
+// and a second filled button beside Publier reads as a second way to
+// publish.
+const ProfileRefreshLabel = styled.Text`
+  ${type.caption}
+  color: ${(props) => props.theme.primary};
+  font-family: ${fontFamily.semiBold};
+  margin-top: ${spacing.xs}px;
+  margin-bottom: ${spacing.sm}px;
 `;
 
 const TextAreaRow = styled.View`

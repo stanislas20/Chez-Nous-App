@@ -332,6 +332,10 @@ export const translations = {
       "The area people would say out loud — it is how diners find you.",
     sellPriceBandHint:
       "Roughly what one person pays for a meal. A range, not a menu price — no exact figure is published.",
+    sellUseProfileContact: "Use my profile details",
+    sellContactFromProfile:
+      "These contact details were added from your profile.",
+    sellUpdateFromProfile: "Update from my profile",
     sellFieldLinks: "Where can people find you online?",
     sellLinksHint:
       "All optional. A Facebook or Instagram page counts — a website is not required.",
@@ -3564,6 +3568,10 @@ export const translations = {
       "Le quartier tel qu’on le dit — c’est ainsi qu’on vous trouve.",
     sellPriceBandHint:
       "Environ ce que paie une personne pour un repas. Une fourchette, pas un prix de menu — aucun montant exact n’est publié.",
+    sellUseProfileContact: "Utiliser les coordonnées de mon profil",
+    sellContactFromProfile:
+      "Ces coordonnées ont été ajoutées depuis votre profil.",
+    sellUpdateFromProfile: "Mettre à jour depuis mon profil",
     sellFieldLinks: "Où peut-on vous trouver en ligne ?",
     sellLinksHint:
       "Tout est facultatif. Une page Facebook ou Instagram suffit — un site web n’est pas nécessaire.",

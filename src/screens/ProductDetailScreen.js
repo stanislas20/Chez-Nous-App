@@ -576,13 +576,30 @@ export function ProductDetailScreen({ route, navigation }) {
   // shown, so its card promised a fiche that dropped half of what the
   // provider had filled in.
   const isTrade = isRestaurant || listing.categoryKey === "services";
+  // Tyres and batteries are sold by shops, and the publish form asks them
+  // for the same area, hours, phone and links it asks a restaurant for
+  // (CreateListingScreen gates that block on
+  // `isRestaurant || isServices || isPartOffer`).
+  const isPartOffer = isVehicle && (isTyre || isBattery);
+  // WHICH LISTINGS CARRY CONTACT CHANNELS — kept separate from isTrade on
+  // purpose. isTrade also selects the trade PRICE CARD, and the price cards
+  // are one mutually exclusive chain: adding part offers to it would have
+  // moved a tyre listing off the card that prints its price and onto one
+  // that does not. A tyre has a price; a restaurant has a price band. So
+  // the card stays where it was and only the channels widen.
+  //
+  // This must keep matching the form's gate. A channel collected and never
+  // shown is what this fixes: a tyre seller filled in WhatsApp, a website
+  // and four socials, and the listing displayed none of them.
+  const showsContactChannels =
+    isRestaurant || listing.categoryKey === "services" || isPartOffer;
   const restaurantOpen = isTrade
     ? isOpenNow(listing.openDays, listing.openTime, listing.closeTime)
     : null;
-  const whatsappUrl = isTrade
+  const whatsappUrl = showsContactChannels
     ? buildLinkUrl("whatsapp", listing.whatsapp)
     : null;
-  const restaurantLinks = isTrade
+  const restaurantLinks = showsContactChannels
     ? restaurantLinkKinds
         .filter((kind) => kind.key !== "whatsapp")
         .map((kind) => ({
@@ -591,6 +608,50 @@ export function ProductDetailScreen({ route, navigation }) {
         }))
         .filter((kind) => kind.url)
     : [];
+  // The channels a business publishes, as one element because two screens'
+  // worth of listings now show them and a second copy of this JSX is a
+  // second copy to forget. Rendered inside the trade card for restaurants
+  // and services, and on its own for a tyre or battery shop, which keeps
+  // the ordinary price row it already had.
+  //
+  // Empty of its own accord when there is nothing to show: both halves are
+  // already guarded, so this renders nothing rather than an empty row.
+  const contactChannels = (
+    <>
+      {restaurantLinks.length ? (
+        <RestoLinkRow>
+          {restaurantLinks.map((kind) => (
+            <RestoLinkButton
+              key={kind.key}
+              tint={`${kind.color}1F`}
+              onPress={() => Linking.openURL(kind.url)}
+            >
+              <Ionicons name={kind.icon} size={18} color={kind.color} />
+            </RestoLinkButton>
+          ))}
+        </RestoLinkRow>
+      ) : null}
+
+      {/* Promoted out of the icon row: for a business this is the
+          contact people actually reach for, and burying it among
+          five social glyphs wastes it. */}
+      {whatsappUrl ? (
+        <WhatsAppButton
+          onPress={() => {
+            countContact(listing);
+            Linking.openURL(whatsappUrl);
+          }}
+        >
+          <Ionicons
+            name="logo-whatsapp"
+            size={18}
+            color={WHATSAPP_GREEN}
+          />
+          <WhatsAppLabel>{t("contactOnWhatsApp")}</WhatsAppLabel>
+        </WhatsAppButton>
+      ) : null}
+    </>
+  );
   const duty = isPharmacy ? getDutyLabel(listing, language, t) : null;
   const category = categoryByKey[listing.categoryKey];
   // A listing filed under "Autre" says "Autre" here, which is the app
@@ -988,38 +1049,7 @@ export function ProductDetailScreen({ route, navigation }) {
                 </RestoDayRow>
               ) : null}
 
-              {restaurantLinks.length ? (
-                <RestoLinkRow>
-                  {restaurantLinks.map((kind) => (
-                    <RestoLinkButton
-                      key={kind.key}
-                      tint={`${kind.color}1F`}
-                      onPress={() => Linking.openURL(kind.url)}
-                    >
-                      <Ionicons name={kind.icon} size={18} color={kind.color} />
-                    </RestoLinkButton>
-                  ))}
-                </RestoLinkRow>
-              ) : null}
-
-              {/* Promoted out of the icon row: for a business this is the
-                  contact people actually reach for, and burying it among
-                  five social glyphs wastes it. */}
-              {whatsappUrl ? (
-                <WhatsAppButton
-                  onPress={() => {
-                    countContact(listing);
-                    Linking.openURL(whatsappUrl);
-                  }}
-                >
-                  <Ionicons
-                    name="logo-whatsapp"
-                    size={18}
-                    color={WHATSAPP_GREEN}
-                  />
-                  <WhatsAppLabel>{t("contactOnWhatsApp")}</WhatsAppLabel>
-                </WhatsAppButton>
-              ) : null}
+              {contactChannels}
 
               {listing.phone ? (
                 // size="lg" so it stands the same height as the
@@ -1112,6 +1142,16 @@ export function ProductDetailScreen({ route, navigation }) {
               </SaleStatusPill>
             </PriceRow>
           )}
+
+          {/* A tyre or battery shop keeps the ordinary price row above — it
+              sells a priced item, not a menu — so its contact channels sit
+              here instead of inside the trade card. Same element, so the two
+              render identically and neither can drift.
+
+              Gated on isPartOffer alone: every other category that carries
+              channels renders them inside that card, and rendering them twice
+              would put two WhatsApp buttons on one restaurant. */}
+          {isPartOffer ? contactChannels : null}
 
           {/* Fields the forms have been collecting all along with nothing on
               the buyer's side to read them. */}

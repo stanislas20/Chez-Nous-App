@@ -7,10 +7,8 @@ import { radius, shadow, spacing } from "../theme/colors";
 import { useTheme } from "../theme/ThemeContext";
 import { type } from "../theme/typography";
 import { useI18n } from "../i18n/I18nContext";
-import { smallImageUri } from "../utils/listingImage";
 import { useAuth } from "../auth/AuthContext";
 import { useNotificationCenter } from "../hooks/useNotificationCenter";
-import { openListing } from "../utils/openListing";
 import {
   notificationTarget,
   openNotification,
@@ -58,14 +56,13 @@ export function NotificationsScreen() {
   const navigation = useNavigation();
   const {
     conversations,
-    newListings,
     newJobApplications,
     storedNotifications,
     markSeen,
   } = useNotificationCenter(user?.uid);
 
   // Marked seen on the way OUT of this tab, not on the way in — marking on
-  // focus would flip newListings' filter live while the user is still
+  // focus would flip the unseen filter live while the user is still
   // looking at the list (it's reactive to lastSeenAt), yanking rows out
   // from under them mid-read. Deferring to blur keeps what's on screen
   // stable for the whole visit and only clears the badge once they leave.
@@ -99,12 +96,6 @@ export function NotificationsScreen() {
       id: `m-${item.id}`,
       item,
       time: item.lastMessageAt?.toDate?.(),
-    })),
-    ...newListings.map((item) => ({
-      kind: "listing",
-      id: `l-${item.id}`,
-      item,
-      time: item.approvedAt?.toDate?.(),
     })),
     ...newJobApplications.map((item) => ({
       kind: "application",
@@ -167,9 +158,11 @@ export function NotificationsScreen() {
                 <IconThumb>
                   <Ionicons
                     name={
-                      stored.type?.startsWith("pharmacy")
-                        ? "medkit-outline"
-                        : "notifications-outline"
+                      stored.type === "followedSellerListing"
+                        ? "pricetag-outline"
+                        : stored.type?.startsWith("pharmacy")
+                          ? "medkit-outline"
+                          : "notifications-outline"
                     }
                     size={20}
                     color={colors.primary}
@@ -212,42 +205,6 @@ export function NotificationsScreen() {
                   <RowPreview numberOfLines={1}>
                     {application.applicantName?.trim() ||
                       t("jobApplicationsAnonymousApplicant")}
-                  </RowPreview>
-                </RowBody>
-                <RowMeta>
-                  <RowTime>{formatTimestamp(entry.time, language)}</RowTime>
-                </RowMeta>
-              </Row>
-            );
-          }
-
-          if (entry.kind === "listing") {
-            const listing = entry.item;
-            const title = language === "en" ? listing.titleEn : listing.titleFr;
-            return (
-              <Row
-                onPress={() =>
-                  openListing(
-                    navigation,
-                    { ...listing, createdAt: null, approvedAt: null },
-                    t,
-                    language,
-                  )
-                }
-              >
-                {/* Through the same helper every card uses: a cover can
-                    be a video, whose URL <Image> draws as nothing, or a
-                    .heic, which Android cannot decode at all. */}
-                <Thumbnail
-                  source={{ uri: smallImageUri(listing) }}
-                  resizeMode="cover"
-                />
-                <RowBody>
-                  <RowTitle numberOfLines={1}>
-                    {t("notificationNewListingLabel", { title })}
-                  </RowTitle>
-                  <RowPreview numberOfLines={1}>
-                    {listing.city ?? ""}
                   </RowPreview>
                 </RowBody>
                 <RowMeta>

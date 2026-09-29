@@ -538,7 +538,15 @@ service cloud.firestore {
                        'viewCount', 'viewCountToday', 'viewCountDate',
                        'shareCount', 'contactCount', 'contactCountToday',
                        'contactCountDate', 'saveCount', 'reportCount',
-                       'lastReportedAt', 'searchTokens', 'searchPairs'])
+                       'lastReportedAt', 'searchTokens', 'searchPairs',
+                       // Server-owned. It records that this listing's first
+                       // publication has already been processed for follower
+                       // notification, and it is what stops a re-approval
+                       // after a material edit telling everybody the listing
+                       // is new. A seller who could clear it could announce
+                       // the same listing to their followers as often as
+                       // they liked.
+                       'followerNotificationProcessedAt'])
         // Renewal writes expiresAt from the dashboard, so this stays open —
         // bounded rather than frozen. See expiresAtOk.
         && expiresAtOk(request.resource.data)

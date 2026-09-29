@@ -617,6 +617,50 @@ exports.notifyFollowersOfNewListing = onDocumentUpdated(
     if (after.status !== "approved") return;
     if (!after.sellerId) return;
 
+    // ── One fan-out per publication, claimed before anything is sent ──
+    //
+    // A listing can reach "approved" more than once. Changing a title, a
+    // price, a photo or a category sends a live listing back to pending
+    // (CreateListingScreen MATERIAL_FIELDS), and the moderator's re-approval
+    // is another pending -> approved transition. Without a marker, correcting
+    // a price told every follower the seller had published something new.
+    //
+    // THE MARKER IS ABOUT THE EVENT, NOT THE DELIVERY. It records that this
+    // listing's first publication has been processed, and it is written even
+    // when the seller had no followers at all. That case is the reason for
+    // the name: a seller who publishes to nobody, gains fifty followers, then
+    // edits the listing must not have those fifty told about a listing that
+    // went live weeks ago. The publication already happened; there is no
+    // second one to announce.
+    //
+    // Claimed in a transaction because Firestore triggers are at-least-once.
+    // Two concurrent invocations would both read "not yet processed" and both
+    // fan out; the transaction lets exactly one win.
+    //
+    // WHAT THIS DOES AND DOES NOT GUARANTEE. It gives at most one fan-out
+    // ATTEMPT per publication. Firestore and FCM cannot be made atomic, so a
+    // crash after the claim and before the send loses that push with no
+    // retry. The durable half is the per-follower notification record below,
+    // which is written first and is what the Notifications tab reads — so a
+    // lost banner is not a lost notification. Eliminating the gap needs a
+    // queue, which is deliberately not built here.
+    //
+    // Writing this field re-triggers this function, which exits on the
+    // status check above, and syncListingSearchTokens, which exits on
+    // searchTokensUnchanged. One no-op invocation each, no duplicate work.
+    const listingRef = event.data.after.ref;
+    const claimed = await admin.firestore().runTransaction(async (tx) => {
+      const snap = await tx.get(listingRef);
+      if (!snap.exists) return false;
+      if (snap.data().followerNotificationProcessedAt) return false;
+      tx.update(listingRef, {
+        followerNotificationProcessedAt:
+          admin.firestore.FieldValue.serverTimestamp(),
+      });
+      return true;
+    });
+    if (!claimed) return;
+
     // ── E14: bounded fan-out ─────────────────────────────────────────
     //
     // This read every follow row for the seller with no limit, then every
@@ -707,6 +751,65 @@ exports.notifyFollowersOfNewListing = onDocumentUpdated(
     ];
     if (!followerIds.length) return;
 
+    const title =
+      after.titleFr || after.titleEn || after.title || "Nouvelle annonce";
+    const sellerName = after.sellerName || "Un vendeur que vous suivez";
+    const notificationTitle = `${sellerName} a publié une annonce`;
+    // Named `data` rather than something more descriptive, and that is
+    // load-bearing: scripts/check-notification-centre.js finds every push
+    // type by scanning for `data: {` / `data = {`, and its own comment
+    // records that hoisting a payload out of that shape once took two types
+    // out of its sight. A prettier name here would blind it again.
+    const data = {
+      type: "followedSellerListing",
+      listingId: event.params.listingId,
+    };
+
+    // ── The durable half, written before anything is sent ─────────────
+    //
+    // A push is a delivery attempt that keeps no record; this is the record.
+    // It is what the Notifications tab reads, so the tab no longer has to
+    // reconstruct a personal notification out of the global catalogue —
+    // which is what made every listing in Benin badge every user.
+    //
+    // WRITTEN FOR EVERY FOLLOWER, token or not. The token lookup is below
+    // and returns early when nobody has one; putting the records after it
+    // would give the person least able to receive a push no record of it
+    // either, which is the rule recordNotification already states.
+    //
+    // WRITTEN BEFORE THE SEND, so a crash mid-fan-out costs a banner rather
+    // than the notification itself.
+    //
+    // The listing id is the document id, which is what makes this
+    // idempotent: a repeated invocation overwrites the same row per
+    // follower instead of adding a second one. Combined with the claim
+    // above, a follower ends up with exactly one row per listing however
+    // many times this runs.
+    //
+    // Through recordNotification, the one writer every stored notification
+    // already goes through, rather than a second path that writes the same
+    // shape slightly differently. Its `id` argument is what makes the write
+    // idempotent, and it never throws — a row that cannot be written is
+    // logged there and does not take the rest of the fan-out with it.
+    //
+    // In bounded batches rather than one await per follower: 2,000
+    // sequential round trips is a function timeout. Chunked rather than one
+    // Promise.all over everything, so a large fan-out cannot open two
+    // thousand connections at once.
+    const RECORD_CONCURRENCY = 250;
+    for (let i = 0; i < followerIds.length; i += RECORD_CONCURRENCY) {
+      await Promise.all(
+        followerIds.slice(i, i + RECORD_CONCURRENCY).map((followerId) =>
+          recordNotification(followerId, {
+            id: event.params.listingId,
+            title: notificationTitle,
+            body: title,
+            data,
+          }),
+        ),
+      );
+    }
+
     // getAll in batches rather than one read per follower: a seller with
     // 300 followers would otherwise cost 300 round trips per publish.
     const tokensByUid = new Map();
@@ -720,11 +823,9 @@ exports.notifyFollowersOfNewListing = onDocumentUpdated(
         if (token) tokensByUid.set(batch[index], token);
       });
     }
+    // Records are written; from here on this is best-effort delivery.
     if (!tokensByUid.size) return;
 
-    const title =
-      after.titleFr || after.titleEn || after.title || "Nouvelle annonce";
-    const sellerName = after.sellerName || "Un vendeur que vous suivez";
     const entries = [...tokensByUid.entries()];
 
     // FCM caps a multicast at 500 tokens.
@@ -734,14 +835,11 @@ exports.notifyFollowersOfNewListing = onDocumentUpdated(
       try {
         response = await admin.messaging().sendEachForMulticast({
           tokens: chunk.map(([, token]) => token),
-          notification: {
-            title: `${sellerName} a publi\u00e9 une annonce`,
-            body: title,
-          },
-          data: {
-            type: "followedSellerListing",
-            listingId: event.params.listingId,
-          },
+          // The same words and the same payload the record carries, so the
+          // banner and the row in the tab cannot describe the event
+          // differently.
+          notification: { title: notificationTitle, body: title },
+          data,
         });
       } catch (error) {
         // One bad chunk must not stop the rest of the followers being told.

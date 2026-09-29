@@ -1,14 +1,31 @@
 import { useConversations } from "./useConversations";
-import { useNewListingsFeed } from "./useNewListingsFeed";
 import { useNotificationsSeen } from "./useNotificationsSeen";
 import { useJobApplications } from "./useJobApplications";
 import { useStoredNotifications } from "./useStoredNotifications";
 
 // Single source of truth for everything the notification bell surfaces:
-// unread messages (per-conversation, already tracked elsewhere), newly
-// approved listings the user hasn't seen yet, new applications to the
-// user's own job postings, and the notifications the server recorded
-// outright. Shared between the bottom-tab badge (MainTabs) and the feed
+// unread messages (per-conversation, already tracked elsewhere), new
+// applications to the user's own job postings, and the notifications the
+// server recorded outright — which now includes a listing published by a
+// seller this user follows.
+//
+// WHAT IS NO LONGER HERE, and why. This hook used to call
+// useNewListingsFeed(), which asks for the thirty most recently approved
+// listings ACROSS EVERY SELLER. No uid, no follower filter: every listing
+// published anywhere in Benin incremented every user's badge and appeared
+// in their Notifications tab. At a few dozen listings a day that reads as a
+// busy app; at a few thousand it is unusable, and it was never personal in
+// the first place.
+//
+// A followed seller's listing is now a real notification, written per
+// recipient by notifyFollowersOfNewListing at the moment it is published,
+// and it arrives through useStoredNotifications with everything else. The
+// push and the row in the tab are the same event rather than two things
+// that happen to coincide.
+//
+// useNewListingsFeed still exists and is deliberately not deleted. "New on
+// Chez-Nous" is a good discovery surface; it is simply not a personal
+// notification, and where it belongs is a separate question. Shared between the bottom-tab badge (MainTabs) and the feed
 // screen itself (NotificationsScreen) so the two can never disagree on the
 // count.
 //
@@ -20,7 +37,6 @@ import { useStoredNotifications } from "./useStoredNotifications";
 // here, and here had never heard of it. See useStoredNotifications.
 export function useNotificationCenter(uid) {
   const conversations = useConversations(uid);
-  const listings = useNewListingsFeed();
   const storedNotifications = useStoredNotifications(uid);
   // Destructured, like every other call site. Phase E changed this hook to
   // return { applications, failed } so a failed read stops rendering as "no
@@ -33,13 +49,6 @@ export function useNotificationCenter(uid) {
     (sum, conversation) => sum + (conversation.unreadCount?.[uid] ?? 0),
     0,
   );
-
-  const newListings = (listings ?? []).filter((item) => {
-    if (item.sellerId === uid) return false; // never notify sellers about their own post
-    if (!(lastSeenAt instanceof Date)) return false; // still loading — don't flash a wrong count
-    const approvedAt = item.approvedAt?.toDate?.();
-    return approvedAt && approvedAt > lastSeenAt;
-  });
 
   const newJobApplications = (jobApplications ?? []).filter((application) => {
     if (!(lastSeenAt instanceof Date)) return false;
@@ -60,16 +69,15 @@ export function useNotificationCenter(uid) {
 
   return {
     conversations,
-    listings,
-    newListings,
     jobApplications,
     newJobApplications,
     storedNotifications,
     newStoredNotifications,
     unreadMessageCount,
+    // The follower-listing rows are inside newStoredNotifications now, so
+    // there is no separate listing term. Nothing global reaches this number.
     badgeCount:
       unreadMessageCount +
-      newListings.length +
       newJobApplications.length +
       newStoredNotifications.length,
     markSeen,

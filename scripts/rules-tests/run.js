@@ -18,6 +18,7 @@ const { spawnSync } = require("child_process");
 const SUITES = [
   "scripts/rules-tests/moderation.test.js",
   "scripts/rules-tests/followerNotifications.test.js",
+  "scripts/rules-tests/publicContact.test.js",
   "scripts/rules-tests/rules.test.js",
   // Who may write whose entry in a conversation's per-person maps —
   // including the one the purge trigger reads to decide a thread may go.

@@ -2778,6 +2778,13 @@ export const translations = {
       "These were checked during verification and cannot be changed here. Contact support if something is wrong.",
     companyEditPhoneHint:
       "Shown on your company profile so customers can reach you.",
+    companyFieldSignInPhone: "Sign-in phone",
+    companyFieldSignInPhoneKey: "Number",
+    companySignInPhoneHint:
+      "Private — used for your account. It is not shown to customers.",
+    companyFieldPublicPhone: "Public phone",
+    companyPublicPhoneHint:
+      "Visible to customers on your public profile. Leave empty to show no phone number.",
     companyEditAction: "Edit company profile",
     profileStatFollowing: "Following",
     profileStatFollowers: "Followers",
@@ -6029,6 +6036,13 @@ export const translations = {
       "Ces éléments ont été contrôlés lors de la vérification et ne peuvent pas être modifiés ici. Contactez le support en cas d’erreur.",
     companyEditPhoneHint:
       "Affiché sur votre fiche entreprise pour que les clients vous joignent.",
+    companyFieldSignInPhone: "Numéro de connexion",
+    companyFieldSignInPhoneKey: "Numéro",
+    companySignInPhoneHint:
+      "Privé — utilisé pour votre compte. Il n'est pas affiché aux clients.",
+    companyFieldPublicPhone: "Téléphone public",
+    companyPublicPhoneHint:
+      "Visible par les clients sur votre profil public. Laissez vide pour n'afficher aucun numéro.",
     companyEditAction: "Modifier le profil entreprise",
     profileStatFollowing: "Abonnements",
     profileStatFollowers: "Abonnés",

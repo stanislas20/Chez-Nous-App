@@ -13,6 +13,7 @@ import { downscalePhoto } from "../utils/downscalePhoto";
 import { PUBLIC_UPLOAD_CACHE } from "../utils/uploadContentType";
 import { useAuth } from "../auth/AuthContext";
 import { firestore, storage } from "../config/firebase";
+import { normalizePhone } from "../auth/phoneAuth";
 import { companySectors, getCompanySectorLabel } from "../data/companySectors";
 import { restaurantLinkKinds } from "../data/restaurantLinks";
 import { cities } from "../data/cities";
@@ -34,7 +35,13 @@ export function CompanyProfileEditScreen({ navigation }) {
 
   const [sectorKey, setSectorKey] = useState(sellerProfile?.sector ?? null);
   const [city, setCity] = useState(sellerProfile?.companyCity ?? null);
-  const [phone, setPhone] = useState(sellerProfile?.phone ?? "");
+  // The number a company CHOOSES to publish. Deliberately not seeded from
+  // sellerProfile.phone: that is the number the account signs in with, and
+  // defaulting this to it would publish a private credential the first time
+  // somebody opened this screen and pressed save.
+  const [publicPhone, setPublicPhone] = useState(
+    sellerProfile?.publicPhone ?? "",
+  );
   const [links, setLinks] = useState(() =>
     Object.fromEntries(
       restaurantLinkKinds.map((k) => [k.key, sellerProfile?.[k.key] ?? ""]),
@@ -89,7 +96,18 @@ export function CompanyProfileEditScreen({ navigation }) {
         {
           sector: sectorKey,
           companyCity: city,
-          phone: phone.trim(),
+          // `phone` is NOT written here any more. It is the sign-in
+          // identity — phoneToPseudoEmail builds the Firebase Auth account
+          // out of it — and editing it here changed the number shown to
+          // customers while leaving the one you actually log in with
+          // untouched. It is displayed above, read-only.
+          //
+          // Empty means NO public phone. It must never fall back to the
+          // sign-in number: that fallback is the privacy defect this
+          // separation exists to remove.
+          publicPhone: publicPhone.trim()
+            ? normalizePhone(publicPhone.trim())
+            : null,
           photoUrl,
           ...Object.fromEntries(
             restaurantLinkKinds.map((k) => [
@@ -232,18 +250,45 @@ export function CompanyProfileEditScreen({ navigation }) {
           </OptionBox>
         ) : null}
 
-        <Label>{t("sellFieldPhone")}</Label>
+        {/* Two numbers, and the whole point of this screen is that they are
+            not the same one.
+
+            The sign-in number is account identity. It is shown so a company
+            can see which number their account belongs to, and it is not a
+            field, because editing it here used to change what customers saw
+            while leaving the login untouched. */}
+        <LockedBox>
+          <LockedHeader>
+            <Ionicons
+              name="lock-closed-outline"
+              size={14}
+              color={colors.textMuted}
+            />
+            <LockedTitle>{t("companyFieldSignInPhone")}</LockedTitle>
+          </LockedHeader>
+          <LockedRow>
+            <LockedKey>{t("companyFieldSignInPhoneKey")}</LockedKey>
+            <LockedValue numberOfLines={1}>
+              {sellerProfile?.phone ?? "—"}
+            </LockedValue>
+          </LockedRow>
+          <LockedHint>{t("companySignInPhoneHint")}</LockedHint>
+        </LockedBox>
+
+        {/* The public one, typed on purpose. Left empty, the company has no
+            public number at all. */}
+        <Label>{t("companyFieldPublicPhone")}</Label>
         <InputRow>
           <Ionicons name="call-outline" size={19} color={colors.textMuted} />
           <Input
-            value={phone}
-            onChangeText={setPhone}
+            value={publicPhone}
+            onChangeText={setPublicPhone}
             placeholder="+229 01 23 45 67 89"
             placeholderTextColor={colors.textMuted}
             keyboardType="phone-pad"
           />
         </InputRow>
-        <FieldNote>{t("companyEditPhoneHint")}</FieldNote>
+        <FieldNote>{t("companyPublicPhoneHint")}</FieldNote>
 
         <Label>{t("sellFieldLinks")}</Label>
         <FieldNote>{t("sellLinksHint")}</FieldNote>

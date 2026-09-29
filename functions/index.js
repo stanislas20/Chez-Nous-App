@@ -1657,16 +1657,37 @@ async function syncVerifiedCompanyEntry(sellerId, seller, isVerified) {
     return;
   }
   await ref.set({
-    companyName: seller.companyName || seller.fullName || "",
+    // NOT `|| seller.fullName`. That fallback published the
+    // representative's personal name as the company's name whenever
+    // companyName was missing — a private individual's name on a
+    // world-readable document, reached by an absence rather than a
+    // decision. Sign-up requires a company name (SignUpScreen gates on
+    // companyName.trim().length > 1) so nothing created through the app can
+    // hit this, which is exactly why it would have gone unnoticed if
+    // anything ever did.
+    companyName: seller.companyName || "",
     sector: seller.sector || null,
     city: seller.companyCity || null,
     photoUrl: seller.photoUrl || null,
-    // Published for companies only, and only once verified. A business
-    // number is a contact point its owner expects to be called on — the
-    // same reasoning that put WhatsApp on restaurant listings and kept it
-    // off individual ones, where the number is personal data. Everything
-    // else in `sellers` (RCCM, IFU, the representative's ID) stays private.
-    phone: seller.phone || null,
+    // `publicPhone`, NEVER `phone`.
+    //
+    // `seller.phone` is the number the account was created with, and it is
+    // the login key: phoneToPseudoEmail turns it into the Firebase Auth
+    // identity. Publishing it here meant becoming verified silently turned
+    // a private credential into a public contact point — nothing at sign-up
+    // said it would, and it cannot be changed afterwards without losing the
+    // ability to sign in.
+    //
+    // publicPhone is a separate field a company types on purpose. Absent
+    // means the company has no public number, NOT "fall back to the login
+    // one": that fallback is the whole defect, restated.
+    //
+    // This is a set() without merge, so a company that clears its public
+    // phone has the field removed from the public document on the next
+    // projection rather than leaving a stale number published. The same
+    // property retires the legacy `phone` key: any company whose profile is
+    // re-projected loses it without a migration.
+    publicPhone: seller.publicPhone || null,
     verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 }
@@ -1694,9 +1715,12 @@ exports.notifyCompanyVerificationDecision = onDocumentUpdated(
       after.verificationStatus === "verified" &&
       after.accountType === "company"
     ) {
+      // publicPhone, not phone. The private number is no longer projected,
+      // so a change to it must not re-publish anything; a change to the
+      // public one must, including when it is cleared.
       const projectedChanged =
         before.photoUrl !== after.photoUrl ||
-        before.phone !== after.phone ||
+        before.publicPhone !== after.publicPhone ||
         before.companyCity !== after.companyCity ||
         before.sector !== after.sector ||
         before.companyName !== after.companyName;

@@ -226,6 +226,22 @@ async function main() {
       () => query(collection(db, "dealerships"), orderBy("order", "asc")),
     ],
     [
+      // The Events screen asks by WHEN AN EVENT HAPPENS, not by when the
+      // listing was posted, so it needs its own composite index. Without
+      // it the query fails at runtime rather than degrading, and the
+      // screen would go empty for everybody.
+      "useUpcomingEvents — approved events dated today or later",
+      () =>
+        query(
+          collection(db, "listings"),
+          where("status", "==", "approved"),
+          where("categoryKey", "==", "events"),
+          where("eventDateMs", ">=", 1700000000000),
+          orderBy("eventDateMs", "asc"),
+          limit(200),
+        ),
+    ],
+    [
       "useFavorites — the viewer's own",
       () => query(collection(db, "favorites"), where("userId", "==", uid)),
     ],

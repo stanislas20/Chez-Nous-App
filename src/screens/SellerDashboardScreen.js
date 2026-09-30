@@ -26,6 +26,7 @@ import { useI18n } from "../i18n/I18nContext";
 import { downscalePhoto } from "../utils/downscalePhoto";
 import { saleStatusLabelKey } from "../data/saleStatuses";
 import { useSellerStats } from "../hooks/useSellerStats";
+import { withProfileLink } from "../utils/profileLink";
 import { formatCount, statLabelKey } from "../utils/formatCount";
 import { statTints } from "../theme/statTints";
 import { guessContentType } from "../utils/uploadContentType";
@@ -357,15 +358,41 @@ export function SellerDashboardScreen({ navigation }) {
 
   // A company can't reach its own public profile from here, so the share
   // action it would find there lives on the dashboard instead.
+  // Who they are, for the follow list's header and for the share sentence.
+  const ownName = sellerProfile?.companyName || sellerProfile?.fullName || "";
+
+  // The same route and the same arguments SellerProfileScreen uses, so the
+  // list a seller reaches from their own dashboard is the list a visitor
+  // reaches from their public profile.
+  const openFollowList = (kind) =>
+    navigation.navigate("FollowList", {
+      uid: user?.uid,
+      kind,
+      sellerName: ownName,
+    });
+
   const handleShareProfile = async () => {
-    const name = sellerProfile?.companyName || sellerProfile?.fullName || "";
     try {
       await Share.share({
-        message: t(
-          sellerProfile?.verificationStatus === "verified"
-            ? "shareCompanyProfileMessage"
-            : "shareSellerProfileMessage",
-          { name },
+        // withProfileLink, like every other share in the app.
+        //
+        // This handler was the one that did not. It sent the sentence
+        // alone, so what arrived in somebody's WhatsApp was a line of text
+        // with nowhere to tap — a recommendation the recipient could not
+        // act on. profileShareUrl already produces /s/{uid}, the page
+        // functions/profilePage.js has been serving all along, and every
+        // other Share in this app already appends it.
+        //
+        // It returns the sentence unchanged when the uid is not a real one,
+        // so nothing here has to check first.
+        message: withProfileLink(
+          t(
+            sellerProfile?.verificationStatus === "verified"
+              ? "shareCompanyProfileMessage"
+              : "shareSellerProfileMessage",
+            { name: ownName },
+          ),
+          user?.uid,
         ),
       });
     } catch {
@@ -777,8 +804,22 @@ export function SellerDashboardScreen({ navigation }) {
             and J'aime is what they want, so both stay. It is still on the
             public profile, where a visitor sizing up a company reads it as
             part of who they are. */}
+        {/* Followers, Following, Likes — the three numbers this account has
+            about itself.
+
+            Following was missing here, and only here. sellerStats has
+            carried it since the counter was written (applyFollowDelta bumps
+            both sides of a follow in one go) and the public profile has
+            always shown it; this screen simply never rendered it, so a
+            seller who followed somebody watched their own Following count
+            appear not to move. Nothing about the count was wrong — there
+            was nowhere on their own dashboard to read it.
+
+            Straight from the projection, with no local counter beside it:
+            an optimistic number here would be a second source of truth for
+            a figure the server already owns. */}
         <OwnStatRow>
-          <OwnStatCell>
+          <OwnStatCellButton onPress={() => openFollowList("followers")}>
             <OwnStatValue>
               {formatCount(ownStats?.followers ?? 0, language)}
             </OwnStatValue>
@@ -791,7 +832,14 @@ export function SellerDashboardScreen({ navigation }) {
                 ),
               )}
             </OwnStatLabel>
-          </OwnStatCell>
+          </OwnStatCellButton>
+          <OwnStatSeparator />
+          <OwnStatCellButton onPress={() => openFollowList("following")}>
+            <OwnStatValue>
+              {formatCount(ownStats?.following ?? 0, language)}
+            </OwnStatValue>
+            <OwnStatLabel>{t("profileStatFollowing")}</OwnStatLabel>
+          </OwnStatCellButton>
           <OwnStatSeparator />
           <OwnStatCell>
             <OwnStatValue>
@@ -1515,6 +1563,15 @@ const OwnStatSeparator = styled.View`
 `;
 
 const OwnStatCell = styled.View`
+  flex: 1;
+  align-items: center;
+`;
+
+// The same cell, tappable. Followers and Following lead somewhere — the
+// list of who they are — and Likes does not, so only those two are
+// Pressables. Identical geometry, so the row does not shift depending on
+// which cells happen to be interactive.
+const OwnStatCellButton = styled(Pressable)`
   flex: 1;
   align-items: center;
 `;

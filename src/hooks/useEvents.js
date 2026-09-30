@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useCategoryListings } from "./useCategoryListings";
+import { useUpcomingEvents } from "./useUpcomingEvents";
 import { cityCoordinates } from "../data/cityCoordinates";
 import { distanceInKm } from "../utils/geo";
 import {
@@ -24,9 +24,15 @@ export function useEvents(userCoords, now = Date.now()) {
   // Bounded to this one category in the QUERY rather than filtered out of
   // the whole catalogue in JavaScript. The array below has the same shape it
   // always had, so nothing downstream changed.
-  const { listings } = useCategoryListings("events");
+  //
+  // useUpcomingEvents rather than useCategoryListings: events are found by
+  // WHEN THEY HAPPEN, not by when they were posted. The generic hook asks
+  // for the most recently created listings in a category, which for a
+  // concert announced in January and happening in June means a busy spring
+  // pushes it out of the window before anybody sees it. See that file.
+  const { listings, refresh } = useUpcomingEvents();
 
-  return useMemo(() => {
+  const events = useMemo(() => {
     if (!listings) return [];
 
     return withoutTestSeed(
@@ -66,4 +72,9 @@ export function useEvents(userCoords, now = Date.now()) {
         .sort((a, b) => (a.eventDateMs ?? 0) - (b.eventDateMs ?? 0)),
     );
   }, [listings, userCoords, now]);
+
+  // The screen needs a way to ask again — on focus, and on a pull. Handing
+  // it back from here keeps one subscription rather than having the screen
+  // open a second one beside this.
+  return { events, refresh };
 }

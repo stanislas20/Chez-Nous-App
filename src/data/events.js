@@ -114,6 +114,17 @@ function startOfDay(date) {
   return copy;
 }
 
+// Midnight this morning, as a timestamp.
+//
+// The one place the day boundary is decided, so the Firestore query and
+// eventWindowsFor cannot disagree about what "today" means. Comparing raw
+// timestamps instead — eventDateMs >= Date.now() — would drop a concert
+// that starts at eight the moment the clock passes eight, which is exactly
+// when somebody is looking for it.
+export function startOfDayMs(now = Date.now()) {
+  return startOfDay(new Date(now)).getTime();
+}
+
 // Which windows an event falls into, given when you are asking.
 //
 // An event can be in several at once — tonight's concert is also part of

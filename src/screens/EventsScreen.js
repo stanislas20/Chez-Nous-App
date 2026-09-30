@@ -9,8 +9,10 @@ import {
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   Share,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -165,7 +167,29 @@ export function EventsScreen({ navigation, route }) {
   // then says nothing about where anybody is.
   const aroundCity = selectedCity ?? nearestKnownCity(coords);
 
-  const events = useEvents(coords);
+  const { events, refresh } = useEvents(coords);
+
+  // ── Asking again ──────────────────────────────────────────
+  //
+  // The query is a one-shot read behind a cache, which is the right shape
+  // for something that changes a few times a day. What was missing was any
+  // way to re-ask: an event approved while the app was open did not appear
+  // until the app was restarted, and there was no pull, no focus refresh,
+  // nothing. The data was never stale in Firestore; the screen simply never
+  // looked again.
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
+
+  // And the gesture people already try. Same refresh, so there is one way
+  // to re-read and not two that can disagree.
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    Promise.resolve(refresh()).finally(() => setRefreshing(false));
+  }, [refresh]);
 
   // How many events each window holds, with every OTHER filter applied.
   //
@@ -669,6 +693,14 @@ export function EventsScreen({ navigation, route }) {
       ) : null}
 
       <FlatList
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={EVENT_ACCENT}
+            colors={[EVENT_ACCENT]}
+          />
+        }
         data={rest}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => renderCard(item, false)}

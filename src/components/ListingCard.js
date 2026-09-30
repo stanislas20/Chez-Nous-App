@@ -286,9 +286,18 @@ const Thumbnail = styled.View`
 
      Except at full width, where square is wrong: a 1:1 photograph across the
      whole screen is as tall as the screen is wide, and the card stops being a
-     card. 16:9 keeps a lone listing prominent without it filling the view. */
+     card.
+
+     4:3, not 16:9. The wider box was the first answer and it cut the subject
+     out of the picture: photographs here are taken portrait or square on a
+     phone, the fit is cover, and a 16:9 window across a square photo keeps
+     the middle band and throws away the top and the bottom — the crown of a
+     cap, the head of the animal. Every one of these is a lone listing given
+     the whole row precisely because it is the only thing in its category, so
+     it is the worst one to crop. 4:3 keeps a third more of the height, still
+     fills the row, and is the ratio the unflushed card already uses. */
   aspect-ratio: ${(props) =>
-    props.full ? "16 / 9" : props.flush ? "1 / 1" : "4 / 3"};
+    props.full ? "4 / 3" : props.flush ? "1 / 1" : "4 / 3"};
   background-color: ${(props) => props.theme.surfaceAlt};
 `;
 

@@ -908,7 +908,7 @@ export function LocalScreen({ navigation }) {
                 // like in practice.
                 //
                 // The cost is real and is accepted: `full` draws the photo
-                // 16:9 rather than square, so the one listing in a
+                // 4:3 rather than square, so the one listing in a
                 // one-listing category is a different shape here than on a
                 // seller's profile. It applies to a section of exactly ONE
                 // and to nothing else — a trailing odd card in a longer

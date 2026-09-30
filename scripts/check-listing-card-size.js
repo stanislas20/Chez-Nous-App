@@ -7,7 +7,7 @@
 //
 //   flush   49.6% wide, square thumbnail, no radius, 2px gutter
 //   (none)  47% wide, 4:3 thumbnail, rounded, spacing.lg gutter
-//   full    the whole row, 16:9 — a banner, not a grid cell
+//   full    the whole row, 4:3 — a banner, not a grid cell
 //
 // Every grid screen passes `flush`. What differs is `full`. It used to be
 // banned outright, because Local gave the whole row to any category holding
@@ -88,7 +88,7 @@ for (const rel of GRID_SCREENS) {
     if (/\bfull\b/.test(tag)) {
       failures.push(
         `${rel}: a ListingCard passes \`full\`, which gives it the whole row ` +
-          `as a 16:9 banner. That is the inconsistency this file exists to ` +
+          `as a 4:3 banner. That is the inconsistency this file exists to ` +
           `prevent: the same listing then renders at 99% here and 49.2% on ` +
           `a seller's profile — "${oneLine}"`,
       );
@@ -245,10 +245,19 @@ for (const rel of GRID_SCREENS) {
         "have said so",
     );
   }
-  if (!/props\.full \? "16 \/ 9"/.test(card)) {
+  // 4:3, and specifically not 16:9. The wide box was tried and it cropped
+  // the subject out: `cover` across a square phone photograph keeps the
+  // middle band and discards the crown of the cap and the head of the
+  // animal, on the one card in the category that had the whole row to
+  // itself. Nor 1:1, which at full width is as tall as the screen is wide.
+  const fullRatio = /props\.full \? "([^"]+)"/.exec(card);
+  if (!fullRatio) {
+    failures.push("`full` no longer sets a thumbnail aspect ratio at all");
+  } else if (fullRatio[1] !== "4 / 3") {
     failures.push(
-      "`full` no longer draws its thumbnail 16:9 — a 1:1 photograph across " +
-        "the whole row is as tall as the screen is wide",
+      `\`full\` draws its thumbnail ${fullRatio[1]}, not 4 / 3. 16 / 9 is the ` +
+        `one this was changed away from — it cut the top off every portrait ` +
+        `and square photograph on the widest card in the grid`,
     );
   }
   if (!/props\.flush \? "1 \/ 1"/.test(card)) {

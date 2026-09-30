@@ -890,26 +890,32 @@ export function LocalScreen({ navigation }) {
             />
           </StickyHeading>
         )}
-        renderItem={({ item: row }) => (
+        renderItem={({ item: row, section }) => (
           <GridRow style={rowStyle}>
             {row.map((listing) => (
               <ListingCard
                 key={listing.id}
                 listing={listing}
                 flush
-                // Deliberately never `full`.
+                // One listing in the category: it takes the row, the same
+                // rule CategoryListingsScreen applies when an aisle holds
+                // one thing. See ListingCard's `full`.
                 //
-                // A section holding exactly one listing used to take the
-                // whole row, on the reasoning that a lone half-width card
-                // left an empty half-row that looked broken. On a screen
-                // that is mostly one- and two-listing categories it does
-                // something worse: the same listing is a 16:9 banner here
-                // and a square on a seller's profile, so the grid changes
-                // size as you scroll and nothing lines up with anything.
+                // This screen used to refuse it. A lone half-width card
+                // leaves most of a row empty, which reads as a layout that
+                // failed rather than as a category with one thing in it,
+                // and Vehicles holding a single listing is what that looks
+                // like in practice.
                 //
-                // The empty half-row is the smaller price, and it is one
-                // the seller profile has always paid without looking
-                // broken.
+                // The cost is real and is accepted: `full` draws the photo
+                // 16:9 rather than square, so the one listing in a
+                // one-listing category is a different shape here than on a
+                // seller's profile. It applies to a section of exactly ONE
+                // and to nothing else — a trailing odd card in a longer
+                // section is the ordinary end of a grid and keeps its
+                // column width, which is why this reads section.total
+                // rather than the length of the row it is in.
+                full={section.total === 1}
                 isFavorite={favoriteIds.has(listing.id)}
                 onToggleFavorite={() => toggleFavorite(listing.id)}
               />

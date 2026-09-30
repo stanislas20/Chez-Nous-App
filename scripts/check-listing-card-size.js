@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 //
-// One listing is one size, on every screen that shows a grid of them.
+// One listing is one size, on every screen that shows a grid of them —
+// with one deliberate exception.
 //
 // ListingCard has two size knobs and they are easy to get out of step:
 //
@@ -8,23 +9,28 @@
 //   (none)  47% wide, 4:3 thumbnail, rounded, spacing.lg gutter
 //   full    the whole row, 16:9 — a banner, not a grid cell
 //
-// Every grid screen already passed `flush`. What differed was `full`:
-// Local gave the whole row to any category holding exactly one listing,
-// and ForYou did the same when the entire feed came to one card. The
-// seller profile never did. Measured on the handset:
+// Every grid screen passes `flush`. What differs is `full`. It used to be
+// banned outright, because Local gave the whole row to any category holding
+// exactly one listing while the seller profile never did, and the same
+// listing was a square in one place and a banner in the other. Measured on
+// the handset:
 //
 //   seller profile   531px   49.2%
 //   ForYou           531px   49.2%
 //   Local           1070px   99.1%    <- one-listing section
 //
-// So the same listing was a square on a profile and a banner on Local, and
-// the grid changed size as you scrolled. The empty half-row that `full`
-// existed to avoid is the smaller price, and it is one the seller profile
-// had been paying all along without looking broken.
+// Local now takes that trade back, on purpose and on its own: a category
+// holding one listing (Vehicles, today) left most of a row empty, which
+// reads as a layout that failed rather than as a category with one thing in
+// it. The banner shape is the accepted cost, and it is the same rule
+// CategoryListingsScreen has always applied when an aisle holds one thing.
 //
-// CategoryListingsScreen is deliberately NOT in this list. Drilling into a
-// category is a different context — the reader asked for that one thing —
-// and it keeps its own rule until somebody decides otherwise.
+// So the ban stands everywhere else, and on Local the rule is narrower and
+// harder to hold: EXACTLY ONE listing in the section, never a trailing odd
+// card that happens to be alone on the last row. Those two are one character
+// apart in the source and look identical until a category has three
+// listings, so the predicate is not read here — it is pulled out of the JSX
+// and RUN against rows the screen's own chunkIntoRows built.
 //
 // Run: node scripts/check-listing-card-size.js
 
@@ -34,14 +40,17 @@ const { stripComments } = require("./lib/stripComments");
 
 const root = path.join(__dirname, "..");
 
-// The grid screens that must agree with one another.
+// The grid screens that must agree with one another. Every one of them
+// renders the 49.6% square and nothing else — Local is held to its own,
+// stricter rule further down rather than being exempt from having one.
 const GRID_SCREENS = [
-  "src/screens/LocalScreen.js",
   "src/screens/ForYouScreen.js",
   "src/screens/SellerProfileScreen.js",
   "src/screens/SavedListingsScreen.js",
   "src/screens/RecentlyViewedScreen.js",
 ];
+
+const LOCAL = "src/screens/LocalScreen.js";
 
 const failures = [];
 
@@ -87,6 +96,111 @@ for (const rel of GRID_SCREENS) {
   }
 }
 
+// ── Local's lone-card rule, executed ───────────────────────────────
+//
+// `full={section.total === 1}` and `full={row.length === 1}` read the same
+// at a glance and differ for every category with an odd number of listings:
+// the second turns the third card of three into a banner because it happens
+// to be alone on the last row. So the screen's grouping and its predicate
+// are both lifted out and run over 1, 2, 3 and 7 listings.
+{
+  const source = stripComments(fs.readFileSync(path.join(root, LOCAL), "utf8"));
+
+  const tags = source.match(/<ListingCard[\s\S]*?\/>/g) ?? [];
+  if (tags.length === 0) {
+    failures.push(`${LOCAL} renders no ListingCard — this check is asserting nothing`);
+  } else {
+    tags.forEach((tag) => {
+      if (!/\bflush\b/.test(tag))
+        failures.push(`${LOCAL}: a ListingCard is missing \`flush\``);
+      // `full` on its own is every card in every category, not the lone
+      // one. It has to be a condition, and the cases below decide which.
+      if (/\bfull\b(?!\s*=)/.test(tag))
+        failures.push(
+          `${LOCAL}: a ListingCard passes \`full\` unconditionally, which makes ` +
+            `every card in every category a full-width banner`,
+        );
+    });
+
+    const columns = /const GRID_COLUMNS = (\d+);/.exec(source);
+    const chunkSrc = /function chunkIntoRows\(items\) \{[\s\S]*?\n\}/.exec(source);
+    const expr = /full=\{([^}]*)\}/.exec(tags.join("\n"));
+
+    if (!columns) failures.push(`${LOCAL}: GRID_COLUMNS is gone`);
+    if (!chunkSrc) failures.push(`${LOCAL}: chunkIntoRows is gone — the grid is built some other way now`);
+    if (!expr)
+      failures.push(
+        `${LOCAL}: no ListingCard passes \`full\`, so a category holding one ` +
+          `listing is back to a half-empty row`,
+      );
+
+    if (columns && chunkSrc && expr) {
+      // eslint-disable-next-line no-new-func
+      const chunkIntoRows = new Function(
+        "GRID_COLUMNS",
+        `${chunkSrc[0]}\nreturn chunkIntoRows;`,
+      )(Number(columns[1]));
+
+      // section, row and listing are all bound, so a predicate that reaches
+      // for the wrong one fails on what it decided rather than on a
+      // ReferenceError — which would fire just as loudly if this were
+      // testing nothing.
+      // eslint-disable-next-line no-new-func
+      const isFull = new Function("section", "row", "listing", `return (${expr[1]});`);
+
+      // How the screen renders a category of n: group, cap at three rows
+      // while browsing everything, then ask the predicate per card.
+      const widths = (n) => {
+        const items = Array.from({ length: n }, (_, i) => ({ id: `l${i}` }));
+        const section = { total: items.length };
+        const rows = chunkIntoRows(items).slice(0, 3);
+        return rows.map((row) =>
+          row.map((listing) => {
+            try {
+              return isFull(section, row, listing) ? "full" : "column";
+            } catch (error) {
+              return `threw: ${error.message}`;
+            }
+          }),
+        );
+      };
+
+      const eq = (what, actual, expected) => {
+        if (JSON.stringify(actual) !== JSON.stringify(expected))
+          failures.push(
+            `${what} — got ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`,
+          );
+      };
+
+      // The grouping itself, so the cases below mean what they say. If
+      // three listings ever stopped producing a 2+1 split, the trailing-odd
+      // case would be testing nothing.
+      eq(
+        "three listings are chunked 2 + 1",
+        chunkIntoRows([1, 2, 3]).map((r) => r.length),
+        [2, 1],
+      );
+
+      eq("a category of one is expanded", widths(1), [["full"]]);
+      eq("a category of two keeps column width", widths(2), [["column", "column"]]);
+      // The whole point: the third card is alone on its row and stays a
+      // column anyway.
+      eq(
+        "a category of three never promotes its trailing card",
+        widths(3),
+        [["column", "column"], ["column"]],
+      );
+      // Capped sections show three rows of a larger total; none of them is
+      // a lone card either.
+      eq(
+        "a capped category stays column width throughout",
+        widths(7),
+        [["column", "column"], ["column", "column"], ["column", "column"]],
+      );
+    }
+  }
+}
+
 // An ad shares the grid with listings, so it has to move with them.
 {
   const rel = "src/screens/ForYouScreen.js";
@@ -119,6 +233,28 @@ for (const rel of GRID_SCREENS) {
       `FLUSH_CARD_WIDTH_RATIO is ${ratio[1]}; two cards plus the 2px gutter ` +
         `no longer fill the row, so the grid has either a gap down the ` +
         `middle or an overlap`,
+    );
+  }
+  // Local's rule is only worth asserting if `full` still expands. Without
+  // this, a one-line edit inside ListingCard could quietly make `full` mean
+  // column width again and every case above would keep passing.
+  if (!/props\.full\s*\?\s*"100%"/.test(card)) {
+    failures.push(
+      "`full` no longer widens the card to 100% — Local's one-listing " +
+        "category is back to a half-empty row and nothing else here would " +
+        "have said so",
+    );
+  }
+  if (!/props\.full \? "16 \/ 9"/.test(card)) {
+    failures.push(
+      "`full` no longer draws its thumbnail 16:9 — a 1:1 photograph across " +
+        "the whole row is as tall as the screen is wide",
+    );
+  }
+  if (!/props\.flush \? "1 \/ 1"/.test(card)) {
+    failures.push(
+      "the flush thumbnail is no longer square, which changes every grid " +
+        "card on every screen",
     );
   }
   if (!/\$\{FLUSH_CARD_WIDTH_RATIO \* 100\}%/.test(card)) {
@@ -162,8 +298,9 @@ for (const rel of GRID_SCREENS) {
 
 if (failures.length === 0) {
   console.log(
-    "clean: every grid screen renders the same 49.6% square card, and no " +
-      "screen promotes a lone listing to a full-width banner",
+    "clean: every grid screen renders the same 49.6% square card; only " +
+      "Local expands a listing, only when its category holds exactly one, " +
+      "and a trailing odd card keeps its column width",
   );
 }
 for (const f of failures) console.log(`FAIL ${f}`);

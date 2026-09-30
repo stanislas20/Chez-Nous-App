@@ -11,6 +11,19 @@
 // So the three are read and compared here.
 //
 // Run: node scripts/check-listing-link.js
+//
+// Rerun quiet: loading the app's ES modules below makes Node warn that the
+// package declares no type, which is neither this check's business nor
+// something a reader should have to tell apart from a failure.
+if (!process.env.NODE_NO_WARNINGS) {
+  const { spawnSync } = require("child_process");
+  const again = spawnSync(process.execPath, [__filename, ...process.argv.slice(2)], {
+    stdio: "inherit",
+    env: { ...process.env, NODE_NO_WARNINGS: "1" },
+  });
+  process.exit(again.status ?? 1);
+}
+
 const fs = require("fs");
 const path = require("path");
 
@@ -120,18 +133,179 @@ const sharers = [
   "src/screens/ForYouScreen.js",
   "src/screens/EventsScreen.js",
   "src/screens/JobDetailScreen.js",
+  "src/screens/PharmacyDetailScreen.js",
 ];
 sharers.forEach((file) => {
   const source = read(file);
   check(`${file} shares a link`, source.includes("withListingLink("), true);
 });
 
-if (failures.length) {
-  failures.forEach((line) => console.error(`FAIL ${line}`));
-  console.error(`\n${failures.length} failing`);
-  process.exit(1);
-}
-console.log(
-  `clean: listing links — ${appOrigin}/l/<id>, rewritten to listingPage, ` +
-    `${sharers.length} screens sharing it, approved listings only`,
-);
+// ── A pharmacy shares its own listing, not its seller ─────────────────
+//
+// PharmacyDetailScreen shared a sentence and no link for as long as the
+// link existed: it builds its message inline, and the pass that added
+// withListingLink to the other six screens never reached it. The loop above
+// now names it, but "the file mentions the helper" is a weak thing to rest
+// on — it stays true if the call loses its second argument, or reaches for
+// the PROFILE helper, either of which sends a stranger somewhere that is
+// not the pharmacy.
+//
+// So the screen's own share function is lifted out and RUN, against the
+// real listingLink module and a pharmacy shaped the way openListing hands
+// one over. What Share receives is then read back.
+//
+// withProfileLink and profileShareUrl are deliberately in scope. A mutation
+// that swaps one in must fail on what it produced, not on a ReferenceError
+// that would fire just as loudly if the check were testing nothing at all.
+(async () => {
+  // The app's modules are ES modules resolved by Metro, which fills in the
+  // .js these imports leave off; Node does not, and refuses the file. So
+  // each is loaded as itself with its relative imports spelled out — not
+  // reimplemented, and the rewrite is checked rather than trusted, because
+  // a silent miss here would import nothing and assert on undefined.
+  const esm = async (rel) => {
+    const dir = path.posix.dirname(rel);
+    const source = read(rel).replace(
+      /from "\.\/([A-Za-z0-9_.-]+)"/g,
+      (_, name) =>
+        `from "${require("url").pathToFileURL(
+          path.join(__dirname, "..", dir, name.endsWith(".js") ? name : `${name}.js`),
+        ).href}"`,
+    );
+    if (/from "\.{1,2}\//.test(source))
+      throw new Error(`${rel}: an import was left unresolved for Node`);
+    return import(
+      `data:text/javascript;base64,${Buffer.from(source, "utf8").toString("base64")}`
+    );
+  };
+
+  const { withListingLink, listingShareUrl, LISTING_SITE_ORIGIN } = await esm(
+    "src/utils/listingLink.js",
+  );
+  const { withProfileLink, profileShareUrl } = await esm("src/utils/profileLink.js");
+
+  const pharmacy = read("src/screens/PharmacyDetailScreen.js");
+
+  if (!/import \{ withListingLink \} from "\.\.\/utils\/listingLink"/.test(pharmacy))
+    failures.push("PharmacyDetailScreen does not import withListingLink");
+  if (/utils\/profileLink/.test(pharmacy))
+    failures.push("PharmacyDetailScreen imports the profile-link helper");
+  // The screen legitimately builds a Google Maps directions URL, so the ban
+  // is narrow: it must not spell out the share address. A second copy of the
+  // origin, or a hand-built /l/ or /s/ path, stops being the canonical one
+  // the moment listingLink.js moves — and nothing in the app would say so.
+  const code = pharmacy.replace(/^\s*\/\/.*$/gm, "");
+  if (code.includes(new URL(appOrigin).host))
+    failures.push("PharmacyDetailScreen repeats the share origin instead of importing it");
+  if (/["`]\/[ls]\//.test(code) || /\/[ls]\/\$\{/.test(code))
+    failures.push("PharmacyDetailScreen hand-builds a share path instead of using a helper");
+
+  const ID = "AbCdEf1234567890xyzQ";
+  const body = /\n  const share = \(\) => \{\n([\s\S]*?)\n  \};\n/.exec(pharmacy);
+  if (!body) {
+    failures.push("could not find PharmacyDetailScreen's share function to run");
+  } else {
+    const run = (listing) => {
+      const sent = [];
+      const Share = { share: (payload) => sent.push(payload) };
+      // eslint-disable-next-line no-new-func
+      new Function(
+        "title", "duty", "listing", "numbers",
+        "Share", "withListingLink", "withProfileLink", "profileShareUrl", "listingShareUrl",
+        body[1],
+      )(
+        "Pharmacie Zogbo",
+        { text: "De garde", isStale: false },
+        listing,
+        ["+229 01 02 03 04", "+229 05 06 07 08"],
+        Share, withListingLink, withProfileLink, profileShareUrl, listingShareUrl,
+      );
+      return sent;
+    };
+
+    const sent = run({ id: ID, status: "approved", city: "Cotonou" });
+    check("the pharmacy share opens the share sheet once", sent.length, 1);
+    const message = String(sent[0]?.message ?? "");
+
+    // The information the screen already gave is still there. A "fix" that
+    // replaced the message with a bare URL would pass every link assertion.
+    ["Pharmacie Zogbo", "De garde", "Cotonou", "+229 01 02 03 04"].forEach((fragment) => {
+      check(`the pharmacy share still says ${JSON.stringify(fragment)}`, message.includes(fragment), true);
+    });
+
+    check(
+      "the pharmacy share carries its own listing URL",
+      message.includes(`${LISTING_SITE_ORIGIN}/l/${ID}`),
+      true,
+    );
+    // /s/<uid> is the profile page. A pharmacy sent there lands on the ONPB
+    // importer's account rather than on the pharmacy.
+    check("the pharmacy share links no profile", /\/s\//.test(message), false);
+    // Two ways the id can go missing while a URL is still produced: the
+    // helper called without the listing, or called with the wrong one.
+    check(
+      "the pharmacy share names exactly one address",
+      (message.match(/https?:\/\//g) ?? []).length,
+      1,
+    );
+    // The page says nothing true about installing the app, so neither does
+    // the share.
+    check(
+      "the pharmacy share invents no store link",
+      /apps\.apple\.com|play\.google\.com|itunes|APP_DOWNLOAD_URL/.test(message),
+      false,
+    );
+
+    // An id that could not be Firestore's, and an entry that is not
+    // approved: the helper withholds the link and the sentence still sends.
+    [
+      { id: "bad id", status: "approved", city: "Cotonou" },
+      { id: ID, status: "pending", city: "Cotonou" },
+      { status: "approved", city: "Cotonou" },
+    ].forEach((listing, index) => {
+      const only = run(listing);
+      check(`unlinkable pharmacy ${index} still shares`, only.length, 1);
+      check(
+        `unlinkable pharmacy ${index} carries no URL`,
+        /https?:\/\//.test(String(only[0]?.message ?? "")),
+        false,
+      );
+      check(
+        `unlinkable pharmacy ${index} still says what it is`,
+        String(only[0]?.message ?? "").includes("Pharmacie Zogbo"),
+        true,
+      );
+    });
+  }
+
+  // ── The two routes stay apart ───────────────────────────────────
+  //
+  // One origin, two paths. Pointing either helper at the other's path is a
+  // single-character edit that produces a page for the wrong thing.
+  check("a listing id resolves to /l/", listingShareUrl(ID), `${LISTING_SITE_ORIGIN}/l/${ID}`);
+  const UID = "A1b2C3d4E5f6G7h8I9j0";
+  check("a uid resolves to /s/", profileShareUrl(UID), `${LISTING_SITE_ORIGIN}/s/${UID}`);
+  check("the profile helper appends /s/", withProfileLink("x", UID).includes(`/s/${UID}`), true);
+
+  // The two screens that share a PERSON keep doing so. They are the
+  // counterweight to everything above: a sweep that "unified" sharing on
+  // withListingLink would otherwise look like progress.
+  [
+    "src/screens/SellerDashboardScreen.js",
+    "src/screens/SellerProfileScreen.js",
+  ].forEach((file) => {
+    const source = read(file);
+    check(`${file} shares a profile link`, source.includes("withProfileLink("), true);
+  });
+
+  if (failures.length) {
+    failures.forEach((line) => console.error(`FAIL ${line}`));
+    console.error(`\n${failures.length} failing`);
+    process.exit(1);
+  }
+  console.log(
+    `clean: listing links — ${appOrigin}/l/<id>, rewritten to listingPage, ` +
+      `${sharers.length} screens sharing it (pharmacy run, not just read), ` +
+      `approved listings only, profiles still /s/<uid>`,
+  );
+})();

@@ -11,6 +11,7 @@ import { cityCoordinates } from "../data/cityCoordinates";
 import { getDutyLabel } from "../utils/pharmacyDuty";
 import { splitPhoneNumbers } from "../components/PhoneCallButtons";
 import { countContact } from "../utils/contactCount";
+import { withListingLink } from "../utils/listingLink";
 
 const EMERALD = "#0B6E4F";
 const GOLD = "#8a6415";
@@ -51,12 +52,18 @@ export function PharmacyDetailScreen({ route, navigation }) {
     );
   };
 
+  // The share used to name a pharmacy and give whoever received it nothing
+  // to open — the same complaint every other listing share answered with
+  // withListingLink, and this screen was missed. A duty entry is an ordinary
+  // approved listings document written by the ONPB importer, so it has a page
+  // at /l/<id> like anything else, and the helper decides: no link for an id
+  // that could not be a Firestore one, and none for a listing that is not
+  // approved, rather than a URL that 404s for the stranger it reaches.
   const share = () => {
-    Share.share({
-      message: `${title} — ${duty.text} · ${listing.city}${
-        numbers.length ? `\n${numbers.join(" / ")}` : ""
-      }`,
-    });
+    const message = `${title} — ${duty.text} · ${listing.city}${
+      numbers.length ? `\n${numbers.join(" / ")}` : ""
+    }`;
+    Share.share({ message: withListingLink(message, listing) });
   };
 
   const specs = [

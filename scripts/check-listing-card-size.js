@@ -305,6 +305,90 @@ for (const rel of GRID_SCREENS) {
   }
 }
 
+// ── The marquee starts once, not once per render ──────────────────────
+//
+// useApprovedAds starts at null, so `const ads = liveAds ?? []` ran on every
+// For You render during startup and handed back a NEW array each time. That
+// invalidated the businessCards memo, which changed BusinessMarquee's `ads`
+// prop, which re-ran its effect, which did translateX.setValue(0) and
+// restarted the animation. The row snapped back to the start on every render
+// until the ads snapshot landed — the carousel "hesitating" before it moved.
+//
+// The fallback is RUN here rather than read, because `?? []` and
+// `?? EMPTY_LISTINGS` are three characters apart and only one of them is
+// referentially stable.
+{
+  const rel = "src/screens/ForYouScreen.js";
+  const source = fs.readFileSync(path.join(root, rel), "utf8");
+
+  const fallback = /\n  const ads = liveAds \?\? ([A-Za-z_$][\w$]*|\[\s*\]);/.exec(source);
+  if (!fallback) {
+    failures.push(
+      `${rel}: could not find the ads fallback — this check is asserting nothing`,
+    );
+  } else {
+    const token = fallback[1];
+    if (/^\[\s*\]$/.test(token)) {
+      failures.push(
+        `${rel}: the ads fallback allocates a fresh [] on every render. While ` +
+          `liveAds is null that gives businessCards a new identity each time, ` +
+          `which resets the verified-business marquee to offset 0 on every ` +
+          `For You render`,
+      );
+    } else {
+      // The named fallback has to be module-level, or it is allocated per
+      // render too and the name changes nothing.
+      const declared = new RegExp(`^const ${token} = \\[\\s*\\];`, "m").test(source);
+      if (!declared) {
+        failures.push(
+          `${rel}: the ads fallback is "${token}", which is not a module-level ` +
+            `empty array — a per-render value defeats the point`,
+        );
+      }
+      // Run it: two "renders" with no ads must hand back the SAME array.
+      // eslint-disable-next-line no-new-func
+      const render = new Function(
+        token,
+        "liveAds",
+        `const ads = liveAds ?? ${token};\nreturn ads;`,
+      );
+      const stable = [];
+      if (!Object.is(render(stable, null), render(stable, null))) {
+        failures.push(
+          `${rel}: two renders with no ads produce different array references`,
+        );
+      }
+    }
+  }
+
+  // The effect itself is deliberately NOT restructured by that fix. If a
+  // later pass narrows the dependencies to [setWidth], this is the line that
+  // should be updated on purpose rather than drifting.
+  const effect =
+    /useEffect\(\(\) => \{\s*travelledRef\.current = 0;\s*translateX\.setValue\(0\);\s*runMarquee\(\);[\s\S]*?\}, \[([^\]]*)\]\);/.exec(
+      source,
+    );
+  if (!effect) {
+    failures.push(
+      `${rel}: the BusinessMarquee start effect no longer has its expected ` +
+        `shape (reset travelled, zero the transform, run the marquee)`,
+    );
+  } else if (effect[1].replace(/\s+/g, "") !== "ads,setWidth") {
+    failures.push(
+      `${rel}: the marquee effect's dependencies are [${effect[1].trim()}], not ` +
+        `[ads, setWidth]. Narrowing them is a separate, deliberate change`,
+    );
+  }
+
+  // The things the fix must NOT have touched.
+  if (!/const MARQUEE_SPEED_PX_PER_SEC = 40;/.test(source))
+    failures.push(`${rel}: the marquee speed changed`);
+  if (!/useNativeDriver: true/.test(source))
+    failures.push(`${rel}: the marquee left the native driver`);
+  if (!/easing: Easing\.linear/.test(source))
+    failures.push(`${rel}: the marquee easing changed`);
+}
+
 if (failures.length === 0) {
   console.log(
     "clean: every grid screen renders the same 49.6% square card; only " +

@@ -1488,7 +1488,17 @@ export function ForYouScreen({ navigation, route }) {
   // filling it with invented sponsors teaches the badge means nothing.
   // Empty is the honest state until a real company is approved or a real
   // ad is running — the section hides itself when there's nothing in it.
-  const ads = liveAds ?? [];
+  // EMPTY_LISTINGS, not a fresh []. useApprovedAds starts at null, so during
+  // startup this line ran on every render — and a new array identity each
+  // time invalidated the businessCards memo below, which handed
+  // BusinessMarquee a new `ads` prop, which re-ran its effect, which reset
+  // translateX to 0 and restarted the animation. The row visibly snapped
+  // back to the start on every For You render until the ads snapshot landed,
+  // which read as the carousel hesitating before it got going.
+  //
+  // Same reason EMPTY_LISTINGS exists a few hundred lines up and is already
+  // used for the listings fallback: a stable reference is the whole point.
+  const ads = liveAds ?? EMPTY_LISTINGS;
   // Real approved companies lead the row, paid placements follow. A company
   // only lands here once a human has approved it, so unlike the ads beside
   // it the checkmark on these cards is literally true — which is the whole

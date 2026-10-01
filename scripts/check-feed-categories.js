@@ -301,6 +301,52 @@ for (const rel of SCREENS) {
     }
   }
 
+  // 6b. The category FILTER cannot offer a directory either.
+  //
+  // The chooser maps LOCAL_CATEGORIES, which excluded pharmacyOnDuty alone —
+  // so Restaurants and Jobs were both offered, and picking either filtered
+  // the screen to a guaranteed "no listings match your filters", because the
+  // query excludes those categories server-side. The predicate is RUN against
+  // every real category key.
+  const localCats =
+    /const LOCAL_CATEGORIES = categories\.filter\(\s*([\s\S]*?),?\s*\);/.exec(source);
+  if (!localCats) {
+    failures.push(`${rel}: could not find LOCAL_CATEGORIES to run`);
+  } else {
+    // eslint-disable-next-line no-new-func
+    const keep = new Function("DIRECTORY_CATEGORIES", `return (${localCats[1]});`)(
+      DIRECTORY_CATEGORIES,
+    );
+    for (const key of DIRECTORY_CATEGORIES) {
+      if (keep({ key })) {
+        failures.push(
+          `${rel}: the Local category filter still offers "${key}". It is a ` +
+            `directory category excluded from this screen's listing source, so ` +
+            `choosing it can only ever produce an empty screen`,
+        );
+      }
+    }
+    const marketplaceKeys = categories
+      .map((c) => c.key)
+      .filter((k) => !DIRECTORY_CATEGORIES.includes(k));
+    for (const key of marketplaceKeys) {
+      if (!keep({ key })) {
+        failures.push(
+          `${rel}: the Local category filter no longer offers "${key}", which ` +
+            `is an ordinary marketplace category`,
+        );
+      }
+    }
+    const offered = categories.filter((c) => keep(c)).length;
+    if (offered !== MARKETPLACE_FEED_CATEGORIES.length) {
+      failures.push(
+        `${rel}: the Local filter offers ${offered} categories but the feed ` +
+          `query asks for ${MARKETPLACE_FEED_CATEGORIES.length} — the two lists ` +
+          `have drifted`,
+      );
+    }
+  }
+
   // 7. The dedicated pharmacy route still exists.
   const openListing = fs.readFileSync(
     path.join(root, "src/utils/openListing.js"),

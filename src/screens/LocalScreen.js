@@ -63,8 +63,21 @@ const EMERALD = "#0B6E4F";
 // list every time.
 const EMPTY_LISTINGS = [];
 const DISTANCE_STEPS_KM = [5, 10, 25, 50];
+// The categories this screen can actually show, and therefore the only ones
+// its filter may offer.
+//
+// This excluded pharmacyOnDuty alone, which left Restaurants and Jobs in the
+// chooser — both directory categories, both excluded from the marketplace
+// query server-side, so picking either one filtered the screen down to a
+// guaranteed "no listings match your filters". A filter whose only possible
+// outcome is empty is worse than no filter.
+//
+// Derived from DIRECTORY_CATEGORIES rather than listing the three keys again:
+// that constant is what the query, the search path and the orphan fallback
+// all already agree on, so a fourth directory added there cannot leave a dead
+// option behind here.
 const LOCAL_CATEGORIES = categories.filter(
-  (category) => category.key !== "pharmacyOnDuty",
+  (category) => !DIRECTORY_CATEGORIES.includes(category.key),
 );
 
 // The grid runs closer to the edges than the rest of the screen so the

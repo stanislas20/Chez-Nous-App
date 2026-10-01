@@ -841,20 +841,28 @@ export function SellerDashboardScreen({ navigation }) {
             <OwnStatLabel>{t("profileStatFollowing")}</OwnStatLabel>
           </OwnStatCellButton>
           <OwnStatSeparator />
-          <OwnStatCell>
+          {/* profileLikes, not likes.
+           *
+           * `likes` counts private listing SAVES received — a bookmark its
+           * author was promised nobody else would see. This cell is now a
+           * door, and a door onto saver identities is one we are not
+           * entitled to open, so what it counts and what it opens are the
+           * same thing: people who publicly liked this profile. The save
+           * analytics keep their home on the listing itself. */}
+          <OwnStatCellButton onPress={() => navigation.navigate("LikesReceived")}>
             <OwnStatValue>
-              {formatCount(ownStats?.likes ?? 0, language)}
+              {formatCount(ownStats?.profileLikes ?? 0, language)}
             </OwnStatValue>
             <OwnStatLabel>
               {t(
                 statLabelKey(
                   "profileStatLikes",
-                  ownStats?.likes ?? 0,
+                  ownStats?.profileLikes ?? 0,
                   language,
                 ),
               )}
             </OwnStatLabel>
-          </OwnStatCell>
+          </OwnStatCellButton>
         </OwnStatRow>
 
         {mayPublish ? (

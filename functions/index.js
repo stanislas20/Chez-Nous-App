@@ -1894,6 +1894,42 @@ exports.onFollowDeleted = onDocumentDeleted(
   },
 );
 
+// Liking a profile moves ONE counter, on the person liked.
+//
+// Unlike a follow, which moves two — a follow says something about both
+// accounts, so followers goes up on one side and following on the other. A
+// like says something about the person liked only; the liker's own profile
+// gains nothing, and giving them a "likes given" number would invent a
+// score nobody asked for.
+//
+// Its own field, deliberately. `sellerStats.likes` already exists and
+// counts private listing SAVES received — a different action, a different
+// collection, written under a different promise. Reusing it would merge two
+// numbers that users are owed separately, and would silently change what
+// every historical value meant.
+async function applyProfileLikeDelta(like, delta) {
+  const likerId = like?.likerId;
+  const sellerId = like?.sellerId;
+  // Self-likes are rejected by the rules; ignoring them here too means a
+  // stray document cannot quietly inflate an account's own counter.
+  if (!likerId || !sellerId || likerId === sellerId) return;
+  await bumpSellerStat(sellerId, "profileLikes", delta);
+}
+
+exports.onProfileLikeCreated = onDocumentCreated(
+  "profileLikes/{likeId}",
+  async (event) => {
+    await applyProfileLikeDelta(event.data?.data(), 1);
+  },
+);
+
+exports.onProfileLikeDeleted = onDocumentDeleted(
+  "profileLikes/{likeId}",
+  async (event) => {
+    await applyProfileLikeDelta(event.data?.data(), -1);
+  },
+);
+
 // A like belongs to a listing, and the listing knows its seller — the
 // favourite document deliberately doesn't carry sellerId, so it's read here
 // rather than trusting a denormalised copy the client wrote.

@@ -38,10 +38,16 @@ const profile = stripComments(read("src/screens/SellerProfileScreen.js"));
 if (!/const ownStats = useSellerStats\(user\?\.uid\)/.test(dash))
   fail("the dashboard no longer reads its own sellerStats projection");
 
+// `profileLikes`, not `likes`. The dashboard's third figure used to be
+// `likes`, which counts private listing SAVES received. That cell is now a
+// door onto Likes Received, and a door onto saver identities is one the
+// favorites rules forbid — so what it counts and what it opens were made
+// the same thing: people who publicly liked this profile. The save figure
+// keeps its home on the listing itself, labelled Saves.
 for (const [field, label] of [
   ["followers", "Followers"],
   ["following", "Following"],
-  ["likes", "Likes"],
+  ["profileLikes", "Likes"],
 ]) {
   if (!new RegExp(`ownStats\\?\\.${field} \\?\\? 0`).test(dash))
     fail(`the dashboard does not render ${label} from ownStats.${field} — that is the canonical projection and the only place this figure may come from`);
@@ -149,7 +155,7 @@ if (!/bumpSellerStat\(sellerId, "followers", delta\)/.test(fns) ||
 
 if (failures) process.exit(1);
 console.log(
-  "clean: own profile — the dashboard reads Followers, Following and Likes " +
+  "clean: own profile — the dashboard reads Followers, Following and profile Likes " +
     "from sellerStats and shadows none of them, Following opens the same " +
     "list the public profile opens, and every Share in the app carries a link",
 );

@@ -37,6 +37,15 @@ export function useSellerStats(sellerId) {
           followers: atLeastZero(data?.followers),
           following: atLeastZero(data?.following),
           likes: atLeastZero(data?.likes),
+          // Profile likes are a DIFFERENT number from `likes` above.
+          //
+          // `likes` counts private listing saves received and is what the
+          // per-listing analytics read. `profileLikes` counts people who
+          // publicly liked this seller's profile, which is the number the
+          // dashboard shows and the one Likes Received lists. Keeping them
+          // apart is the whole point: a save is a bookmark its author was
+          // promised privacy on, a profile like is an endorsement.
+          profileLikes: atLeastZero(data?.profileLikes),
           // Written by applyRatingDelta in functions/index.js, already
           // rounded to one decimal there. These were missing from this
           // projection, so every screen reading stats.rating got undefined
@@ -58,6 +67,7 @@ export function useSellerStats(sellerId) {
           followers: 0,
           following: 0,
           likes: 0,
+          profileLikes: 0,
           rating: 0,
           ratingCount: 0,
         }),

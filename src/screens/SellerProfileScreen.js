@@ -34,6 +34,7 @@ import {
 import { usePublicProfiles } from "../hooks/usePublicProfiles";
 import { PublicAvatar } from "../components/PublicAvatar";
 import { useFollow } from "../hooks/useFollow";
+import { useProfileLike } from "../hooks/useProfileLike";
 import { formatCount, statLabelKey } from "../utils/formatCount";
 import { useAuth } from "../auth/AuthContext";
 
@@ -211,6 +212,17 @@ export function SellerProfileScreen({ route, navigation }) {
     { followerName: user?.displayName ?? null, sellerName: sellerName ?? null },
   );
 
+  // Separate from Follow on purpose, and separate from the listing heart.
+  // Follow subscribes you to someone's postings; this says the seller is
+  // worth dealing with and nothing more. Hidden on your own profile, where
+  // the rules would reject it anyway.
+  const {
+    isLiked,
+    isReady: likeReady,
+    canLike,
+    toggleLike,
+  } = useProfileLike(sellerId, user?.uid);
+
   const openFollowList = (kind) =>
     navigation.navigate("FollowList", { uid: sellerId, kind, sellerName });
 
@@ -380,6 +392,26 @@ export function SellerProfileScreen({ route, navigation }) {
                     )}
                   </FollowLabel>
                 </FollowButton>
+              ) : null}
+              {canLike && likeReady ? (
+                <LikeButton
+                  liked={isLiked}
+                  onPress={async () => {
+                    const ok = await toggleLike();
+                    if (!ok) Alert.alert(sellerName ?? "", t("errorGeneric"));
+                  }}
+                >
+                  <Ionicons
+                    name={isLiked ? "heart" : "heart-outline"}
+                    size={16}
+                    color={isLiked ? LIKE_RED : colors.text}
+                  />
+                  <LikeLabel>
+                    {t(
+                      isLiked ? "profileLikeActionDone" : "profileLikeAction",
+                    )}
+                  </LikeLabel>
+                </LikeButton>
               ) : null}
               <ShareButton solo={!canFollow || !isReady} onPress={handleShare}>
                 <Ionicons
@@ -773,6 +805,39 @@ const ShareButton = styled(Pressable)`
 `;
 
 const ShareLabel = styled.Text`
+  font-family: ${fontFamily.semiBold};
+  font-size: 14.5px;
+  color: ${(props) => props.theme.text};
+`;
+
+// Liking a profile, drawn quietly on purpose.
+//
+// Follow is the solid emerald call to action; this sits beside it as an
+// outline, because an endorsement is a smaller gesture than subscribing and
+// a second filled pill would turn the row into a contest. Only the heart
+// changes when it is given — filled and red — which is the whole signal.
+//
+// Not statTints.saved. That pink belongs to the SAVES measurement on the
+// dashboard and on listing cards, and theme/statTints says plainly that a
+// count must never read as an action. Borrowing it here would tie this
+// button to the private listing heart, which is the one connection this
+// feature exists to avoid making.
+const LIKE_RED = "#D64545";
+
+const LikeButton = styled(Pressable)`
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 13px 0;
+  border-radius: ${radius.pill}px;
+  background-color: ${(props) => props.theme.surface};
+  border-width: 1px;
+  border-color: ${(props) => (props.liked ? LIKE_RED : props.theme.border)};
+`;
+
+const LikeLabel = styled.Text`
   font-family: ${fontFamily.semiBold};
   font-size: 14.5px;
   color: ${(props) => props.theme.text};

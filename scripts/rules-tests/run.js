@@ -19,6 +19,9 @@ const SUITES = [
   "scripts/rules-tests/moderation.test.js",
   "scripts/rules-tests/followerNotifications.test.js",
   "scripts/rules-tests/publicContact.test.js",
+  // Profile likes are public to two principals and to nobody else, and the
+  // listing-save boundary they sit beside must not have moved.
+  "scripts/rules-tests/profileLikes.test.js",
   "scripts/rules-tests/rules.test.js",
   // Who may write whose entry in a conversation's per-person maps —
   // including the one the purge trigger reads to decide a thread may go.
@@ -44,6 +47,10 @@ const SUITES = [
   // Callables. These use CallableFunction.run() with the admin SDK pointed at
   // the emulators, so the transport is skipped and everything else is real.
   "scripts/functions-tests/deleteAccount.test.js",
+  // The profile-like counter, driven through the real exported triggers.
+  // It needs Firestore because bumpSellerStat writes there, which is why it
+  // runs here rather than in the plain functions-tests runner.
+  "scripts/functions-tests/profileLikeCounter.test.js",
 ];
 
 const result = spawnSync(

@@ -477,7 +477,7 @@ export function MyListingsScreen() {
                     <StatLabel>
                       {t(
                         statLabelKey(
-                          "profileStatLikes",
+                          "profileStatSaves",
                           item.saveCount ?? 0,
                           language,
                         ),

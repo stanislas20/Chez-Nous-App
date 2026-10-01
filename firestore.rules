@@ -720,6 +720,44 @@ service cloud.firestore {
       allow delete: if request.auth != null && request.auth.uid == resource.data.followerId;
     }
 
+    // Liking a PROFILE, which is none of the other three things.
+    //
+    //   follows        — "tell me what this seller posts"
+    //   profileLikes   — "this seller is worth dealing with"   (this one)
+    //   favorites      — "remember this listing for me", private to its author
+    //   ratings        — a review, behind the interaction gate
+    //
+    // Public by design and by contrast. A listing save is readable by the
+    // person who made it and nobody else, because somebody who taps a heart
+    // on a listing is bookmarking it. A profile like is the opposite: it is
+    // an endorsement, and the person endorsed is meant to see who gave it.
+    // That is why this collection is new rather than an extension of
+    // favorites — the existing rows were written under the other promise.
+    match /profileLikes/{likeId} {
+      // Two legitimate readers and no others. The liker, so a profile can
+      // show whether YOU have already liked it; and the person liked, so
+      // their own dashboard can list who did. A third party gets nothing:
+      // this is not a public directory of who admires whom.
+      allow read: if request.auth != null
+        && (request.auth.uid == resource.data.likerId
+            || request.auth.uid == resource.data.sellerId);
+
+      allow create: if request.auth != null
+        && request.resource.data.likerId == request.auth.uid
+        && likeId == request.auth.uid + '_' + request.resource.data.sellerId
+        // Liking yourself would inflate your own counter, the same way
+        // following yourself would inflate two at once.
+        && request.resource.data.sellerId != request.auth.uid;
+
+      // Identity is immutable. There is nothing to edit on this document —
+      // the counter lives in sellerStats and is written only by the trigger
+      // — so an update can do nothing but repoint an existing like at
+      // somebody else, which is exactly what must not be possible.
+      allow update: if false;
+
+      allow delete: if request.auth != null && request.auth.uid == resource.data.likerId;
+    }
+
     // Counters shown on every profile: readable by anyone, writable by no
     // client. Only the Cloud Function triggers on follows/favorites write
     // here, which is what makes the numbers mean anything.

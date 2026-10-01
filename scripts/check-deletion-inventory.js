@@ -33,6 +33,7 @@ const DECISIONS = {
   ratings: ["DELETE", "raterId — ratings they wrote"],
   jobApplications: ["DELETE", "applicantUid"],
   follows: ["DELETE", "followerId and sellerId, both directions"],
+  profileLikes: ["DELETE", "likerId and sellerId, both directions"],
   ads: ["DELETE", "advertiserId"],
   sellers: ["DELETE", "the document id is the uid"],
   advertisers: ["DELETE", "the document id is the uid"],

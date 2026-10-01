@@ -16,6 +16,7 @@ import { JobDetailScreen } from "../screens/JobDetailScreen";
 import { JobApplicationsScreen } from "../screens/JobApplicationsScreen";
 import { SellerProfileScreen } from "../screens/SellerProfileScreen";
 import { FollowListScreen } from "../screens/FollowListScreen";
+import { LikesReceivedScreen } from "../screens/LikesReceivedScreen";
 import { DrivingSchoolsScreen } from "../screens/DrivingSchoolsScreen";
 import { TrucksScreen } from "../screens/TrucksScreen";
 import { PublicServicesScreen } from "../screens/PublicServicesScreen";
@@ -457,6 +458,24 @@ export function RootNavigator() {
               },
               headerShadowVisible: false,
             })}
+          />
+          {/* Reached only from the owner's own dashboard, and the hook
+              behind it takes the uid from auth rather than from a param, so
+              there is nothing here to point at somebody else. */}
+          <Stack.Screen
+            name="LikesReceived"
+            component={LikesReceivedScreen}
+            options={{
+              headerShown: true,
+              title: t("likesReceivedTitle"),
+              headerTintColor: colors.primary,
+              headerStyle: { backgroundColor: colors.surface },
+              headerTitleStyle: {
+                fontFamily: fontFamily.semiBold,
+                color: colors.text,
+              },
+              headerShadowVisible: false,
+            }}
           />
           <Stack.Screen
             name="SellerProfile"

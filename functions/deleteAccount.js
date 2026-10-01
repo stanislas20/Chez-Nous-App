@@ -54,6 +54,12 @@ const OWNED_BY_FIELD = [
   // belongs to the follower, but it points at an account that will not
   // exist, and onFollowDeleted decrements both counters correctly.
   ["follows", "sellerId"],
+  // Profile likes, both directions for the same reason. A like given by
+  // this account, and a like given TO it — the second is the one favorites
+  // cannot have, because a favourite carries no sellerId to sweep by.
+  // onProfileLikeDeleted floors the counter on the way out.
+  ["profileLikes", "likerId"],
+  ["profileLikes", "sellerId"],
   ["ads", "advertiserId"],
   // ── Added in Phase E ────────────────────────────────────────────────
   //

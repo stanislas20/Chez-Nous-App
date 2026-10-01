@@ -149,11 +149,232 @@ for (const rel of SCREENS) {
   }
 }
 
+// 4. The SEARCH path obeys the same exclusion — run, not read.
+//
+// The query filter above only governs the paged read. LocalScreen has a
+// second source: in search mode the rows come from useListingsSearch, which
+// applies no category filter at all. Searching "pharmacie" on a physical
+// device returned 60 of the ~204 duty entries and rendered them as ordinary
+// marketplace cards under a raw `pharmacyOnDuty` heading.
+//
+// Both the search source and the orphan-section predicate are lifted out of
+// LocalScreen and EXECUTED against a mixed set, because "the file mentions
+// DIRECTORY_CATEGORIES" stays true for an exclusion applied to the wrong
+// branch.
+{
+  const rel = "src/screens/LocalScreen.js";
+  const source = fs.readFileSync(path.join(root, rel), "utf8");
+
+  const MIXED = [
+    { id: "m1", categoryKey: "vehicles" },
+    { id: "m2", categoryKey: "realEstate" },
+    ...DIRECTORY_CATEGORIES.map((key, i) => ({ id: `d${i}`, categoryKey: key })),
+    { id: "m3", categoryKey: "brandNewCategory" },
+  ];
+  const marketplaceIds = MIXED.filter(
+    (l) => !DIRECTORY_CATEGORIES.includes(l.categoryKey),
+  ).map((l) => l.id);
+
+  const searchSrc = /let result = isSearchMode([\s\S]*?);\n/.exec(source);
+  if (!searchSrc) {
+    failures.push(`${rel}: could not find the search/browse source selection to run`);
+  } else {
+    // eslint-disable-next-line no-new-func
+    const pick = new Function(
+      "isSearchMode", "searchResults", "listings", "DIRECTORY_CATEGORIES",
+      `let result = isSearchMode${searchSrc[1]};\nreturn result;`,
+    );
+
+    const searched = pick(true, MIXED, [], DIRECTORY_CATEGORIES);
+    const searchedKeys = searched.map((l) => l.categoryKey);
+    for (const key of DIRECTORY_CATEGORIES) {
+      if (searchedKeys.includes(key)) {
+        failures.push(
+          `${rel}: searching returns "${key}" into the marketplace sections — a ` +
+            `directory listing has no price and its own screen, and this is the ` +
+            `path that put 60 pharmacy cards at the bottom of Local`,
+        );
+      }
+    }
+    // The exclusion must not be a blanket "drop everything on search".
+    if (JSON.stringify(searched.map((l) => l.id)) !== JSON.stringify(marketplaceIds)) {
+      failures.push(
+        `${rel}: search dropped ordinary marketplace rows too — got ` +
+          `${JSON.stringify(searched.map((l) => l.id))}, expected ${JSON.stringify(marketplaceIds)}`,
+      );
+    }
+    // Browsing still uses the already-filtered page, untouched.
+    const browsed = pick(false, MIXED, [{ id: "page1", categoryKey: "vehicles" }], DIRECTORY_CATEGORIES);
+    if (JSON.stringify(browsed.map((l) => l.id)) !== JSON.stringify(["page1"])) {
+      failures.push(
+        `${rel}: browsing no longer reads the paged listings — got ` +
+          `${JSON.stringify(browsed.map((l) => l.id))}`,
+      );
+    }
+  }
+
+  // 5. The orphan fallback cannot re-admit a directory category.
+  const orphanSrc =
+    /const orphans = \[\.\.\.byCategory\.keys\(\)\]\s*\.filter\(\s*([\s\S]*?),?\s*\)\s*\.map\(/.exec(
+      source,
+    );
+  if (!orphanSrc) {
+    failures.push(`${rel}: could not find the orphan-section filter to run`);
+  } else {
+    // eslint-disable-next-line no-new-func
+    const keep = new Function(
+      "accountedFor", "DIRECTORY_CATEGORIES",
+      `return (${orphanSrc[1]});`,
+    )(new Set(["vehicles"]), DIRECTORY_CATEGORIES);
+
+    for (const key of DIRECTORY_CATEGORIES) {
+      if (keep(key)) {
+        failures.push(
+          `${rel}: the orphan fallback still admits "${key}". LOCAL_CATEGORIES ` +
+            `drops it on purpose, which is precisely what made it an "unknown" ` +
+            `key here — it came back last, under its raw name`,
+        );
+      }
+    }
+    // A genuinely new marketplace category must still be reachable.
+    if (!keep("brandNewCategory")) {
+      failures.push(
+        `${rel}: the orphan fallback no longer admits an unknown marketplace ` +
+          `category — listings filed under a new key would be unreachable here ` +
+          `with nothing saying so`,
+      );
+    }
+    if (keep("vehicles")) {
+      failures.push(`${rel}: the orphan fallback duplicates an already-built section`);
+    }
+  }
+
+  // 6. The duty shortcut reads a source that can actually hold pharmacies.
+  //
+  // It used to scan the marketplace page, which the query above excludes
+  // directories from — so it could never populate and nothing said so.
+  if (/for \(const listing of (allForDirectories|listings|listingSource)\b/.test(source)) {
+    failures.push(
+      `${rel}: the duty shortcut scans the marketplace listings again. That ` +
+        `source excludes pharmacyOnDuty server-side, so the shortcut can never ` +
+        `find one and simply never appears`,
+    );
+  }
+  // Scoped to the duty query's own call, not to the file. The marketplace
+  // query a few lines above carries a byte-identical city filter, so a
+  // file-wide search for one is satisfied by the wrong query and proves
+  // nothing about this one.
+  const dutyQuery =
+    /const \{ listings: dutyRoster \} = useListingsQuery\(\{([\s\S]*?)\n  \}\);/.exec(
+      source,
+    );
+  if (!dutyQuery) {
+    failures.push(
+      `${rel}: no dutyRoster query — the duty shortcut has no source capable ` +
+        `of containing a duty entry`,
+    );
+  } else {
+    const q = dutyQuery[1];
+    if (!/field: "categoryKey", value: "pharmacyOnDuty"/.test(q)) {
+      failures.push(
+        `${rel}: the duty query does not ask for pharmacyOnDuty, so it cannot ` +
+          `return one`,
+      );
+    }
+    if (!/field: "city", value: selectedCity/.test(q)) {
+      failures.push(
+        `${rel}: the duty query is not scoped to a city — it would read the ` +
+          `whole ~200-row roster, which is what the marketplace query excludes ` +
+          `directories to avoid`,
+      );
+    }
+    // buildConstraints SKIPS a null-valued filter, so an enabled query with
+    // no city silently drops the city clause and fetches everything.
+    if (!/enabled: Boolean\(selectedCity\)/.test(q)) {
+      failures.push(
+        `${rel}: the duty query is not gated on a resolved city — a null city ` +
+          `is dropped from the constraints and the whole roster comes back`,
+      );
+    }
+    if (!/pageSize: [A-Z_]+|pageSize: \d+/.test(q)) {
+      failures.push(`${rel}: the duty query is unbounded`);
+    }
+  }
+
+  // 7. The dedicated pharmacy route still exists.
+  const openListing = fs.readFileSync(
+    path.join(root, "src/utils/openListing.js"),
+    "utf8",
+  );
+  if (
+    !/categoryKey === "pharmacyOnDuty"/.test(openListing) ||
+    !/navigate\("PharmacyDetail"/.test(openListing)
+  ) {
+    failures.push(
+      "openListing no longer routes pharmacyOnDuty to PharmacyDetail — " +
+        "excluding the roster from Local is only safe while it still has a " +
+        "screen of its own",
+    );
+  }
+}
+
+// 8. An expired duty window is never presented as current.
+//
+// Every roster entry in production is past its dutyUntil, so this is the
+// state the shortcut actually renders, not an edge case.
+{
+  const file = path.join(root, "src", "utils", "pharmacyDuty.js");
+  const { code } = babel.transformFileSync(file, {
+    presets: [["@babel/preset-env", { targets: { node: "current" } }]],
+  });
+  const mod = { exports: {} };
+  new Function("module", "exports", "require", code)(mod, mod.exports, require);
+  const { getDutyLabel } = mod.exports;
+
+  const t = (key, vars) => `${key}:${JSON.stringify(vars ?? {})}`;
+  const at = (iso) => ({ toDate: () => new Date(iso) });
+
+  const expired = getDutyLabel({ dutyUntil: at("2020-01-01T23:59:59Z") }, "fr", t);
+  if (expired.isStale !== true) {
+    failures.push(
+      "getDutyLabel does not mark an elapsed duty window stale — the shortcut " +
+        "would present a roster weeks out of date as current coverage",
+    );
+  }
+  if (!String(expired.text).startsWith("pharmacyLastKnownSchedule")) {
+    failures.push(
+      `an elapsed duty window renders ${JSON.stringify(expired.text)} rather than ` +
+        `the last-known-schedule copy`,
+    );
+  }
+
+  const live = getDutyLabel({ dutyUntil: at("2099-01-01T23:59:59Z") }, "fr", t);
+  if (live.isStale !== false || !String(live.text).startsWith("pharmacyOpenUntil")) {
+    failures.push(
+      `a still-valid duty window no longer reads as current: ${JSON.stringify(live)}`,
+    );
+  }
+
+  // The shortcut must render that label rather than a fixed "on duty" string.
+  const localSource = fs.readFileSync(
+    path.join(root, "src/screens/LocalScreen.js"),
+    "utf8",
+  );
+  if (!/getDutyLabel\(nearestPharmacy\.listing/.test(localSource)) {
+    failures.push(
+      "the Local duty shortcut no longer renders getDutyLabel — without it the " +
+        "card cannot say that a roster is out of date",
+    );
+  }
+}
+
 if (failures.length === 0) {
   console.log(
     `clean: ${MARKETPLACE_FEED_CATEGORIES.length} feed categor(ies) and ` +
       `${DIRECTORY_CATEGORIES.length} director(ies) cover all ` +
-      `${categories.length}; both browse screens exclude directories in the query`,
+      `${categories.length}; both browse screens exclude directories in the ` +
+      `query, Local's search and orphan paths exclude them too, and the duty ` +
+      `shortcut reads a city-scoped roster that labels an elapsed window`,
   );
 }
 for (const f of failures) console.log(`FAIL ${f}`);

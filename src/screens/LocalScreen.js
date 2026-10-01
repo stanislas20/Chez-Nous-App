@@ -111,6 +111,11 @@ const GRID_COLUMNS = 2;
 // to see, so the drill-in is uncapped.
 const SECTION_PREVIEW_ROWS = 3;
 
+// How many duty entries the shortcut reads for one city. Comfortably above
+// the largest city's rotation and far below the ~200-row roster, so the
+// shortcut costs a page rather than the directory.
+const DUTY_SHORTCUT_PAGE = 20;
+
 function chunkIntoRows(items) {
   const rows = [];
   for (let index = 0; index < items.length; index += GRID_COLUMNS) {
@@ -290,16 +295,42 @@ export function LocalScreen({ navigation }) {
     (listing) => !DIRECTORY_CATEGORIES.includes(listing.categoryKey),
   );
 
-  // The two directories with real (or soon-real) data behind them. Banks and
-  // tourism are still fixed sample lists, so they stay in Menu rather than
-  // being given prime space here to look busy.
-  const allForDirectories = listingSource;
+  // The duty shortcut has to ask for its own rows.
+  //
+  // It used to read the marketplace page, which was correct until that query
+  // started excluding directories server-side — after which the shortcut was
+  // scanning a list guaranteed to hold no pharmacy and could never populate.
+  // Nothing said so: the card simply never appeared.
+  //
+  // Scoped to the city being browsed rather than pulling the roster. The
+  // whole roster is ~200 of ~209 approved listings and putting it back into
+  // this screen is the thing the server-side filter exists to prevent; one
+  // city is a dozen rows, and (status, categoryKey, city, createdAt) is an
+  // index that already exists.
+  //
+  // `enabled` is load-bearing, not an optimisation. buildConstraints SKIPS a
+  // filter whose value is null, so a null city with the query enabled would
+  // drop the city clause and fetch the entire roster — the exact outcome
+  // this is scoped to avoid.
+  //
+  // No city means no shortcut. selectedCity is set from the GPS fix by the
+  // effect above, which refuses to name a city when the nearest is
+  // implausibly far, so a reader outside Bénin gets nothing here rather than
+  // a pharmacy twelve thousand kilometres away.
+  const { listings: dutyRoster } = useListingsQuery({
+    filters: [
+      { field: "categoryKey", value: "pharmacyOnDuty" },
+      { field: "city", value: selectedCity },
+    ],
+    pageSize: DUTY_SHORTCUT_PAGE,
+    enabled: Boolean(selectedCity),
+  });
 
   const nearestPharmacy = useMemo(() => {
     if (!userCoords) return null;
     let closest = null;
     let closestDistance = Infinity;
-    for (const listing of allForDirectories) {
+    for (const listing of dutyRoster ?? []) {
       if (listing.categoryKey !== "pharmacyOnDuty" || listing.isPermanentDuty)
         continue;
       const cityCoord = cityCoordinates[listing.city];
@@ -311,7 +342,7 @@ export function LocalScreen({ navigation }) {
       }
     }
     return closest ? { listing: closest, distance: closestDistance } : null;
-  }, [allForDirectories, userCoords]);
+  }, [dutyRoster, userCoords]);
 
   // Real restaurant listings only — no sample fallback here. A strip padded
   // with placeholders on the main Local tab would be the "Missions rapides"
@@ -345,7 +376,19 @@ export function LocalScreen({ navigation }) {
     // While searching, the rows come from Firestore rather than from the
     // loaded page. The filters below still run: the query applied the city,
     // and distance and price sort have no index that could serve them.
-    let result = isSearchMode ? (searchResults ?? []) : listings;
+    //
+    // The directory exclusion has to be repeated here. `listings` above is
+    // already filtered, but the search path never passed through it: the
+    // paged query excludes directories server-side and the search query
+    // does not, so searching "pharmacie" returned 60 of the ~204 roster
+    // entries and they arrived as ordinary marketplace rows. A duty roster
+    // entry has no price and its own screen; rendering it as a goods card
+    // is the leak this screen already decided against twice.
+    let result = isSearchMode
+      ? (searchResults ?? []).filter(
+          (listing) => !DIRECTORY_CATEGORIES.includes(listing.categoryKey),
+        )
+      : listings;
 
     if (selectedCity) {
       result = result.filter((listing) => listing.city === selectedCity);
@@ -463,9 +506,19 @@ export function LocalScreen({ navigation }) {
     // A categoryKey with no row in categories.js still has listings behind
     // it, and dropping them would make them unreachable from this screen
     // with nothing to say so. They go last, under their own raw key.
+    //
+    // Directories are excluded explicitly rather than relying on them never
+    // arriving. LOCAL_CATEGORIES drops pharmacyOnDuty on purpose, which is
+    // exactly what made it an "unknown" key here: the one category this
+    // screen most deliberately refuses was the one the fallback let back
+    // in, last, under its raw untranslated key. The mechanism stays for a
+    // genuine new marketplace category; it is closed to the three that have
+    // their own screens.
     const accountedFor = new Set(known.map((section) => section.key));
     const orphans = [...byCategory.keys()]
-      .filter((key) => !accountedFor.has(key))
+      .filter(
+        (key) => !accountedFor.has(key) && !DIRECTORY_CATEGORIES.includes(key),
+      )
       .map((key) => build(key, key, byCategory.get(key)));
 
     return [...known, ...orphans];

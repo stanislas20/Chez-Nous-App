@@ -47,33 +47,72 @@ const drain = async (ticks = 400) => {
 
 function makeRuntime({ docs = {}, throwFor = [] } = {}) {
   const reads = [];
-  let stateValue;
-  let cleanup = null;
-  let setStateAfterCleanup = 0;
-  let cleanedUp = false;
-  const refs = { current: undefined };
+
+  // Per-MOUNT state, with one compiled module behind all of them.
+  //
+  // The cache is module-level on purpose, and the thing that makes it worth
+  // having is the SECOND mount: a uid another screen already looked up must
+  // cost no read AND must still reach the new screen's state. A harness with
+  // one implicit instance cannot see that — the state it would inspect is the
+  // one the first mount already filled, so the publication of cached values
+  // can be deleted and every assertion still passes.
+  //
+  // So instances are explicit, `current` is whichever one is rendering, and
+  // the compiled module — and therefore profileCache — is shared by all of
+  // them, exactly as a real second mount shares it.
+  let current = null;
+  const createInstance = () => {
+    const inst = {
+      stateValue: undefined,
+      cleanup: null,
+      cleanedUp: false,
+      setStateAfterCleanup: 0,
+      ref: undefined,
+    };
+    return {
+      render: (ids) => {
+        current = inst;
+        try {
+          return sandbox.module.exports.usePublicProfiles(ids);
+        } finally {
+          current = null;
+        }
+      },
+      profiles: () => inst.stateValue,
+      teardown: () => {
+        inst.cleanedUp = true;
+        if (typeof inst.cleanup === "function") inst.cleanup();
+      },
+      setStateAfterCleanup: () => inst.setStateAfterCleanup,
+    };
+  };
 
   const useState = (initial) => {
-    if (stateValue === undefined) stateValue = initial;
+    const inst = current;
+    if (inst.stateValue === undefined) inst.stateValue = initial;
     return [
-      stateValue,
+      inst.stateValue,
       (next) => {
-        if (cleanedUp) setStateAfterCleanup += 1;
-        stateValue = next;
+        if (inst.cleanedUp) inst.setStateAfterCleanup += 1;
+        inst.stateValue = next;
       },
     ];
   };
   // One ref object per hook instance, persisting across re-renders exactly
   // as React's does — the cache lives in it, so a fresh object each render
-  // would hide the very re-read this file exists to catch.
+  // would hide the very re-read this file exists to catch. A fresh MOUNT gets
+  // a fresh ref, which is the point: useRef(profileCache) then hands that new
+  // ref the module-level Map, exactly as React does.
   const useRef = (initial) => {
-    if (refs.current === undefined) refs.current = { current: initial };
-    return refs.current;
+    const inst = current;
+    if (inst.ref === undefined) inst.ref = { current: initial };
+    return inst.ref;
   };
   const useEffect = (fn) => {
-    if (typeof cleanup === "function") cleanup();
-    cleanedUp = false;
-    cleanup = fn() ?? null;
+    const inst = current;
+    if (typeof inst.cleanup === "function") inst.cleanup();
+    inst.cleanedUp = false;
+    inst.cleanup = fn() ?? null;
   };
   const doc = (_db, ...segments) => ({ segments });
   const getDoc = async (ref) => {
@@ -102,19 +141,16 @@ function makeRuntime({ docs = {}, throwFor = [] } = {}) {
     `${source}\nmodule.exports = { usePublicProfiles };`,
   )(sandbox.module, useState, useEffect, useRef, doc, getDoc, {}, true);
 
-  const { usePublicProfiles } = sandbox.module.exports;
+  // The first mount, spread so every existing case keeps its old shape.
+  // `mount()` adds a second one against the same module when a case needs it.
+  const first = createInstance();
 
   return {
-    render: (ids) => usePublicProfiles(ids),
-    profiles: () => stateValue,
+    ...first,
     reads,
     readsOf: (collection) =>
       reads.filter((p) => p.startsWith(`${collection}/`)).length,
-    teardown: () => {
-      cleanedUp = true;
-      if (typeof cleanup === "function") cleanup();
-    },
-    setStateAfterCleanup: () => setStateAfterCleanup,
+    mount: createInstance,
   };
 }
 
@@ -265,6 +301,132 @@ function makeRuntime({ docs = {}, throwFor = [] } = {}) {
       "F",
       rt.setStateAfterCleanup() === 0,
       "a lookup that resolved after the screen closed still called setState",
+    );
+  }
+
+  // K. A paginated caller accumulating pages hydrates every row.
+  //
+  // E above proves the hook refuses to read more than MAX_LOOKUPS in one
+  // pass, and that refusal is deliberate: ids past the cap are published as
+  // null rather than fetched, and because `key` is derived from the ids it
+  // does not change merely because some are unresolved, so the effect does
+  // not come back for them. Handed 75 uncached ids at once, 50 hydrate and
+  // 25 do not — permanently.
+  //
+  // That is a real edge and it is NOT the one a follower list creates. A
+  // paginated caller grows its set a page at a time, and every earlier page
+  // is already in the module cache by the time the next one arrives, so the
+  // number of UNCACHED ids in any single pass is one page — never the whole
+  // accumulated list. This walks those three passes and proves both halves:
+  // every row ends up hydrated, and no individual pass exceeded the cap.
+  //
+  // The guard this leaves behind is on the relationship between FOLLOW_PAGE
+  // and MAX_LOOKUPS. Raise the page size past the cap and the first page
+  // alone would start losing faces, silently and in sort order.
+  {
+    const PAGE = Number(
+      fs
+        .readFileSync(path.join(root, "src", "hooks", "useFollowList.js"), "utf8")
+        .match(/FOLLOW_PAGE = (\d+)/)?.[1] ?? 0,
+    );
+    const cap = Number(source.match(/const MAX_LOOKUPS = (\d+)/)?.[1] ?? 0);
+    check(
+      "K",
+      PAGE > 0 && PAGE <= cap,
+      `FOLLOW_PAGE is ${PAGE} against a lookup cap of ${cap} — a page larger ` +
+        `than the cap cannot hydrate even its own first page`,
+    );
+
+    const ids = Array.from({ length: PAGE * 3 }, (_, i) =>
+      `u${String(i).padStart(3, "0")}`,
+    );
+    const docs = Object.fromEntries(
+      ids.map((id) => [id, { displayName: `N-${id}`, photoUrl: `p-${id}` }]),
+    );
+    const rt = makeRuntime({ docs });
+
+    const perPass = [];
+    for (let page = 1; page <= 3; page += 1) {
+      const before = rt.reads.length;
+      rt.render(ids.slice(0, PAGE * page));
+      await drain(600);
+      perPass.push(rt.reads.length - before);
+    }
+
+    const resolvedCount = ids.filter((id) => rt.profiles()?.[id]).length;
+    check(
+      "K",
+      resolvedCount === ids.length,
+      `after three pages only ${resolvedCount} of ${ids.length} rows hydrated`,
+    );
+    check(
+      "K",
+      perPass.every((n) => n <= cap),
+      `a single pass exceeded the lookup cap: ${JSON.stringify(perPass)}`,
+    );
+    check(
+      "K",
+      rt.reads.length === ids.length,
+      `expected each row fetched exactly once, saw ${rt.reads.length} reads ` +
+        `for ${ids.length} rows`,
+    );
+    check(
+      "K",
+      rt.readsOf("sellers") === 0,
+      "the private sellers document was read while paging",
+    );
+  }
+
+  // L. A fresh mount reads nothing and still gets the face.
+  //
+  // This is the whole return on a module-level cache, and it is the half
+  // that is easy to delete without noticing. Skipping the fetch is only
+  // worth something if the cached value still reaches the new screen's
+  // state: the effect sees nothing missing, returns early, and if the
+  // already-known values were not published on the way past, the component
+  // renders an initial for somebody whose photograph it is holding — a cache
+  // that makes the second visit WORSE than the first.
+  //
+  // Two mounts of the same module, because one instance cannot show it: the
+  // state the assertion would read is the one the first mount already
+  // filled.
+  {
+    const rt = makeRuntime({
+      docs: { u1: { displayName: "Ada Lovelace", photoUrl: "https://x/a.jpg" } },
+    });
+
+    rt.render(["u1"]);
+    await drain();
+    const afterFirst = rt.reads.length;
+    check("L", afterFirst === 1, `first mount made ${afterFirst} reads, expected 1`);
+    rt.teardown();
+
+    const second = rt.mount();
+    second.render(["u1"]);
+    await drain();
+
+    check(
+      "L",
+      rt.reads.length === afterFirst,
+      `a fresh mount re-read a cached uid: ${afterFirst} reads became ` +
+        `${rt.reads.length} — the module cache is buying nothing`,
+    );
+    check(
+      "L",
+      second.profiles()?.u1?.displayName === "Ada Lovelace",
+      "the fresh mount never received the cached displayName — the effect " +
+        "found nothing missing, returned early, and published nothing, so " +
+        "the screen shows an initial for a profile already in hand",
+    );
+    check(
+      "L",
+      second.profiles()?.u1?.photoUrl === "https://x/a.jpg",
+      "the fresh mount never received the cached photoUrl",
+    );
+    check(
+      "L",
+      rt.readsOf("sellers") === 0,
+      "the private sellers document was read on the warm mount",
     );
   }
 

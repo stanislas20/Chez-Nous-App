@@ -86,8 +86,24 @@ export function usePublicProfiles(uids) {
     if (!isFirebaseConfigured || !key) return undefined;
 
     let active = true;
-    const wanted = key.split(",").slice(0, MAX_LOOKUPS);
-    const missing = wanted.filter((uid) => !resolved.current.has(uid));
+    // The cap bounds the WORK, not the answer.
+    //
+    // It used to slice `wanted`, which is the sorted unique id list — so a
+    // caller holding more than MAX_LOOKUPS ids kept fifty of them in
+    // alphabetical order and silently lost the rest, including ids already
+    // sitting resolved in the cache. A paginated list hits that the moment it
+    // loads its third page: rows that had a face on page two render an initial
+    // on page three, chosen by nothing more meaningful than how their uid
+    // sorts.
+    //
+    // Slicing `missing` instead keeps the property the cap exists for — one
+    // pass never issues more than MAX_LOOKUPS reads — while everything the
+    // cache already holds is published. Both original callers hand over fewer
+    // ids than the cap, so for them nothing changes at all.
+    const wanted = key.split(",");
+    const missing = wanted
+      .filter((uid) => !resolved.current.has(uid))
+      .slice(0, MAX_LOOKUPS);
 
     // Publish what is already known BEFORE fetching anything, and before the
     // early return below.

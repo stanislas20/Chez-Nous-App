@@ -15,6 +15,7 @@ const { setGlobalOptions } = require("firebase-functions/v2");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const { recordNotification } = require("./recordNotification");
+const { cleanupSavesForListing } = require("./listingSaves");
 // The document half of search. Twinned with src/utils/searchTokens.js and
 // held in step by scripts/check-search-tokens.js.
 const {
@@ -1327,6 +1328,29 @@ exports.cleanupDeletedListingMedia = onDocumentDeleted(
   },
 );
 
+// ── Private Saves, when a listing is hard-deleted ──────────────────────
+//
+// Its own trigger rather than an extension of cleanupDeletedListingMedia.
+// They fire on the same event and share nothing else: one talks to Storage
+// and may leave orphaned files behind without consequence, the other talks
+// to Firestore and moves a counter that must not move twice. Folding them
+// together would mean a failure in either half retried both.
+//
+// Status changes are deliberately NOT a trigger point. Sold, archived,
+// rejected, expired and pending listings keep their Saves, because a Save
+// follows the listing DOCUMENT and those states are reversible — a renewed
+// listing would otherwise have to reconstruct counts it never should have
+// lost. Only hard deletion removes them.
+exports.cleanupDeletedListingSaves = onDocumentDeleted(
+  "listings/{listingId}",
+  async (event) => {
+    await cleanupSavesForListing(
+      event.params.listingId,
+      event.data?.data()?.sellerId ?? null,
+    );
+  },
+);
+
 // ── Chat attachments, when a message is tombstoned ──────────────────────
 //
 // Deleting a message used to leave its photograph or voice note in the
@@ -1936,29 +1960,61 @@ exports.onProfileLikeDeleted = onDocumentDeleted(
 async function applyFavouriteDelta(favourite, delta) {
   const listingId = favourite?.listingId;
   if (!listingId) return;
-  const listing = await admin
-    .firestore()
-    .collection("listings")
-    .doc(listingId)
-    .get();
-  // A favourite outliving its listing is normal (the listing was deleted);
-  // there's simply no seller left to credit.
-  if (!listing.exists) return;
-  await bumpSellerStat(listing.data()?.sellerId, "likes", delta);
 
-  // And on the listing itself, because the seller's question is not "how
-  // many likes do I have" but "why is this one not selling". A listing with
-  // views, saves and no calls is priced wrong or missing something a buyer
-  // needs before they will ring; the same listing with views and no saves
-  // was simply not wanted. The total across a profile cannot tell them
-  // which, and `favorites` is per-user private, so a seller cannot count
-  // their own listing's saves from the client — this is the only place the
-  // number can come from.
+  const db = admin.firestore();
+  const listingRef = db.collection("listings").doc(listingId);
+
+  // ONE transaction for both counters.
   //
-  // Floored at zero here for the same reason bumpSellerStat floors: a
-  // delete replayed after the counter was reset must not print "-1".
-  const current = Number(listing.data()?.saveCount) || 0;
-  await listing.ref.update({ saveCount: Math.max(0, current + delta) });
+  // These used to be two awaits: bumpSellerStat's own transaction, then a
+  // separate update on the listing. Anything that stopped the process
+  // between them — a timeout, an eviction, a thrown error on the second
+  // write — left the seller's aggregate moved and the listing's own count
+  // not, with nothing to notice or repair it. They describe the same event
+  // and now succeed or fail as one.
+  //
+  // Firestore requires every read before every write, so both documents are
+  // read up front even though only one of them is needed to decide the
+  // other's value.
+  await db.runTransaction(async (tx) => {
+    const listing = await tx.get(listingRef);
+    // A favourite outliving its listing is normal (the listing was
+    // deleted); there's simply no seller left to credit. The listing-delete
+    // cleanup has already adjusted the aggregate for all of them at once,
+    // which is why this must stay a no-op rather than decrementing again.
+    if (!listing.exists) return;
+
+    // Derived from the listing, never from the favourite: the client writes
+    // the favourite and could otherwise name whichever seller it liked.
+    const sellerId = listing.data()?.sellerId;
+    const statsRef = sellerId ? db.collection("sellerStats").doc(sellerId) : null;
+    const stats = statsRef ? await tx.get(statsRef) : null;
+
+    // On the listing itself, because the seller's question is not "how many
+    // likes do I have" but "why is this one not selling". A listing with
+    // views, saves and no calls is priced wrong or missing something a
+    // buyer needs before they will ring; the same listing with views and no
+    // saves was simply not wanted. The total across a profile cannot tell
+    // them which, and `favorites` is per-user private, so a seller cannot
+    // count their own listing's saves from the client — this is the only
+    // place the number can come from.
+    //
+    // Floored for the same reason bumpSellerStat floors: a delete replayed
+    // after the counter was reset must not print "-1".
+    const currentSaves = Number(listing.data()?.saveCount) || 0;
+    tx.update(listingRef, { saveCount: Math.max(0, currentSaves + delta) });
+
+    // A listing with no sellerId is malformed. Its own count is still
+    // worth keeping straight; there is simply nobody to credit, and
+    // inventing a target would corrupt somebody else's number.
+    if (!statsRef) return;
+    const currentLikes = Number(stats.data()?.likes) || 0;
+    tx.set(
+      statsRef,
+      { likes: Math.max(0, currentLikes + delta) },
+      { merge: true },
+    );
+  });
 }
 
 exports.onFavoriteCreated = onDocumentCreated(

@@ -114,11 +114,27 @@ if (!/useFavorites\(user\?\.uid\)/.test(stripComments(read("src/screens/SavedLis
 // ── 5-6. A dedicated counter; the legacy one untouched ──────────────────
 if (!/bumpSellerStat\(sellerId, "profileLikes", delta\)/.test(fns))
   fail("no server-maintained profileLikes counter");
-if (!/bumpSellerStat\(listing\.data\(\)\?\.sellerId, "likes", delta\)/.test(fns))
-  fail(
-    "sellerStats.likes is no longer maintained from listing favourites — that " +
-      "field is the save analytic and must keep its meaning",
+{
+  // The PROPERTY, not the spelling. This pinned the bumpSellerStat() call
+  // and so failed the moment Phase B1 moved both save counters into one
+  // transaction — a correct change the assertion mistook for a regression.
+  // What must hold is that the favourite path still maintains `likes` for
+  // the seller taken from the listing, however it writes it.
+  const favDelta = /async function applyFavouriteDelta\(([\s\S]*?)\n\}/.exec(
+    stripComments(fns),
   );
+  if (!favDelta) {
+    fail("applyFavouriteDelta is gone — listing saves no longer feed any counter");
+  } else {
+    if (!/listing\.data\(\)\?\.sellerId/.test(favDelta[1]))
+      fail("the favourite path no longer derives the seller from the listing");
+    if (!/\blikes:/.test(favDelta[1]))
+      fail(
+        "sellerStats.likes is no longer maintained from listing favourites — " +
+          "that field is the save analytic and must keep its meaning",
+      );
+  }
+}
 {
   // The profile-like trigger must not write the legacy field.
   const delta = /async function applyProfileLikeDelta\(([\s\S]*?)\n\}/.exec(fns);

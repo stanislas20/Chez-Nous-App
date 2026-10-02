@@ -51,6 +51,9 @@ const SUITES = [
   // It needs Firestore because bumpSellerStat writes there, which is why it
   // runs here rather than in the plain functions-tests runner.
   "scripts/functions-tests/profileLikeCounter.test.js",
+  // Private Saves: both counters as one, and what a hard delete takes with
+  // it. Needs Firestore for the same reason.
+  "scripts/functions-tests/listingSaveLifecycle.test.js",
 ];
 
 const result = spawnSync(

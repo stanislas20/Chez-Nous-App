@@ -187,6 +187,25 @@ async function main() {
       ),
     ),
   );
+  await check(
+    "an unrelated account cannot read somebody else's save",
+    assertFails(getDoc(doc(stranger, `favorites/${LIKER}_listing-1`))),
+  );
+  await check(
+    "nobody can sweep the favourites collection",
+    assertFails(getDocs(query(collection(stranger, "favorites")))),
+  );
+  // The server-side cleanup added in Phase B1 runs through the Admin SDK and
+  // bypasses rules by design. This proves the CLIENT still cannot run the
+  // same query the cleanup depends on.
+  await check(
+    "a listing-scoped favourite query stays closed to clients",
+    assertFails(
+      getDocs(
+        query(collection(liker, "favorites"), where("listingId", "==", "listing-1")),
+      ),
+    ),
+  );
 
   await env.cleanup();
 
